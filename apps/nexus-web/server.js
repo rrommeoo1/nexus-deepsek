@@ -8,7 +8,7 @@ import { resolveStaticRequest } from "./lib/static-policy.js";
 
 loadEnv();
 validateRuntimeConfig();
-const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule, nativeAuthSessionModule, emailAuthSessionModule] = await Promise.all([
+const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule, nativeAuthSessionModule, emailAuthSessionModule, previewTestAccountModule] = await Promise.all([
   import("./lib/db.js"),
   import("./lib/repo.js"),
   import("./lib/sse.js"),
@@ -17,6 +17,7 @@ const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule
   import("./lib/outbox.js"),
   import("./lib/native-auth-session.js"),
   import("./lib/email-auth-session.js"),
+  import("./lib/preview-test-account.js"),
 ]);
 const { openDb } = dbModule;
 const { createRepo } = repoModule;
@@ -26,6 +27,7 @@ const { send } = transportModule;
 const { createLocalOutboxHandlers, dispatchOutboxBatch } = outboxModule;
 const { purgeExpiredNativeAuthConsumptions } = nativeAuthSessionModule;
 const { purgeExpiredEmailAuthState } = emailAuthSessionModule;
+const { ensurePreviewTestAccount } = previewTestAccountModule;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(HERE, "public");
@@ -113,6 +115,7 @@ const host = process.env.HOST ?? "0.0.0.0";
 
 const db = openDb();
 const repo = createRepo(db);
+ensurePreviewTestAccount(repo);
 repo.reclassifyLegacyMedia();
 repo.failOpenCallsOnStartup();
 const sse = createSseHub();
