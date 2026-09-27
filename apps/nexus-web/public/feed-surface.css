@@ -3137,3 +3137,34 @@ body .reelViewer.viewerCommentsOpen .viewerActionRail{
   }
 }
 
+/* Reel cards have older four-column rules with greater specificity. Keep the picker attached to
+   the heart, but force all eight reactions into the same compact row on mobile. */
+.phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored{
+  display:grid!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  width:min(306px,calc(100vw - 78px))!important;min-width:0!important;max-width:none!important;
+  height:52px!important;min-height:52px!important;max-height:52px!important;
+  padding:5px!important;gap:2px!important;
+  inset:auto auto auto auto!important;right:auto!important;bottom:auto!important;
+  left:var(--reaction-popover-left,8px)!important;top:var(--reaction-popover-top,8px)!important;
+  overflow:visible!important;
+}
+.phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored button{
+  width:34px!important;min-width:0!important;height:40px!important;min-height:40px!important;
+  padding:0!important;border:0!important;border-radius:20px!important;
+  background:transparent!important;box-shadow:none!important;display:grid!important;place-items:center!important;
+}
+.phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored button span{
+  font-size:21px!important;line-height:1!important;
+}
+.phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored button small{
+  display:none!important;
+}
+.phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored button.on{
+  background:rgba(255,255,255,.13)!important;
+}
+@media(max-width:360px){
+  .phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored{
+    width:min(282px,calc(100vw - 70px))!important;padding-inline:3px!important;gap:1px!important;
+  }
+}
+
