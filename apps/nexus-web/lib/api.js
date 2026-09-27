@@ -913,7 +913,10 @@ export async function handleRequest(req, res, ctx) {
     const handle = sanitizeText(body.handle, 30).replace(/^@/, "").toLowerCase();
     const rate = enforceAuthRate(req, res, "email-signup", "", { limit: 5, windowMs: 60 * 60 * 1000 });
     if (!rate.allowed) return;
-    if (process.env.NODE_ENV === "production") {
+    const previewEmailSignupEnabled = String(process.env.NEXUS_DEPLOYMENT_MODE ?? "")
+      .trim()
+      .toLowerCase() === "preview";
+    if (process.env.NODE_ENV === "production" && !previewEmailSignupEnabled) {
       return json(res, 503, { ok: false, error: "înregistrarea prin email așteaptă un provider de verificare configurat" });
     }
 
