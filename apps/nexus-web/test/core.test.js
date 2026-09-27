@@ -404,6 +404,15 @@ test("production runtime configuration fails closed before auth modules start", 
   assert.throws(() => validateRuntimeConfig({ ...valid, NEXUS_DATA_DIR: "relative-data" }), /NEXUS_DATA_DIR/);
   assert.throws(() => validateRuntimeConfig({ ...valid, NEXUS_WC_PROJECT_ATTESTED: "false" }), /NEXUS_WC_PROJECT_ATTESTED/);
   assert.throws(() => validateRuntimeConfig({ ...valid, NEXUS_WC_ATTESTED_ORIGINS: "https://other.example" }), /NEXUS_WC_ATTESTED_ORIGINS/);
+  const preview = {
+    ...valid,
+    NEXUS_DEPLOYMENT_MODE: "preview",
+    NEXUS_WC_PROJECT_ID: "",
+    NEXUS_WC_PROJECT_ATTESTED: "false",
+    NEXUS_WC_ATTESTED_ORIGINS: "",
+  };
+  assert.deepEqual(validateRuntimeConfig(preview), { ok: true, mode: "preview" });
+  assert.throws(() => validateRuntimeConfig({ ...preview, NEXUS_SESSION_SECRET: "short" }), /NEXUS_SESSION_SECRET/);
 });
 
 test("WalletConnect readiness requires format, Dashboard attestation and exact origin", () => {

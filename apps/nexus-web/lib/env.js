@@ -43,12 +43,16 @@ export function walletConnectAttestation(env = process.env, origin = "") {
 
 export function validateRuntimeConfig(env = process.env) {
   if (env.NODE_ENV !== "production") return { ok: true, mode: "local" };
+  const deploymentMode = String(env.NEXUS_DEPLOYMENT_MODE ?? "production").trim().toLowerCase();
+  const isPreview = deploymentMode === "preview";
   const failures = [];
   if (String(env.NEXUS_SESSION_SECRET ?? "").length < 32) failures.push("NEXUS_SESSION_SECRET");
-  if (!/^[a-f0-9]{32}$/i.test(String(env.NEXUS_WC_PROJECT_ID ?? ""))) failures.push("NEXUS_WC_PROJECT_ID");
-  const wcAttestation = walletConnectAttestation(env, env.NEXUS_ORIGIN);
-  if (!wcAttestation.dashboardAttested) failures.push("NEXUS_WC_PROJECT_ATTESTED");
-  if (!wcAttestation.originAttested) failures.push("NEXUS_WC_ATTESTED_ORIGINS");
+  if (!isPreview) {
+    if (!/^[a-f0-9]{32}$/i.test(String(env.NEXUS_WC_PROJECT_ID ?? ""))) failures.push("NEXUS_WC_PROJECT_ID");
+    const wcAttestation = walletConnectAttestation(env, env.NEXUS_ORIGIN);
+    if (!wcAttestation.dashboardAttested) failures.push("NEXUS_WC_PROJECT_ATTESTED");
+    if (!wcAttestation.originAttested) failures.push("NEXUS_WC_ATTESTED_ORIGINS");
+  }
   if (!String(env.NEXUS_ACCEPTED_ORIGINS ?? "").trim()) failures.push("NEXUS_ACCEPTED_ORIGINS");
   if (env.NEXUS_RATE_LIMIT_MODE !== "trusted-edge") failures.push("NEXUS_RATE_LIMIT_MODE");
   if (env.NEXUS_TRUST_PROXY !== "1") failures.push("NEXUS_TRUST_PROXY");
@@ -61,5 +65,5 @@ export function validateRuntimeConfig(env = process.env) {
     failures.push("NEXUS_ORIGIN");
   }
   if (failures.length) throw new Error(`production runtime configuration invalid: ${[...new Set(failures)].join(",")}`);
-  return { ok: true, mode: "production" };
+  return { ok: true, mode: isPreview ? "preview" : "production" };
 }
