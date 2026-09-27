@@ -1,0 +1,269 @@
+schema_version: 1
+task_id: NX-TRUST-P01
+review_id: NX-TRUST-P01-C06-20260816-FINAL02
+reviewer_roles: [C06]
+required_control_scope: [C01, C02, C04, C05, C06, C10]
+risk_class: T0
+review_mode: independent_adversarial_read_only_retest
+independence: independent_of_owner_A32
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+finalized: true
+incremental_cost: {amount: 0, currency: EUR}
+
+supersession:
+  previous_review_id: NX-TRUST-P01-C06-20260816-RESTART01
+  previous_decision: CHANGES_REQUIRED
+  previous_subject_sha256: 504bb4d920835e22c4eb0665de865cfa924f5365b6a9e25419be6ba39fda84c1
+  current_subject_sha256: 8fd49203d8aa374edd44e7cf70542e85c9070299a9de006c3efe270f9e545968
+  current_subject_only: true
+
+owner_evidence:
+  path: planning/evidence/NX-TRUST-P01-validation.json
+  sha256: da7d0cbbb4ab00b50ad07aab78ec68d962e7cc5fd4cc5e357be17e324e0a69c2
+  run_id: NX-TRUST-P01-20260816-OWNER04
+  executor_role: A32
+  status: PASS
+  assertions: 206
+  scenario_assertions: 75
+  deterministic_repetitions: 3
+  artifact_count: 23
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 8fd49203d8aa374edd44e7cf70542e85c9070299a9de006c3efe270f9e545968
+  expected_review_subject_sha256: 8fd49203d8aa374edd44e7cf70542e85c9070299a9de006c3efe270f9e545968
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-trust-lens.ps1
+  run_id: NX-TRUST-P01-20260816-C06-FINAL02
+  executor_role: C06
+  process_execution_policy: Bypass
+  status: PASS
+  assertions: 206
+  scenario_assertions: 75
+  deterministic_repetitions: 3
+  failures: 0
+  review_subject_sha256: 8fd49203d8aa374edd44e7cf70542e85c9070299a9de006c3efe270f9e545968
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+artifact_binding:
+  status: PASS
+  artifact_count: 23
+  mismatches: 0
+  subject_recomputed_from_sorted_path_hash_lines: true
+  artifact_sha256:
+    packages/trust-lens/api/index.ts: 147d3dcdd9a680717f48eccb74fc9aa0bf523fdd92500cefe40e4a7e97fb41d3
+    packages/trust-lens/api/index.test.ts: 67b8143caeda31c6dc7bdef08ac11944a72e7695b85a81fc0645212b0d57a17d
+    packages/trust-lens/api/trust-lens-contract.v1.json: 78302da5403f22e6b7d0390d4ee0dd15b20963ba4e66c1d5ee60cba71e297a49
+    docs/04-security-compliance.md: 52195c00add418a59066ad8ab5cb8c6f41d60e8c6ae5162728c55afc4e0ca8cc
+    docs/15-recommendations-clips-watch-live-kids.md: f37e864f7b1bf9edcbd817208afbf91bc3191ebbb45bae8c3794bb632c6d9b0f
+    docs/research-continuous-assurance.md: 0d314fb9f8721ee84bdb6c3d4d103da0d7c76846d9648fd536d75f1776558062
+    docs/research-data-security-compliance.md: 92e8b203b8ca124c8b706cda7ec350411e99f1d014eeec701d28548ae381fdf5
+    AGENTS.md: a2091ac4c3e7b1435c8fceec398e9bd8dd066c3d2317871d355f39d0cf21cec0
+    planning/backlog-p0.yaml: 4f0a41e09d6668d0813df2bd85b6bc19e470af83f07e4722e96294866b2bb27c
+    planning/backlog-p1.yaml: 424f2ca1bca4a7f8e4143799256cfe5dca07250cd0b908d47cd0d39ed05a764d
+    planning/capacity-scorecard.yaml: 416e2d333fa46a7e57f091a3f17a6f42b9de96b933b50c7009af6065a2f493fb
+    planning/product-progress.yaml: 2df71f545cf0002525446ad48cb9c0e5b60df34303b7f5e9dc061ac2d6dcccce
+    planning/checkpoints/NX-TRUST-P01.md: 6702734067c4e4b039882f5ec32cd9753692fba603a142db730f9ba4caee03e5
+    planning/spend-control.yaml: b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c
+    planning/evidence/NX-SEC-001-validation.json: 1f527a4af477dbd6b4cc1c0717d9aa26b8f4befae34f3095968a0d14ea6a6cf8
+    planning/evidence/NX-OBS-001-validation.json: d03311eae3c5cd4927db5c0adbd1ac733ddf32b4c75490d85e81ac28f01abe38
+    planning/evidence/NX-MOD-P01-validation.json: 051793b880182fdca0b10db47f93c44a664ab15c98509330ed199da0fa09cf79
+    planning/evidence/NX-PROFILE-P01-validation.json: 984dc00697af6c56f85dd63e1342e4b7ed0220ccbe0d82c6e4dd64a3a7a6da3f
+    planning/evidence/NX-SOCIAL-P01-validation.json: 781d140367c763b0eec30897549e980ad188c4c8937660d85ab46895e83b6f81
+    planning/evidence/NX-LIVE-P01-validation.json: 33cef4be1c44303fdbdff6c47dfba0a8a29d1a31a47607d945359c4c8b617edf
+    packages/contracts/node_modules/typescript/bin/tsc: 8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0
+    packages/contracts/package-lock.json: 8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b
+    planning/validate-trust-lens.ps1: 9a0bde41314d3bbb818dcc5168c31b1c63b251c34018cbe7aab0b8906e9b7692
+
+independent_adversarial_assessment:
+  mode: validator_plus_in_memory_registry_collision_probe_plus_static_state_machine_review
+  subject_code_modified: false
+  authority_roots:
+    valid_registry_signed: true
+    same_key_id_denied: true
+    same_fingerprint_under_different_ids_denied: true
+    authority_lineage_collision_denied: true
+    administrative_domain_collision_denied: true
+    revoked_root_denied: true
+    inactive_root_denied_at_evaluation: true
+    substituted_root_denied_at_evaluation: true
+    substituted_registry_denied_at_restore: true
+    registry_authority_colocation_denied: true
+  immutable_evidence:
+    configured_authority_signature_required: true
+    content_category_hash_and_expiry_bound: true
+    evidence_observed_not_after_signal_assessment: true
+    receipt_expiry_not_after_evidence_expiry: true
+    rogue_authority_denied: true
+    restore_revalidates_attestation_and_registry: true
+  policy_governance:
+    version_2_to_version_1_without_authorization_denied: true
+    same_version_alternate_commitment_denied: true
+    exact_signed_rollback_accepted_once: true
+    rollback_binds_country_scope_from_to_ids_versions_commitments: true
+    rollback_expiry_and_nonce_checked: true
+    rollback_replay_denied: true
+    lower_version_denied_after_restore: true
+    same_version_alternate_denied_after_restore: true
+    consumed_rollback_replay_denied_after_restore: true
+  model_governance:
+    signed_manifest_required: true
+    unknown_or_rogue_manifest_denied: true
+    registry_id_version_and_authority_fingerprint_bound: true
+    country_surface_and_purpose_scope_bound: true
+    lower_version_denied: true
+    same_version_alternate_commitment_denied: true
+    same_content_generation_model_substitution_denied: true
+    exact_signed_rollback_accepted_once: true
+    rollback_replay_denied: true
+    heads_and_consumption_reconstructed_after_restore: true
+  baseline_regressions:
+    single_critical_probabilistic_vote_outcome: PUBLISH_LABEL
+    two_high_votes_outcome: TEMPORARY_HOLD
+    immutable_attested_allowlisted_match_outcome: BLOCK_IMMUTABLE
+    political_viewpoint_pair_equal: true
+    ideology_inference_absent: true
+    sensitive_political_targeting_allowed: false
+    content_signal_evidence_policy_now_causality: true
+    exact_shape_and_boolean_strictness: true
+    canonical_signature_normalization: true
+    replay_denied: true
+    concurrent_duplicate_commits: 1
+    snapshot_prefix_denied_against_expected_checkpoint: true
+    snapshot_reorder_denied: true
+    snapshot_fabrication_denied: true
+    restore_toctou_isolated: true
+    ordered_receipt_lineage_recomputed_on_restore: true
+    network_provider_economic_organic_real_fund_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: The owner Evidence Pack SHA-256 matches FINAL02, all twenty-three current artifact hashes match, and the sorted path-hash subject independently recomputes to the expected digest.
+  immutable_evidence_authority_independence:
+    status: PASS
+    evidence: A signed registry binds four distinct roles to unique key IDs, public-key fingerprints, authority lineages and administrative domains; runtime validation also excludes co-location with the registry authority and checks activation, expiry and revocation fail-closed.
+  immutable_evidence_exact_binding:
+    status: PASS
+    evidence: The attestation is signed by the registered evidence root and binds registry version, fingerprint, content, category, attestation hash, observation time and expiry; evaluation and restore reject rogue or substituted evidence.
+  probabilistic_detector_safety:
+    status: PASS
+    evidence: One probabilistic detector can only label, independent high votes can only hold, and final immutable blocking requires verified evidence from the independent allowlisted path.
+  political_neutrality:
+    status: PASS
+    evidence: Viewpoint-equivalent inputs produce equal outcomes, the decision state has no ideology branch or score, and policy parsing forbids opinion inference and sensitive political targeting.
+  causality_and_expiry:
+    status: PASS
+    evidence: Content creation, signal assessment, evidence observation, model activation, policy activation, decision time and all expiries are ordered fail-closed, with the receipt expiring no later than policy, signals, model manifest or immutable evidence.
+  policy_head_and_rollback:
+    status: PASS
+    evidence: Per-country heads reject lower versions and same-version alternate commitments; only an exact, separately signed, expiring and one-time rollback can move backward, and restore reconstructs both the head and consumed authorization state.
+  model_head_and_rollback:
+    status: PASS
+    evidence: Signed manifests are registry-root, country, surface and purpose bound; per-scope heads reject unknown, lower or same-version-alternate state, exact rollback is one-time, and restore reconstructs model heads and rollback consumption.
+  replay_shape_normalization_and_atomicity:
+    status: PASS
+    evidence: Content generation is the one-time decision key regardless of policy or model substitution, concurrent duplicates serialize, exact shapes and booleans are strict, normalized signed structures are stable, and all durable state mutation occurs after validation and receipt construction.
+  snapshot_and_receipt_lineage:
+    status: PASS
+    evidence: Snapshot input is captured before await, registry and checkpoint signatures are verified, each event is re-evaluated in ordinal order, receipt previous-hash lineage and event hashes must reproduce exactly, and prefix, reorder, fabrication, registry substitution and TOCTOU cases fail closed.
+  zero_effects:
+    status: PASS
+    evidence: Static capability screening and the C06 run show zero credential-name matches, network, provider, economic, organic, real-fund and incremental-cost effects for SYSTEM_TEST actors.
+
+findings:
+  - id: C06-TRUST-P01-001
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Immutable evidence authority independence is now enforced by a signed, role-separated trust-root registry.
+    closure_locations:
+      - packages/trust-lens/api/index.ts:23
+      - packages/trust-lens/api/index.ts:128
+      - packages/trust-lens/api/index.ts:324
+      - packages/trust-lens/api/index.ts:369
+      - packages/trust-lens/api/index.ts:393
+    closure_evidence:
+      - Registry parsing rejects duplicate key IDs, fingerprints, lineages and administrative domains.
+      - Runtime registry validation binds every supplied authority to its role and rejects inactive roots and co-location with the registry authority.
+      - Independent collision probes deny same key ID, same fingerprint under different IDs, lineage collision, administrative-domain collision and revoked roots.
+      - Evaluation and restore revalidate registry signatures, root bindings and evidence authority fingerprints.
+
+  - id: C06-TRUST-P01-002
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Country policy heads now reject rollback and same-version equivocation unless an exact one-time rollback is authorized.
+    closure_locations:
+      - packages/trust-lens/api/index.ts:37
+      - packages/trust-lens/api/index.ts:309
+      - packages/trust-lens/api/index.ts:338
+      - packages/trust-lens/api/index.ts:375
+      - packages/trust-lens/api/index.ts:401
+    closure_evidence:
+      - Policy state is keyed per country and compares policy ID, version and full signed commitment.
+      - Lower versions and same-version alternate commitments are rejected without a matching rollback authorization.
+      - Rollback authorization binds the exact scope and from/to IDs, versions and commitments, plus trust registry, authority fingerprint, time window and nonce.
+      - Authorization ID and scoped nonce are consumed once; event replay during restore reconstructs heads and consumption before new decisions.
+      - Owner and C06 runs prove unauthorized v2-to-v1 denial, equivocation denial, exact authorized rollback, replay denial and post-restore denial.
+
+  - id: C06-TRUST-P01-003
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Model sets now use signed scoped manifests, monotonic heads and exact one-time rollback controls.
+    closure_locations:
+      - packages/trust-lens/api/index.ts:31
+      - packages/trust-lens/api/index.ts:140
+      - packages/trust-lens/api/index.ts:234
+      - packages/trust-lens/api/index.ts:310
+      - packages/trust-lens/api/index.ts:362
+      - packages/trust-lens/api/index.ts:373
+    closure_evidence:
+      - The registered model authority signs an exact manifest containing identity, version, model commitment, purpose, country, surface, validity window, registry version and authority fingerprint.
+      - Per-country-surface-purpose heads reject lower versions and same-version different commitments; an unknown or rogue manifest fails signature or root binding.
+      - Content ID and generation form the replay key, so changing the model or policy cannot reevaluate the same generation.
+      - Exact model rollback is separately authorized, consumed once and reconstructed from signed event history on restore.
+      - Owner and C06 runs prove model rollback, equivocation, same-content substitution and post-restore rollback replay are denied.
+
+findings_summary:
+  total: 3
+  open: 0
+  closed: 3
+  critical: 0
+  high: 3
+  new_findings: 0
+
+accepted_controls:
+  - FINAL02 owner evidence, all artifact hashes and the content-addressed review subject match exactly.
+  - C06 independently reproduced 206 controls and 75 scenario assertions in three identical repetitions.
+  - All three previous T0 findings have implementation, deterministic negative regression and restore evidence and are closed on this subject.
+  - Immutable evidence, probabilistic safety, political neutrality, causal windows, exact receipt binding, replay protection and snapshot lineage remain passing.
+  - SYSTEM_TEST isolation and zero external, provider, economic, organic, real-fund and incremental-cost effects hold.
+
+acceptance_blockers: []
+
+claims_excluded:
+  - production_moderation
+  - real_ml_inference
+  - external_ml_or_fact_check_providers
+  - trusted_flagger_endpoint
+  - real_user_or_provider_data
+  - legal_opinion
+  - formal_dsa_audit
+  - on_chain_anchor
+  - human_appeal_staffing
+  - human_staffing_sla
+
+residual_scope_notes:
+  - PASS applies only to the content-addressed local deterministic SYSTEM_TEST subject and is not a production moderation or legal certification.
+  - Real ML quality, provider operations and independence, real evidence feeds and user data, formal DSA audit, legal opinion and staffed human appeals remain external gates.
+  - Production trust-root distribution, revocation propagation and cross-instance consensus require later production controls; the reviewed fixture fails closed for inactive, revoked or substituted roots.
+  - No finding remains open and no new finding was identified on FINAL02.

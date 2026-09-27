@@ -1,0 +1,38 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "evidence_id": "NX-WEB-SOCIAL-P01-neural-redesign-v3",
+  "created_at": "2026-08-26T00:00:00+02:00",
+  "scope": [
+    "apps/nexus-web/public/styles.css",
+    "apps/nexus-web/public/app.js",
+    "apps/nexus-web/public/index.html",
+    "apps/nexus-web/test/audit.test.js",
+    "planning/evidence/screenshots/nexus-neural45-login.png",
+    "planning/evidence/screenshots/nexus-neural45-social.png"
+  ],
+  "change_summary": [
+    "Applied a stronger Neural Glass v3 visual layer aligned with the provided high-fidelity Nexus concept references.",
+    "Added a geometric Nexus logo mark to landing and app header through the final CSS layer.",
+    "Reworked clip comment preview markup into floating glass slabs with avatar, text and reaction count.",
+    "Expanded premium treatment for login, header switches, orbital stories, full-screen clip viewport, right action gravity wells, bottom dock, selectors, messages and empty states.",
+    "Updated cache bust to 20260826-neural45."
+  ],
+  "verification": {
+    "node_check_app_js": "passed",
+    "node_test_audit": "20/20 passed",
+    "local_http_root": "served index.html containing 20260826-neural45",
+    "screenshots_generated": [
+      "planning/evidence/screenshots/nexus-neural45-login.png",
+      "planning/evidence/screenshots/nexus-neural45-social.png"
+    ]
+  },
+  "known_gap": "The demo is now visibly closer to the concept, but exact parity with the supplied high-fidelity images requires component-level HTML/layout refactoring per screen, not only final CSS overrides.",
+  "hashes_sha256": {
+    "apps/nexus-web/public/styles.css": "069811C9020A729D5E97726817DDA8E88A44909461FFD110D077002CB015E67D",
+    "apps/nexus-web/public/app.js": "9E99E4A242271683F52A42531DE80E9A0249FD94BEF1FB2DD519B19DC37BE43E",
+    "apps/nexus-web/public/index.html": "73A38F9EF77E898FCB0F226920226FBEECE6C6F3F7BAC03E06FDF2833A2DE28A",
+    "apps/nexus-web/test/audit.test.js": "693ABA677E69EBBA1EFFD3B17C6D3094D863EE6FC8684819808FA18BD4C85227",
+    "planning/evidence/screenshots/nexus-neural45-login.png": "155ABDF050538BD25234037F08F740DA4DB6C8870672C7A3551C9E78BBD9375A",
+    "planning/evidence/screenshots/nexus-neural45-social.png": "055672259D274B1ACAFA9DBEE1C249E015E74C4A376A8CC5881EEE68E24CD3E5"
+  }
+}

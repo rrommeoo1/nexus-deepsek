@@ -1,0 +1,109 @@
+{
+  "packet": "NX-WEB-SOCIAL-RELEASE-READINESS-018",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_release_check",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Production configuration gates, isolated production boot, probes, documentation and release manifest",
+  "controls": {
+    "production_boot": {
+      "session_secret_minimum": true,
+      "https_origin_required": true,
+      "walletconnect_attestation_required": true,
+      "trusted_edge_required": true,
+      "trusted_proxy_explicit": true,
+      "absolute_persistent_data_dir_required": true,
+      "insecure_account_api_denied": true
+    },
+    "health": {
+      "production_probe_minimal": true,
+      "product_counts_redacted": true,
+      "provider_state_redacted": true,
+      "local_diagnostics_retained": true
+    },
+    "release_check": {
+      "full_test_suite": true,
+      "synthetic_actor_lab": 1000,
+      "isolated_temporary_database": true,
+      "database_integrity": true,
+      "production_process_boot": true,
+      "temp_state_removed": true
+    },
+    "documentation": {
+      "truthful_local_release_candidate": true,
+      "production_steps": true,
+      "migrations_and_backup": true,
+      "external_gates_listed": true,
+      "no_placeholder_secret": true
+    }
+  },
+  "verification": {
+    "release_check": {
+      "gate": "PASS",
+      "node": "24.19.0",
+      "test_files": 13,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_health": "PASS",
+      "insecure_api_denied": true,
+      "isolated_data": true
+    },
+    "full_tests": { "passed": 132, "failed": 0 },
+    "static_release_tests": { "passed": 24, "failed": 0 },
+    "runtime": {
+      "pid": 12700,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The unauthenticated production health endpoint exposed product counts and provider configuration state.",
+      "resolution": "Production health now returns only service readiness and time; regression coverage proves counts and OAuth state are absent."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Production could default to an application-relative data directory without proving persistent storage or backup ownership.",
+      "resolution": "Production now requires an explicit absolute NEXUS_DATA_DIR; release smoke uses an isolated absolute directory and verifies integrity."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Trusted-edge rate limiting could be declared without also enabling the proxy-aware client/transport path.",
+      "resolution": "Production validation now requires both trusted-edge mode and NEXUS_TRUST_PROXY=1; deployment documentation requires direct-process firewalling and header overwrite."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The README materially overstated old demo capabilities and reported an obsolete test count.",
+      "resolution": "Replaced it with a truthful release-candidate runbook, current feature inventory, data policy and explicit external gates."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/env.js": "7b96eff51c4d8b9775e2589b3532470297fce088e2d969355ece840bdab76bd1",
+    "apps/nexus-web/lib/db.js": "e7ecdc15424c1e92808df07e68c85a90a074bf6857553f1286abcabb401ac852",
+    "apps/nexus-web/lib/api.js": "c50d5c30cec9da08ddd5495fcfcb3c9e098208c7cc0a3032d2e73daff65e059b",
+    "apps/nexus-web/.env.example": "8678c11f4bec77667f1976e63270e8d8eb3aaf78b9efa13d3ca4c7501c29800c",
+    "apps/nexus-web/scripts/release-check.mjs": "e49c3603639e2be4989ebf093c2f45ffb4623d37033fb31a5a8cbf35864d1af0",
+    "apps/nexus-web/package.json": "e62356b637aa57867cb7562bd0e26533d248ed59560bad3eacdf2a21edab9191",
+    "apps/nexus-web/README.md": "82402bcc5d045eae4b1bd193978a896a07c9d9210e8a877cf17d54997238397f",
+    "apps/nexus-web/test/core.test.js": "5b4af9f2baf33f2aa66000baf42f3bbd5ee59ad5513d9bbf7a92252b52e33e52",
+    "apps/nexus-web/test/audit.test.js": "7032000116fdb443400e75309ccc3b6feb546094b102b594c0d09941bc759db0"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING"
+  },
+  "local_release_readiness_gate": "PASS",
+  "public_release_gate": "BLOCKED_BY_DECLARED_EXTERNAL_GATES",
+  "remaining_external_gates": [
+    "trusted production HTTPS edge and distributed rate limiter",
+    "real WalletConnect project/origin attestation",
+    "independent T0/T1 security and privacy review",
+    "Live SFU/ingest/transcoding/moderation",
+    "formal legal review and provider contracts"
+  ],
+  "next_packet": "NX-WEB-SOCIAL-COMPLETION-GAP-MATRIX-019"
+}

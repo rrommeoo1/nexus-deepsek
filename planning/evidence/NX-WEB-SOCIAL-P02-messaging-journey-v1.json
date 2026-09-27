@@ -1,0 +1,100 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-MESSAGING-JOURNEY-014",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Unified inbox and conversation authorization/error journeys",
+  "controls": {
+    "authorization_loading": {
+      "message_composer_default": "DISABLED",
+      "attachment_default": "DISABLED",
+      "e2ee_toggle_default": "DISABLED",
+      "video_call_default": "DISABLED",
+      "audio_call_default": "DISABLED",
+      "meeting_default": "DISABLED",
+      "authorization_source": "server_conversation_membership_and_state"
+    },
+    "recovery": {
+      "inbox_error_distinct_from_empty": true,
+      "inbox_retry": true,
+      "thread_error_distinct_from_empty": true,
+      "thread_retry": true,
+      "thread_back_on_failure": true,
+      "new_conversation_escape_close": true
+    },
+    "existing_messaging_gates": {
+      "username_addressing": true,
+      "direct_and_group": true,
+      "request_accept_decline": true,
+      "message_receipts": true,
+      "typing_state": true,
+      "disappearing_messages": true,
+      "resumable_attachment_upload": true,
+      "e2ee_text_device_coverage": true,
+      "direct_webrtc_calls": true,
+      "scheduled_meetings": true,
+      "external_share": "DENY"
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_core_and_static_tests": { "passed": 84, "failed": 0 },
+    "full_tests": { "passed": 128, "failed": 0 },
+    "mobile_browser_qa": {
+      "viewport": "390x844",
+      "unified_inbox_visible": true,
+      "box_filters": ["Conversații", "Cereri", "Trimise"],
+      "persona_filters_visible": true,
+      "truthful_empty_state": true,
+      "new_conversation_dialog_opened": true,
+      "escape_closed_dialog": true,
+      "inbox_preserved_after_close": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 11036,
+      "listen_address": "0.0.0.0",
+      "local_http": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p2msg1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Conversation mutation controls were enabled before the server confirmed membership and request state, and remained enabled after a load failure.",
+      "resolution": "All send, attachment, encryption, call and meeting controls now start disabled and are enabled only by an authorized conversation response."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Inbox transport failures were presented as a legitimate empty inbox.",
+      "resolution": "Added a separate error state with a local retry action."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Thread failures left a blank header and no clear recovery path.",
+      "resolution": "Added explicit unavailable state, back path and retry while mutation controls stay disabled."
+    },
+    {
+      "severity": "LOW",
+      "finding": "The new-conversation dialog lacked a keyboard escape path and initial focus.",
+      "resolution": "Made the dialog focusable, focused it on open and added Escape close."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "4e074952fb5d5ee1fca62e4594c88da478a848bc1fd08ea4b3fa6efb17b3af8a",
+    "apps/nexus-web/public/p2-messaging.css": "3de60de7efd5c576f2e418bedc19c78e08a7287f1aaf87f2ec7ba8845f2fc65b",
+    "apps/nexus-web/public/index.html": "27ec6b8e8081f4e36dbb537b2789c0f6d4071eb6383504bca5671c725fb308af",
+    "apps/nexus-web/test/audit.test.js": "7a534138e0ba97c0e6c2ef1db80ca4ce91354d920b00a2bcb8ee21a452652691"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p2_messaging_journey_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LIVE-PREVIEW-015"
+}

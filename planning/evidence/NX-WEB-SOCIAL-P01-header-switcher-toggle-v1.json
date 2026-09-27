@@ -1,0 +1,80 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "header-switcher-toggle-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "user_request": "Header switchers should close when the same button is pressed a second time; applies to all three header buttons.",
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "openProfileSwitcher(), openSocialFeedSwitcher() and openSocialFriendsSwitcher() now toggle: if their backdrop already exists, the second click closes it."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Opening one header switcher closes the other header switchers to avoid overlapping sheets."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Static assets bumped to 20260825-social41."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Static assertions added for mode/feed/friends toggle guards and social41 cache bust."
+    }
+  ],
+  "verification": {
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social41_index": true,
+        "mode_toggle": true,
+        "feed_toggle": true,
+        "friends_toggle": true,
+        "cross_close_profile": true,
+        "tests_updated": true
+      },
+      "syntax": {
+        "app.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social41",
+      "observed": {
+        "script": "http://192.168.1.153:3000/app.js?v=20260825-social41",
+        "mode_toggle": {
+          "after_first_click": 1,
+          "after_second_click": 0
+        },
+        "feed_toggle": {
+          "after_first_click": 1,
+          "after_second_click": 0
+        },
+        "friends_toggle": {
+          "after_first_click": 1,
+          "after_second_click": 0
+        },
+        "cross_close": {
+          "feed_open_before_friends": 1,
+          "feed_closed_after_friends": 0,
+          "friends_open": 1
+        },
+        "final_open_switchers": {
+          "mode": false,
+          "feed": false,
+          "friends": false
+        }
+      }
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "1339F6BE75E67175E245ED59FA9CC283336FB4F740DDF50D5F603D64F1A5633F",
+    "apps/nexus-web/public/index.html": "CAED89DA3CA87A7CE5AD9228CE9042D51CE438B06E7E28770E89EBBD9425FE6F",
+    "apps/nexus-web/test/audit.test.js": "06E11E1C2F822E8FE6DAB1F81CC00BFE951918665A1DC96EAE9D2738D55D8B1D"
+  },
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "external_services": false
+  }
+}

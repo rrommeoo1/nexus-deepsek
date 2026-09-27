@@ -1,0 +1,41 @@
+schema_version: 1
+task_id: NX-ARCH-001
+reviewer_role: A20
+review_type: peer_multiversx_supernova_final_snapshot
+decision: PASS
+run_id: NX-ARCH-001-20260802T093922077Z-343e8748
+validator_status: PASS
+assertions: 1180
+failures: 0
+import_cycles: 0
+evidence_hash_comparison:
+  A00: {matches: 4, mismatches: 0}
+  A10: {matches: 4, mismatches: 0}
+  A12: {matches: 4, mismatches: 0}
+blocking_findings: []
+closed_findings:
+  - id: A20-ARCH-001
+    disposition: CLOSED
+    reason: A10 now covers the current snapshot and A00, A10 and A12 match all four hashes.
+deferred_findings:
+  - id: A20-ARCH-002
+    target_tasks: [NX-CONTRACT-001, NX-CHAIN-002]
+    severity: MEDIUM
+    blocking: false
+    reason: Specify reorg, duplicate delivery and provisional event projection rollback semantics.
+  - id: A20-ARCH-003
+    target_task: NX-CONTRACT-001
+    severity: MEDIUM
+    blocking: false
+    reason: Version outcome events with adapter/runtime version and idempotency key.
+  - id: A20-ARCH-004
+    target_task: NX-CONTRACT-001
+    severity: LOW
+    blocking: false
+    reason: Reconcile the Rust contract inventory with normative product contracts before scaffold freeze.
+evaluated_artifact_sha256:
+  architecture/bounded-contexts.yaml: a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277
+  architecture/ADR-0001-monorepo-boundaries.md: 2d576dc7f4ed0a6658b7af9ba90aa0acc3aac7a895116d7b4c44a09ce63d81cf
+  planning/backlog-p1.yaml: 9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab
+  planning/validate-architecture.ps1: e2a26b563f8b60b575cf0aea7340ae0c1a8345d61170b1563b6c5490576bbced
+files_modified: []

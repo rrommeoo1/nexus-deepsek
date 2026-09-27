@@ -1,0 +1,92 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-RESUMABLE-UPLOAD-PUBLISH-RECOVERY-044",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_interface_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["browser_resumable_upload", "social_publish", "message_attachment_callers", "profile_media_callers"],
+    "catalog_parity_enforced": true,
+    "create_key_persisted_before_dispatch": true,
+    "stable_part_and_completion_keys": true,
+    "uncertain_status_preserves_resume_state": true,
+    "completed_session_replay_supported": true,
+    "terminal_session_restart_requires_authoritative_status": true,
+    "upload_protocol_validated_before_parts": true,
+    "publish_key_stable_for_unchanged_form": true,
+    "publish_key_rotates_on_edit": true,
+    "duplicate_submit_blocked": true,
+    "raw_backend_upload_errors_rendered": false,
+    "external_share_enabled": false,
+    "production_object_storage_enabled": false,
+    "cache_generation": {
+      "app_and_locale": "20260904-p1locale8",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_core_audit_resumable_tests": { "passed": 116, "failed": 0 },
+    "product_full_tests": { "passed": 210, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "upload_simulation": {
+      "isolated_concurrent_actors": 100,
+      "covered": ["interruption", "resume", "idempotency_conflict", "cancellation", "assembly_retry", "exactly_once_outbox"]
+    },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "real_device_interruption_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Upload create idempotency was persisted only after a successful response, allowing duplicate sessions after a lost response.",
+      "resolution": "The complete resume envelope is durably stored before create dispatch and the same key is reused."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A failed upload-status request deleted uncertain local resume state.",
+      "resolution": "Uncertain state is preserved and only an authoritative terminal state permits a clean restart."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Retrying Social publication generated a new mutation identity and could duplicate a committed post after a lost response.",
+      "resolution": "Unchanged form content reuses one publish key; input edits rotate the key and duplicate submits are blocked."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Upload failures could escape browser composer, messaging or profile handlers as unhandled promise rejections.",
+      "resolution": "All current browser upload callers catch bounded client errors and return recoverable feedback."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Upload protocol fields and progress/error strings were trusted or displayed inconsistently.",
+      "resolution": "Session structure is validated before byte upload and the bounded state model uses stable RO/EN/PL/AR catalogue messages."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "47704ba8caa839c4b0395df556f1664f6fac44e0a88360d4f25eb404d8835072",
+    "apps/nexus-web/public/app.js": "a9c5ae3045b53776dd71674480a93e646eb7bda14073e0e2516cdaeb35ca384c",
+    "apps/nexus-web/public/styles.css": "726a5ed26beb34bf7f56cf6c9af899894135846d5bf5a08265278e55633303e0",
+    "apps/nexus-web/public/index.html": "3b5b15cfd319128d0c3530ad427d898a3374b2391f0da9548a1e3b4d6926e323",
+    "apps/nexus-web/test/audit.test.js": "8cdcc6dced418f9110a011c306018e8aff8fa64121a8237e37a5b17381e6cab9",
+    "planning/NX-WEB-SOCIAL-resumable-upload-publish-recovery-v1.md": "a63e9285dd481eb94225c731ab402f86cf42dc8cbd426071464f7495942bf2dc"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_TRUSTED_HTTPS_REAL_DEVICE_INTERRUPTION_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-CREATOR-STUDIO-045"
+}

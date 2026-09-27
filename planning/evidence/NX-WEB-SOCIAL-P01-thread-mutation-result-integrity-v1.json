@@ -1,0 +1,65 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-THREAD-MUTATION-RESULT-INTEGRITY-076",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "message_result_conversation_binding": true,
+    "message_result_sender_binding": true,
+    "message_result_persona_binding": true,
+    "message_result_nonce_binding": true,
+    "message_result_encryption_and_attachment_binding": true,
+    "plaintext_stable_idempotency_key": true,
+    "e2ee_stable_idempotency_key_and_nonce": true,
+    "in_flight_draft_preserved": true,
+    "decision_conversation_actor_persona_binding": true,
+    "cross_persona_decisions_denied": true,
+    "read_exact_visible_boundary": true,
+    "read_head_monotonic": true,
+    "read_receipt_update_atomic": true,
+    "cache_generation": "20260906-p1threadmutation1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_mutation_api_repository": { "passed": 4, "failed": 0 },
+    "product_full_tests": { "passed": 234, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Read acknowledgement selected the repository head at mutation time, so a message arriving after the rendered GET could be marked read without being shown.",
+      "resolution": "The client sends the exact last rendered message ID and repository updates read head and receipts atomically, monotonically and only through that boundary."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Message and request-decision success was accepted from any ok-shaped response without binding it to the current conversation, actor, profile or client nonce.",
+      "resolution": "Server responses expose normalized intent and the UI validates every identity and mutation dimension before reset, navigation or success feedback."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "E2EE sends generated an implicit HTTP idempotency key and a nonce unrelated to the stable form intent.",
+      "resolution": "E2EE helpers now receive and use the form's stable explicit key and nonce and return a trusted client-local intent for response comparison."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "1f9ee754d2a78d041663e136fb24e51a4217141300381e82aa6f1ccda6da9636",
+    "apps/nexus-web/lib/repo.js": "302ca41e6fec02c20feac8c91711908e9f5efeebccf44fe2a58b366b1c11558b",
+    "apps/nexus-web/public/app.js": "76166d4e2bae712cb4f5a9fe6fadeb0acb51306de59ca25160e8dca3de1b3301",
+    "apps/nexus-web/public/chat-crypto.js": "d41e07c28d66f6042c944eca15e0227ae69b0d4181c4f122d6140d968422fd8d",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "2e8a22d4939a22ba8a13ad4bc7c4d7f50e92e42c04a306490299489882a6f492",
+    "apps/nexus-web/public/index.html": "0feeb7ae2ad9c665f162f0c5673390cf0ecdd88a3141366ef2ecf90357af7506",
+    "apps/nexus-web/test/audit.test.js": "c42876a102b5ea84ff4d0c061f16a0d60075ba623f4a386c8fd9bc7281718cb7",
+    "apps/nexus-web/test/core.test.js": "f37e2cec8672942630ccaa1cb1fb53d767fdde680a128663a55b2c4891a80029",
+    "planning/NX-WEB-SOCIAL-thread-mutation-result-integrity-v1.md": "9dc3de26d8109f5088e86dd7117177428ff6a060676025f0789450f3b59a1ba3",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "c472bf16905ca90ad62cda866212b4530f60f8d64f404a86b468c185f7e98b91",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "a89f696f3e06b0e697d41d3c2dc999eea68b86134cafb38632b9180f37351f81"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_E2EE_CAPACITY_CALIBRATION_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-THREAD-AUXILIARY-MUTATION-INTEGRITY-077"
+}

@@ -1,0 +1,73 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+review_id: NX-CHAIN-001-C03-RESUME-PREFLIGHT-20260803
+reviewer_role: C03
+risk_class: T0
+status: PASS_PREFLIGHT_FOR_OWNER_APPROVAL_REQUEST
+gate_recommendation: ALLOW_REQUEST_NEW_EXACT_RESUME_APPROVAL
+review_mode: STRICT_LOCAL_READ_ONLY
+network_operations: 0
+economic_operations: 0
+subject:
+  subject_sha256: 222e19908284b34d97c9708ba8c4cd368304c5862fe265aea129159df5a8da08
+  runner_sha256: 6687a43f6022bde4ec164e4a794b2afa467b744b931d14fb9fac73cdceb2fd2f
+  approval_validator_sha256: 60a8c65f4fec67c0405458d0dab12339d4caad916819491b2e815660e9e5ad3a
+  runner_regression_sha256: bc60885424603e0f2e2017f41680798dc4c8d481b5c4b59a9af039ab2337d7f9
+  preflight_sha256: 76eaaf4ad89d1f541b3b891f6557a722711d6a9a667c479d08baf5052bc59646
+  preflight_run_id: NX-CHAIN-001-DEVNET-20260802T221055126Z-ee1cabef
+  preflight_assertions: 24
+  runner_regression_assertions: 32
+  cli_plans_parsed: 8
+  approval_negative_cases: 9
+accepted_controls:
+  resume_requires_existing_contract_address: PASS
+  receipt_binds_operation_mode: PASS
+  receipt_binds_exact_contract_address: PASS
+  resume_transaction_cap_exactly_three: PASS
+  execute_transaction_cap_exactly_four: PASS
+  transaction_cap_mismatch_rejected: PASS
+  receipt_mode_mismatch_rejected: PASS
+  receipt_contract_address_mismatch_rejected: PASS
+  resume_omits_deploy_branch: PASS
+  runner_contains_exactly_one_deploy_and_three_calls: PASS
+  mxpy_string_timeout_removed: PASS
+  existing_contract_owner_runtime_codehash_and_code_presence_check: PASS
+  constructor_chain_id_D_query_fail_closed: PASS
+  constructor_pauser_query_fail_closed: PASS
+  preflight_artifact_hashes_current: PASS
+finding_disposition:
+  RESUME-RP-001:
+    status: CLOSED
+    evidence: operation_mode and contract_address are mandatory receipt fields, exact-matched by the validator, supplied by the runner and covered by negative mutations.
+  RESUME-RP-002:
+    status: CLOSED
+    evidence: Before the first state-changing call, Resume queries getChainId and getPauser, requires exact raw chain ID 44 and the decoded expected pauser address, in addition to owner, runtime codehash and code presence.
+  RESUME-RP-003:
+    status: CLOSED
+    evidence: The 32-assertion offline regression parses eight pinned CLI plans, proves one deploy occurrence and three call occurrences, confines deploy to Execute, and rejects nine approval mutations including mode, address and transaction cap.
+  RESUME-RP-004:
+    status: CLOSED
+    evidence: Fresh 24-assertion preflight embeds the current runner, validator and test hashes and reports subject 222e19908284b34d97c9708ba8c4cd368304c5862fe265aea129159df5a8da08 with zero network and economic operations.
+owner_approval_must_bind:
+  operation_mode: Resume
+  contract_address: erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t
+  subject_sha256: 222e19908284b34d97c9708ba8c4cd368304c5862fe265aea129159df5a8da08
+  wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+  max_public_transactions: 3
+  max_real_value: 0
+  environment: devnet
+  gateway: https://devnet-gateway.multiversx.com
+  wallet_source: PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY
+  approved_run_id: REQUIRED_EXACT_NEW_RUN_ID
+  single_use: true
+authorization_boundary:
+  owner_approval_request_allowed: true
+  resume_execution_allowed_without_new_receipt: false
+  packet_acceptance_allowed: false
+claims_excluded:
+  - owner_approval_received
+  - resume_execution_authorized
+  - remaining_devnet_calls_executed
+  - packet_acceptance
+  - mainnet_readiness
+  - production_security_audit

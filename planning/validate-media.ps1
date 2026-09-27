@@ -1,0 +1,74 @@
+[CmdletBinding()]
+param(
+    [string]$RunId = ('NX-MEDIA-001-' + [DateTimeOffset]::UtcNow.ToString('yyyyMMddTHHmmssfffZ') + '-' + [Guid]::NewGuid().ToString('N').Substring(0, 8)),
+    [ValidateSet('UNSPECIFIED', 'A40', 'A41', 'A12', 'A30', 'C01', 'C02', 'C04', 'C06', 'C10')][string]$ExecutorRole = 'UNSPECIFIED'
+)
+Set-StrictMode -Version Latest
+$ErrorActionPreference = 'Stop'
+$timer = [Diagnostics.Stopwatch]::StartNew(); $failures = [Collections.Generic.List[string]]::new(); $assertions = 0
+function Assert-Media { param([bool]$Condition, [string]$Message) $script:assertions++; if (-not $Condition) { $script:failures.Add($Message) } }
+function Read-Utf8 { param([string]$Path) [IO.File]::ReadAllText($Path, [Text.Encoding]::UTF8) }
+function Get-Sha256 { param([string]$Path) (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant() }
+function Get-StringSha256 { param([string]$Value) $sha = [Security.Cryptography.SHA256]::Create(); try { $hash = $sha.ComputeHash([Text.Encoding]::UTF8.GetBytes($Value)) } finally { $sha.Dispose() }; ([BitConverter]::ToString($hash)).Replace('-', '').ToLowerInvariant() }
+function Get-Node { $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'OpenAI\Codex\bin'; if (Test-Path -LiteralPath $root) { Get-ChildItem -LiteralPath $root -Filter node.exe -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName | Select-Object -Last 1 -ExpandProperty FullName } }
+function Invoke-Node {
+    param([string]$Node, [string[]]$Arguments, [string]$WorkingDirectory)
+    $quoted = @($Arguments | ForEach-Object { '"' + $_.Replace('"', '\"') + '"' }) -join ' '
+    $info = [Diagnostics.ProcessStartInfo]::new(); $info.FileName = $Node; $info.Arguments = $quoted; $info.WorkingDirectory = $WorkingDirectory; $info.UseShellExecute = $false; $info.CreateNoWindow = $true; $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::new(); $process.StartInfo = $info
+    try { if (-not $process.Start()) { throw 'Node did not start.' }; $stdout = $process.StandardOutput.ReadToEnd(); $stderr = $process.StandardError.ReadToEnd(); if (-not $process.WaitForExit(30000)) { $process.Kill(); throw 'Node exceeded 30 seconds.' }; [ordered]@{ exit_code = $process.ExitCode; stdout = $stdout.Trim(); stderr = $stderr.Trim(); cpu_seconds = [math]::Round($process.TotalProcessorTime.TotalSeconds, 4) } } finally { $process.Dispose() }
+}
+
+$repoRoot = Split-Path -Parent $PSScriptRoot
+$paths = [ordered]@{
+    source = Join-Path $repoRoot 'packages\media\api\index.ts'; tests = Join-Path $repoRoot 'packages\media\api\index.test.ts'; contract = Join-Path $repoRoot 'packages\media\api\media-contract.v1.json'
+    architecture = Join-Path $repoRoot 'architecture\bounded-contexts.yaml'; backlog = Join-Path $PSScriptRoot 'backlog-p0.yaml'; scorecard = Join-Path $PSScriptRoot 'capacity-scorecard.yaml'; progress = Join-Path $PSScriptRoot 'product-progress.yaml'; checkpoint = Join-Path $PSScriptRoot 'checkpoints\NX-MEDIA-001.md'
+    spend = Join-Path $PSScriptRoot 'spend-control.yaml'; guard = Join-Path $PSScriptRoot 'zero-cost-child-test.ps1'; capEvidence = Join-Path $PSScriptRoot 'evidence\NX-CAP-001-validation.json'
+    checker = Join-Path $repoRoot 'security\source-boundary-check.js'; tsc = Join-Path $repoRoot 'packages\contracts\node_modules\typescript\bin\tsc'; lock = Join-Path $repoRoot 'packages\contracts\package-lock.json'
+    mediaDoc = Join-Path $repoRoot 'docs\15-recommendations-clips-watch-live-kids.md'; securityDoc = Join-Path $repoRoot 'docs\04-security-compliance.md'; validator = $PSCommandPath
+}
+foreach ($path in $paths.Values) { Assert-Media (Test-Path -LiteralPath $path -PathType Leaf) "Missing artifact: $path" }
+Assert-Media ($RunId -match '^NX-MEDIA-001-[A-Za-z0-9T._-]+$') 'Run ID invalid.'; Assert-Media ($ExecutorRole -ne 'UNSPECIFIED') 'ExecutorRole required.'
+$source = Read-Utf8 $paths.source; $tests = Read-Utf8 $paths.tests; $contract = Read-Utf8 $paths.contract | ConvertFrom-Json; $architecture = Read-Utf8 $paths.architecture; $backlog = Read-Utf8 $paths.backlog; $scorecard = Read-Utf8 $paths.scorecard; $progress = Read-Utf8 $paths.progress; $checkpoint = Read-Utf8 $paths.checkpoint
+$task = [regex]::Match($backlog, '(?ms)^  - task_id:\s*NX-MEDIA-001\s*\r?\n(.*?)(?=^  - task_id:|\z)'); Assert-Media $task.Success 'Task missing.'
+if ($task.Success) { Assert-Media ($task.Groups[1].Value -match '(?m)^\s+owner_agent:\s*A40\s*$') 'Owner mismatch.'; Assert-Media ($task.Groups[1].Value -match '(?m)^\s+status:\s*(in_progress|review)\s*$') 'Task state invalid.'; Assert-Media ($task.Groups[1].Value -match '(?m)^\s+risk_class:\s*T1\s*$') 'Risk class mismatch.' }
+Assert-Media ($scorecard -match '(?m)^\s+active_packets:\s+1\s*$' -and $scorecard -match '(?m)^\s+active_task_id:\s+NX-MEDIA-001\s*$') 'WIP/active task mismatch.'
+Assert-Media ($checkpoint -match '(?m)^- Stare:\s*`(in_progress|review)`\s*$') 'Checkpoint state mismatch.'
+Assert-Media ($progress -match '(?m)^\s+complete_market_ready_product_percent:\s+18\s*$' -and $progress -match '(?m)^\s+initial_technical_demo_percent:\s+61\s*$' -and $progress -match '(?m)^\s+accepted_p0_percent:\s+84\.6\s*$') 'Product progress status drifted.'
+Assert-Media ($progress -match '(?m)^\s+denominator_executable_packets:\s+19\s*$' -and $progress -match '(?m)^\s+accepted_packets:\s+11\s*$' -and $progress -match '(?m)^\s+active_packet_id:\s+NX-MEDIA-001\s*$' -and $progress -match '(?m)^\s+active_packet_credit:\s+0\.6\s*$') 'Demo progress calculation basis drifted.'
+Assert-Media ($architecture -match '(?ms)^  - id:\s*media\s*\r?\n.*?^\s+owner:\s*A40\s*$' -and $architecture -match '(?ms)^  - id:\s*media\s*\r?\n.*?^\s+public_api_path:\s*packages/media/api\s*$') 'Architecture ownership/path mismatch.'
+
+Assert-Media ($contract.schemaVersion -eq 1 -and $contract.owner -eq 'A40') 'Media contract identity mismatch.'
+Assert-Media (($contract.surfaceScope -join '|') -eq 'ADULT_CLIPS|ADULT_WATCH') 'Media surface scope is not adult-only.'
+Assert-Media ([int]$contract.upload.maximumBytes -eq 300000000 -and (($contract.upload.mime -join '|') -eq 'video/mp4') -and (($contract.upload.videoCodec -join '|') -eq 'h264') -and (($contract.upload.audioCodec -join '|') -eq 'aac')) 'Upload allowlist drifted.'
+foreach ($requirement in @('authenticated_authorization', 'expiry', 'checksum', 'clean_malware_verdict', 'non_corrupt_probe')) { Assert-Media ($requirement -in @($contract.upload.requires)) "Upload requirement missing: $requirement" }
+foreach ($requirement in @('completion_binding', 'worker_attestation', 'moderation_approved', 'rendition_checksums', 'manifest_hash')) { Assert-Media ($requirement -in @($contract.ready.requires)) "Ready requirement missing: $requirement" }
+Assert-Media ([int]$contract.playback.maximumTtlSeconds -eq 300 -and 'authenticated_viewer_commitment' -in @($contract.playback.boundTo) -and 'verified_audience_relation' -in @($contract.playback.boundTo) -and 'territory' -in @($contract.playback.boundTo)) 'Playback binding is incomplete.'
+Assert-Media (($contract.purge.requiredTargets -join '|') -eq 'ORIGIN|RENDITIONS|INDEX|CACHE' -and [bool]$contract.purge.receiptVerificationRequired -and $contract.purge.terminalState -eq 'PURGED') 'Purge contract incomplete.'
+
+$sourceFragments = @('UploadAuthorizationVerifier', 'WorkerAttestationVerifier', 'PlaybackAuthorizationVerifier', 'PurgeReceiptVerifier', 'UPLOAD_CONTENT_REJECTED', 'READY_ATTESTATION_INVALID', 'PLAYBACK_CONTEXT_UNVERIFIED', 'PLAYBACK_AUDIENCE_DENIED', 'PLAYBACK_TERRITORY_DENIED', 'PURGE_RECEIPT_UNVERIFIED', 'PURGE_RECEIPT_CONFLICT', 'MAX_UPLOAD_BYTES', 'ADULT_CLIPS', 'ADULT_WATCH')
+foreach ($fragment in $sourceFragments) { Assert-Media ($source.Contains($fragment)) "Source control missing: $fragment" }
+Assert-Media ($source -notmatch '(?i)(fetch\s*\(|XMLHttpRequest|HttpClient|WebClient|Invoke-WebRequest|https?\.request|child_process|spawn\s*\(|exec\s*\(|net\.connect)') 'Media core contains network/process capability.'
+Assert-Media ($source -notmatch '(?i)(emailAddress|phoneNumber|latitude|longitude|messagePlaintext|childId|rawWallet)\s*[:=]') 'Media core contains forbidden plaintext data.'
+foreach ($fragment in @('corrupt upload fails closed', 'UPLOAD_CONTENT_REJECTED', 'READY_ATTESTATION_INVALID', 'PLAYBACK_CONTEXT_UNVERIFIED', 'PLAYBACK_AUDIENCE_DENIED', 'PLAYBACK_TERRITORY_DENIED', 'duplicate authorization is idempotent', 'COMPLETION_ID_CONFLICT', 'TRANSCODE_JOB_CONFLICT', 'purge receipt covers origin renditions index and cache', 'PURGE_RECEIPT_UNVERIFIED', 'PLAYBACK_NOT_READY')) { Assert-Media ($tests.Contains($fragment)) "Test control missing: $fragment" }
+
+$cap = Read-Utf8 $paths.capEvidence | ConvertFrom-Json; Assert-Media ($cap.status -eq 'PASS' -and [int]$cap.blocked_economic_actions -ge 1 -and [int]$cap.blocked_unallowlisted_egress_actions -ge 1) 'Zero-cost guard evidence invalid.'
+Assert-Media ($cap.artifact_sha256.'planning/spend-control.yaml' -eq (Get-Sha256 $paths.spend) -and $cap.artifact_sha256.'planning/zero-cost-child-test.ps1' -eq (Get-Sha256 $paths.guard)) 'Zero-cost controls drifted.'
+$credentialPattern = '^(AWS_|AZURE_|GOOGLE_APPLICATION_CREDENTIALS$|OPENAI_API_KEY$|TWILIO_|MAPBOX_|CLOUDFLARE_|STRIPE_|PINATA_|IPFS_|MATRIX_)'; $credentialNames = @([Environment]::GetEnvironmentVariables().Keys | ForEach-Object { [string]$_ } | Where-Object { $_ -match $credentialPattern }); Assert-Media ($credentialNames.Count -eq 0) 'Billing/production credentials present.'
+
+$node = Get-Node; Assert-Media ($null -ne $node) 'Included Node runtime missing.'; $ephemeral = Join-Path $repoRoot '.ephemeral'; if (-not (Test-Path -LiteralPath $ephemeral)) { [void](New-Item -ItemType Directory -Path $ephemeral) }; $runRoot = Join-Path $ephemeral ('NX-MEDIA-001-validator-' + [Guid]::NewGuid().ToString('N')); [void](New-Item -ItemType Directory -Path $runRoot)
+$receipt = $null; $boundary = $null; $compile = $null; $testRun = $null
+try {
+    if ($null -ne $node) {
+        $compile = Invoke-Node $node @($paths.tsc, '--strict', '--target', 'ES2022', '--module', 'commonjs', '--lib', 'ES2022,DOM', '--outDir', $runRoot, $paths.source, $paths.tests) $repoRoot; Assert-Media ($compile.exit_code -eq 0) "TypeScript compile failed: $($compile.stdout) $($compile.stderr)"
+        if ($compile.exit_code -eq 0) { $testRun = Invoke-Node $node @((Join-Path $runRoot 'index.test.js')) $repoRoot; Assert-Media ($testRun.exit_code -eq 0) "Media tests failed: $($testRun.stderr)"; if ($testRun.exit_code -eq 0) { try { $receipt = $testRun.stdout | ConvertFrom-Json } catch { Assert-Media $false 'Test receipt is not JSON.' } } }
+        $manifest = [pscustomobject]@{ knownSpecifiers = [pscustomobject]@{ contract_registry = 'contract_registry' }; knownSchemas = @('media', 'contract_registry'); contexts = [pscustomobject]@{ media = [pscustomobject]@{ allowedImports = @('contract_registry') } }; items = @([pscustomobject]@{ id = 'packages/media/api/index.ts'; sourceContext = 'media'; text = $source }, [pscustomobject]@{ id = 'packages/media/api/index.test.ts'; sourceContext = 'media'; text = $tests }) }
+        $manifestPath = Join-Path $runRoot 'boundary.json'; [IO.File]::WriteAllText($manifestPath, ($manifest | ConvertTo-Json -Depth 8), [Text.UTF8Encoding]::new($false)); $boundaryRun = Invoke-Node $node @($paths.checker, $manifestPath) $repoRoot; Assert-Media ($boundaryRun.exit_code -eq 0) "Boundary checker failed: $($boundaryRun.stderr)"; if ($boundaryRun.exit_code -eq 0) { $boundary = $boundaryRun.stdout | ConvertFrom-Json }
+    }
+} finally { $prefix = [IO.Path]::GetFullPath($ephemeral).TrimEnd('\') + '\'; $resolved = [IO.Path]::GetFullPath($runRoot); if ((Test-Path -LiteralPath $runRoot) -and $resolved.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { Remove-Item -LiteralPath $runRoot -Recurse -Force } }
+Assert-Media ($null -ne $receipt) 'Test receipt missing.'
+if ($null -ne $receipt) { Assert-Media ($receipt.status -eq 'PASS' -and $receipt.task_id -eq 'NX-MEDIA-001' -and [int]$receipt.assertions -ge 44) 'Media scenario suite regressed.'; Assert-Media ($receipt.upload_policy.corrupt -eq 'DENY' -and $receipt.upload_policy.malware -eq 'DENY' -and $receipt.upload_policy.unknown_scan -eq 'DENY' -and $receipt.upload_policy.unsupported_codec -eq 'DENY' -and $receipt.upload_policy.checksum_mismatch -eq 'DENY' -and $receipt.upload_policy.kids_surface -eq 'DENY') 'Upload policy acceptance failed.'; Assert-Media ([bool]$receipt.playback_policy.audience_bound -and [bool]$receipt.playback_policy.territory_bound -and [int]$receipt.playback_policy.maximum_ttl_seconds -eq 300) 'Playback acceptance failed.'; Assert-Media ([bool]$receipt.idempotency.authorization -and [bool]$receipt.idempotency.completion -and [bool]$receipt.idempotency.transcode -and [bool]$receipt.idempotency.purge) 'Idempotency acceptance failed.'; Assert-Media ([bool]$receipt.purge.origin -and [bool]$receipt.purge.renditions -and [bool]$receipt.purge.index -and [bool]$receipt.purge.cache -and $receipt.purge.terminal -eq 'PURGED') 'Purge acceptance failed.'; Assert-Media ([bool]$receipt.synthetic_only -and [int]$receipt.network_operations -eq 0 -and [int]$receipt.economic_operations -eq 0) 'Tests are not zero-effect synthetic.' }
+$boundaryFindings = @(); if ($null -ne $boundary) { foreach ($item in @($boundary.results)) { foreach ($finding in @($item.findings)) { $boundaryFindings += "$($item.id):$finding" } } }; Assert-Media ($null -ne $boundary -and $boundaryFindings.Count -eq 0) ('Boundary findings: ' + ($boundaryFindings -join ','))
+$hashes = [ordered]@{}; foreach ($path in $paths.Values) { if (Test-Path -LiteralPath $path -PathType Leaf) { $relative = $path.Substring($repoRoot.Length).TrimStart('\').Replace('\', '/'); $hashes[$relative] = Get-Sha256 $path } }; $subject = Get-StringSha256 (($hashes.GetEnumerator() | Sort-Object Key | ForEach-Object { "$($_.Key)=$($_.Value)" }) -join "`n"); $timer.Stop()
+$result = [ordered]@{ schema_version = 1; task_id = 'NX-MEDIA-001'; run_id = $RunId; executor_role = $ExecutorRole; status = if ($failures.Count -eq 0) { 'PASS' } else { 'FAIL' }; assertions = $assertions; scenario_assertions = if ($null -ne $receipt) { [int]$receipt.assertions } else { 0 }; failures = @($failures); acceptance = if ($null -ne $receipt) { $receipt } else { $null }; source_boundary_findings = $boundaryFindings.Count; credential_name_matches = $credentialNames.Count; network_operations = 0; economic_operations = 0; incremental_cost = [ordered]@{ amount = 0; currency = 'EUR' }; claims_excluded = @('managed_transcode', 'public_cdn', 'production_sla', 'real_user_media', 'external_moderation', 'live_streaming'); review_subject_sha256 = $subject; artifact_sha256 = $hashes; duration_seconds = [math]::Round($timer.Elapsed.TotalSeconds, 4) }
+$result | ConvertTo-Json -Depth 12; if ($failures.Count -gt 0) { exit 1 }

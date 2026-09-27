@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A43",
+  "mode": "LOCAL_DETERMINISTIC_SYSTEM_TEST",
+  "surface": {
+    "name": "NEXUS_PRIVE",
+    "channel": "WEB_SEPARATE",
+    "mobileStoreCatalogAllowed": false,
+    "corePreviewOrDeepLinkAllowed": false,
+    "publicIpfsAllowed": false,
+    "publicDhtAllowed": false,
+    "publicGlobalSearchAllowed": false,
+    "countryDefault": "DENY"
+  },
+  "publication": {
+    "viewerAgeAssuranceRequired": true,
+    "creatorAndEveryPerformerAgeIdentityLivenessRequired": true,
+    "perAssetConsentRightsTerritoryExpiryAndRevocationRequired": true,
+    "prepublicationAutomatedSafetyRequired": true,
+    "immutableIllegalityAndCsamEscalationRequired": true,
+    "nciiAndNonConsensualDeepfakeDenied": true,
+    "escortTraffickingAndSexualServicesDenied": true,
+    "countryPolicyAndProviderApprovalRequired": true
+  },
+  "entitlement": {
+    "offers": ["FREE_DISCOVERY", "SUBSCRIPTION", "PPV", "TIP", "BUNDLE", "PAID_LIVE", "PAID_1_TO_1_CALL"],
+    "freeDiscoveryStillAgeGated": true,
+    "freeDiscoveryVisibleOutsidePrive": false,
+    "encryptedPerAssetKeyRequired": true,
+    "viewerGraphPublic": false,
+    "exactEntitlementOnChain": false,
+    "accessRechecksCurrentAgeConsentRightsTerritoryAndTakedown": true
+  },
+  "paidRooms": {
+    "kinds": ["PAID_LIVE", "PAID_1_TO_1_CALL"],
+    "preauthorizedEscrowRequired": true,
+    "escrowBindsPayerPayeeSessionTokenRateCapPolicyFeeAndExpiry": true,
+    "escrowAuthorizationSingleUseAtOpen": true,
+    "perMinuteMeteringReceiptRequired": true,
+    "visibleRateAndTimerRequired": true,
+    "automaticStopAtAuthorizedLimit": true,
+    "recordingDefault": false,
+    "recordingRequiresAllParticipantConsent": true,
+    "recordingConsentBindsParticipantDeviceSessionPurposeGenerationAndExpiry": true,
+    "offPlatformSexualServicesSolicitationAllowed": false
+  },
+  "purge": {
+    "revokesDiscovery": true,
+    "revokesPlaybackAndKeys": true,
+    "ciphertextPurgeRequired": true,
+    "minimumLawfulEvidenceOnly": true,
+    "legalHoldNeverRestoresDiscoveryOrPlayback": true
+  },
+  "settlement": {
+    "publicActionClass": "PRIVATE_SETTLEMENT",
+    "opaqueCommitmentOnly": true,
+    "quoteAndSettlementOneTime": true,
+    "exactLiabilityConservation": true,
+    "capabilityBindings": ["PROFILE", "ASSET", "ASSET_GENERATION", "ENCRYPTED_MANIFEST", "ENTITLEMENT", "QUOTE", "QUOTE_EXPIRY", "SETTLEMENT", "PAYMENT_TOKEN", "COUNTRY", "POLICY", "FEE_SCHEDULE", "CHANNEL", "OPERATION", "COMMAND_EXPIRY"],
+    "systemTestEconomicEffect": 0
+  },
+  "creatorEconomics": {
+    "defaultContentSplitBps": { "creator": 8000, "nexus": 1200, "provider": 500, "reserve": 300 },
+    "defaultTipSplitBps": { "creator": 9000, "nexus": 500, "provider": 200, "reserve": 300 },
+    "creatorShareDominant": true,
+    "feesShownBeforeConfirmation": true,
+    "creatorSetsPriceWithinCountryCaps": true,
+    "freeDiscoveryCanConvertToPaidOffer": true,
+    "referralRewardSource": "NEXUS_NET_FEE_OR_MARKETING_BUDGET_ONLY",
+    "referralRequiresQualifiedNonSyntheticActivation": true,
+    "referralMayUseCrossModuleQualifiedActivation": true,
+    "referralOnGrossConsumerFunds": false,
+    "multiLevelRecruitmentRewardAllowed": false,
+    "paidFollowerOrFakeUserRewardAllowed": false
+  },
+  "security": {
+    "exactShapeDataOnlyBoundary": true,
+    "accessorsAndProxiesRejectedBeforeExecution": true,
+    "independentAuthorityRootsRequired": true,
+    "currentStatePreAndPostAwaitCas": true,
+    "signedOrderedReceipts": true,
+    "persistentNonceAndAuthorizationReplayProtection": true,
+    "signedDurableCheckpoint": true,
+    "restoreExactShapeAndFailAtomic": true,
+    "snapshotPrefixRemovalReorderAndFabricationDenied": true
+  },
+  "privacy": {
+    "rawIdentityStoredInContext": false,
+    "exactBirthDateStoredInContext": false,
+    "explicitTitleThumbnailOrPerformerDataOnChain": false,
+    "viewerCreatorSubscriptionGraphOnChain": false,
+    "perfectAnonymityClaimAllowed": false,
+    "leakageScanRequired": true
+  },
+  "effects": {
+    "networkOperationsMax": 0,
+    "providerOperationsMax": 0,
+    "economicOperationsMax": 0,
+    "realFundOperationsMax": 0,
+    "realIdentityOperationsMax": 0,
+    "realMediaOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  },
+  "externalGates": [
+    "COUNTRY_LEGAL_MEMO",
+    "AGE_IDENTITY_PROVIDER_APPROVAL",
+    "PAYMENT_ACQUIRER_APPROVAL",
+    "FORMAL_SECURITY_AUDIT",
+    "PRIVACY_AND_DATA_PROTECTION_REVIEW",
+    "STATUTORY_REPORTING_AND_APPEAL_OPERATIONS"
+  ]
+}

@@ -1,0 +1,134 @@
+schema_version: 1
+task_id: NX-AUTH-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only_final_retest
+decision: CHANGES_REQUIRED
+gate_effect: BLOCK_REVIEW_TO_DONE
+run_id: NX-AUTH-001-20260802T165102390Z-d0f9027f
+validator_status: PASS
+assertions: 121
+identity_test_assertions: 60
+failures: 0
+review_subject_sha256: b9613cb0cf528076d4259dd453fb590354c2faa3ccf34b106e14271db4ed2b44
+expected_review_subject_sha256: b9613cb0cf528076d4259dd453fb590354c2faa3ccf34b106e14271db4ed2b44
+subject_matches_expected: true
+
+artifact_verification:
+  matched: 3/3
+  artifacts:
+    packages/identity/api/index.ts: 62597302eea40d76f0aa11753e440adf76985543746742019e66f3be0e85041a
+    packages/identity/api/index.test.ts: 8d6a7658f46f2a778999aec2299f82927a374fee39a112eaba0f793aba55f936
+    planning/validate-auth.ps1: 31c06d9ee137dcbbbe0049d0bc142d1b62f45297c22e7cb91cecd6f683949203
+
+finding_disposition:
+  - id: C12-AUTH-001
+    prior_severity: CRITICAL
+    status: CLOSED
+    evidence: >-
+      claimLoginChallenge synchronously marks consumed before the first await.
+      Promise.allSettled coverage demonstrates exactly one successful completion,
+      one STATE_REPLAY, and one provider-verifier invocation.
+  - id: C12-AUTH-002
+    prior_severity: HIGH
+    status: OPEN
+    evidence: >-
+      Purpose, action/case, nonce, expiry, keyVersion, publicRef, and verifierDomain
+      binding are present; duplicate publicRef/domain and single-challenge replay deny.
+      A remaining multi-challenge race exists: beginRecovery permits multiple active
+      cases for one RECOVERING wallet. Two proof challenges can both carry keyVersion N;
+      claimProofChallenge can synchronously accept both before either asynchronous
+      factor verification finishes. completeRecovery does not recompare/version-CAS
+      before its unconditional keyVersion increment, so both recoveries can succeed.
+    required_change: >-
+      Permit only one active recovery per wallet or atomically compare-and-swap the
+      wallet keyVersion/recovery state at completion. Add a Promise.all test with two
+      cases/challenges for the same keyVersion and require exactly one completion.
+  - id: C12-AUTH-003
+    prior_severity: HIGH
+    status: CLOSED_FOR_SANDBOX
+    evidence: >-
+      A repository boundary and export/restore snapshot preserve consumed login state,
+      identity revocation, wallet state, recovery/proof challenges, and used entropy.
+      Restart tests deny login replay and revoked identity reuse. The production
+      transactional adapter remains explicitly excluded and externally gated.
+  - id: C12-AUTH-004
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      Owner and C12 runs use the same stable subject digest. Mutable backlog, scorecard,
+      and checkpoint hashes are separated as operational provenance and do not alter it.
+  - id: C12-AUTH-005
+    prior_severity: MEDIUM
+    status: CLOSED_FOR_SANDBOX
+    evidence: >-
+      Runtime allowlisting rejects unknown wallet providers and invalid keyVersion values.
+      Production wallet cryptography, independent audit, and legal custody opinion remain
+      explicitly excluded/open rather than being claimed by this sandbox.
+
+blocking_findings:
+  - id: C12-AUTH-002
+    severity: HIGH
+    classification: recovery_concurrency_and_key_version
+    title: Parallel recovery challenges can both commit against one key version.
+    code_evidence:
+      multiple_active_case_guard_present: false
+      claim_version_check: 'challenge.keyVersion !== keyVersion'
+      asynchronous_gap: 'await factorVerifier.verify(...)'
+      completion_version_CAS_present: false
+      completion_update: 'wallet.keyVersion += 1'
+    missing_test: parallel recovery cases and proof challenges on the same wallet/keyVersion
+
+verified_controls:
+  login_race_Promise_all: PASS
+  login_claim_before_first_await: PASS
+  issuer_subject_stability: PASS
+  proof_purpose_binding: PASS
+  proof_nonce_binding: PASS
+  proof_key_version_claim_check: PASS_WITH_CONCURRENCY_GAP
+  proof_single_challenge_replay: DENY
+  distinct_public_ref: ENFORCED
+  distinct_verifier_domain: ENFORCED
+  restart_snapshot_replay: DENY
+  restart_snapshot_revocation: PRESERVED
+  restart_wallet_state: PRESERVED
+  wallet_provider_allowlist: ENFORCED
+  positive_key_version: ENFORCED
+
+owner_evidence:
+  run_id: NX-AUTH-001-20260802T164934841Z-ef4aa54e
+  status: PASS
+  subject_sha256: b9613cb0cf528076d4259dd453fb590354c2faa3ccf34b106e14271db4ed2b44
+  core_artifact_hashes_current: 3/3
+  claims_excluded:
+    - external_provider_conformance
+    - production_wallet_cryptography
+    - production_transactional_repository_adapter
+    - independent_cryptographic_audit
+    - legal_custody_opinion
+
+external_gates:
+  cryptographic_audit_before_production: OPEN
+  custody_legal_memo: OPEN
+  production_transactional_repository_adapter: OPEN
+  external_provider_conformance: NOT_CLAIMED
+  production_enablement: BLOCKED
+
+closed_findings:
+  - C12-AUTH-001
+  - C12-AUTH-004
+closed_for_sandbox_only:
+  - C12-AUTH-003
+  - C12-AUTH-005
+open_findings:
+  - C12-AUTH-002
+new_findings: []
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-AUTH-001-C12-initial.yaml
+  - planning/evidence/reviews/NX-AUTH-001-C12.yaml

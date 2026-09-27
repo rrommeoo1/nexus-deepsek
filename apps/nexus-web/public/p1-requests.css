@@ -1,0 +1,90 @@
+/* Privacy-safe follow request inbox. Loaded after the base Nexus theme. */
+.friendsTabs {
+grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.friendsEmpty > button {
+justify-self: center;
+min-height: 34px;
+margin-top: 5px;
+padding: 0 14px;
+border: 1px solid #39a99f;
+border-radius: 12px;
+background: #0f2e30;
+color: #84f4e9;
+font-size: 9px;
+font-weight: 800;
+}
+.followRequestSection {
+display: grid;
+gap: 6px;
+margin-top: 9px;
+}
+.followRequestSection + .followRequestSection {
+margin-top: 14px;
+padding-top: 12px;
+border-top: 1px solid rgba(118, 164, 181, 0.2);
+}
+.followRequestSection > h3 {
+display: flex;
+align-items: center;
+gap: 7px;
+margin: 0 2px 2px;
+color: #c9dadd;
+font-size: 10px;
+letter-spacing: 0.02em;
+}
+.followRequestSection > h3 b {
+min-width: 20px;
+padding: 3px 6px;
+border: 1px solid #31535d;
+border-radius: 999px;
+background: #0c2028;
+color: #66eadf;
+text-align: center;
+font-size: 8px;
+}
+.followRequestRow {
+grid-template-columns: 39px minmax(0, 1fr) auto;
+}
+.requestActions {
+display: flex;
+gap: 5px;
+}
+.requestActions button {
+min-height: 32px;
+padding: 0 9px;
+border: 1px solid #38525c;
+border-radius: 11px;
+background: #0c1c24;
+color: #afc2c7;
+font-size: 8px;
+font-weight: 750;
+}
+.requestActions button.primary {
+border-color: #35b9af;
+background: #103432;
+color: #84f5e9;
+}
+.requestActions button:disabled {
+opacity: 0.45;
+}
+@media (max-width: 380px) {
+.friendsTabs {
+gap: 4px;
+}
+.friendsTabs button {
+font-size: 8px;
+}
+.requestActions {
+display: grid;
+}
+.requestActions button {
+min-height: 28px;
+padding: 0 7px;
+}
+}
+.postLifecycleBackdrop{z-index:10040;background:rgba(0,4,11,.74);backdrop-filter:blur(14px)}
+.postLifecycleSheet{width:min(520px,calc(100vw - 24px));max-height:min(86dvh,760px);overflow:auto;border-color:rgba(93,233,255,.35);background:linear-gradient(155deg,rgba(12,27,43,.98),rgba(7,10,22,.98));box-shadow:0 0 60px rgba(0,210,255,.12)}
+.postLifecycleSheet>small{color:#64f4ef;letter-spacing:.15em}.postLifecycleSheet h3{margin:5px 0 18px;font-size:24px}.postLifecycleSheet form{display:grid;gap:13px}.postLifecycleSheet label{display:grid;gap:7px;color:#b8c8d5;font-size:12px}.postLifecycleSheet textarea,.postLifecycleSheet select{width:100%;box-sizing:border-box;border:1px solid #294456;border-radius:14px;background:#07131e;color:#f5fbff;padding:12px;font:inherit}.postLifecycleSheet textarea{min-height:112px;resize:vertical}.postLifecycleDanger{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.postLifecycleDanger button,.postHistoryLoad{border:1px solid rgba(119,141,162,.35);border-radius:12px;background:rgba(14,28,42,.9);color:#dbe8f1;padding:11px}.postLifecycleDanger button:last-child{border-color:rgba(255,91,125,.42);color:#ffb4c4}.postHistoryList{display:grid;gap:8px;margin-top:10px}.postHistoryList article{border:1px solid rgba(101,217,255,.16);border-radius:12px;background:rgba(4,13,24,.7);padding:10px}.postHistoryList article p{margin:6px 0;color:#d7e4ed;white-space:pre-wrap}.postHistoryList article small{color:#7893a6;font-family:monospace}
+@media(max-width:420px){.postLifecycleDanger{grid-template-columns:1fr}.postLifecycleSheet{max-height:calc(100dvh - 22px)}}
+.commentsMore{display:block;margin:12px auto 4px;border:1px solid rgba(72,230,237,.35);border-radius:999px;background:rgba(5,22,33,.92);color:#8ffaf3;padding:8px 16px;font-weight:800}

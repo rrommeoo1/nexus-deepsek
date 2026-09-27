@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520" role="img" aria-label="Island beach from above">
+  <defs>
+    <linearGradient id="shallows" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#12e0d8"/><stop offset="1" stop-color="#0a89b8"/></linearGradient>
+    <linearGradient id="sand" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffe3ac"/><stop offset="1" stop-color="#e9bd7c"/></linearGradient>
+  </defs>
+  <rect width="400" height="520" fill="url(#shallows)"/>
+  <g fill="#fff" opacity=".18">
+    <path d="M0 60c70 18 130-14 200-4s130 22 200 0v26c-70 22-140 6-210 8S70 106 0 92z"/>
+    <path d="M0 180c80 16 140-12 210-2s120 20 190 2v22c-70 20-140 4-210 6S70 222 0 208z"/>
+    <path d="M0 330c70 16 140-12 210-4s130 18 190 0v20c-70 20-140 6-210 8S70 370 0 356z"/>
+  </g>
+  <path d="M96 118c64-30 148-22 196 26s54 132 8 190-140 74-196 30-72-108-56-160 22-64 48-86z" fill="url(#sand)"/>
+  <path d="M150 176c30-16 74-10 96 16s22 68-4 92-72 30-98 4-24-60-14-80 4-24 20-32z" fill="#3f9d5a"/>
+  <g fill="#2c7d46">
+    <circle cx="186" cy="212" r="16"/><circle cx="216" cy="228" r="14"/><circle cx="198" cy="250" r="18"/><circle cx="232" cy="198" r="12"/>
+  </g>
+  <path d="M0 470c62-14 130-4 196 6s130 6 204-12v56H0z" fill="#075f86"/>
+  <circle cx="330" cy="404" r="30" fill="#fff" opacity=".35"/>
+  <path d="M60 420c0-14 12-24 26-24s26 10 26 24z" fill="#ff7ba8"/>
+</svg>

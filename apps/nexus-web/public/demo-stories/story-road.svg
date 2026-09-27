@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520" role="img" aria-label="Sunset road">
+  <defs>
+    <linearGradient id="sunset" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1d55"/><stop offset=".5" stop-color="#e2593f"/><stop offset="1" stop-color="#ffc46b"/></linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a2a3f"/><stop offset="1" stop-color="#14101c"/></linearGradient>
+  </defs>
+  <rect width="400" height="520" fill="url(#sunset)"/>
+  <circle cx="200" cy="286" r="66" fill="#ffe89a" opacity=".9"/>
+  <path d="M0 320l120-52 90 30 190-64v286H0z" fill="url(#ground)"/>
+  <path d="M168 520l32-190h6l34 190z" fill="#2a2233"/>
+  <g fill="#fff" opacity=".5"><rect x="196" y="378" width="8" height="22"/><rect x="196" y="424" width="8" height="22"/><rect x="196" y="470" width="8" height="22"/></g>
+  <g fill="#150f1c">
+    <rect x="40" y="300" width="10" height="52"/><rect x="352" y="292" width="10" height="60"/>
+  </g>
+  <circle cx="46" cy="288" r="26" fill="#150f1c"/><circle cx="358" cy="278" r="30" fill="#150f1c"/>
+</svg>

@@ -1,0 +1,46 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZED-ACCOUNT-SECURITY-SHELL-063",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "locales": ["ro", "en", "pl", "ar"],
+    "provider_status_localized": true,
+    "xportal_linking_copy_localized": true,
+    "wallet_custody_copy_localized": true,
+    "session_and_e2ee_inventory_shell_localized": true,
+    "recovery_controls_localized": true,
+    "logout_and_chain_activity_localized": true,
+    "translated_dynamic_values_escaped": true,
+    "cryptographic_protocol_changed": false,
+    "external_provider_invoked": false,
+    "cache_generation": "20260905-p1locale27"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "four_locale_contract": "PASS",
+    "focused_account_security_shell": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 225, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Security and E2EE recovery controls remained Romanian-only for non-Romanian account locales.", "resolution": "All static Account security surfaces now resolve through the shared four-locale catalogue." },
+    { "severity": "MEDIUM", "finding": "Provider status values were inserted without the translated-value HTML boundary used elsewhere.", "resolution": "Localized provider status values are escaped before rendering." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "6eaeff8a993de84b857dbe2c704b4d62da63617a558854b163cfefb346201035",
+    "apps/nexus-web/public/app.js": "13f4832e93977741fe89baea6f9f0daff7f166bb33a7fc1473fcd6c7b4e4fc91",
+    "apps/nexus-web/public/index.html": "0d170381871ae2d0e5b17727afe1fe30a4568cbcbf119d9187d98aee42943a29",
+    "apps/nexus-web/test/audit.test.js": "5bc07e62808bbc750d725fa89be7c3fd71650084bfed5f719432bb484b353475",
+    "planning/NX-WEB-SOCIAL-localized-account-security-shell-v1.md": "7b5f0fcb86709b746c2e0c5f8dc9a4d40e0e15cd99bb561048c71d886058d7ea",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "87bf952e0852a0f195cc73c037e9a41790bb32fb6253dfa058481632b5827e65",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "c6b5f677b7abbe6c2ed1f0bf285c3acc9f65d09f44f65a5157820e8389463123"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_RTL_LTR_TRUSTED_HTTPS_XPORTAL_AND_EXTERNAL_CRYPTOGRAPHIC_PRIVACY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZED-E2EE-RECOVERY-ACTIONS-064"
+}

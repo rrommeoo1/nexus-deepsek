@@ -1,0 +1,46 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-PUBLIC-PROFILE-OVERLAY-067",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "locales": ["ro", "en", "pl", "ar"],
+    "dedicated_latest_request_gate": true,
+    "active_persona_binding": true,
+    "detached_overlay_response_discarded": true,
+    "profile_shape_and_counters_validated": true,
+    "maximum_post_rows": 100,
+    "internal_media_urls_only": true,
+    "accessible_name_persists_after_refresh": true,
+    "cache_generation": "20260905-p1locale31"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_public_profile": { "passed": 1, "failed": 0 },
+    "accessibility_modal_regression": { "passed": 6, "failed": 0 },
+    "product_full_tests": { "passed": 229, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "A late public-profile response could render after the user closed the overlay or switched Privacy Matrix persona.", "resolution": "A latest-request token plus attached-view and exact-persona guards now discard stale results." },
+    { "severity": "HIGH", "finding": "Profile and media response fields were rendered without a complete bounded shape check.", "resolution": "Identity, visibility, counters, rows and canonical internal media identifiers are validated fail-closed." },
+    { "severity": "MEDIUM", "finding": "The localized modal name initially used a source-dynamic aria-label that the accessibility release gate could not verify.", "resolution": "A stable aria-labelledby target now survives both loading and loaded render states; the 6-test modal gate passes." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "22deaa9c68c3e358a93f0a70d67643e8c1c18493c8207735522902b7f9fe8d1b",
+    "apps/nexus-web/public/app.js": "91d07c1280820938297e2e19403c66ee54052b4c16cbfe1bf5fd8c67c1cb9db5",
+    "apps/nexus-web/public/index.html": "9dc787897cd66c2cba82e16fede5c458164133cc6168d90ac0aa51f08c64f84f",
+    "apps/nexus-web/test/audit.test.js": "12348588b0c6c0bd2dbea7db3af849d17eb98299c551bd8f9a6f247f976d3780",
+    "planning/NX-WEB-SOCIAL-public-profile-overlay-hardening-v1.md": "b9cc9a8f99c6d04235b2de8b308e2669649c49582e2d94bfc0100f1489ac7930",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "75fe890ba35c0b483e064e6f9652a672670a2c2992e656c472fec52d5fbaadd2",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "bae60ded5e588d335e985055c896cd173d5cc7b99bb0a532f215f3c8c780a960"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_SCREEN_READER_RTL_LTR_AND_INDEPENDENT_PRIVACY_SECURITY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-PUBLIC-PROFILE-ACTION-REPLAY-SAFETY-068"
+}

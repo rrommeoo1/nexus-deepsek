@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-PAY-P01",
+  "status": "PASS",
+  "assertions": 35,
+  "scope": "local_mock_only",
+  "resolution": {
+    "aliasVersion": 7,
+    "network": "devnet",
+    "tokenId": "USDC-abc123",
+    "tokenDecimals": 6,
+    "atomicAmount": "1500000",
+    "expiresAt": "2026-08-09T12:01:00Z"
+  },
+  "direct_final_state": "EXECUTED_SUCCESS",
+  "xmoney_final_state": "REFUNDED",
+  "negative": {
+    "homoglyph_denied": true,
+    "stale_alias_denied": true,
+    "receiver_substitution_denied": true,
+    "wrong_decimals_denied": true,
+    "duplicate_submit_denied": true,
+    "forged_webhook_denied": true,
+    "duplicate_webhook_no_credit": true,
+    "delayed_webhook_no_rollback": true
+  },
+  "network_operations": 0,
+  "economic_operations": 0,
+  "external_provider_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" },
+  "claims_excluded": ["devnet_transaction", "xmoney_sandbox", "mainnet", "real_funds", "production"]
+}

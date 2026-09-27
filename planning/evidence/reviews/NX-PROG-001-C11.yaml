@@ -1,0 +1,43 @@
+schema_version: 1
+review_id: NX-PROG-001-C11-20260802T072403855Z-99ed4188
+task_id: NX-PROG-001
+reviewer_role: C11
+review_type: final_program_gate
+decision: PASS
+observed_at: 2026-08-02T07:24:03.8733463+00:00
+
+replay:
+  run_id: NX-PROG-001-20260802T072403855Z-99ed4188
+  executor_role: C11
+  exit_code: 0
+  assertions: 344
+  failures: 0
+
+inventory:
+  total_records: 33
+  executable_task_packets: 23
+  epic_records: 10
+  owned_and_independently_checked: 33
+  unique_dependency_edges: 115
+  duplicate_edges: 0
+  missing_targets: 0
+  cycles: 0
+  self_reviews: 0
+
+persisted_evidence:
+  run_id: NX-PROG-001-20260802T072024225Z-752a7b58
+  sha256: 82b994274b6301db4d1497f9e6efef15ab542a75d1a8a630ffefa204049f4daf
+  artifact_hashes_matching: 7
+  artifact_hash_mismatches: 0
+
+review_subject_sha256: fecdb8969ac151dca7783efbd7ddc625334641403ca5326d0654d894fac0e6bf
+full_source_snapshot_sha256: f54ad82df217bfaf1d12335dd488efa7fc1a4c7e3de1e63f17265fd2279a3185
+c12_artifact_sha256: 0b23af3c70955322e27813f7e70afc4efd213e88dca9ddfecf31bc70ab5480da
+
+maker_checker:
+  A01: PASS
+  A02: PASS
+  C12: PASS
+  C11: PASS
+
+open_gate_blockers: 0

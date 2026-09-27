@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAIN-001",
+  "run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-02",
+  "status": "PARTIAL_PASS_TWO_FINALIZED_ONE_PRE_BROADCAST_ABORT",
+  "recorded_at": "2026-08-03T04:45:31Z",
+  "operation_mode": "Resume",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+  "approval_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-R2",
+  "approval_receipt_status": "CONSUMED",
+  "approved_public_transaction_cap": 3,
+  "real_value": 0,
+  "incremental_cost": {
+    "amount": 0,
+    "currency": "EGLD"
+  },
+  "transactions": {
+    "set_relayer_allowed": {
+      "hash": "b064076edc9050319f2d9a5dcd5557e1534b2f62196fe5fb480832c6492e0f6c",
+      "status": "success",
+      "value": "0",
+      "relayer": "erd1k2s324ww2g0yj38qn2ch2jwctdy8mnfxep94q9arncc6xecg3xaq6mjse8"
+    },
+    "register_capability": {
+      "hash": "947da932196cd9d5a37386a0d9727ab936d1e8f3e054694c39d8aa935f7be6f2",
+      "status": "success",
+      "value": "0",
+      "session_public_key_hex": "2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12"
+    },
+    "record_action": {
+      "status": "NOT_BROADCAST",
+      "receipt_bytes": 0,
+      "transaction_hash": null
+    }
+  },
+  "on_chain_state": {
+    "old_relayer_allowed_raw": "01",
+    "capability_raw_sha256": "06d4daa84ef9d440c96fab13f2b7d415b8cb2645130fc25bdf9c305163bf6033",
+    "capability_active": true,
+    "capability_used_actions": 0,
+    "capability_last_action_nonce": 0,
+    "capability_authorized_relayer": "erd1k2s324ww2g0yj38qn2ch2jwctdy8mnfxep94q9arncc6xecg3xaq6mjse8",
+    "capability_expires_at_ms": 1785818423504
+  },
+  "failure": {
+    "component": "mxpy 11.4.1 guardian discovery before recordAction signing",
+    "cause": "The public SDK Carol wallet is currently guarded by MultiversXTCSService and requires interactive 2FA.",
+    "exception": "EOFError: EOF when reading a line",
+    "occurred_before_broadcast": true
+  },
+  "safety_decision": "NO_RETRY; REQUIRE_NEW_SUBJECT_BOUND_RECOVERY_APPROVAL"
+}

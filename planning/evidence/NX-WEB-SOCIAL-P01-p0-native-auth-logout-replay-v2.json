@@ -1,0 +1,89 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-NATIVE-AUTH-LOGOUT-REPLAY-010",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "finding": {
+    "severity": "HIGH",
+    "source": "independent_checker",
+    "description": "native_auth_consumptions.session_token_hash used ON DELETE CASCADE, so logout erased the proof-consumption marker and allowed the still-valid NativeAuth proof to create another session",
+    "pre_fix_reproduction": {
+      "consumption_count_after_logout": 0,
+      "second_call_was_replay": false,
+      "new_session_created": true
+    }
+  },
+  "resolution": {
+    "consumption_marker_independent_of_session": true,
+    "consumption_marker_independent_of_user_deletion": true,
+    "logout_removes_session_only": true,
+    "same_proof_after_logout": "NATIVE_AUTH_REPLAY_UNAVAILABLE",
+    "new_session_after_replay": false,
+    "retention": "until_consumption_expiry",
+    "migration": {
+      "transactional_table_rebuild": true,
+      "unknown_foreign_keys_fail_closed": true,
+      "crash_before_commit_rolls_back": true,
+      "restart_safe": true,
+      "recoverable_backup": "apps/nexus-web/data/nexus.sqlite.pre-native-auth-independent-20260829.bak"
+    }
+  },
+  "verification": {
+    "full_tests": { "passed": 125, "failed": 0 },
+    "focused_native_auth_tests": { "passed": 5, "failed": 0 },
+    "database": {
+      "native_auth_consumption_foreign_keys": [],
+      "expiry_index_present": true,
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "synthetic_actor_lab": {
+      "seed": 2026082901,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1215,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "saves": 500,
+      "reposts": 167,
+      "conversations": 100,
+      "messages": 100,
+      "stories": 125,
+      "story_views": 125,
+      "blocks": 100,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "self_follows": 0,
+      "bad_threads": 0,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 5628,
+      "listen_address": "0.0.0.0",
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "stderr_empty": true
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "9760d0acc8fb1f36ccc4dd6af19fa4e2e0ba7a3d7fda45136e28db995b18aac1",
+    "apps/nexus-web/lib/native-auth-session.js": "f48e8474d3bff68a7b019652d192527680c5f77cd7ab58390413f881725a23b7",
+    "apps/nexus-web/test/native-auth-session.test.js": "c077b76d98110dc8ea9d7596db1a88764d70631d11c8b12524b67bef396c1362"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "post_fix_independent_recheck": "PENDING_PLUS_RESET"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "p0_local_gate": "PASS",
+  "release_gate": "PENDING_POST_FIX_INDEPENDENT_RECHECK_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-P1-SOCIAL-PRIVACY-REALTIME-009"
+}

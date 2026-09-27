@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "registry_id": "nexus-control-registry-v1",
+  "status": "active",
+  "retirement_policy": "Controls are never deleted; retire with reason, successor_control_id and last_evidence_at.",
+  "normative_roles": ["A00", "A01", "A02", "A03", "A10", "A11", "A12", "A13", "A14", "A15", "A16", "A20", "A21", "A22", "A23", "A30", "A31", "A32", "A33", "A34", "A35", "A36", "A37", "A40", "A41", "A42", "A43", "A44", "C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12", "C13", "InternalAudit", "Owner_Board"],
+  "operator_role_aliases": {
+    "A17": "C06",
+    "A18": "C04",
+    "A19": "C02",
+    "A24": "C05",
+    "A28": "A34",
+    "A29": "A34",
+    "A39": "A35",
+    "A45": "A37",
+    "A46": "A34"
+  },
+  "owner_operator_overlap_policy": {
+    "allowed_for_control_execution": ["C01", "C02", "C03", "C04", "C05", "C06", "C07", "C08", "C09", "C10", "C11", "C12", "C13"],
+    "counts_as_independent_approval": false,
+    "counts_as_final_checker": false,
+    "independent_control_or_checker_still_required": true
+  },
+  "resolved_control_fields": ["control_id", "objective", "risk", "owner", "operator", "evidence_source", "frequency", "population", "sample_method", "threshold", "exception_policy", "last_result", "next_due", "remediation_owner", "mapped_requirements", "tier", "fail_closed", "coverage_target_percent"],
+  "global_defaults": {
+    "tier": "T1",
+    "population": "all_applicable_objects",
+    "sample_method": "risk_stratified_plus_random_baseline",
+    "exception_policy": "time_bound_owner_approval_with_compensating_control",
+    "last_result": "NOT_RUN",
+    "next_due": "ON_TRIGGER",
+    "remediation_owner": "delivery_owner",
+    "fail_closed": false,
+    "coverage_target_percent": 95
+  },
+  "t0_policy": {
+    "population": "all_applicable_objects",
+    "sample_method": "census_100_percent",
+    "exception_policy": "no_waiver",
+    "fail_closed": true,
+    "coverage_target_percent": 100,
+    "allowed_last_results": ["NOT_RUN", "PASS", "FAIL", "BLOCKED"],
+    "promotion_on_missing_evidence": "DENY"
+  },
+  "families": [
+    {
+      "family_id": "C01",
+      "name": "Quality Engineering",
+      "risk": "quality_and_correctness",
+      "owner": "C01",
+      "default_operator": "A14",
+      "default_frequency": "per_pr",
+      "controls": [
+        {"control_id":"NX-C01-001","objective":"Reject unmet packet acceptance criteria","tier":"T0","operator":"A14","evidence_source":"acceptance_test_report","threshold":"100_percent_required_acceptance_pass","mapped_requirements":["G2","G3"]},
+        {"control_id":"NX-C01-002","objective":"Prevent release critical test quarantine","tier":"T0","operator":"A14","evidence_source":"quarantine_manifest","threshold":"zero_release_critical_quarantined","mapped_requirements":["G4"]},
+        {"control_id":"NX-C01-003","objective":"Keep deterministic regression suites green","operator":"A14","evidence_source":"regression_report","threshold":"zero_failed_required_tests","mapped_requirements":["G2"]},
+        {"control_id":"NX-C01-004","objective":"Constrain test flake rate","operator":"A14","evidence_source":"flake_baseline","threshold":"flake_rate_below_1_percent","mapped_requirements":["G4"]},
+        {"control_id":"NX-C01-005","objective":"Verify consumer contract compatibility","operator":"A13","evidence_source":"contract_test_report","threshold":"zero_unapproved_breaking_changes","mapped_requirements":["G2","G3"]},
+        {"control_id":"NX-C01-006","objective":"Verify accessibility release baseline","operator":"A14","evidence_source":"accessibility_report","threshold":"zero_critical_accessibility_defects","mapped_requirements":["G4"]},
+        {"control_id":"NX-C01-007","objective":"Verify locale and timezone behavior","operator":"A14","evidence_source":"locale_matrix_report","threshold":"all_enabled_locales_pass","mapped_requirements":["G3"]},
+        {"control_id":"NX-C01-008","objective":"Verify supported device matrix","operator":"A14","evidence_source":"device_matrix_report","threshold":"all_release_blocking_devices_pass","mapped_requirements":["G4"]},
+        {"control_id":"NX-C01-009","objective":"Enforce core domain coverage baseline","operator":"A14","evidence_source":"coverage_report","threshold":"domain_core_branch_coverage_at_least_80_percent","mapped_requirements":["G2"]},
+        {"control_id":"NX-C01-010","objective":"Enforce money and safety reducer coverage","tier":"T0","operator":"A14","evidence_source":"mutation_and_property_report","threshold":"critical_reducer_branch_coverage_at_least_90_percent","mapped_requirements":["G4"]},
+        {"control_id":"NX-C01-011","objective":"Trace every failure to requirement and owner","operator":"A14","evidence_source":"traceability_report","threshold":"100_percent_failures_traced","mapped_requirements":["G2","G4"]}
+      ]
+    },
+    {
+      "family_id": "C02",
+      "name": "Application Security",
+      "risk": "application_security",
+      "owner": "C02",
+      "default_operator": "A19",
+      "default_frequency": "per_pr",
+      "controls": [
+        {"control_id":"NX-C02-001","objective":"Deny unauthorized API access","tier":"T0","operator":"A19","evidence_source":"authorization_negative_tests","threshold":"zero_unauthorized_successes","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C02-002","objective":"Prevent production secret exposure","tier":"T0","operator":"A10","evidence_source":"secret_scan_report","threshold":"zero_verified_secret_findings","mapped_requirements":["G2"]},
+        {"control_id":"NX-C02-003","objective":"Block exploitable critical dependencies","tier":"T0","operator":"A10","evidence_source":"dependency_scan_report","threshold":"zero_exploitable_critical_or_high","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C02-004","objective":"Validate mobile secure storage boundaries","operator":"A11","evidence_source":"mobile_storage_test","threshold":"zero_plaintext_private_keys_or_tokens","mapped_requirements":["G4"]},
+        {"control_id":"NX-C02-005","objective":"Validate API rate and abuse limits","operator":"A12","evidence_source":"rate_limit_test","threshold":"all_sensitive_endpoints_enforced","mapped_requirements":["G3"]},
+        {"control_id":"NX-C02-006","objective":"Verify CSRF state nonce and PKCE","operator":"A11","evidence_source":"oauth_security_test","threshold":"all_provider_flows_pass","mapped_requirements":["G2"]},
+        {"control_id":"NX-C02-007","objective":"Prevent direct foreign table reads","tier":"T0","operator":"A10","evidence_source":"database_role_test","threshold":"zero_cross_context_direct_reads","mapped_requirements":["G2"]},
+        {"control_id":"NX-C02-008","objective":"Validate software supply chain provenance","operator":"A10","evidence_source":"provenance_verification","threshold":"all_release_artifacts_verified","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C02-009","objective":"Exercise account recovery abuse cases","operator":"A11","evidence_source":"recovery_threat_test","threshold":"zero_unmitigated_high_findings","mapped_requirements":["G4"]},
+        {"control_id":"NX-C02-010","objective":"Validate security headers and transport","operator":"A19","evidence_source":"dast_transport_report","threshold":"zero_critical_transport_gaps","mapped_requirements":["G3"]},
+        {"control_id":"NX-C02-011","objective":"Verify security finding remediation SLA","operator":"C02","evidence_source":"security_capa_report","threshold":"zero_overdue_critical_or_high","mapped_requirements":["G4","G8"]}
+      ]
+    },
+    {
+      "family_id": "C03",
+      "name": "Chain Assurance",
+      "risk": "funds_and_chain_integrity",
+      "owner": "C03",
+      "default_operator": "A22",
+      "default_frequency": "per_pr_and_daily",
+      "controls": [
+        {"control_id":"NX-C03-001","objective":"Reconcile escrow liabilities exactly","tier":"T0","operator":"A22","evidence_source":"liability_reconciliation","threshold":"zero_unreconciled_value","mapped_requirements":["G3","G4"]},
+        {"control_id":"NX-C03-002","objective":"Reject replayed chain actions","tier":"T0","operator":"A21","evidence_source":"replay_scenario_report","threshold":"zero_duplicate_effects","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C03-003","objective":"Verify exact token payment semantics","tier":"T0","operator":"A21","evidence_source":"payment_invariant_report","threshold":"100_percent_money_endpoints_invariant_covered","mapped_requirements":["G2"]},
+        {"control_id":"NX-C03-004","objective":"Verify pause and emergency withdrawal behavior","tier":"T0","operator":"A21","evidence_source":"pause_scenario_report","threshold":"all_emergency_paths_pass","mapped_requirements":["G4"]},
+        {"control_id":"NX-C03-005","objective":"Verify upgrade storage compatibility","operator":"A21","evidence_source":"upgrade_compatibility_report","threshold":"zero_unapproved_storage_breaks","mapped_requirements":["G2"]},
+        {"control_id":"NX-C03-006","objective":"Test cross shard callback finality","operator":"A22","evidence_source":"cross_shard_scenario_report","threshold":"all_finality_cases_converge","mapped_requirements":["G3"]},
+        {"control_id":"NX-C03-007","objective":"Constrain transaction gas budgets","operator":"A21","evidence_source":"gas_snapshot","threshold":"no_endpoint_exceeds_approved_budget","mapped_requirements":["G4"]},
+        {"control_id":"NX-C03-008","objective":"Separate ordered and executed financial state","tier":"T0","operator":"A22","evidence_source":"state_machine_report","threshold":"zero_premature_success_states","mapped_requirements":["G3"]},
+        {"control_id":"NX-C03-009","objective":"Verify relayer drain and retry safety","operator":"A22","evidence_source":"relayer_failure_injection","threshold":"zero_lost_or_double_actions","mapped_requirements":["G3"]},
+        {"control_id":"NX-C03-010","objective":"Compare Rust and protocol VM outcomes","operator":"A21","evidence_source":"differential_vm_report","threshold":"zero_consensus_differences","mapped_requirements":["G4"]},
+        {"control_id":"NX-C03-011","objective":"Block mainnet funds without independent audit","tier":"T0","operator":"C03","evidence_source":"external_audit_gate","threshold":"valid_audit_required","mapped_requirements":["G5","G6"]}
+      ]
+    },
+    {
+      "family_id": "C04",
+      "name": "Privacy and Data",
+      "risk": "privacy_and_data_governance",
+      "owner": "C04",
+      "default_operator": "A18",
+      "default_frequency": "per_pr_and_release",
+      "controls": [
+        {"control_id":"NX-C04-001","objective":"Deny cross profile private data access","tier":"T0","operator":"A18","evidence_source":"privacy_matrix_test","threshold":"zero_unauthorized_cross_profile_reads","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C04-002","objective":"Keep Dating sensitive data isolated","tier":"T0","operator":"A35","evidence_source":"dating_isolation_test","threshold":"zero_non_dating_raw_access","mapped_requirements":["G4"]},
+        {"control_id":"NX-C04-003","objective":"Keep child data in child tenant","tier":"T0","operator":"A44","evidence_source":"kids_data_boundary_test","threshold":"zero_child_adult_data_crossing","mapped_requirements":["G4"]},
+        {"control_id":"NX-C04-004","objective":"Prevent private plaintext on chain","tier":"T0","operator":"A20","evidence_source":"chain_payload_privacy_scan","threshold":"zero_private_plaintext_payloads","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C04-005","objective":"Enforce purpose bound private projections","tier":"T0","operator":"A12","evidence_source":"projection_policy_test","threshold":"100_percent_private_views_authorized","mapped_requirements":["G2"]},
+        {"control_id":"NX-C04-006","objective":"Verify consent withdrawal propagation","operator":"A18","evidence_source":"consent_revocation_test","threshold":"all_downstream_revocations_complete","mapped_requirements":["G4"]},
+        {"control_id":"NX-C04-007","objective":"Verify export and deletion completeness","operator":"A18","evidence_source":"data_subject_journey_report","threshold":"100_percent_in_scope_stores_accounted","mapped_requirements":["G4"]},
+        {"control_id":"NX-C04-008","objective":"Enforce retention purge schedules","operator":"A18","evidence_source":"purge_receipt","threshold":"zero_overdue_unheld_records","mapped_requirements":["G8"]},
+        {"control_id":"NX-C04-009","objective":"Restrict safety evidence access","tier":"T0","operator":"A17","evidence_source":"evidence_vault_access_test","threshold":"zero_unpurposeful_access","mapped_requirements":["G4"]},
+        {"control_id":"NX-C04-010","objective":"Detect sensitive data in logs","operator":"A15","evidence_source":"privacy_log_scan","threshold":"zero_verified_sensitive_leaks","mapped_requirements":["G3","G8"]},
+        {"control_id":"NX-C04-011","objective":"Maintain data map and DPIA gates","operator":"A18","evidence_source":"data_map_delta","threshold":"all_material_changes_reviewed","mapped_requirements":["G1","G5"]}
+      ]
+    },
+    {
+      "family_id": "C05",
+      "name": "Compliance Control",
+      "risk": "legal_and_market_enablement",
+      "owner": "C05",
+      "default_operator": "A24",
+      "default_frequency": "per_release",
+      "controls": [
+        {"control_id":"NX-C05-001","objective":"Deny country capability without approval pack","tier":"T0","operator":"A24","evidence_source":"country_capability_matrix","threshold":"all_enabled_features_have_valid_pack","mapped_requirements":["G5"]},
+        {"control_id":"NX-C05-002","objective":"Verify applicable terms version","operator":"A24","evidence_source":"terms_manifest","threshold":"all_enabled_countries_current","mapped_requirements":["G5"]},
+        {"control_id":"NX-C05-003","objective":"Verify provider licensing evidence","operator":"A24","evidence_source":"provider_license_register","threshold":"zero_expired_required_licenses","mapped_requirements":["G5"]},
+        {"control_id":"NX-C05-004","objective":"Verify marketplace seller obligations","operator":"A28","evidence_source":"seller_compliance_test","threshold":"all_required_seller_fields_present","mapped_requirements":["G4","G5"]},
+        {"control_id":"NX-C05-005","objective":"Verify transport operator authorization","tier":"T0","operator":"A39","evidence_source":"transport_authorization_gate","threshold":"all_enabled_regions_authorized","mapped_requirements":["G5"]},
+        {"control_id":"NX-C05-006","objective":"Verify accommodation regulatory pack","operator":"A29","evidence_source":"stay_country_pack","threshold":"all_enabled_stay_markets_approved","mapped_requirements":["G5"]},
+        {"control_id":"NX-C05-007","objective":"Verify music rights territory entitlement","tier":"T0","operator":"A36","evidence_source":"rights_entitlement_test","threshold":"zero_unlicensed_playback","mapped_requirements":["G4","G5"]},
+        {"control_id":"NX-C05-008","objective":"Verify OAuth provider policy callbacks","operator":"A11","evidence_source":"provider_policy_test","threshold":"all_required_deletion_callbacks_pass","mapped_requirements":["G4"]},
+        {"control_id":"NX-C05-009","objective":"Maintain regulatory change register","operator":"A24","evidence_source":"regulatory_change_log","threshold":"zero_overdue_material_assessments","mapped_requirements":["G8"]},
+        {"control_id":"NX-C05-010","objective":"Block unsupported regulated claims","operator":"A24","evidence_source":"claims_policy_scan","threshold":"zero_unapproved_regulated_claims","mapped_requirements":["G4"]},
+        {"control_id":"NX-C05-011","objective":"Require external legal gate where mapped","tier":"T0","operator":"C05","evidence_source":"external_legal_gate_manifest","threshold":"all_mandatory_external_gates_valid","mapped_requirements":["G5"]}
+      ]
+    },
+    {
+      "family_id": "C06",
+      "name": "Trust and Safety",
+      "risk": "user_safety_and_platform_abuse",
+      "owner": "C06",
+      "default_operator": "A17",
+      "default_frequency": "continuous_and_release",
+      "controls": [
+        {"control_id":"NX-C06-001","objective":"Keep report flow available on every UGC surface","tier":"T0","operator":"A17","evidence_source":"report_surface_matrix","threshold":"100_percent_enabled_ugc_surfaces","mapped_requirements":["G3","G4"]},
+        {"control_id":"NX-C06-002","objective":"Keep block enforcement cross surface","tier":"T0","operator":"A17","evidence_source":"block_propagation_test","threshold":"zero_block_bypass","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-003","objective":"Keep appeal workflow operable","tier":"T0","operator":"A17","evidence_source":"appeal_e2e_report","threshold":"all_enforcement_types_appealable_or_exempt_documented","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-004","objective":"Execute emergency content containment","tier":"T0","operator":"A17","evidence_source":"containment_rehearsal","threshold":"all_kill_paths_within_slo","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-005","objective":"Detect prohibited marketplace items","operator":"A28","evidence_source":"prohibited_listing_test","threshold":"zero_known_fixture_bypass","mapped_requirements":["G3"]},
+        {"control_id":"NX-C06-006","objective":"Preserve moderation evidence purposefully","operator":"A17","evidence_source":"moderation_evidence_test","threshold":"all_cases_have_minimized_chain_of_custody","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-007","objective":"Constrain moderation backlog SLA","operator":"A17","evidence_source":"moderation_sla_dashboard","threshold":"zero_overdue_p0_cases","mapped_requirements":["G8"]},
+        {"control_id":"NX-C06-008","objective":"Test fraud and raid defenses","operator":"A17","evidence_source":"abuse_simulation_report","threshold":"zero_uncontained_critical_scenario","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-009","objective":"Verify review authenticity eligibility","operator":"A28","evidence_source":"review_eligibility_test","threshold":"zero_unverified_purchase_review_acceptance","mapped_requirements":["G3"]},
+        {"control_id":"NX-C06-010","objective":"Validate dating meet safety escalation","tier":"T0","operator":"A35","evidence_source":"dating_safety_e2e","threshold":"all_emergency_paths_pass","mapped_requirements":["G4"]},
+        {"control_id":"NX-C06-011","objective":"Exercise incident command readiness","operator":"A17","evidence_source":"incident_tabletop_report","threshold":"zero_unowned_critical_actions","mapped_requirements":["G4","G8"]}
+      ]
+    },
+    {
+      "family_id": "C07",
+      "name": "Child Safety",
+      "risk": "child_safety",
+      "owner": "C07",
+      "default_operator": "A44",
+      "default_frequency": "per_pr_and_release",
+      "controls": [
+        {"control_id":"NX-C07-001","objective":"Deny child token on adult APIs","tier":"T0","operator":"A44","evidence_source":"child_token_api_matrix","threshold":"zero_adult_api_successes","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C07-002","objective":"Keep Kids catalog allowlisted","tier":"T0","operator":"A44","evidence_source":"kids_catalog_test","threshold":"100_percent_items_allowlisted","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-003","objective":"Verify parent consent and revocation","tier":"T0","operator":"A44","evidence_source":"parent_consent_e2e","threshold":"all_age_country_paths_pass","mapped_requirements":["G4","G5"]},
+        {"control_id":"NX-C07-004","objective":"Prevent behavioral advertising to children","tier":"T0","operator":"A44","evidence_source":"kids_ad_network_scan","threshold":"zero_behavioral_ad_identifiers","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-005","objective":"Prevent child chain history","tier":"T0","operator":"A44","evidence_source":"kids_chain_payload_scan","threshold":"zero_child_identifying_transactions","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-006","objective":"Disable open chat and live for Kids","tier":"T0","operator":"A44","evidence_source":"kids_surface_denial_test","threshold":"zero_open_social_access","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-007","objective":"Verify safe search enforcement","operator":"A44","evidence_source":"kids_search_fixture_report","threshold":"zero_known_unsafe_results","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-008","objective":"Enforce age band time controls","operator":"A44","evidence_source":"kids_time_control_test","threshold":"all_configured_limits_enforced","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-009","objective":"Inspect Kids SDK network destinations","tier":"T0","operator":"A44","evidence_source":"kids_network_inspection","threshold":"zero_unapproved_destinations","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-010","objective":"Exercise child emergency kill switch","tier":"T0","operator":"A44","evidence_source":"kids_kill_rehearsal","threshold":"100_percent_pass_no_waiver","mapped_requirements":["G4"]},
+        {"control_id":"NX-C07-011","objective":"Require formal Kids launch approvals","tier":"T0","operator":"C07","evidence_source":"kids_external_gate_pack","threshold":"all_required_store_legal_control_approvals_valid","mapped_requirements":["G5"]}
+      ]
+    },
+    {
+      "family_id": "C08",
+      "name": "Model Risk and Integrity",
+      "risk": "model_and_recommender_integrity",
+      "owner": "C08",
+      "default_operator": "A42",
+      "default_frequency": "per_model_change",
+      "controls": [
+        {"control_id":"NX-C08-001","objective":"Exclude system test actors from production ranking","tier":"T0","operator":"A42","evidence_source":"synthetic_isolation_test","threshold":"zero_system_test_metric_effect","mapped_requirements":["G3","G4"]},
+        {"control_id":"NX-C08-002","objective":"Label automated agents visibly","tier":"T0","operator":"A45","evidence_source":"agent_disclosure_test","threshold":"100_percent_agent_profiles_labeled","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-003","objective":"Separate paid promotion from organic ranking","tier":"T0","operator":"A42","evidence_source":"ranking_separation_test","threshold":"zero_hidden_paid_placements","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-004","objective":"Provide ranking reason codes","operator":"A42","evidence_source":"ranking_explanation_test","threshold":"100_percent_sampled_recommendations_explained","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-005","objective":"Constrain unsafe amplification","tier":"T0","operator":"A42","evidence_source":"harm_amplification_eval","threshold":"zero_critical_policy_regressions","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-006","objective":"Evaluate cohort outcome disparities","operator":"A42","evidence_source":"cohort_eval_report","threshold":"all_material_disparities_owned","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-007","objective":"Detect recommender feedback loops","operator":"A42","evidence_source":"feedback_loop_simulation","threshold":"no_unbounded_harm_metric","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-008","objective":"Verify model rollback path","tier":"T0","operator":"A42","evidence_source":"model_rollback_rehearsal","threshold":"rollback_within_declared_rto","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-009","objective":"Restrict agent tool capabilities","tier":"T0","operator":"A45","evidence_source":"agent_capability_policy_test","threshold":"zero_unauthorized_tool_effects","mapped_requirements":["G4"]},
+        {"control_id":"NX-C08-010","objective":"Block fake engagement automation","tier":"T0","operator":"A45","evidence_source":"engagement_integrity_test","threshold":"zero_agent_generated_fake_engagement","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C08-011","objective":"Maintain model card and change evidence","operator":"A42","evidence_source":"model_card_manifest","threshold":"all_enabled_models_current","mapped_requirements":["G4","G8"]}
+      ]
+    },
+    {
+      "family_id": "C09",
+      "name": "SRE and Resilience",
+      "risk": "availability_and_recovery",
+      "owner": "C09",
+      "default_operator": "A15",
+      "default_frequency": "continuous",
+      "controls": [
+        {"control_id":"NX-C09-001","objective":"Meet Global Core availability target","tier":"T0","operator":"A15","evidence_source":"slo_dashboard","threshold":"availability_at_least_99_9_percent","mapped_requirements":["G6","G7","G8"]},
+        {"control_id":"NX-C09-002","objective":"Verify backup completion","operator":"A15","evidence_source":"backup_status_report","threshold":"zero_overdue_critical_backups","mapped_requirements":["G8"]},
+        {"control_id":"NX-C09-003","objective":"Verify restore within RTO","tier":"T0","operator":"A15","evidence_source":"restore_rehearsal","threshold":"all_critical_restores_within_rto","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C09-004","objective":"Verify event reducer rebuild","tier":"T0","operator":"A15","evidence_source":"rebuild_report","threshold":"state_hash_matches_checkpoint","mapped_requirements":["G4"]},
+        {"control_id":"NX-C09-005","objective":"Exercise provider failover","operator":"A15","evidence_source":"provider_failure_injection","threshold":"all_critical_degraded_modes_operable","mapped_requirements":["G4"]},
+        {"control_id":"NX-C09-006","objective":"Exercise region loss response","operator":"A15","evidence_source":"region_chaos_report","threshold":"service_restored_within_rto","mapped_requirements":["G4"]},
+        {"control_id":"NX-C09-007","objective":"Keep critical alerts owned","operator":"A15","evidence_source":"alert_ownership_report","threshold":"100_percent_critical_alerts_have_owner","mapped_requirements":["G8"]},
+        {"control_id":"NX-C09-008","objective":"Exercise live emergency termination","tier":"T0","operator":"A43","evidence_source":"live_kill_rehearsal","threshold":"100_percent_pass_weekly","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C09-009","objective":"Constrain crash free beta sessions","operator":"A14","evidence_source":"crash_dashboard","threshold":"crash_free_at_least_99_5_percent","mapped_requirements":["G6"]},
+        {"control_id":"NX-C09-010","objective":"Verify on call incident routing","operator":"A15","evidence_source":"on_call_drill","threshold":"all_p0_routes_acknowledged_within_target","mapped_requirements":["G4"]},
+        {"control_id":"NX-C09-011","objective":"Validate rollback under canary load","tier":"T0","operator":"A10","evidence_source":"canary_rollback_test","threshold":"rollback_within_release_rto","mapped_requirements":["G6"]}
+      ]
+    },
+    {
+      "family_id": "C10",
+      "name": "FinOps and Economic Control",
+      "risk": "cost_and_economic_loss",
+      "owner": "C10",
+      "default_operator": "A23",
+      "default_frequency": "daily_and_release",
+      "controls": [
+        {"control_id":"NX-C10-001","objective":"Deny unapproved incremental spend","tier":"T0","operator":"A00","evidence_source":"spend_policy_test","threshold":"zero_unapproved_incremental_cost","mapped_requirements":["G0","G4"]},
+        {"control_id":"NX-C10-002","objective":"Enforce provider cost caps","tier":"T0","operator":"A15","evidence_source":"provider_budget_report","threshold":"zero_cap_breaches_without_shutdown","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C10-003","objective":"Constrain media cost per minute","operator":"A40","evidence_source":"media_unit_cost_report","threshold":"within_approved_cost_envelope","mapped_requirements":["G4"]},
+        {"control_id":"NX-C10-004","objective":"Constrain gas per action class","operator":"A20","evidence_source":"gas_cost_report","threshold":"within_action_registry_budget","mapped_requirements":["G4"]},
+        {"control_id":"NX-C10-005","objective":"Reconcile relayer treasury spending","tier":"T0","operator":"A23","evidence_source":"relayer_treasury_reconciliation","threshold":"zero_unreconciled_spend","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C10-006","objective":"Detect fraud loss anomalies","tier":"T0","operator":"A23","evidence_source":"fraud_loss_dashboard","threshold":"no_uncontained_critical_anomaly","mapped_requirements":["G8"]},
+        {"control_id":"NX-C10-007","objective":"Verify transaction fee accounting","operator":"A23","evidence_source":"fee_ledger_report","threshold":"100_percent_fees_double_entry_reconciled","mapped_requirements":["G4"]},
+        {"control_id":"NX-C10-008","objective":"Verify creator reward liabilities","tier":"T0","operator":"A23","evidence_source":"creator_liability_report","threshold":"zero_unfunded_or_unreconciled_liability","mapped_requirements":["G4"]},
+        {"control_id":"NX-C10-009","objective":"Monitor infrastructure unit economics","operator":"A15","evidence_source":"unit_economics_scorecard","threshold":"all_material_variances_owned","mapped_requirements":["G8"]},
+        {"control_id":"NX-C10-010","objective":"Prevent synthetic actors affecting economics","tier":"T0","operator":"A45","evidence_source":"synthetic_economic_isolation_test","threshold":"zero_system_test_economic_effect","mapped_requirements":["G4"]},
+        {"control_id":"NX-C10-011","objective":"Verify promotion budget authorization","operator":"A46","evidence_source":"campaign_budget_test","threshold":"all_campaign_spend_has_valid_cap","mapped_requirements":["G4"]}
+      ]
+    },
+    {
+      "family_id": "C11",
+      "name": "Release and Configuration",
+      "risk": "release_and_provenance",
+      "owner": "C11",
+      "default_operator": "A10",
+      "default_frequency": "per_merge_and_release",
+      "controls": [
+        {"control_id":"NX-C11-001","objective":"Deny promotion without complete Evidence Pack","tier":"T0","operator":"C11","evidence_source":"evidence_pack_validation","threshold":"100_percent_required_evidence_present","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C11-002","objective":"Verify immutable artifact digest","tier":"T0","operator":"A10","evidence_source":"artifact_digest_verification","threshold":"build_and_promoted_digest_match","mapped_requirements":["G2","G3"]},
+        {"control_id":"NX-C11-003","objective":"Verify SBOM attachment","operator":"A10","evidence_source":"sbom_manifest","threshold":"100_percent_release_artifacts_have_sbom","mapped_requirements":["G2"]},
+        {"control_id":"NX-C11-004","objective":"Verify build provenance","tier":"T0","operator":"A10","evidence_source":"build_provenance","threshold":"all_release_artifacts_reproducibly_attributed","mapped_requirements":["G2"]},
+        {"control_id":"NX-C11-005","objective":"Detect configuration drift","operator":"A10","evidence_source":"configuration_diff_report","threshold":"zero_unapproved_material_drift","mapped_requirements":["G3","G8"]},
+        {"control_id":"NX-C11-006","objective":"Validate feature flags and caps","tier":"T0","operator":"A10","evidence_source":"flag_manifest_test","threshold":"all_high_risk_features_default_off_or_approved","mapped_requirements":["G4","G6"]},
+        {"control_id":"NX-C11-007","objective":"Enforce maker checker release approval","tier":"T0","operator":"C11","evidence_source":"approval_manifest","threshold":"owner_author_reviewer_checker_separated","mapped_requirements":["G2","G4"]},
+        {"control_id":"NX-C11-008","objective":"Prevent mutation of gated evidence","tier":"T0","operator":"C11","evidence_source":"evidence_integrity_test","threshold":"zero_post_gate_content_mutations","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C11-009","objective":"Verify migration and rollback proof","operator":"A10","evidence_source":"migration_rollback_report","threshold":"all_material_changes_have_tested_rollback","mapped_requirements":["G2"]},
+        {"control_id":"NX-C11-010","objective":"Verify deployment manifest completeness","operator":"A10","evidence_source":"deployment_manifest","threshold":"all_required_components_and_versions_present","mapped_requirements":["G3"]},
+        {"control_id":"NX-C11-011","objective":"Require owner approval for production release","tier":"T0","operator":"C11","evidence_source":"production_release_gate","threshold":"valid_owner_and_C11_approval","mapped_requirements":["G7"]}
+      ]
+    },
+    {
+      "family_id": "C12",
+      "name": "Assurance Analytics",
+      "risk": "assurance_measurement",
+      "owner": "C12",
+      "default_operator": "C12",
+      "default_frequency": "per_release_and_monthly",
+      "controls": [
+        {"control_id":"NX-C12-001","objective":"Validate reported control population","tier":"T0","operator":"C12","evidence_source":"population_reconciliation","threshold":"100_percent_T0_population_accounted","mapped_requirements":["G4"]},
+        {"control_id":"NX-C12-002","objective":"Validate control sample design","operator":"C12","evidence_source":"sample_method_report","threshold":"risk_strata_and_random_baseline_present","mapped_requirements":["G4"]},
+        {"control_id":"NX-C12-003","objective":"Prevent author selected self evaluation samples","tier":"T0","operator":"C12","evidence_source":"sample_independence_test","threshold":"zero_owner_only_samples","mapped_requirements":["G4"]},
+        {"control_id":"NX-C12-004","objective":"Correct oversampling weights","operator":"C12","evidence_source":"weighted_rate_recalculation","threshold":"reported_rates_match_recalculation","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C12-005","objective":"Detect recurring root causes","operator":"C12","evidence_source":"finding_recurrence_report","threshold":"all_recurrences_escalated","mapped_requirements":["G8"]},
+        {"control_id":"NX-C12-006","objective":"Validate control effectiveness","operator":"C12","evidence_source":"effectiveness_sample","threshold":"all_ineffective_controls_have_CAPA","mapped_requirements":["G8"]},
+        {"control_id":"NX-C12-007","objective":"Validate scorecard arithmetic","operator":"C12","evidence_source":"scorecard_recalculation","threshold":"zero_material_rate_mismatch","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C12-008","objective":"Trigger event driven resampling","operator":"C12","evidence_source":"resampling_trigger_log","threshold":"all_material_changes_resampled","mapped_requirements":["G8"]},
+        {"control_id":"NX-C12-009","objective":"Validate exception expiry reporting","tier":"T0","operator":"C12","evidence_source":"exception_expiry_report","threshold":"zero_expired_active_exceptions","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C12-010","objective":"Validate independent reviewer coverage","tier":"T0","operator":"C12","evidence_source":"maker_checker_coverage_report","threshold":"100_percent_T0_packets_independently_checked","mapped_requirements":["G4"]},
+        {"control_id":"NX-C12-011","objective":"Publish assurance trend without hidden exclusions","operator":"C12","evidence_source":"assurance_trend_manifest","threshold":"100_percent_exclusions_disclosed","mapped_requirements":["G8"]}
+      ]
+    },
+    {
+      "family_id": "C13",
+      "name": "Decentralization Assurance",
+      "risk": "decentralized_network_integrity",
+      "owner": "C13",
+      "default_operator": "A16",
+      "default_frequency": "per_pr_and_daily",
+      "controls": [
+        {"control_id":"NX-C13-001","objective":"Verify single node bootstrap","tier":"T0","operator":"A16","evidence_source":"single_node_genesis_test","threshold":"deterministic_bootstrap_pass","mapped_requirements":["G2","G3"]},
+        {"control_id":"NX-C13-002","objective":"Verify multi node state convergence","tier":"T0","operator":"A16","evidence_source":"state_convergence_report","threshold":"all_honest_nodes_same_final_state","mapped_requirements":["G3","G4"]},
+        {"control_id":"NX-C13-003","objective":"Detect Sybil peer concentration","operator":"A16","evidence_source":"peer_diversity_report","threshold":"within_approved_concentration_bounds","mapped_requirements":["G4","G8"]},
+        {"control_id":"NX-C13-004","objective":"Resist eclipse scenarios","tier":"T0","operator":"A16","evidence_source":"eclipse_simulation","threshold":"network_recovers_without_invalid_finality","mapped_requirements":["G4"]},
+        {"control_id":"NX-C13-005","objective":"Verify checkpoint state sync","tier":"T0","operator":"A16","evidence_source":"state_sync_report","threshold":"restored_state_hash_matches","mapped_requirements":["G3"]},
+        {"control_id":"NX-C13-006","objective":"Detect fraudulent service receipts","tier":"T0","operator":"A16","evidence_source":"receipt_challenge_test","threshold":"all_fraud_fixtures_rejected","mapped_requirements":["G4"]},
+        {"control_id":"NX-C13-007","objective":"Verify protocol upgrade compatibility","operator":"A16","evidence_source":"protocol_upgrade_report","threshold":"all_supported_versions_converge_or_fail_safe","mapped_requirements":["G3"]},
+        {"control_id":"NX-C13-008","objective":"Verify node churn tolerance","operator":"A16","evidence_source":"churn_simulation","threshold":"availability_and_consistency_within_target","mapped_requirements":["G4"]},
+        {"control_id":"NX-C13-009","objective":"Verify takedown propagation policy","operator":"A16","evidence_source":"takedown_propagation_test","threshold":"all_policy_updates_converge_with_audit_trace","mapped_requirements":["G4"]},
+        {"control_id":"NX-C13-010","objective":"Prevent SYSTEM_TEST nodes from rewards","tier":"T0","operator":"A16","evidence_source":"synthetic_node_economic_test","threshold":"zero_test_reward_effect","mapped_requirements":["G4"]},
+        {"control_id":"NX-C13-011","objective":"Block permissionless rewards before protocol audit","tier":"T0","operator":"C13","evidence_source":"permissionless_enable_gate","threshold":"valid_protocol_audit_and_economic_approval","mapped_requirements":["G5","G6"]}
+      ]
+    }
+  ],
+  "third_line_sample_plan": {
+    "owner": "InternalAudit",
+    "independent_from": ["Delivery", "NAC"],
+    "frequency": "quarterly_and_pre_major_release",
+    "minimum_sample_percent": 10,
+    "minimum_controls": 20,
+    "mandatory_population": ["all_failed_T0", "all_risk_acceptances", "all_break_glass", "all_mainnet_funds_gates", "all_Kids_launch_gates"],
+    "random_baseline_required": true,
+    "risk_strata": ["tier", "control_family", "country", "data_class", "economic_effect", "finding_recurrence"],
+    "sample_selector_must_not_be_control_owner": true,
+    "report_to": "Owner_Board",
+    "close_high_or_critical_by_generative_agent": false
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "packet_range": "NX-WEB-SOCIAL-102-110",
+  "date": "2026-09-07",
+  "gate": "PASS_LOCAL",
+  "closed_cycles": [102, 103, 104, 105, 106, 107, 108, 109, 110],
+  "controls": {
+    "trust_read": "Exact viewer, active profile and target binding with bounded assessment shapes.",
+    "appeal_lifecycle": "One open appeal per content commitment, confidential reason and replay-stable outcome.",
+    "notifications": "Owner/profile/read-state and preference mutations accept only exact authoritative results.",
+    "gdpr_lifecycle": "Account/session bound export and deletion journeys; UUID export identifiers are preserved.",
+    "profile_settings": "Active-profile-only edits with frozen intent and exact username/profile results.",
+    "live_drafts": "Owner/profile/action bound local preview and competition drafts with server-side privacy declaration.",
+    "creator_studio": "Publish intent is frozen and result-bound to owner, profile, content commitment and audio-rights lineage.",
+    "local_drafts": "IndexedDB v2 owner/profile partition, 20-draft quota, 20 MB media bounds and corruption denial.",
+    "camera_lifecycle": "Latest-request camera acquisition, stale stream teardown, abandoned recorder denial and recorder-specific timeout."
+  },
+  "findings_resolved": [
+    {
+      "severity": "HIGH",
+      "problem": "Late camera permission results and recorder callbacks could survive navigation or profile changes.",
+      "resolution": "Generation gates, DOM/profile checks, discard-marked recorders and exact-stream teardown now fail closed."
+    },
+    {
+      "severity": "HIGH",
+      "problem": "Profile, notification, lifecycle and publishing clients could trust structurally successful but context-mismatched mutation results.",
+      "resolution": "Every covered mutation now validates the authoritative owner, profile, target, action and committed state before local success."
+    },
+    {
+      "severity": "MEDIUM",
+      "problem": "Device-local creator drafts lacked a strict per-profile quota and corruption boundary.",
+      "resolution": "Drafts are partitioned by owner/profile, bounded, allow-listed and rejected on invalid identity, metadata or media."
+    }
+  ],
+  "verification": {
+    "focused_camera_audit": "72/72",
+    "full": "255/255",
+    "files": 29,
+    "failures": 0
+  },
+  "constraints": {
+    "external_network": false,
+    "real_funds": false,
+    "incremental_cost": 0,
+    "production_ready_claim": false
+  },
+  "sha256": {
+    "apps/nexus-web/lib/api.js": "19418c368bb22a5d77e3ebc7f8b5e0ddc5b20d987f0d7f561bca354ead30a7a7",
+    "apps/nexus-web/public/app.js": "8d7966785ae9c60d8d8475da5896fdf8824bf4798d443e2dde289f2a063abb2a",
+    "apps/nexus-web/public/index.html": "34f1b482e5eabcb3085258ed3fe06d83c1808a302cc4d07cb1f5fd4ea2f379ea",
+    "apps/nexus-web/test/audit.test.js": "3a884f1882965c9ce16095ea321bfca637c2e4a29947e875eeff2465fdd37662",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "9101ddfe72dba31c3911ef438ec78e9ef3571a0c4c289a568d30008112b815bc"
+  },
+  "next": "NX-WEB-SOCIAL-P01-FULLSCREEN-CLIPS-INTEGRITY-111"
+}

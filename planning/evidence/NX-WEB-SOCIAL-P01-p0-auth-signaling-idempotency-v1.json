@@ -1,0 +1,116 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-AUTH-SIGNALING-IDEMPOTENCY-006",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "native_auth_session_boundary": {
+    "idempotency_key_required": true,
+    "one_native_token_one_session": true,
+    "durable_consumption_proof": true,
+    "session_jti_bits": 128,
+    "stored_native_token": "sha256_only",
+    "stored_session_token": "aes_256_gcm_ciphertext_and_sha256",
+    "atomic_session_and_consumption_commit": true,
+    "crash_before_commit_rolls_back": true,
+    "exact_retry_returns_original_session": true,
+    "request_or_purpose_conflict": "fail_closed",
+    "logout_revokes_cookie_and_distinct_bearer": true,
+    "session_subject_checked_against_payload": true
+  },
+  "webrtc_signaling_boundary": {
+    "replay_guard": "sqlite_durable_hash_only",
+    "signal_payload_persisted": false,
+    "cross_user_policy": "deny",
+    "cross_persona_policy": "deny",
+    "delivery_semantics": "at_least_once_with_client_nonce_deduplication",
+    "same_nonce_same_payload": "no_duplicate_delivery",
+    "same_nonce_conflicting_payload": "deny",
+    "abandoned_claim_recovery_seconds": 5,
+    "active_call_guard_retention": "call_lifetime_plus_terminal_grace",
+    "persona_scoped_sse_channel": true
+  },
+  "verification": {
+    "full_tests": { "passed": 112, "failed": 0 },
+    "signaling_concurrency": {
+      "call_pairs": 100,
+      "system_test_users": 300,
+      "restart_stable_replay": true,
+      "cross_user_denials": true,
+      "cross_persona_denials": true
+    },
+    "session_uniqueness": {
+      "sessions_issued": 100,
+      "unique_jti": 100,
+      "unique_token_hashes": 100
+    },
+    "synthetic_actor_lab": {
+      "seed": 2026082807,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1204,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "saves": 500,
+      "reposts": 167,
+      "conversations": 100,
+      "messages": 100,
+      "stories_and_views": 125,
+      "blocks": 100,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "self_follows": 0,
+      "bad_threads": 0,
+      "gate": "PASS"
+    },
+    "database": {
+      "call_signal_replay_guard_present": true,
+      "native_auth_consumptions_present": true,
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "runtime": {
+      "pid": 6016,
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_https": 200,
+      "phone_url": "https://192.168.1.153:3443/",
+      "listen_address": "0.0.0.0"
+    }
+  },
+  "review": {
+    "initial_checker_findings": {
+      "critical": 0,
+      "high": 4,
+      "medium": 3
+    },
+    "reported_high_and_medium_findings_remediated": true,
+    "independent_post_fix_recheck": "PENDING_CAPACITY_WINDOW",
+    "independent_post_fix_pass_claimed": false
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "66f8586dd30b8d126bfc3d3169360d115ff754c00ad9b5f8f7f91c112096b9ae",
+    "apps/nexus-web/lib/repo.js": "aabe2f4fb8c52f269ee01f34af0ae4ba2af881f62ac0fb55e5cc2d9890de8389",
+    "apps/nexus-web/lib/api.js": "8b850dcc48584b42902c4d26ae8ad2e621fe0502ec9a74b4920c7a111d3732f7",
+    "apps/nexus-web/lib/security.js": "ce28a98bca625eb1ee0763269fa4dce078463ecdb9e96b72e1debadc1aa3f5da",
+    "apps/nexus-web/lib/sse.js": "cea223c8cf08777e04c0a074bcb36e07d410e0abf9077e0f79ad45b181ed0a1f",
+    "apps/nexus-web/lib/native-auth-session.js": "f48e8474d3bff68a7b019652d192527680c5f77cd7ab58390413f881725a23b7",
+    "apps/nexus-web/public/call-client.js": "417bb9e34f7097e0cc02b677d660a446699e70375eb2624e25b03e7a120202ba",
+    "apps/nexus-web/server.js": "5e1ac70f1975848eac912b8ee6da65787b617aae67fd7ad05dc331a059a46eca",
+    "apps/nexus-web/test/core.test.js": "f6896fc1f58fe239db2729d7c1c86a625cfa95f0b57f9ef390150b65ca773c5e",
+    "apps/nexus-web/test/signaling-idempotency.test.js": "1c0da7b4abd9f12efa30a6d37bbf98bf88d971be231fa03353c5b57240a72b75",
+    "apps/nexus-web/test/native-auth-session.test.js": "012ca7f17eccc7471311df9c9d951a9d0a94b5853f3211481cccf8cdf18a089f"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "implementation": "main_agent_only",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-EMAIL-AUTH-IDEMPOTENCY-007"
+}

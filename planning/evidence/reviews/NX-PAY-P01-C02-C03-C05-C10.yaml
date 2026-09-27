@@ -1,0 +1,157 @@
+schema_version: 1
+task_id: NX-PAY-P01
+review_id: NX-PAY-P01-C02-C03-C05-C10-20260809-FINAL-REREVIEW02
+reviewer_roles: [C02, C03, C05, C10]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A21
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-PAY-P01-validation.json
+  sha256: 4aba831f8cadcfb5e568202d3476a7bb1c0273c4fe6cac4a65f7d3e4b3b97714
+  run_id: NX-PAY-P01-A21-FINALRETEST02
+  executor_role: A21
+  status: PASS
+  assertions: 116
+  scenario_assertions: 80
+  deterministic_repetitions: 3
+  artifact_count: 20
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 7ebc755f130487818a2be683ed96bf80430936fff9f04ab374dda9b12f86245b
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  run_id: NX-PAY-P01-C03-FINALREREVIEW-20260809-02
+  executor_role: C03
+  status: PASS
+  assertions: 116
+  scenario_assertions: 80
+  deterministic_repetitions: 3
+  review_subject_sha256: 7ebc755f130487818a2be683ed96bf80430936fff9f04ab374dda9b12f86245b
+  output_sha256: 95e821016babd527a7b0531bca50b973e2b8b9d46cf6a6ed8ea65e62c41227a3
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  local_network_operations: 0
+  local_economic_operations: 0
+  xmoney_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_retest:
+  status: PASS
+  subject_code_modified: false
+  runner_prepare_required: false
+  network_write_performed: false
+  broadcast_performed: false
+  provider_call_performed: false
+  closure_results:
+    forged_authorization_country_substitution: AUTHORIZATION_BINDING_MISMATCH
+    forged_authorization_signature: PAYMENT_CAPABILITY_SIGNATURE_INVALID
+    stale_authorization_authorized_at: AUTHORIZATION_BINDING_MISMATCH
+    expired_embedded_capability: PAYMENT_CAPABILITY_NOT_ACTIVE
+    direct_missing_events: DIRECT_SNAPSHOT_INVALID
+    direct_phantom_event: DIRECT_SNAPSHOT_INVALID
+    direct_inconsistent_ordinal: DIRECT_SNAPSHOT_INVALID
+    direct_fingerprint_substitution: DIRECT_SNAPSHOT_INVALID
+    direct_final_state_substitution: DIRECT_SNAPSHOT_INVALID
+    direct_missing_execution_observation: DIRECT_SNAPSHOT_INVALID
+    direct_unverified_execution_observation_runtime: CHAIN_OBSERVATION_UNVERIFIED
+    direct_unverified_execution_observation_restore: DIRECT_SNAPSHOT_INVALID
+    xmoney_sequence_overwrite_attempt: XMONEY_SNAPSHOT_INVALID
+    xmoney_facts_without_signed_events: XMONEY_SNAPSHOT_INVALID
+    xmoney_phantom_event: XMONEY_SNAPSHOT_INVALID
+    xmoney_unverified_restored_event: XMONEY_SNAPSHOT_INVALID
+    xmoney_restart_webhook_replay: DUPLICATE_NO_CREDIT
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty current artifact hashes match owner evidence and independently recompute the declared subject
+  exact_shape_policy_capability_and_alias:
+    status: PASS
+    evidence: exact shapes typed amounts active policy capability gates ASCII NFKC alias policy homograph stale alias substitution wrong decimals and receipt expiry fail closed
+  authorization_to_resolution_boundary:
+    status: PASS
+    evidence: authorization embeds the exact capability and verifyResolution reruns authorizePayment with the current time and capability verifier before comparing country rail policy token amount authorization time and full capability binding
+  direct_payment_runtime_finality:
+    status: PASS
+    evidence: runtime EXECUTED_SUCCESS requires a typed verified indexed chain observation with the same receipt tx network token participants exact opposite deltas and zero imbalance
+  direct_payment_restore:
+    status: PASS
+    evidence: restore reconstructs ordinal event lineage recomputes fingerprints and state persists the typed execution observation and reverifies its balance proof; missing phantom substituted and unverified evidence is denied
+  xmoney_runtime_reconciliation:
+    status: PASS
+    evidence: idempotency conflicts webhook signature and event collisions delayed and out-of-order facts refund dominance and duplicate-credit denial remain deterministic
+  xmoney_restore:
+    status: PASS
+    evidence: order ordinals are canonical and sequence-complete while typed events are correlated fingerprinted signature-verified and replayed to reconstruct facts state credit and refund projection
+  devnet_evidence:
+    status: PASS
+    evidence: the consumed single-use approval and signed receipt continue to bind exactly one successful Devnet USDC-350c4e transfer of one atomic unit with zero native value minus-one plus-one deltas zero imbalance and zero repeated broadcasts
+  effect_boundary:
+    status: PASS
+    evidence: re-review performed no network write broadcast provider call real-fund operation or incremental-cost action; the historical Devnet transaction was not repeated
+
+findings:
+  - id: C05-PAY-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: verifyResolution accepts forged or stale PaymentAuthorization objects
+    closure_evidence:
+      - PaymentAuthorization now embeds the full signed PaymentCapability rather than a caller-provided signature label alone.
+      - verifyResolution recomputes authorizePayment at the resolution time through PaymentCapabilityVerifier.
+      - country substitution is rejected with AUTHORIZATION_BINDING_MISMATCH.
+      - capability signature substitution is rejected with PAYMENT_CAPABILITY_SIGNATURE_INVALID.
+      - stale authorizedAt and expired capability paths fail closed.
+
+  - id: C03-PAY-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: DirectPaymentLedger restore permits fabricated finality and phantom event history
+    closure_evidence:
+      - Direct events persist ordinal failure data typed ChainObservation and a fingerprint bound to the complete receipt and observation.
+      - Restore deterministically replays every ordinal and compares the derived state tx hash and failure code with the stored record.
+      - EXECUTED_SUCCESS requires the persisted observation to satisfy exact balance invariants and a ChainObservationVerifier at runtime and restore.
+      - Missing events phantom ordinals altered fingerprints absent observation verifier denial and final-state substitution are rejected.
+      - Event replay remains denied after authentic snapshot restore.
+
+  - id: C03-PAY-P01-003
+    severity: HIGH
+    status: CLOSED
+    title: LocalXMoneyReconciler restore permits order overwrite and fabricated provider history
+    closure_evidence:
+      - Restore parses canonical XMONEY:ORDER:n identifiers and requires a unique contiguous sequence whose maximum equals the persisted sequence.
+      - Typed webhook events retain order state time signature and recomputed fingerprint and are reverified during restore.
+      - Facts state credited and creditedEver are reconstructed and compared from the signed event set.
+      - Sequence rollback missing events fabricated facts phantom orders and verifier denial are rejected.
+      - An authentic restart preserves webhook replay denial without duplicate credit.
+
+accepted_controls:
+  - Payment policy content hash active window zero-real-value cap and exact Devnet token constraints are enforced.
+  - Alias normalization is ASCII-only and NFKC-stable with stale homograph substituted and revoked aliases denied.
+  - Authorization capability resolution receipt chain observation and balance effects form one fail-closed lineage.
+  - Direct and xMoney snapshot restore reject missing phantom substituted unverified and replayed state.
+  - Runtime xMoney idempotency webhook verification refunds and out-of-order convergence remain deterministic.
+  - Devnet evidence proves one atomic USDC transfer zero imbalance zero native value one broadcast and no real value.
+
+claims_excluded:
+  - xmoney_sandbox_external
+  - xmoney_production
+  - mainnet
+  - real_funds
+  - production_compliance
+  - formal_legal_opinion
+  - external_financial_audit
+
+residual_scope_notes:
+  - This PASS covers the local deterministic payment boundary and the already-consumed zero-real-value Devnet evidence only.
+  - No external xMoney adapter credentials sandbox provider call production persistence mainnet or real-fund claim is made.
+  - Production database transactions distributed locks key management provider certification compliance and independent financial security review remain future external gates.

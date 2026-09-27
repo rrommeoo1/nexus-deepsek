@@ -1,0 +1,48 @@
+{
+  "packet": "NX-WEB-AUTH-P02-EMAIL-CLIENT-REPLAY-SAFETY-060",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "explicit_login_idempotency": true,
+    "explicit_signup_init_idempotency": true,
+    "explicit_signup_commit_idempotency": true,
+    "single_flight_login_and_signup": true,
+    "detached_view_completion_rejected": true,
+    "signup_challenge_and_proof_reused_on_retry": true,
+    "device_wallet_staged_before_server_confirmation": true,
+    "device_wallet_activated_only_for_confirmed_address": true,
+    "lost_response_pending_wallet_recovery": true,
+    "raw_backend_or_crypto_errors_rendered": false,
+    "external_provider_invoked": false,
+    "cache_generation": "20260905-p1auth24"
+  },
+  "verification": {
+    "auth_client_build": "PASS",
+    "focused_auth_replay": { "passed": 3, "failed": 0 },
+    "product_full_tests": { "passed": 223, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Repeated signup submissions could mint different local identities and commands.", "resolution": "One form intent now reuses stable init/commit keys, challenge and wallet proof under a single-flight gate." },
+    { "severity": "HIGH", "finding": "The automatic wallet became active before the server confirmed account ownership.", "resolution": "Encrypted key material is staged and promoted only for the exact confirmed address; authenticated matching-address recovery handles a lost response." },
+    { "severity": "MEDIUM", "finding": "Login could dispatch duplicate commands and expose backend failure strings.", "resolution": "Stable intent key, single-flight, local bounds and controlled failures were added." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "82e740ae28d28ce792f01dabf861eb867326e5c8a3de4666f8a334cf66f57930",
+    "apps/nexus-web/public/index.html": "684a69842ff47afcad67cb0e997c9b09a738af75b3de254e9174f79d5f8826a9",
+    "apps/nexus-web/client/device-wallet-entry.js": "7c3eaf28d76b6e1906c3eb5f760f4bd41ba2ae8fb1f4dba1c88d9183fc65229c",
+    "apps/nexus-web/public/device-wallet.js": "e4d6bff61ab653670dfd40748c8c0fe62c186fb4f2c4453285a2ea5845b3b288",
+    "apps/nexus-web/test/audit.test.js": "a6c66179b5e509df8dc3137a7f5bf93774caccc81cbeee6a208481e66cbc3f64",
+    "planning/NX-WEB-SOCIAL-email-auth-client-replay-safety-v1.md": "aff1c17856a67bfa3cac99a932bcd129eb2da8910746b5d88edf1106a1ff4bcd",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "3de30fa2c0837f7330bf717e57b9a86a091b1c56d78db06b449cd53fb7c9b2e0",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "5b8d58ae3c2c351730190e9fab7c7f0f0fa3299bd1cefed1a0f7308b58a09f58"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_EMAIL_VERIFICATION_TRUSTED_HTTPS_REAL_XPORTAL_AND_EXTERNAL_REVIEW",
+  "next_packet": "NX-WEB-AUTH-P02-LOCALIZED-AUTH-SHELL-061"
+}

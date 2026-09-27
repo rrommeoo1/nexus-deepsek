@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "slice_id": "SOCIAL_RANKING_LOCAL_DETERMINISTIC_V1",
+  "run_id": "NX-WEB-SOCIAL-P01-20260824-RANKING-V1-01",
+  "observed_at": "2026-08-24T19:37:17.8382543+02:00",
+  "executor_role": "OWNER_A31",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "canonicalization": "sha256(UTF8(join(LF, sort(path) map path + ':' + sha256)))",
+  "subject_sha256": "f52ad97dbe0db329c185e297b6ca2114ea876ab4395bf7bfe302ad91f8529fcc",
+  "validation": {
+    "node_tests": "PASS_70_OF_70",
+    "syntax": "PASS_DB_REPO_API_APP_ACTORS",
+    "determinism": "PASS_REPEAT_AND_REACTION_INSERT_ORDER_INVARIANT",
+    "exploration": "PASS_1000_BPS_RESERVED_WHEN_ELIGIBLE_INVENTORY_EXISTS",
+    "author_diversity": "PASS_MAX_2_BEFORE_INVENTORY_DEGRADATION",
+    "dislike_policy": "PASS_PRIVATE_UNIQUE_THRESHOLD_BAYESIAN_AND_900_POINT_CAP",
+    "not_interested": "PASS_PROFILE_PRIVATE_AND_REVERSIBLE",
+    "recommendation_reset": "PASS_SIGNALS_RESET_REACTIONS_RETAINED_VERSION_INCREMENTED",
+    "impressions": "PASS_BOUNDED_UNIQUE_EXACT_BOOLEAN_AND_PROFILE_SCOPED",
+    "synthetic_isolation": "PASS_50_SYSTEM_TEST_ACTORS_ORGANIC_FEED_POSTS_0",
+    "paid_agent_incentivized_authors": "EXCLUDED_FROM_ORGANIC_QUERY",
+    "database_integrity": "PASS_PRAGMA_INTEGRITY_CHECK_OK",
+    "runtime_listener": "PASS_0.0.0.0_3000_PID_5300",
+    "runtime_http": "PASS_200_LOOPBACK_AND_LAN",
+    "browser_shell": "PASS_SOCIAL07_ZERO_CONSOLE_ERRORS"
+  },
+  "ranking_policy": {
+    "scope": "Social_profile_only",
+    "lenses": ["for-you", "near", "global", "following"],
+    "inputs": ["recency", "unique_organic_reactions", "unique_comments", "unique_saves", "unique_shares", "following", "post_reset_affinity", "preferred_language", "consented_region", "viewer_impressions"],
+    "excluded_inputs": ["Dating_signals", "wallet_balance", "transaction_value", "special_category_GDPR_data", "SYSTEM_TEST", "PAID", "AGENT", "INCENTIVIZED"],
+    "dislike_public_count": false,
+    "fake_reaction_semantics": "community_opinion_not_fact_check",
+    "precise_score_public": false,
+    "general_reason_public": true,
+    "paid_boosts": false,
+    "breaking_news": "disabled_without_verified_provider"
+  },
+  "effects": {
+    "external_model_calls": 0,
+    "external_provider_operations": 0,
+    "external_network_writes": 0,
+    "broadcast_transactions": 0,
+    "real_funds": 0,
+    "mainnet_state_changes": 0,
+    "new_external_accounts": 0,
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "artifacts": [
+    { "path": "apps/nexus-web/lib/api.js", "sha256": "7ece0559644c40937594778ca5aa15626e8be232263c6fd8c515c7be6ae5e82e" },
+    { "path": "apps/nexus-web/lib/db.js", "sha256": "65f21fc4f1b34e196f5f689c6f960fa5b2da632dd44b6e96f90a1ba10d086c33" },
+    { "path": "apps/nexus-web/lib/repo.js", "sha256": "05e0166498489bd8320e65c5efd0ac59c02d7974eaf431adf22ebfcf3c851f4f" },
+    { "path": "apps/nexus-web/public/app.js", "sha256": "e2c2c8c8e30264be414eea6894cbac11b9761b056958812b258fd86469f1712c" },
+    { "path": "apps/nexus-web/public/index.html", "sha256": "c2afd0491fb4e25275d95a14ab96de993a2f377138d2345bc80aceccaea632ca" },
+    { "path": "apps/nexus-web/public/styles.css", "sha256": "232957a1cb0827493bb0c0ccdf3b8ab9a4524ceb23d7a0955a68eca41687eb6e" },
+    { "path": "apps/nexus-web/scripts/actors.js", "sha256": "2db8d1a662795e8036d40a9b49132cf95a14fe37ff4c35f348ea399a001d8bb5" },
+    { "path": "apps/nexus-web/test/core.test.js", "sha256": "83ec13afeafd7a1c94826ad7b77536ae899fc169a78928fc7db54ca7bcd887df" }
+  ],
+  "exclusions": [
+    "claim of ML quality, production-scale latency or outcome optimization",
+    "cross-region signed normalization for a production Global feed",
+    "Sybil-proof identity clusters beyond unique accounts, traffic class and bounded penalties",
+    "watch-time instrumentation beyond local completed/dwell events",
+    "political neutrality or misinformation classifier certification",
+    "external ranking/model/provider calls",
+    "formal DSA, privacy, bias, security or accessibility audit",
+    "completion of the full NX-WEB-SOCIAL-P01 packet"
+  ]
+}

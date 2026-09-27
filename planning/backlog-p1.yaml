@@ -1,0 +1,802 @@
+schema_version: 1
+program: Nexus
+cycle: thin_verticals_after_p0_contracts
+default_status: blocked
+
+tasks:
+  - task_id: NX-ECON-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 0
+    child_packets: [NX-ECON-P01]
+    title: Sustainable creator, action and node economy
+    objective: Keep ordinary engagement usable while optional support, bounded creator pools and verified node services create auditable revenue and payouts.
+    owner_agent: A43
+    peer_reviewers: [A20, A16, A32]
+    control_reviewers: [C03, C05, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/07-tokenomics.md, docs/10-supernova-economics-compliance.md, docs/17-decentralized-node-network.md, docs/18-creator-node-adult-economy.md]
+    depends_on: [NX-QA-001, NX-CHAIN-001, NX-CHAIN-002, NX-OBS-001]
+    acceptance_tests:
+      - Free engagement never creates a fixed direct payout and optional paid support remains a separate explicit action.
+      - Creator and node payout pools are capped by realized eligible revenue and reconcile to settlement receipts.
+      - Organic, paid-support and promoted rankings remain separate and exclude SYSTEM_TEST and invalid traffic.
+      - Adult monetization is a separate default-deny web surface with age, identity, consent, territory and pre-publication gates.
+    evidence_required: [economic_model, stress_simulation, payout_invariants, country_and_store_gate_matrix]
+
+  - task_id: NX-ECON-P01
+    record_kind: task_packet
+    parent_epic: NX-ECON-001
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 0
+    title: Free-like paid-support and useful-node economics contract
+    objective: Version the formulas, caps, ranking separation and settlement boundaries for free on-chain engagement, creator support and useful node work.
+    owner_agent: A43
+    peer_reviewers: [A20, A16, A32]
+    control_reviewers: [C03, C05, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/07-tokenomics.md, docs/17-decentralized-node-network.md, docs/18-creator-node-adult-economy.md]
+    depends_on: [NX-QA-001, NX-CHAIN-001, NX-CHAIN-002, NX-OBS-001]
+    acceptance_tests:
+      - Like and comment can be sponsored or queued without becoming pay-to-engage and each terminal action still maps to one transaction.
+      - The support button exposes the full split before signature and cannot alter organic reach.
+      - Qualified creator rewards and node rewards are computed from fixed epoch budgets with anti-Sybil caps and exact conservation.
+      - Stress cases for zero revenue, gas spikes, fraud, chargebacks and node concentration fail closed without negative treasury balance.
+    evidence_required: [versioned_economic_contract, deterministic_simulation, conservation_report, privacy_and_legal_boundaries]
+
+  - task_id: NX-PAY-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 1
+    child_packets: [NX-PAY-P01]
+    title: Nexus Pay instant username payments
+    objective: A user sends an allowlisted stablecoin or EGLD to a verified username alias through a non-custodial wallet, while xMoney provides the primary merchant, payment-link, refund and regulated-rail adapter where supported.
+    owner_agent: A21
+    peer_reviewers: [A11, A13, A20]
+    control_reviewers: [C02, C03, C05, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/02-smart-contracts.md, docs/04-security-compliance.md, docs/10-supernova-economics-compliance.md, docs/19-username-payments.md]
+    depends_on: [NX-ECON-001, NX-AUTH-001, NX-CHAIN-001, NX-CHAIN-002, NX-OBS-001]
+    acceptance_tests:
+      - Username resolution is versioned and bound to the exact address token amount network and expiry shown before signature.
+      - Homoglyph stale alias recipient substitution replay and wrong-network transfers fail closed.
+      - Pending ordered executed and failed states are never presented as the same finality state.
+      - Stablecoin allowlist sanctions country limits and transaction monitoring are policy-driven and default deny.
+      - xMoney orders refunds and signed webhooks are idempotent and reconcile separately from direct wallet transfers.
+    evidence_required: [alias_resolution_proof, payment_state_machine, recipient_confirmation_e2e, reconciliation_and_privacy_scan]
+
+  - task_id: NX-PAY-P01
+    record_kind: task_packet
+    parent_epic: NX-PAY-001
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 1
+    title: One stablecoin transfer to a username on devnet
+    objective: Two synthetic users resolve one username and complete one capped zero-real-value devnet transfer while a local xMoney sandbox adapter proves order and webhook reconciliation without external credentials.
+    owner_agent: A21
+    peer_reviewers: [A11, A13, A20]
+    control_reviewers: [C02, C03, C05, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/02-smart-contracts.md, docs/10-supernova-economics-compliance.md, docs/19-username-payments.md]
+    depends_on: [NX-ECON-P01, NX-AUTH-001, NX-CHAIN-001, NX-CHAIN-002, NX-OBS-001]
+    acceptance_tests:
+      - A signed resolution receipt binds username alias version receiver network token amount and short expiry.
+      - One test ESDT transfer reaches EXECUTED_SUCCESS and exact indexed balance effects without real value.
+      - Alias change after preview stale quote wrong decimals and duplicate submit are denied.
+      - Forged duplicate delayed and out-of-order xMoney webhook fixtures converge without double credit.
+    evidence_required: [resolution_receipt, devnet_test_transaction, reducer_reconciliation, negative_recipient_tests]
+
+  - task_id: NX-ADULT-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 11
+    child_packets: [NX-ADULT-P01]
+    title: Nexus Privé consent-first adult creator network
+    objective: Adults can publish and subscribe to lawful mature content on a separately gated web surface without exposing sensitive identity, content or subscription graphs on-chain.
+    owner_agent: A43
+    peer_reviewers: [A11, A32, A40]
+    control_reviewers: [C02, C04, C05, C06, C08]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/04-security-compliance.md, docs/18-creator-node-adult-economy.md]
+    depends_on: [NX-ECON-001, NX-AUTH-001, NX-MEDIA-001, NX-MOD-001, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Viewer and every depicted performer are age and identity verified before access or publication.
+      - Per-asset consent rights territory and takedown state fail closed and explicit media never enters public IPFS or mobile-store catalogs.
+      - On-chain payloads expose no content title thumbnail identity viewer graph or predictable private target.
+      - The age-gated web surface supports free discovery plus subscription PPV tip bundle paid live and metered one-to-one call offers without leaking explicit previews into Nexus Core.
+      - Creator payouts remain dominant and transparent while referrals are funded only from Nexus net fees or marketing budget after qualified non-synthetic cross-module activation.
+    evidence_required: [age_and_consent_e2e, prepublication_moderation, privacy_payload_scan, country_pack_and_payment_gate]
+
+  - task_id: NX-ADULT-P01
+    record_kind: task_packet
+    parent_epic: NX-ADULT-001
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 11
+    title: Privé age consent entitlement and opaque-settlement proof
+    objective: One fully synthetic adult asset passes age and consent gates, grants a private entitlement and settles without public sensitive metadata.
+    owner_agent: A43
+    peer_reviewers: [A11, A32, A40]
+    control_reviewers: [C02, C04, C05, C06, C08]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/04-security-compliance.md, docs/18-creator-node-adult-economy.md]
+    depends_on: [NX-ECON-P01, NX-AUTH-001, NX-MEDIA-001, NX-MOD-P01, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Missing age identity performer consent rights or territory proof denies publication and purchase.
+      - Ciphertext purge revokes discovery and keys while preserving only the minimum lawful evidence.
+      - Settlement commitment is unlinkable to explicit content and exact liabilities reconcile.
+      - Free discovery remains 18+ gated and a paid live or one-to-one call requires a visible rate timer preauthorized cap and signed metering receipts.
+      - SYSTEM_TEST referrals paid followers fake users and multi-level recruitment create zero payout organic reach or product adoption credit.
+    evidence_required: [synthetic_entitlement_e2e, consent_matrix, purge_receipt, settlement_reconciliation, privacy_scan]
+
+  - task_id: NX-PROFILE-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 1
+    child_packets: [NX-PROFILE-P01]
+    title: Contextual profile switcher and privacy matrix
+    objective: One account switches isolated profiles while server and clients enforce deny-by-default visibility.
+    owner_agent: A12
+    peer_reviewers: [A13, A30]
+    control_reviewers: [C01, C02, C04]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/03-data-api.md, docs/04-security-compliance.md, docs/13-global-auth-agent-network.md]
+    depends_on: [NX-AUTH-001, NX-CONTRACT-001, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - Work Social Dating Travel and Marketplace data cannot cross profile boundaries without an explicit policy grant.
+      - Profile switch invalidates stale audience and capability state on API and client.
+    evidence_required: [privacy_matrix_test, profile_switch_e2e, access_denial_log]
+
+  - task_id: NX-CHAT-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 3
+    child_packets: [NX-CHAT-P01]
+    title: Unified E2EE messaging facade
+    objective: One-to-one and group conversations work across allowed profiles without exposing message plaintext to Nexus services.
+    owner_agent: A14
+    peer_reviewers: [A12, A30]
+    control_reviewers: [C01, C02, C04, C06]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/01-technical-architecture.md, docs/04-security-compliance.md, docs/05-user-flows.md]
+    depends_on: [NX-PROFILE-001, NX-AUTH-001, NX-PLAT-001, NX-OBS-001, NX-CHAIN-001, NX-CHAIN-002, NX-MOD-001]
+    acceptance_tests:
+      - Device and room key lifecycle covers add revoke recovery and reportable evidence.
+      - Cross-profile ACL block and audience changes are enforced before delivery.
+      - One private action reaches terminal chain execution without exposing plaintext or a predictable target.
+    evidence_required: [e2ee_threat_test, acl_matrix, delivery_e2e]
+
+  - task_id: NX-SOCIAL-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 4
+    child_packets: [NX-SOCIAL-P01]
+    title: Clips Pulse and Watch walking slice
+    objective: A moderated media asset can appear as a Clip or Watch item and support a Pulse discussion with explainable ranking.
+    owner_agent: A32
+    peer_reviewers: [A30, A40, A42]
+    control_reviewers: [C01, C04, C06, C08]
+    status: done
+    risk_class: T1
+    timebox_agent_days: null
+    normative_refs: [docs/09-action-ledger-classifieds.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md]
+    depends_on: [NX-PROFILE-001, NX-MEDIA-001, NX-MOD-001, NX-OBS-001, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Upload moderation audience ranking and purge are traceable end to end.
+      - Synthetic and promoted content is labelled and excluded from organic metrics.
+      - One public social mutation has a distinct transaction and reconciled terminal state.
+    evidence_required: [social_e2e, ranking_explanation, purge_receipt, integrity_test]
+
+  - task_id: NX-MARKET-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 5
+    child_packets: [NX-MARKET-P01]
+    title: OLX-style marketplace and test-token escrow
+    objective: A seller publishes a product and a buyer completes or disputes a capped devnet escrow transaction.
+    owner_agent: A34
+    peer_reviewers: [A21, A23, A30]
+    control_reviewers: [C03, C05, C06, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/02-smart-contracts.md, docs/05-user-flows.md, docs/09-action-ledger-classifieds.md, docs/10-supernova-economics-compliance.md]
+    depends_on: [NX-PROFILE-001, NX-CHAIN-001, NX-CHAIN-002, NX-SEC-001, NX-MOD-001]
+    acceptance_tests:
+      - Escrow liabilities reconcile through complete refund cancel and dispute paths.
+      - Prohibited-item policy and verified-purchase review eligibility fail closed.
+    evidence_required: [escrow_invariants, marketplace_e2e, prohibited_listing_test, reconciliation_report]
+
+  - task_id: NX-MOD-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 2
+    child_packets: [NX-MOD-P01]
+    title: Report block appeal and moderation queue
+    objective: Every enabled user-generated surface has consistent report block appeal and emergency containment controls.
+    owner_agent: A32
+    peer_reviewers: [A12, A14, A34]
+    control_reviewers: [C01, C04, C06]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/04-security-compliance.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md]
+    depends_on: [NX-CONTRACT-001, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - Report block appeal and evidence-retention paths are consistent across Social Chat and Market.
+      - A P0 incident invokes deterministic containment and preserves reviewer separation.
+    evidence_required: [moderation_e2e, appeal_test, incident_rehearsal, sla_dashboard]
+
+  - task_id: NX-DATING-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 7
+    child_packets: [NX-DATING-P01]
+    title: Isolated 18-plus dating candidate proof
+    objective: Adults receive privacy-preserving candidates and can match chat block report and use Meet Safe without global data leakage.
+    owner_agent: A33
+    peer_reviewers: [A12, A14, A30]
+    control_reviewers: [C02, C04, C06, C08]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/04-security-compliance.md, docs/05-user-flows.md, docs/14-dating-pulse-discretion-trust.md]
+    depends_on: [NX-PROFILE-001, NX-CHAT-001, NX-MOD-001, NX-SEC-001, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Dating fields targets and activity are absent from public search ads logs and transaction payloads.
+      - Age gate consent block report and Meet Safe failure paths are demonstrated.
+      - One private dating action reaches terminal chain execution with an unlinkable target commitment.
+    evidence_required: [dating_isolation_test, privacy_payload_scan, safety_e2e, red_team_report]
+
+  - task_id: NX-BIZ-001
+    record_kind: epic
+    lane: P1_DEMO_CRITICAL
+    milestone_order: 6
+    child_packets: [NX-BIZ-P01]
+    title: Business page and appointment deposit slice
+    objective: A salon publishes services and availability while a customer books completes and reviews an appointment.
+    owner_agent: A34
+    peer_reviewers: [A12, A21, A30]
+    control_reviewers: [C03, C05, C06, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: null
+    normative_refs: [docs/05-user-flows.md, docs/10-supernova-economics-compliance.md, docs/11-business-services-promotion-reviews.md]
+    depends_on: [NX-PROFILE-001, NX-CHAIN-001, NX-CHAIN-002, NX-MOD-001]
+    acceptance_tests:
+      - Concurrent booking attempts cannot create an overlapping confirmed slot.
+      - Deposit refund completion and verified review paths reconcile exactly.
+    evidence_required: [appointment_e2e, concurrency_test, refund_report, review_eligibility_test]
+
+  - task_id: NX-LIVE-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 8
+    child_packets: [NX-LIVE-P01]
+    title: Managed single-host live adapter proof
+    objective: An eligible creator starts a managed live stream with moderated chat emergency end and replay processing.
+    owner_agent: A41
+    peer_reviewers: [A32, A40, A43]
+    control_reviewers: [C06, C09, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/04-security-compliance.md, docs/15-recommendations-clips-watch-live-kids.md]
+    depends_on: [NX-SOCIAL-001, NX-MEDIA-001, NX-MOD-001, NX-OBS-001]
+    acceptance_tests:
+      - Emergency end works without a generative model and preserves evidence for appeal.
+      - Provider failure enters a bounded degraded state without exposing an unmoderated stream.
+    evidence_required: [live_e2e, emergency_end_rehearsal, provider_failure_test, unit_cost_report]
+
+  - task_id: NX-SYNTH-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 9
+    child_packets: [NX-SYNTH-P01]
+    title: Synthetic Town and metric isolation
+    objective: Thousands of SYSTEM_TEST personas exercise journeys without affecting production economics reputation or adoption metrics.
+    owner_agent: A37
+    peer_reviewers: [A10, A13, A42]
+    control_reviewers: [C01, C02, C08, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: null
+    normative_refs: [AGENTS.md, docs/13-global-auth-agent-network.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-QA-001, NX-CONTRACT-001, NX-OBS-001]
+    acceptance_tests:
+      - Ten thousand deterministic actors complete the declared workload within resource caps.
+      - SYSTEM_TEST actors cannot produce payouts reviews reputation or organic growth events.
+    evidence_required: [load_report, synthetic_isolation_test, cost_report, adversarial_sample]
+
+  - task_id: NX-NODE-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 10
+    child_packets: [NX-NODE-P01, NX-NODE-P02]
+    title: Nexus Node Network D0 proof
+    objective: One Genesis node exports restores and admits permissionless peers while deterministic simulations prove replication and repair through N equals eight.
+    owner_agent: A16
+    peer_reviewers: [A15, A20, A22]
+    control_reviewers: [C02, C03, C09, C10, C13]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/01-technical-architecture.md, docs/10-supernova-economics-compliance.md, docs/17-decentralized-node-network.md]
+    depends_on: [NX-ARCH-001, NX-PLAT-001, NX-CHAIN-002, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - Genesis backup restore and state replay produce the same verified checkpoint.
+      - N equals one through eight converges with R equal min of N and three under churn and repair.
+    evidence_required: [genesis_restore, conformance_report, churn_simulation, receipt_reconciliation]
+
+  - task_id: NX-PROFILE-P01
+    record_kind: task_packet
+    parent_epic: NX-PROFILE-001
+    lane: P1_DEMO_CRITICAL
+    title: Privacy matrix contract and denial proof
+    objective: A versioned profile-visibility contract denies one representative cross-profile access in API and client tests.
+    owner_agent: A12
+    peer_reviewers: [A13, A30]
+    control_reviewers: [C01, C02, C04]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/03-data-api.md, docs/04-security-compliance.md]
+    depends_on: [NX-AUTH-001, NX-CONTRACT-001, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - One Dating-to-global and one Work-to-Social unauthorized read fail in API and client fixtures.
+    evidence_required: [privacy_contract, negative_access_test, trace]
+
+  - task_id: NX-MOD-P01
+    record_kind: task_packet
+    parent_epic: NX-MOD-001
+    lane: P1_DEMO_CRITICAL
+    title: Common report block and appeal contract
+    objective: One versioned moderation contract handles a report block and appeal across two sample surfaces.
+    owner_agent: A32
+    peer_reviewers: [A12, A14]
+    control_reviewers: [C01, C04, C06]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 2
+    normative_refs: [docs/04-security-compliance.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-CONTRACT-001, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - A Social and a Market fixture share the same report block appeal state machine without evidence leakage.
+    evidence_required: [moderation_contract, cross_surface_test, audit_trace]
+
+  - task_id: NX-CHAT-P01
+    record_kind: task_packet
+    parent_epic: NX-CHAT-001
+    lane: P1_DEMO_CRITICAL
+    title: One-to-one encrypted private action proof
+    objective: Two allowed profiles exchange one encrypted message and settle one private action transaction without target disclosure.
+    owner_agent: A14
+    peer_reviewers: [A12, A20]
+    control_reviewers: [C01, C02, C04, C06]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/02-smart-contracts.md, docs/04-security-compliance.md, docs/09-action-ledger-classifieds.md]
+    depends_on: [NX-PROFILE-P01, NX-MOD-P01, NX-AUTH-001, NX-PLAT-001, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Message plaintext remains off-chain while one commitment reaches terminal execution and reducer reconciliation.
+    evidence_required: [e2ee_fixture, action_tx, privacy_payload_scan, reconciliation_trace]
+
+  - task_id: NX-SOCIAL-P01
+    record_kind: task_packet
+    parent_epic: NX-SOCIAL-001
+    lane: P1_DEMO_CRITICAL
+    title: One moderated Clip and action transaction
+    objective: One synthetic upload becomes a moderated playable Clip and one like produces a distinct reconciled action transaction.
+    owner_agent: A32
+    peer_reviewers: [A30, A40]
+    control_reviewers: [C01, C04, C06, C08]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/09-action-ledger-classifieds.md, docs/15-recommendations-clips-watch-live-kids.md]
+    depends_on: [NX-PROFILE-P01, NX-MOD-P01, NX-MEDIA-001, NX-CHAIN-001, NX-CHAIN-002, NX-OBS-001]
+    acceptance_tests:
+      - Asset moderation playback and one distinct like transaction complete with terminal reducer state.
+    evidence_required: [clip_e2e, action_tx, reducer_state, purge_receipt]
+
+  - task_id: NX-MARKET-P01
+    record_kind: task_packet
+    parent_epic: NX-MARKET-001
+    lane: P1_DEMO_CRITICAL
+    title: One product listing and capped escrow path
+    objective: One allowed product listing completes a capped devnet buy or refund path with exact reconciliation.
+    owner_agent: A34
+    peer_reviewers: [A21, A23]
+    control_reviewers: [C03, C05, C06, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/02-smart-contracts.md, docs/09-action-ledger-classifieds.md]
+    depends_on: [NX-PROFILE-P01, NX-MOD-P01, NX-CHAIN-001, NX-CHAIN-002, NX-SEC-001]
+    acceptance_tests:
+      - One listing passes prohibited-item policy and one escrow completion or refund reconciles exactly.
+    evidence_required: [listing_policy_test, escrow_scenario, reconciliation_report]
+
+  - task_id: NX-BIZ-P01
+    record_kind: task_packet
+    parent_epic: NX-BIZ-001
+    lane: P1_DEMO_CRITICAL
+    title: One salon slot and deposit proof
+    objective: A salon exposes one service slot and one customer reserves it with a capped devnet deposit.
+    owner_agent: A34
+    peer_reviewers: [A12, A21]
+    control_reviewers: [C03, C05, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/10-supernova-economics-compliance.md, docs/11-business-services-promotion-reviews.md]
+    depends_on: [NX-PROFILE-P01, NX-MOD-P01, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Two concurrent attempts yield one confirmed slot and an exact refund for the loser.
+    evidence_required: [slot_concurrency_test, deposit_scenario, refund_report]
+
+  - task_id: NX-DATING-P01
+    record_kind: task_packet
+    parent_epic: NX-DATING-001
+    lane: P1_POST_DEMO_PROOF
+    title: Isolated candidate and private commitment proof
+    objective: One synthetic adult candidate flow produces a private commitment without public target or preference leakage.
+    owner_agent: A33
+    peer_reviewers: [A14, A20]
+    control_reviewers: [C02, C04, C06, C08]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/09-action-ledger-classifieds.md, docs/14-dating-pulse-discretion-trust.md]
+    depends_on: [NX-PROFILE-P01, NX-CHAT-P01, NX-MOD-P01, NX-SEC-001, NX-CHAIN-001, NX-CHAIN-002]
+    acceptance_tests:
+      - Candidate preference and target are absent from search logs and transaction payload while execution reconciles.
+    evidence_required: [isolation_test, action_tx, payload_scan, reducer_state]
+
+  - task_id: NX-LIVE-P01
+    record_kind: task_packet
+    parent_epic: NX-LIVE-001
+    lane: P1_POST_DEMO_PROOF
+    title: Managed live adapter and emergency-end contract
+    objective: A fake managed provider starts one stream state and a deterministic emergency command ends it.
+    owner_agent: A41
+    peer_reviewers: [A40, A43]
+    control_reviewers: [C06, C09, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 2
+    normative_refs: [docs/04-security-compliance.md, docs/15-recommendations-clips-watch-live-kids.md]
+    depends_on: [NX-SOCIAL-P01, NX-MEDIA-001, NX-MOD-P01, NX-OBS-001]
+    acceptance_tests:
+      - Emergency end transitions the fake provider and local state once and preserves an appeal receipt.
+    evidence_required: [adapter_contract, emergency_end_test, receipt]
+
+  - task_id: NX-SYNTH-P01
+    record_kind: task_packet
+    parent_epic: NX-SYNTH-001
+    lane: P1_POST_DEMO_PROOF
+    title: Ten-thousand deterministic actor isolation run
+    objective: Ten thousand local SYSTEM_TEST actors execute one bounded journey with zero economic and organic-metric effects.
+    owner_agent: A37
+    peer_reviewers: [A10, A13]
+    control_reviewers: [C01, C02, C08, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 2
+    normative_refs: [AGENTS.md, docs/13-global-auth-agent-network.md]
+    depends_on: [NX-QA-001, NX-CONTRACT-001, NX-OBS-001]
+    acceptance_tests:
+      - The run meets resource caps and produces zero payouts reviews reputation or organic events.
+    evidence_required: [load_report, isolation_assertions, cost_report]
+
+  - task_id: NX-NODE-P01
+    record_kind: task_packet
+    parent_epic: NX-NODE-001
+    lane: P1_POST_DEMO_PROOF
+    title: Genesis node backup and deterministic restore
+    objective: One local Genesis node exports and restores a checkpoint with an identical verified state hash.
+    owner_agent: A16
+    peer_reviewers: [A15, A22]
+    control_reviewers: [C02, C03, C09, C13]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/01-technical-architecture.md, docs/17-decentralized-node-network.md]
+    depends_on: [NX-ARCH-001, NX-PLAT-001, NX-CHAIN-002, NX-SEC-001, NX-OBS-001]
+    acceptance_tests:
+      - Export delete-from-runtime and restore produce the same checkpoint and replay result in fixtures.
+    evidence_required: [genesis_export, restore_report, state_hash_comparison]
+
+  - task_id: NX-NODE-P02
+    record_kind: task_packet
+    parent_epic: NX-NODE-001
+    lane: P1_POST_DEMO_PROOF
+    title: Deterministic mesh replication churn and repair
+    objective: Local deterministic simulations prove permissionless growth from one through eight nodes, R equals min of N and three, convergence after churn and receipt reconciliation without rewards.
+    owner_agent: A16
+    peer_reviewers: [A15, A22]
+    control_reviewers: [C02, C03, C09, C10, C13]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/01-technical-architecture.md, docs/16-agent-delivery-continuous-assurance.md, docs/17-decentralized-node-network.md]
+    depends_on: [NX-NODE-P01]
+    acceptance_tests:
+      - Deterministic fixtures for every N from one through eight converge with R equal min of N and three.
+      - Churn marks unavailable replicas without false quorum claims and a permissionless replacement repairs the target replica count.
+      - State roots and signed receipt lineage reconcile identically after fresh-instance restore, with zero SYSTEM_TEST rewards or external effects.
+    evidence_required: [mesh_conformance_report, churn_repair_simulation, receipt_reconciliation, synthetic_economic_isolation]
+
+  - task_id: NX-TRUST-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 11
+    child_packets: [NX-TRUST-P01]
+    title: Nexus Trust Lens automated EU content assurance
+    objective: Every public content surface receives scalable automated provenance evidence safety and policy signals without a universal truth or honesty score.
+    owner_agent: A32
+    peer_reviewers: [A12, A40]
+    control_reviewers: [C01, C02, C04, C05, C06, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/04-security-compliance.md, docs/15-recommendations-clips-watch-live-kids.md, docs/research-data-security-compliance.md, docs/research-continuous-assurance.md]
+    depends_on: [NX-SEC-001, NX-OBS-001, NX-MOD-P01, NX-PROFILE-P01]
+    acceptance_tests:
+      - The common trust contract separates provenance AI likelihood factual evidence safety legality and political-ad disclosure.
+      - Automated first-line decisions remain viewpoint-neutral explainable appealable and country-policy versioned.
+      - No public content or sensitive moderation evidence is written on-chain; only content-addressed receipts may be anchored later.
+    evidence_required: [trust_contract, deterministic_cascade_report, political_neutrality_proof, dsa_reason_and_appeal_proof, zero_effect_report]
+
+  - task_id: NX-TRUST-P01
+    record_kind: task_packet
+    parent_epic: NX-TRUST-001
+    lane: P1_POST_DEMO_PROOF
+    title: Automated Trust Lens decision and receipt proof
+    objective: A deterministic local cascade evaluates every synthetic public content item through provenance evidence safety and country policy signals while ordinary low-risk content publishes without human pre-approval.
+    owner_agent: A32
+    peer_reviewers: [A12, A40]
+    control_reviewers: [C01, C02, C04, C05, C06, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/04-security-compliance.md, docs/15-recommendations-clips-watch-live-kids.md, docs/research-data-security-compliance.md, docs/research-continuous-assurance.md]
+    depends_on: [NX-SEC-001, NX-OBS-001, NX-MOD-P01, NX-PROFILE-P01, NX-SOCIAL-P01, NX-LIVE-P01]
+    acceptance_tests:
+      - One hundred percent of the synthetic public corpus enters the automated cascade and low-risk content publishes without human pre-approval.
+      - No single probabilistic detector causes a final takedown; immutable-illegality matches are isolated from evidence and opinion labels.
+      - Outputs expose separate provenance AI evidence safety and political-ad signals and never emit a universal truth honesty ideology or attractiveness score.
+      - Decisions bind content profile country policy model versions reasons expiry and appeal route into one signed one-time receipt with fail-closed replay and restore.
+      - Political opinions are neither inferred nor used for targeting and all SYSTEM_TEST activity has zero external economic or organic-metric effect.
+    evidence_required: [automated_cascade_fixture, trust_lens_schema, decision_receipt_lineage, viewpoint_neutrality_tests, synthetic_isolation_report]
+
+  - task_id: NX-ENGAGE-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 12
+    child_packets: [NX-ENGAGE-P01]
+    title: Universal engagement integrity and viral-fair ranking
+    objective: Likes dislikes withdrawals edits comments and ranking signals behave consistently across Nexus while protecting creator discovery user control privacy and evidence integrity.
+    owner_agent: A42
+    peer_reviewers: [A32, A40]
+    control_reviewers: [C02, C04, C06, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/09-action-ledger-classifieds.md, docs/11-business-services-promotion-reviews.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md]
+    depends_on: [NX-TRUST-P01, NX-SOCIAL-P01, NX-PROFILE-P01, NX-DATING-P01, NX-MARKET-P01, NX-BIZ-P01]
+    acceptance_tests:
+      - Creators cannot erase other users reactions comments or verified reviews merely because they are negative; withdrawal and moderation create append-only tombstones and reasoned receipts.
+      - Dislike remains private and mode-specific and cannot directly create takedown reputation damage or financial loss.
+      - Viral ranking rewards diverse qualified satisfaction while exploration floors confidence thresholds and anti-brigading controls protect new or controversial content.
+      - Every engagement produces a signed one-time action receipt while public L1 data remains a privacy-safe batch commitment by default.
+    evidence_required: [engagement_semantics_matrix, append_only_projection_proof, anti_brigading_simulation, viral_fair_ranking_report, privacy_cost_report]
+
+  - task_id: NX-ENGAGE-P01
+    record_kind: task_packet
+    parent_epic: NX-ENGAGE-001
+    lane: P1_POST_DEMO_PROOF
+    title: Like dislike withdrawal and viral-fair ranking state machine
+    objective: A deterministic SYSTEM_TEST corpus proves mode-correct reactions append-only withdrawal creator non-erasure private dislike aggregation and abuse-resistant exploration-aware ranking.
+    owner_agent: A42
+    peer_reviewers: [A32, A40]
+    control_reviewers: [C02, C04, C06, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/09-action-ledger-classifieds.md, docs/11-business-services-promotion-reviews.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md]
+    depends_on: [NX-TRUST-P01, NX-SOCIAL-P01, NX-PROFILE-P01, NX-DATING-P01, NX-MARKET-P01, NX-BIZ-P01]
+    acceptance_tests:
+      - LIKE expressive reactions DISLIKE UNDO EDIT WITHDRAW and MODERATION_TOMBSTONE are signed append-only events with one active reaction per actor object generation and no creator overwrite path.
+      - Dating Pass Marketplace Not interested Work Not relevant Music Less like this and Kids Show less never become a public person or seller dislike score.
+      - Global negative ranking requires minimum effective sample independent clusters and confidence while coordinated bursts are quarantined and dislike alone never removes content.
+      - Eligible new content retains an exploration floor and organic virality excludes paid agent synthetic and quarantined reactions.
+      - Raw content reactions and profile correlations stay off-chain while ordered action receipts can be batch committed with zero network economic or provider effect in this packet.
+    evidence_required: [reaction_state_machine, tombstone_and_edit_history, mode_semantics_tests, brigading_and_sybil_tests, exploration_and_virality_tests, zero_effect_report]
+
+  - task_id: NX-EXPERIENCE-001
+    record_kind: epic
+    lane: P1_POST_DEMO_PROOF
+    milestone_order: 13
+    child_packets: [NX-EXPERIENCE-P01]
+    title: Cross-mode content communication and identity experience
+    objective: Make Stories Pulse saves downloads calls meetings handles and discovery feel natural while preserving per-profile identity privacy rights and integrity.
+    owner_agent: A42
+    peer_reviewers: [A12, A14, A32, A40]
+    control_reviewers: [C02, C04, C06, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/13-global-auth-agent-network.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md, docs/21-cross-mode-content-communication-identity.md]
+    depends_on: [NX-ENGAGE-001, NX-CHAT-P01, NX-MEDIA-001, NX-PROFILE-P01, NX-TRUST-P01]
+    acceptance_tests:
+      - Story duration and Highlight retention are author-controlled without bypassing audience safety rights legal or purge policy.
+      - Save offline cache and watermarked device download are distinct and fail closed for private Dating Kids paid DRM or unlicensed media.
+      - Pulse supports text media threads quote repost edit history and withdrawal tombstones with intact provenance.
+      - Work full name Social nickname Dating age proof Adult gate and global payment username remain independently bound and do not leak across profiles.
+      - Fraudulent follower clusters cannot influence organic ranking rewards top lists or qualified audience counts.
+      - Calls and Meetings enforce participant profile audience E2EE consent recording and host-control policy without external provider effects in the local proof.
+      - Near For You and Global are explicit user-controlled lenses and Breaking enters rarely only through significance relevance freshness and independent-source gates.
+    evidence_required: [story_highlight_lifecycle, save_download_rights_matrix, pulse_provenance, identity_presentation_matrix, discovery_lens_and_breaking_gates, follower_integrity_simulation, call_meeting_authorization]
+
+  - task_id: NX-EXPERIENCE-P01
+    record_kind: task_packet
+    parent_epic: NX-EXPERIENCE-001
+    lane: P1_POST_DEMO_PROOF
+    title: Story Pulse save download call meeting and identity policy proof
+    objective: A deterministic SYSTEM_TEST journey proves the cross-mode product experience without real media calls identity data providers payments or production metrics.
+    owner_agent: A42
+    peer_reviewers: [A12, A14, A32, A40]
+    control_reviewers: [C02, C04, C06, C08, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/13-global-auth-agent-network.md, docs/14-dating-pulse-discretion-trust.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md, docs/21-cross-mode-content-communication-identity.md]
+    depends_on: [NX-ENGAGE-P01, NX-CHAT-P01, NX-MEDIA-001, NX-PROFILE-P01, NX-TRUST-P01]
+    acceptance_tests:
+      - Story presets Until I remove Highlights expiry archive and purge reconstruct deterministically from signed append-only events.
+      - In-app save offline cache and download export enforce audience rights license watermark and mode policy separately.
+      - Pulse thread quote repost edit and withdraw preserve source generation provenance and creator non-erasure.
+      - Calls and Meetings bind exact participant profiles room policy recording consent E2EE mode and one-time authorization with restore and replay protection.
+      - Identity presentation and message filters expose only mode-authorized name handle age and conversation metadata.
+      - Near uses coarse consented location and language preferences Global uses normalized cross-region trends and Breaking requires independent corroboration with sources corrections and reason codes.
+      - Paid agent synthetic incentivized and quarantined follows contribute zero to organic ranking rewards tops and qualified audience.
+    evidence_required: [experience_contract, deterministic_journey, rights_and_identity_matrix, near_global_breaking_simulation, follower_attack_corpus, communication_authorization, zero_effect_report]
+
+  - task_id: NX-UX-001
+    record_kind: epic
+    lane: P1_PRODUCTIZATION
+    milestone_order: 14
+    child_packets: [NX-UX-P01]
+    title: Adaptive multi-profile mobile and browser experience
+    objective: Turn the verified Nexus proof modules into one readable, responsive and natural interactive product shell whose navigation, creation actions and privacy context adapt to the active profile.
+    owner_agent: A31
+    peer_reviewers: [A12, A30, A42]
+    control_reviewers: [C01, C02, C04, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: null
+    normative_refs: [docs/03-data-api.md, docs/05-user-flows.md, docs/15-recommendations-clips-watch-live-kids.md, docs/21-cross-mode-content-communication-identity.md, docs/22-fair-vertical-platforms.md]
+    depends_on: [NX-PROFILE-P01, NX-CHAT-P01, NX-SOCIAL-P01, NX-MARKET-P01, NX-BIZ-P01, NX-DATING-P01, NX-LIVE-P01, NX-PAY-P01, NX-EXPERIENCE-P01, NX-ADULT-P01]
+    acceptance_tests:
+      - Social opens on a combined clips and posts surface named Pulse, with Unified Inbox second, a prominent central Create action, Live and Quick Switch.
+      - Work opens on its professional feed, keeps Unified Inbox second and offers contextual Post Clip Job and Article creation; Dating opens on Discover and keeps its own safety, connections and identity presentation.
+      - Every profile has independent avatar name audience privacy and contact graph while the unified inbox can be filtered by source mode without leaking hidden profile data.
+      - Market Travel and the remaining modules expose clear primary actions, realistic interactive mock journeys and no competitor-comparison panel inside the product UI.
+      - The composer can select camera or local photo/video and presents mode-correct fields without publishing uploading charging or using real data.
+      - The browser demo is readable and keyboard/touch usable at mobile and desktop breakpoints, serves on 0.0.0.0 and passes local build render interaction and accessibility smoke checks.
+    evidence_required: [desktop_and_mobile_screenshots, adaptive_navigation_matrix, composer_interaction_smoke, responsive_accessibility_report, local_lan_receipt, zero_effect_report]
+
+  - task_id: NX-UX-P01
+    record_kind: task_packet
+    parent_epic: NX-UX-001
+    lane: P1_PRODUCTIZATION
+    milestone_order: 14
+    title: Adaptive navigation composer and visual demo proof
+    objective: Deliver one polished local interactive browser demo that visibly proves contextual profile navigation creation privacy and core vertical journeys on desktop and phone.
+    owner_agent: A31
+    peer_reviewers: [A12, A30, A42]
+    control_reviewers: [C01, C02, C04, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/03-data-api.md, docs/05-user-flows.md, docs/15-recommendations-clips-watch-live-kids.md, docs/21-cross-mode-content-communication-identity.md, docs/22-fair-vertical-platforms.md]
+    depends_on: [NX-PROFILE-P01, NX-CHAT-P01, NX-SOCIAL-P01, NX-MARKET-P01, NX-BIZ-P01, NX-DATING-P01, NX-LIVE-P01, NX-PAY-P01, NX-EXPERIENCE-P01, NX-ADULT-P01]
+    acceptance_tests:
+      - Bottom navigation changes predictably for Social Work Dating Travel and Market while Inbox remains the second slot and Switch remains the final slot.
+      - The central action opens a visible mode-aware composer with camera/local media and the correct post job listing or private-moment controls.
+      - Social Pulse looks and behaves as a media-first feed, Marketplace as a classifieds surface and Dating as a card-first discovery surface rather than generic feature lists.
+      - Profile switch visibly changes identity privacy audience and navigation; Unified Inbox supports All Social Work Dating Travel and Market filters.
+      - No comparison or parity matrix appears in the interactive product; product limitations are labelled honestly as local demo behavior.
+      - Deterministic tests and browser checks cover desktop and phone navigation composer upload preview focus order readable text and 0.0.0.0 serving with zero external or economic effects.
+    evidence_required: [rendered_ui_contract, adaptive_mode_interactions, screenshot_set, accessibility_smoke, local_service_receipt, zero_effect_report]
+
+  - task_id: NX-WEB-FOCUS-001
+    record_kind: epic
+    lane: P1_PRODUCTIZATION
+    milestone_order: 15
+    child_packets: [NX-WEB-AUTH-P01, NX-WEB-SOCIAL-P01]
+    title: Login-first and Social-first full-stack product focus
+    objective: Finish and independently verify the production-shaped login/account-creation surface first, then the Social vertical, before spending delivery capacity on any other Nexus module.
+    owner_agent: A31
+    peer_reviewers: [A01, A02, A42]
+    control_reviewers: [C01, C02, C04, C10, C12]
+    status: done
+    risk_class: T0
+    timebox_agent_days: null
+    normative_refs: [docs/03-data-api.md, docs/04-security-compliance.md, docs/05-user-flows.md, docs/13-global-auth-agent-network.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md]
+    depends_on: [NX-AUTH-001, NX-CHAIN-002, NX-PROFILE-P01, NX-SOCIAL-P01, NX-UX-P01]
+    acceptance_tests:
+      - Delivery order is strict: login and account creation reach independent PASS before the Social product packet starts, and all other vertical productization stays deferred.
+      - Login supports Google Facebook xPortal on phone and email/password through explicit provider gates with fail-closed errors and no fake success state.
+      - Account creation auto-provisions one non-custodial MultiversX wallet and Nexus username without exposing mnemonic or private key in API responses logs or UI.
+      - Social then delivers a media-first Pulse journey with posts clips reactions comments follow create upload and profile isolation against the same full-stack API.
+    evidence_required: [auth_provider_matrix, wallet_provisioning_proof, mobile_login_screenshots, social_full_stack_journey, security_and_privacy_report, zero_effect_report]
+
+  - task_id: NX-WEB-AUTH-P01
+    record_kind: task_packet
+    parent_epic: NX-WEB-FOCUS-001
+    lane: P1_PRODUCTIZATION
+    milestone_order: 15
+    title: Audit and harden the login and automatic MultiversX wallet journey
+    objective: Make the first Nexus page clear mobile-first and truthful while proving Google Facebook xPortal email/password and automatic wallet provisioning boundaries locally at zero incremental cost.
+    owner_agent: A31
+    peer_reviewers: [A01, A02]
+    control_reviewers: [C01, C02, C04, C10, C12]
+    status: in_progress
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/03-data-api.md, docs/04-security-compliance.md, docs/05-user-flows.md, docs/13-global-auth-agent-network.md]
+    depends_on: [NX-AUTH-001, NX-CHAIN-002, NX-UX-P01]
+    acceptance_tests:
+      - Google Facebook and xPortal buttons expose accurate configured unavailable and pending states; unavailable providers never simulate a successful login.
+      - xPortal uses the configured MultiversX network and supports mobile deep-link plus QR without broadcasting transactions or requesting funds.
+      - Email login and account creation validate input throttle abuse and return generic credential/reset errors that do not enumerate accounts.
+      - Successful account creation atomically creates the user five isolated personas encrypted wallet keystore and unique Nexus username, with no secret material in ordinary client responses or logs and only an explicit recent-step-up one-time recovery export.
+      - The page is readable keyboard/screen-reader usable and responsive at phone and desktop breakpoints, and displays an honest local/devnet/zero-funds status.
+      - The authenticated Profile account surface shows the MultiversX address and network, Nexus username availability, MultiversX herotag availability, linked-provider and recovery status, per-profile bio/avatar and a filtered supported-asset portfolio without presenting native cross-chain assets as MultiversX balances.
+      - Seed phrase and private-key export are absent from ordinary profile responses and views; Security and Export requires recent step-up, warns against screenshots and exposes recovery material only through an explicit one-time flow.
+      - Deterministic tests cover provider gates CSRF/state challenge expiry replay wallet provisioning rollback session cookies and zero network/economic effects.
+    evidence_required: [auth_runtime_tests, provider_gate_matrix, wallet_atomicity_tests, accessibility_and_mobile_report, screenshot_set, local_lan_receipt, zero_effect_report]
+
+  - task_id: NX-WEB-SOCIAL-P01
+    record_kind: task_packet
+    parent_epic: NX-WEB-FOCUS-001
+    lane: P1_PRODUCTIZATION
+    milestone_order: 16
+    title: Complete the Social full-stack vertical after login acceptance
+    objective: Turn the Social Pulse surface into the first complete Nexus vertical and keep every other module deferred until its independent review passes.
+    owner_agent: A31
+    peer_reviewers: [A02, A42]
+    control_reviewers: [C01, C02, C04, C06, C08, C10]
+    status: in_progress
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/03-data-api.md, docs/05-user-flows.md, docs/15-recommendations-clips-watch-live-kids.md, docs/20-engagement-integrity-viral-ranking.md]
+    depends_on: [NX-WEB-AUTH-P01, NX-SOCIAL-P01, NX-ENGAGE-P01, NX-EXPERIENCE-P01]
+    acceptance_tests:
+      - Authenticated Social opens directly on Pulse with Near For You Global and Breaking lenses and clear Clips Posts Following controls.
+      - Social includes persistent user-configurable Stories and a compact WhatsApp-like unified inbox addressed by Nexus username with 1:1 threads groups file/media transfer delivery/read state and profile-origin filters.
+      - Calls use E2EE-capable 1:1 video/audio rooms and meeting links with participant controls; no UI may claim E2EE until device-key and media-encryption evidence passes.
+      - Interface language follows an explicit account/device locale with manual override; content-language preferences are separate, and IP is used only as a consented coarse Near/news signal rather than as inferred nationality.
+      - Breaking discovery uses a disabled-by-default provider adapter and promotes only fresh multi-source clusters with source provenance corrections and external links; no unconfigured provider or fabricated realtime story is shown as live.
+      - Text photo and short-video creation persist through the full-stack API with content-addressed media and explicit processing/provenance state.
+      - Like expressive reaction private dislike comment follow save share and optional support have no dead ends and preserve the verified engagement semantics.
+      - Profile privacy audience blocks and SYSTEM_TEST isolation are enforced server-side rather than trusted from browser state.
+      - Mobile and desktop journeys pass accessibility interaction persistence restart and abuse-resistance checks with zero real funds and no external provider use.
+    evidence_required: [social_api_journey, media_upload_proof, engagement_and_privacy_tests, responsive_screenshots, restart_and_replay_report, zero_effect_report]

@@ -1,0 +1,89 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-OPT-IN-KEY-RECOVERY-029",
+  "checkpoint_date": "2026-09-01",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Account-bound, user-controlled, forward-only E2EE recovery package",
+  "controls": {
+    "format": "NEXUS-E2EE-RECOVERY-V1",
+    "server_private_key_storage": false,
+    "server_passphrase_storage": false,
+    "account_binding": "SHA256 over versioned Nexus user id and primary MultiversX address",
+    "account_binding_in_aad": true,
+    "account_binding_in_authenticated_plaintext": true,
+    "wrong_account_blocked_before_api": true,
+    "cipher": "AES-256-GCM",
+    "kdf": "PBKDF2-HMAC-SHA256",
+    "kdf_iterations": 600000,
+    "salt_bytes": 16,
+    "iv_bytes": 12,
+    "passphrase_entropy_floor": true,
+    "package_size_limit_bytes": 65536,
+    "restored_key_extractable": false,
+    "existing_different_local_key_overwrite": "denied",
+    "history_claim": "future messages only after recovery-device activation",
+    "external_share_endpoint": false
+  },
+  "verification": {
+    "targeted_recovery_tests": { "passed": 2, "failed": 0 },
+    "full_tests": { "passed": 171, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "independent_bounded_checker": {
+      "verdict": "PASS_LOCAL",
+      "critical": 0,
+      "high": 0,
+      "high_account_binding_finding": "resolved_and_rechecked"
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The first recovery bundle was device-bound but not bound to the originating Nexus account.",
+      "resolution": "A pseudonymous account commitment is authenticated in AAD and payload and must match the currently authenticated account before decryption or registration."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A length-only passphrase rule accepted trivially repetitive offline-guessable values.",
+      "resolution": "The client now applies a minimum diversity and estimated entropy floor in addition to length and PBKDF2 cost."
+    }
+  ],
+  "residual_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "Recovery-device registration and confirmed file persistence are not one atomic operation.",
+      "control": "The device is visible and revocable in Account Center; the next packet will add pending-to-active activation with expiry and idempotent confirmation."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The local entropy estimate is not a replacement for a generated recovery code or a memory-hard KDF.",
+      "control": "Weak short/repetitive values are denied; versioned memory-hard KDF selection remains a production cryptography-review gate."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "API plus IndexedDB failure injection and concurrent restore are not yet covered end-to-end.",
+      "control": "Pure cryptographic negative tests and local-key overwrite denial pass; transactional activation and browser fault tests are the next packet."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/chat-crypto.js": "394807e242f151063f06603a972471ba3124fac1cc7e2653722e5f6ab083648d",
+    "apps/nexus-web/public/app.js": "8b50ad88028ef8c3a49916899f80a4f61ee4da7bdf2bcbbb6b71de7b1b5e738c",
+    "apps/nexus-web/public/index.html": "f52743ae25c676314f352ca4ab489e4271396d5b30f351d720f3be3482b21504",
+    "apps/nexus-web/test/core.test.js": "af4a2910ed1f5973bde5a63566de9f87724c99d6594a25678cf8cbdda0b69648",
+    "apps/nexus-web/test/audit.test.js": "ae1563045d22a3d6ac0e46030337465722af47ea94c682d69af1244aba9aaf25"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; completed one bounded local packet with one sequential checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_TRUSTED_HTTPS",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-RECOVERY-PENDING-ACTIVATION-030"
+}

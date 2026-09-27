@@ -1,0 +1,189 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+review_id: NX-CHAIN-001-C03-REMEDIATION-PREFLIGHT-20260802T214100Z
+reviewer_role: C03
+risk_class: T0
+status: FAIL_PREFLIGHT
+gate_recommendation: BLOCK_DEVNET_EXECUTION_AND_PACKET_ACCEPTANCE
+review_mode: STRICT_LOCAL_READ_ONLY
+network_operations: 0
+economic_operations: 0
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+scope:
+  inspected:
+    - planning/run-chain-devnet.ps1
+    - planning/build-chain-devnet-payload.py
+    - planning/test-chain-devnet-payload.py
+    - planning/evidence/NX-CHAIN-001-devnet-preflight.json
+    - planning/evidence/NX-CHAIN-001-fuzz-validation.json
+    - planning/evidence/NX-CHAIN-001-rustvm-scenarios.json
+    - planning/evidence/NX-CHAIN-001-govm-validation.json
+    - planning/evidence/NX-CHAIN-001-rust-validation.json
+    - contracts/nexus-actions/scenarios
+    - pinned_local_mxpy_11.4.1_command_surface
+  prohibited_and_not_performed:
+    - Mode_Execute
+    - bytecode_transmission
+    - gateway_or_other_network_access
+    - public_devnet_transaction
+    - mainnet_or_real_fund_operation
+
+independent_checks:
+  offline_payload_parity:
+    status: PASS
+    execution: direct_local_test_chain_devnet_payload_py
+    assertion_count: 7
+    envelope_matches_rustvm: true
+    signing_message_matches_rustvm: true
+    signature_matches_rustvm: true
+    system_test_actor: true
+    no_real_person_data: true
+    network_operations: 0
+    economic_operations: 0
+    envelope_sha256: a2c34ea15ba15dc8a6e09a58d98aa912e71f9057cc74e54af2570b89486f51b5
+  artifact_freshness:
+    status: PASS
+    checked_packs: 5
+    artifact_hash_mismatches: 0
+    devnet_subject_recomputed: true
+    devnet_subject_sha256: 4518d9e979dc306d216e24ea1e5f59bdcf9f07ca8e8b065858a1088f4be73057
+  pinned_cli_surface:
+    status: FAIL
+    mxpy_version: 11.4.1
+    evidence: mxpy_contract_query_help_has_no_outfile_option
+
+evidence_packs:
+  devnet_preflight:
+    run_id: NX-CHAIN-001-DEVNET-20260802T213746789Z-d8cdb18b
+    status: READY_AWAITING_EXPLICIT_PUBLIC_DEVNET_APPROVAL
+    sha256: 2f3ba866f13bd45e3fb77e347ea3b8320fda6c7d2482613b115ad667b9a2cadf
+    runner_sha256: 1eee01c6fb08df4d4a30b7ed3d5138aa8400eadd29fe18b1d37801383309ee2b
+    artifact_hashes_fresh: true
+  fuzz:
+    run_id: NX-CHAIN-001-FUZZ-20260802T210828488Z-848b6f63
+    status: PASS
+    sha256: 154e5a077bcfb4c7e5ee8abee66ebddc52c798d0e80e33b757c45e9abaeae476
+    artifact_hashes_fresh: true
+    cases: 4096
+    fixed_seeds: 8
+    deterministic_replay_match: true
+    mutation_oracle_mismatches: 0
+    corpus_sha256: 40e0659c05908773e40cd31f1e9c085b9fee86af70150092de666167577ea57f
+  rustvm:
+    run_id: NX-CHAIN-001-RUSTVM-20260802T211137024Z-e0e6e393
+    status: PASS
+    sha256: 8961644de863d1517df20a5b2fb624ee265e00b842c9371f85ce9f3d8622b9a3
+    artifact_hashes_fresh: true
+    tests: PASS_10_OF_10
+    scenarios: PASS_8_OF_8
+  govm:
+    run_id: NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5
+    status: PASS
+    sha256: 53be25109a5415f3c277e3faea6f4118b330a4097920a9e60e05a8a243d682c2
+    artifact_hashes_fresh: true
+    rustvm_subject_binding_matches: true
+    rustvm: PASS_8_OF_8
+    govm: PASS_8_OF_8
+    identical_scenario_subjects: true
+  integrated_rust:
+    run_id: NX-CHAIN-001-RUST-20260802T213821684Z-8a333114
+    status: PASS
+    sha256: b22c643ab530f690b7153eaaf6f04523c6100946ad9f54b6789e9fc3b1892528
+    artifact_hashes_fresh: true
+
+original_finding_disposition:
+  C03-CHAIN-001-001:
+    prior_title: Mandatory fuzz corpus is absent
+    disposition: REMEDIATED_PENDING_INDEPENDENT_RERUN
+    basis:
+      - bounded_4096_case_corpus_with_eight_fixed_seeds
+      - zero_oracle_mismatches
+      - two_identical_replays
+      - fresh_hash_binding_to_current_source_wasm_mxsc_and_abis
+    limitations:
+      - corpus_excludes_cryptographic_fuzzing
+      - corpus_targets_the_TypeScript_policy_sandbox_not_direct_RustVM_execution
+  C03-CHAIN-001-002:
+    prior_title: Shared RustVM-GoVM differential set does not cover all mandatory abuse cases
+    disposition: REMEDIATED_PENDING_INDEPENDENT_RERUN
+    basis:
+      - eight_shared_hash_identical_scenarios
+      - added_revoke_rotation_escalation_relayer_nonce_and_batch_decoder_rejections
+      - owner_receipts_report_RustVM_8_of_8_and_GoVM_8_of_8
+      - GoVM_receipt_is_hash_bound_to_the_current_RustVM_scenario_pack
+    limitations:
+      - this_preflight_verified_receipts_and_hashes_but_did_not_reexecute_the_VM_suites
+  C03-CHAIN-001-003:
+    prior_title: Devnet record proof and terminal network execution evidence are missing
+    disposition: OPEN
+    basis:
+      - preflight_explicitly_excludes_devnet_transaction_and_public_bytecode_upload
+      - no_terminal_devnet_receipt_exists
+
+findings:
+  - id: C03-CHAIN-001-RP-001
+    severity: HIGH
+    status: OPEN
+    title: Execute approval guard accepts an unregistered and unbound identifier
+    location: planning/run-chain-devnet.ps1:172
+    evidence: The guard checks only AllowPublicDevnetPayload plus a regex-shaped ApprovalId. It does not resolve an immutable approval record, verify owner or expiry, or bind approval to gateway, environment, current subject_sha256, WASM hash, action count, and zero-value policy.
+    impact: A caller able to supply the switch can invent a syntactically valid identifier and reach public bytecode transmission without evidence of the required explicit owner authorization.
+    remediation: Require a repository approval receipt with owner, issued_at, expires_at, environment=devnet, gateway, approved subject and WASM hashes, maximum four transactions, zero real value, and single-use status; validate it before the first network-capable call and record its digest in final evidence.
+  - id: C03-CHAIN-001-RP-002
+    severity: HIGH
+    status: OPEN
+    title: Capability query command is incompatible with pinned mxpy 11.4.1
+    location: planning/run-chain-devnet.ps1:245
+    evidence: The current runner hash 1eee01c6fb08df4d4a30b7ed3d5138aa8400eadd29fe18b1d37801383309ee2b still invokes mxpy contract query with --outfile. The independently inspected pinned mxpy 11.4.1 query help has no --outfile option, and its implementation writes the result to stdout.
+    impact: Execute would fail after deploy, relayer authorization, capability registration, and recordAction have already produced public Devnet transactions, preventing the promised capability-state proof and final Evidence Pack.
+    remediation: Capture and parse Invoke-Mxpy stdout for contract query, or use a supported API; add a local CLI-parse test for every future Execute command before allowing network access.
+  - id: C03-CHAIN-001-RP-003
+    severity: MEDIUM
+    status: OPEN
+    title: Query-state validation does not decode the expected capability state
+    location: planning/run-chain-devnet.ps1:248-250
+    evidence: The current runner safely reads return_code and return_data_parts, but tests only that the return list is nonempty. It does not decode schema_version, active, used_actions=1, last_action_nonce=1, controller, actor kind, scope, expiry, or authorized relayer.
+    impact: Once command capture is repaired, malformed or unrelated query output could be treated as proof of the intended state transition.
+    remediation: Parse the pinned mxpy query result shape, decode SessionCapability using the staged ABI, assert every expected field, and hash-bind the decoded state receipt.
+  - id: C03-CHAIN-001-RP-004
+    severity: MEDIUM
+    status: OPEN
+    title: Offline preflight does not exercise negative approval cases or parse all Execute commands
+    location: planning/run-chain-devnet.ps1:137-163
+    evidence: Prepare reports execute_requires_allow_switch and execute_requires_approval_id as declared booleans; it does not test rejection of missing, forged, expired, mismatched, or reused approvals and did not detect the unsupported query option.
+    impact: READY status overstates runner readiness and allows command-surface regressions to survive until after public transactions begin.
+    remediation: Add a network-disabled command-plan builder and tests for all argument vectors plus fail-closed approval mutations, with a guarantee that no command capable of egress is invoked during preflight.
+
+accepted_controls:
+  - Offline envelope top-encoding matches the canonical RustVM scenario.
+  - Domain-separated signing preimage and Ed25519 signature match RustVM.
+  - The proposed probe is SYSTEM_TEST and contains no real-person data.
+  - The gateway and chain ID are fixed to MultiversX Devnet in source.
+  - Optional finality fields are read safely and terminal success remains distinct from ordering/finality.
+  - Current preflight, fuzz, RustVM, GoVM, and integrated Evidence Packs have fresh artifact hashes.
+  - The expanded eight-scenario RustVM and GoVM subjects are hash-identical.
+  - Prepare mode performed no network or economic operation during this review.
+
+packet_acceptance:
+  allowed: false
+  reason: DEVNET_PROOF_MISSING_AND_EXECUTE_RUNNER_NOT_READY
+  required_before_next_c03_gate:
+    - close_C03-CHAIN-001-RP-001
+    - close_C03-CHAIN-001-RP-002
+    - close_C03-CHAIN-001-RP-003
+    - close_C03-CHAIN-001-RP-004
+    - rerun_offline_preflight_with_fresh_hashes
+    - obtain_explicit_subject_bound_public_devnet_approval
+    - capture_terminal_devnet_execution_and_decoded_capability_state
+    - retain_mainnet_production_security_and_legal_claims_as_excluded
+
+claims_excluded:
+  - devnet_transaction
+  - public_bytecode_upload
+  - packet_acceptance
+  - mainnet_readiness
+  - production_security_audit
+  - legal_or_regulatory_approval

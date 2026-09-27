@@ -1,0 +1,62 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-E2EE-INBOUND-EVENT-VALIDATION-078",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "stream_handshake_viewer_binding": true,
+    "stream_generation_stale_guard": true,
+    "stream_reconnect_after_persona_switch": true,
+    "message_event_recipient_persona_binding": true,
+    "typing_event_recipient_actor_persona_binding": true,
+    "call_event_recipient_persona_binding": true,
+    "event_shape_and_size_bounds": true,
+    "message_sse_body_removed": true,
+    "message_sse_row_removed": true,
+    "content_refetch_through_privacy_matrix": true,
+    "cache_generation": "20260906-p2realtime1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_realtime_inbox_webrtc": "PASS",
+    "product_full_tests": { "passed": 236, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The authenticated user stream was global across personas and message/typing events lacked recipient profile binding; an old call-persona stream also remained open after profile switching.",
+      "resolution": "Every sensitive event is recipient/persona-bound, clients capture stream generation and viewer scope, and profile switching closes and recreates the stream."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Plaintext message events broadcast the complete message row, including body, despite the client using the event only as an invalidation.",
+      "resolution": "SSE carries only minimal identity/scope/message-ID metadata; message content is re-read through server-side Privacy Matrix enforcement."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Realtime handlers parsed unbounded JSON and accepted stale EventSource callbacks after user/profile state changed.",
+      "resolution": "Payload byte bounds, object-shape checks, captured user/persona and monotonic stream generations reject stale or malformed callbacks."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "4bc5880422fa80cc67d2921fcd00a6244392d1ce56f16fd9d9f72a1f6ba56625",
+    "apps/nexus-web/public/app.js": "ca0d9212c2caa68efa256ea583131d3f0d23da8dc495f9130eac5b01ae317c73",
+    "apps/nexus-web/public/call-client.js": "d336b9e9686f11211977dd0682be3f77cbd62ed61f879845325a28fbd0c3aea0",
+    "apps/nexus-web/public/interface-locale.js": "3cdd57fc907cc8df645201944a78f87b2904071abb5699737de180ed152c2545",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "7f089a023ba97ad82a2c10b3b5bb7ff9daae424c0aa729753b663f9c61cde424",
+    "apps/nexus-web/public/index.html": "2450eb1dbbe0110247ce021be5c394954cff7704908f2d591f7ce760b9742d06",
+    "apps/nexus-web/test/audit.test.js": "29f9a23317735291194a246ded6d0721463a81d1e41cc4f1fe3d20a3c163a283",
+    "apps/nexus-web/test/core.test.js": "64e7aca7036ff7447e9062afb57b72f8816f070ce3e497ecbb24a7ec593d1991",
+    "planning/NX-WEB-SOCIAL-realtime-recipient-integrity-v1.md": "199231d47f90a789e31f2fc71704103cc557297d9831e7c20621f372c4b57a49",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "bb2342a6b3cefdfdbde31aeb40fdb4a89baa0fb3b6a1453b290ec4abad3b3c75",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "1f7c2775b0cd9155f584d4242883df2f88e543d295cc137a5198e242aeef145f"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_EVENT_ORDERING_WEBRTC_E2EE_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-E2EE-DEVICE-MUTATION-RESULT-INTEGRITY-079"
+}

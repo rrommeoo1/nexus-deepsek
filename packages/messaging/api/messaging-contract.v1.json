@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A14",
+  "conversationKinds": ["ONE_TO_ONE"],
+  "messageStates": ["SENT", "DELIVERED", "READ", "TOMBSTONED"],
+  "rules": {
+    "plaintextAcceptedByService": false,
+    "ciphertextAcceptedByActionLedger": false,
+    "activeProfileAndGenerationRequired": true,
+    "activeDeviceRequired": true,
+    "keyRotationRequiresNextEpoch": true,
+    "rotationPersistsCurrentEpochAndDevice": true,
+    "sendRecipientImmutableForLifecycle": true,
+    "blockBeforeSendDeliveryRead": true,
+    "accessDecisionSignedByPolicyEngine": true,
+    "audienceGrantRequired": true,
+    "privateActionTargetInClear": false,
+    "privateCommitmentMinimumEntropyBits": 128,
+    "verifiedCheckpointRequiredForRestore": true,
+    "replayDeniedAcrossRestart": true,
+    "syntheticOnlyInCurrentPacket": true
+  },
+  "chainEnvelope": ["PRIVATE_ACTION", "actorCommitment", "genericCommitment", "payloadCommitment", "nonce", "expiry"],
+  "claimsExcluded": ["production_e2ee", "matrix_provider", "real_device_keys", "real_messages", "push_delivery", "mainnet_transaction", "formal_cryptographic_audit"]
+}

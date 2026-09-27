@@ -1,0 +1,23 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "compact_persistent_clip_creator_identity",
+  "date": "2026-08-27",
+  "cache_bust": "20260826-neural51",
+  "behaviour": {
+    "identity": "compact fixed-size avatar, ellipsized name and username, small follow and menu controls",
+    "visibility": "creator identity remains visible while secondary clip chrome fades or comments open",
+    "content_priority": "description and context may fade without hiding the creator identity"
+  },
+  "verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural51 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "C09C7EEBB21E4CF84A6F2CFA068663457FAE447F8E25FDC02D5DBA6704E6F492",
+    "apps/nexus-web/public/styles.css": "B80A75FD2A712B74656D6A7F1EC4CF781384AF96C2D1A75552D390E4FBE46A02",
+    "apps/nexus-web/public/index.html": "5A79136116235211951F4A549478AB84F3C79C3D0E32996868309CC8EDB9611B"
+  },
+  "cost": "0"
+}

@@ -1,0 +1,45 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZED-DEVICE-WALLET-XPORTAL-RELINK-065",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "locales": ["ro", "en", "pl", "ar"],
+    "device_wallet_status_localized": true,
+    "device_wallet_recovery_guidance_localized": true,
+    "session_xportal_step_up_localized": true,
+    "xportal_relink_controls_localized": true,
+    "qr_accessibility_label_localized": true,
+    "translated_html_escaped": true,
+    "wallet_or_xportal_protocol_changed": false,
+    "external_provider_invoked": false,
+    "cache_generation": "20260905-p1locale29"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_device_wallet_relink": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 227, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "MEDIUM", "finding": "Device-wallet custody status remained Romanian-only in Account.", "resolution": "Availability and recovery guidance now use the selected profile locale." },
+    { "severity": "MEDIUM", "finding": "Session step-up and xPortal relinking controls had untranslated labels and QR accessibility copy.", "resolution": "All relink and step-up scaffolding now uses the shared escaped locale contract." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "2f51a0ae7204ff00adbfb3fc694157707f96e9a58f9a0e7b19bfc0d8d7bb9aea",
+    "apps/nexus-web/public/app.js": "1db1d103bb7eab8d1933caca472d5168e0f3c09e60cbba46ccadd42dd4749d7d",
+    "apps/nexus-web/public/index.html": "ec2784b08197d74c342bad5d0c01f3e17d91009a050c914b283d3ba13133c3bd",
+    "apps/nexus-web/test/audit.test.js": "2317641abf663b28b150b4ae2e81be269a3aa5753b10a34ad06e1603541286d5",
+    "planning/NX-WEB-SOCIAL-localized-device-wallet-xportal-relink-v1.md": "8a212225f61e12bca14345028bf0944c37c4e704c91a4c729cfcdae7ce89b08a",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "c44cc6beead32d4c52c7b6dfc6ffc4d7938e8b9cd7b982de16e212b34586c0d3",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "766c8b7e151a8870f64b8801690807960d7e971604943a158157dd0de3a11308"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_TRUSTED_HTTPS_REAL_DEVICE_XPORTAL_NATIVE_RTL_LTR_AND_EXTERNAL_SECURITY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZED-CONNECTIVITY-SHELL-066"
+}

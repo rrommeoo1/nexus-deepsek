@@ -1,0 +1,63 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-RUSTVM-20260802T211137024Z-e0e6e393",
+    "executor_role":  "A20",
+    "status":  "PASS",
+    "scope":  "rustvm_portable_differential_scenario_subjects",
+    "assertions":  28,
+    "failures":  [
+
+                 ],
+    "acceptance":  {
+                       "rust_vm_tests":  "PASS_10_OF_10",
+                       "rust_vm_scenarios":  "PASS_8_OF_8",
+                       "vm_decoder_batch_rejection":  "PASS"
+                   },
+    "scenarios":  [
+                      "signed-action-replay.scen.json",
+                      "private-scope-denied.scen.json",
+                      "private-action-success.scen.json",
+                      "pauser-stop.scen.json",
+                      "capability-revoked.scen.json",
+                      "capability-rotation-escalation.scen.json",
+                      "relayer-and-nonce-denied.scen.json",
+                      "batch-shaped-extra-argument.scen.json"
+                  ],
+    "toolchain":  {
+                      "rust":  "1.88.0",
+                      "multiversx_sc":  "0.66.2",
+                      "executor":  "RustVM"
+                  },
+    "claims_excluded":  [
+                            "govm_execution",
+                            "devnet_transaction",
+                            "mainnet_readiness",
+                            "production_security_audit"
+                        ],
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "subject_sha256":  "73ff6ccaafe2b29fb515c8669f9a5757d780d3f46100bd0ea4070cb288f005d4",
+    "artifact_sha256":  {
+                            "contracts/nexus-actions/tests/nexus_actions_scenario_rs_test.rs":  "9c14ddb64dd76ef0ba66fa195d0a9a39172fc847d1e13f9b2abc4446421e1cfc",
+                            "contracts/nexus-actions/src/lib.rs":  "13dd972d0ed9ac03447d9407b64900a00a5c228a2682e30906a7a39aa377da23",
+                            "contracts/nexus-actions/output/nexus-actions.mxsc.json":  "e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d",
+                            "contracts/nexus-actions/output/nexus-actions.wasm":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                            "contracts/nexus-actions/Cargo.toml":  "eb6896b9c437d13eeb253656aed056871882a4e76ef8ce32c36984e8fae81b1e",
+                            "contracts/nexus-actions/Cargo.lock":  "487106b90a3430efce099aa7a86d5c2e3f428ed8afbc0230119fd275e1e077e8",
+                            "planning/validate-chain-rustvm-scenarios.ps1":  "e15832ef32dbc0f1e5f40c3d2170e68495d16cc9d567a8bbe22e08536de75d37",
+                            "contracts/nexus-actions/scenarios/signed-action-replay.scen.json":  "1f34dc815b86e29864bc1a7eaf70b1d8707a5e41f80d840d08eb51cacbf6af0e",
+                            "contracts/nexus-actions/scenarios/private-scope-denied.scen.json":  "aa5c3c6382ada4c0aee8f49dd1185e582d8bb7a1440673801f0b2bfc5371616f",
+                            "contracts/nexus-actions/scenarios/private-action-success.scen.json":  "0dc364ce80c2629d0ec1d43e90b44b49ad49002d06fbd0574a670b0d21c601a2",
+                            "contracts/nexus-actions/scenarios/pauser-stop.scen.json":  "16aeef2ed76d45e34a799bb634b5e6c82949f4339a4da6f05693867e24bca8b0",
+                            "contracts/nexus-actions/scenarios/capability-revoked.scen.json":  "4448c83e8295665efa83d63bb8a4cc2025680f261e9e3903b559cbd3ec9f174c",
+                            "contracts/nexus-actions/scenarios/capability-rotation-escalation.scen.json":  "fb10f89cd153e4f6eb9c9bc7b0176af565054cedb3dcad77c07391fe2214205f",
+                            "contracts/nexus-actions/scenarios/relayer-and-nonce-denied.scen.json":  "b580ae05b719c5975a0e174b5e7a56564133fec101ad1d5d24ce8f043ea6132b",
+                            "contracts/nexus-actions/scenarios/batch-shaped-extra-argument.scen.json":  "fdbbe748edaf8563e80e39eb68fd60fd15e920a1a68cd2700f7586d54c2ec3ec"
+                        },
+    "duration_seconds":  2.2079
+}

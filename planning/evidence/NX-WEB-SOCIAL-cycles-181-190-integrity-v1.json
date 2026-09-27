@@ -1,0 +1,48 @@
+{
+  "schema": "NEXUS_EVIDENCE_PACK_V1",
+  "cycle_range": "181-190",
+  "generated_at": "2026-09-08",
+  "environment": "local_only",
+  "outcomes": {
+    "gap_audit": "COMPLETE",
+    "e2ee_secure_default": "PASS_EXACT_DEVICE_READINESS_ONLY",
+    "plaintext_consent": "PASS_EXPLICIT_PER_INTENT",
+    "device_epoch_downgrade": "PASS_FAIL_CLOSED",
+    "message_attachment_recovery": "PASS_RESUMABLE_CANCELABLE",
+    "story_owner_recovery": "PASS_PARTIAL_RESULT_EXPLICIT",
+    "fullscreen_playback": "PASS_SOUND_AND_SESSION_CONTINUITY",
+    "reaction_interaction": "PASS_SHORT_LIKE_LONG_PRESS_PALETTE_KEYBOARD",
+    "comment_overlay": "PASS_TOGGLE_ESCAPE_BACK_FOCUS_RESTORE"
+  },
+  "gates": {
+    "story_owner_focused": { "passed": 7, "failed": 0 },
+    "fullscreen_focused": { "passed": 3, "failed": 0 },
+    "reaction_focused": { "passed": 3, "failed": 0 },
+    "comment_overlay_focused": { "passed": 3, "failed": 0 },
+    "accessibility_comment_modal": { "passed": 10, "failed": 0 },
+    "full_tests": { "passed": 316, "failed": 0, "test_files": 48 },
+    "social_inventory": { "passed": 62, "failed": 0 },
+    "e2ee_inventory": { "passed": 40, "failed": 0 },
+    "critical_read_inventory": { "passed": 18, "failed": 0 },
+    "release_check": { "gate": "PASS", "synthetic_actors": 1000, "issues": 0 }
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "c4b0cddab82387ec098112f1c78a81c87c2ccd3009debd54073532ed2460e3b9",
+    "apps/nexus-web/public/interface-locale.js": "1577b8ef6f43f917ca28ec338ed9044a0ea4c2ece28f03838e192b19895687fe",
+    "apps/nexus-web/test/p0-message-transport-choice.test.js": "b88e193dc080543b5fc4eb2f81bc5983b0f5e36ebd9049a5106e8d9717ffc9ae",
+    "apps/nexus-web/test/p2-story-owner-ui.test.js": "cf6f3b7dfbe369dd5b542138b05976baf3fec98aa43ebb5aa5b935478c08b807",
+    "apps/nexus-web/test/p1-fullscreen-interaction-state.test.js": "224c5053b9de31acbda94f94b09105f9692e7dae2d0607effeb5489f8a0f6715",
+    "apps/nexus-web/test/p1-reaction-accessibility.test.js": "2a0947ca4591807f6c0f35a8969294ff2aad03e9ce7b37465cbb7bcb9d2e9edc",
+    "apps/nexus-web/test/p1-comment-overlay-navigation.test.js": "379cb146148efecedbd8b2e2ee1e60d59702afe2432c45c6c48609aec8a2da7e",
+    "apps/nexus-web/test/audit.test.js": "fd1198285ab8d1945d2452095f756c1c6bc67979426c38618ae33b41cc32dc42"
+  },
+  "manual_gates": {
+    "multiversx_native_auth_gpl_review": "PENDING",
+    "current_vulnerability_database_scan": "PENDING",
+    "formal_security_and_crypto_audit": "PENDING",
+    "formal_legal_approval": "PENDING",
+    "real_device_and_provider_validation": "PENDING",
+    "production_live_capacity": "PENDING"
+  },
+  "claims": { "external_network": false, "real_funds": false, "incremental_cost": 0 }
+}

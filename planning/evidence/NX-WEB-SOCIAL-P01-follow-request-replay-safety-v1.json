@@ -1,0 +1,43 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-FOLLOW-REQUEST-REPLAY-SAFETY-069",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "actions": ["accept", "decline", "cancel"],
+    "single_flight": true,
+    "explicit_stable_idempotency_keys": true,
+    "keys_survive_refresh_after_failure": true,
+    "keys_removed_only_after_exact_confirmation": true,
+    "maximum_rows_per_direction": 80,
+    "active_persona_binding": true,
+    "request_and_response_shape_validated": true,
+    "internal_avatar_urls_only": true,
+    "raw_error_rendered": false,
+    "cache_generation": "20260905-p1locale33"
+  },
+  "verification": {
+    "focused_follow_request_replay_safety": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 231, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Follow-request retry after an ambiguous response received a new implicit mutation key.", "resolution": "Intent-bound keys persist in a bounded map across list refresh and are cleared only after exact confirmation." },
+    { "severity": "HIGH", "finding": "Request lists and decision results were trusted without complete persona, size, identity and response checks.", "resolution": "Both lists and all action results are bounded and validated fail-closed; media is internal-only." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "dad538876a2adf08073a59c8bc62a185baf968640ce9a5fa7e491bfc14c13908",
+    "apps/nexus-web/public/index.html": "2421a3fb0cca652ccba91af66d11f4285618b6e931d850e376cd52b33a3e12c2",
+    "apps/nexus-web/test/audit.test.js": "cbfdba2c6ea86a3df271068f46878249bfa65564e136f188c090034a19e33f4e",
+    "planning/NX-WEB-SOCIAL-follow-request-replay-safety-v1.md": "ad731aacbbff5b565e90f77703f409119e8c0bdeed34fdff35b99d0aa14104f8",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "4052d02f716ecd81e69cd32f326ba77c109c1a43858da1f1db7e3ff802ca2e2e",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "c7e8eb16346e922df2f115f6f51873115514ecd6a43cd5e231779764ecdeda0f"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_RETRY_STORMS_AND_INDEPENDENT_PRIVACY_SECURITY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-FAVORITES-ACTION-REPLAY-SAFETY-070"
+}

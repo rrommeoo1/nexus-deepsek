@@ -1,0 +1,68 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-WALLET-USERNAME-056",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["wallet_identity", "portfolio", "receive_funds_information", "nexus_username", "clipboard_recovery"],
+    "catalog_parity_enforced": true,
+    "funding_boundary": {
+      "account_response_required": true,
+      "multiversx_address_shape_required": true,
+      "explicit_capability_required": true,
+      "real_transfer_enabled": false,
+      "fiat_onramp_enabled": false
+    },
+    "username_boundary": {
+      "canonical_syntax_preflight": true,
+      "explicit_idempotency_key": true,
+      "key_rotates_on_edit": true,
+      "single_flight_submit": true,
+      "selected_persona_and_attached_screen_bound": true,
+      "exact_response_username_verified": true,
+      "raw_errors_rendered": false
+    },
+    "portfolio_boundary": {
+      "array_and_row_shape_guarded": true,
+      "positive_assets_only": true,
+      "maximum_displayed_assets": 100,
+      "estimated_values_on_failure": false
+    },
+    "external_share_enabled": false,
+    "cache_generation": { "app_and_locale": "20260905-p1locale20", "styles": "20260904-p1locale6" }
+  },
+  "verification": {
+    "syntax_and_catalogue": "PASS",
+    "focused_wallet_username_audit": { "passed": 2, "failed": 0 },
+    "product_full_tests": { "passed": 219, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "findings": { "critical": null, "high": null, "medium": null }, "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Receive-funds UI could be enabled from an offline fallback address string.", "resolution": "Successful Account state, exact address shape and explicit funding capability are all required." },
+    { "severity": "HIGH", "finding": "Username save lacked explicit stable replay, duplicate-submit and exact-response controls.", "resolution": "The UI binds one edit to one key and accepts only the exact normalized username response." },
+    { "severity": "MEDIUM", "finding": "Malformed portfolio rows and unbounded collections were trusted by the view.", "resolution": "Only bounded, syntactically valid, positive rows render." },
+    { "severity": "MEDIUM", "finding": "Clipboard fallback announced success even if copying failed.", "resolution": "Success is now announced only after a confirmed clipboard operation." },
+    { "severity": "MEDIUM", "finding": "Wallet and username states were Romanian-only and could expose raw failures.", "resolution": "Parity-checked RO/EN/PL/AR copy and controlled failures cover the bounded surface." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "f0c80d625df649bcbc3d735158e4a6264cbd2c31260944951d5ff9e57ba51e8f",
+    "apps/nexus-web/public/app.js": "094b259224c72f8f7efc17f2e62e9d5d0a4a35d87898c299d7cd832517bf88a3",
+    "apps/nexus-web/public/index.html": "38861a2fff30b3358b2731f654ccda47275c56681b93b0b5a116ae9d313f6067",
+    "apps/nexus-web/test/audit.test.js": "c505268efaeb7aa946f314c76538eeb3badbe3207c58a58a4d30a9ba380c9b3f",
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-localized-wallet-username-v1.md": "873b14aeee6edf796c0810462ae23908d5dc84fbf936b34ae7b5f3908828b449",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "c20a6827cf70e6b984c8d53aa64a0ccc59eeedf7405ce99a62242e5f8b0fd75e",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "95d471f41e38bdaeb312c338534c1d76bca6d9a90ef9957d0c25a4d7c7ed0625"
+  },
+  "capacity": { "band": "YELLOW", "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_NATIVE_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-ACCESS-RECOVERY-057"
+}

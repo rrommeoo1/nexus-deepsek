@@ -1,0 +1,64 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-ORPHAN-PURGE-027",
+  "checkpoint_date": "2026-08-31",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Deterministic retention and purge control for unclaimed E2EE attachment ciphertext",
+  "controls": {
+    "retention_seconds": 86400,
+    "dry_run_default": true,
+    "candidate_policy": "ready_client_encrypted + exact E2EE MIME/purpose + unclaimed by every message + retention elapsed",
+    "claimed_message_exclusion": true,
+    "fresh_upload_exclusion": true,
+    "bounded_batch_maximum": 1000,
+    "filesystem_reference_validation": "content_addressed_hash_and_known_extension",
+    "idempotent_missing_file": true,
+    "database_lock": "BEGIN_IMMEDIATE_recheck",
+    "failed_storage_delete_preserves_database_row": true,
+    "receipt": "SHA256 canonical purge fact; no plaintext, key or user PII",
+    "startup_auto_delete": false,
+    "live_local_data_purged_during_packet": false
+  },
+  "verification": {
+    "targeted_tests": { "passed": 2, "failed": 0 },
+    "full_tests": { "passed": 167, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "A completed E2EE attachment upload that lost the device-set race before message commit had no deterministic deletion boundary.",
+      "resolution": "Unclaimed ciphertext now becomes eligible only after a 24-hour retry window and only through an explicit bounded purge run whose default is dry-run."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A purge racing a message claim could remove ciphertext after the message acquired its reference.",
+      "resolution": "Every candidate is rechecked under a BEGIN IMMEDIATE write lock and any message reference excludes deletion."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Filesystem failure could otherwise leave the database claiming a successful purge.",
+      "resolution": "Storage deletion failure rolls back the receipt and database deletion so the same object remains retryable."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "857d2d310b652e61759b0bff11df818b2d10077875766e48bbcb46ce8fa82dc4",
+    "apps/nexus-web/lib/repo.js": "e4780f467e799763bc678a1654601de1f937d2b063f1744a47ce34afaeec5c03",
+    "apps/nexus-web/test/p1-e2ee-attachments.test.js": "2e133c9976378796f2072a13ff2878e5973a90f44ebca96485d6037e6959ad23"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; completed one bounded local packet without a worker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_OPERATIONAL_SCHEDULER",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-SAFETY-NUMBER-RECOVERY-028"
+}

@@ -1,0 +1,152 @@
+schema_version: 1
+task_id: NX-LIVE-P01
+review_id: NX-LIVE-P01-C06-C09-C10-20260809-FINALREREVIEW02
+reviewer_roles: [C06, C09, C10]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A41
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-LIVE-P01-validation.json
+  sha256: 33cef4be1c44303fdbdff6c47dfba0a8a29d1a31a47607d945359c4c8b617edf
+  run_id: NX-LIVE-P01-OWNER-REMEDIATION01
+  executor_role: A41
+  status: PASS
+  assertions: 120
+  scenario_assertions: 30
+  deterministic_repetitions: 3
+  artifact_count: 21
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 8a066056334d795b0ca4f2154051f0d100e505f7be2bb5e9fceabc6f61e75c8e
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-live.ps1
+  run_id: NX-LIVE-P01-C06-FINALREREVIEW02
+  executor_role: C06
+  status: PASS
+  assertions: 120
+  scenario_assertions: 30
+  deterministic_repetitions: 3
+  review_subject_sha256: 8a066056334d795b0ca4f2154051f0d100e505f7be2bb5e9fceabc6f61e75c8e
+  output_sha256: c5397557c841756ac7e5f5a34cd71f8ae2307e2e18de91fe4fca0e236bec836a
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_static_deterministic_source_review
+  results:
+    complete_signed_start_eligibility_binding: PASS
+    coordinated_provider_manifest_moderation_audience_delay_time_generation_policy_substitution: DENIED_ZERO_EFFECT
+    provider_receipt_exact_full_operation_and_authority: PASS
+    stale_late_wrong_kind_id_session_fence_manifest_audience_digest_status_receipt: DENIED
+    provider_receipt_persist_and_restore_verification: PASS
+    start_timeout_higher_fence_compensation: PROVIDER_ENDED
+    late_start_callback_lower_fence: CANNOT_RESURRECT
+    post_live_creator_conflict_higher_fence_compensation: PROVIDER_ENDED
+    emergency_failure_or_timeout: CONTAINMENT_PENDING
+    durable_pending_snapshot_restore_retry: PROVIDER_ENDED_HIGHER_FENCE
+    concurrent_or_repeated_retry: ONE_ACTIVE_FENCE
+    every_provider_attempt_ordered_lineage: PASS
+    kids_child_broadcast: DENIED
+    moderator_authority_version_revocation_cas: PASS
+    chat_disabled_before_emergency_provider_call: PASS
+    replay_vod_moderation_gate: PASS
+    exact_snapshot_event_projection_and_command_replay: PASS
+    durable_checkpoint_prefix_reorder_removal_fabrication_substitution: DENIED
+    raw_secret_pii_url_material: ABSENT
+    chain_dependency_for_emergency: NONE
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-one hashes match owner evidence and independently recompute the declared subject
+  independent_validation:
+    status: PASS
+    evidence: C06 validation passed 120 controls and 30 scenarios in each of three deterministic repetitions
+  start_eligibility:
+    status: PASS
+    evidence: eligibility exact-parses and binds provider, manifest, moderation policy, audience, delay, command issue/expiry, creator generation and policy; coordinated substitution fails before provider or state effects
+  provider_receipt:
+    status: PASS
+    evidence: SHA-256 operation digest binds kind, id, session, fence, manifest and audience; exact provider receipt additionally binds status and authority verification and is persisted in event lineage and reverified on restore
+  start_and_callback_containment:
+    status: PASS
+    evidence: timeout, invalid receipt or post-LIVE creator conflict invokes COMPENSATE at a higher fence; stateful fake provider confirms ENDED and a late lower-fence start cannot resurrect LIVE
+  emergency_containment:
+    status: PASS
+    evidence: chat is disabled before the provider call; failure, timeout or moderator CAS conflict remains CONTAINMENT_PENDING, snapshots durably, restores and retries at a higher fence until an authenticated ENDED receipt is obtained
+  retry_concurrency_and_lineage:
+    status: PASS
+    evidence: pending-to-ending state transition serializes retries; every attempt increments fence and state version and extends the SHA-256 ordered event head
+  restore_replay_and_projection:
+    status: PASS
+    evidence: exact snapshot, projection, event, command and provider receipt parsing plus signed commands, authenticated receipts, ordered hashes and durable checkpoint head/count/state/fence reconstruct state and reject prefix, reorder, removal, fabrication, substitution and command replay
+  kids_privacy_and_effects:
+    status: PASS
+    evidence: CHILD broadcasting is denied, moderator CAS and VOD moderation gate pass, emergency is chain-independent, raw secrets/PII/URLs are absent and tests have zero external effects
+
+findings:
+  - id: C06-LIVE-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Eligibility did not bind the complete approved live start
+    closure_evidence:
+      - LiveEligibility now carries provider, manifest, moderation policy, audience, delay and exact start issued/expiry fields plus creator generation and policy.
+      - eligibilityMatches compares every material field before provider invocation.
+      - Coordinated signed substitution is denied with zero provider calls, projection, event and replay mutation.
+
+  - id: C09-LIVE-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Provider receipt did not authenticate the complete fenced operation
+    closure_evidence:
+      - ProviderOperation carries kind, id, session, fence, manifest, audience and canonical SHA-256 operationDigest.
+      - ProviderReceipt exact-parses and binds the entire operation, expected status, provider authority key and signature through verifyReceipt.
+      - Exact receipt and operation digest are embedded in ordered event lineage and independently reverified during restore.
+      - Wrong manifest and the other stale, late, kind/id/session/fence/audience/digest/status substitutions fail closed.
+
+  - id: C09-LIVE-P01-003
+    severity: CRITICAL
+    status: CLOSED
+    title: Local fail-closed transitions could leave the managed provider live
+    closure_evidence:
+      - Start timeout, invalid receipt and post-provider creator conflict invoke an idempotent COMPENSATE operation at a higher fence.
+      - Stateful provider tests confirm ENDED and prove a late lower-fence start callback cannot resurrect the stream.
+      - Emergency failure, timeout or moderator race is represented as CONTAINMENT_PENDING rather than a false terminal claim.
+      - Pending state, every attempt and fence are persisted in SHA-256 lineage and durable checkpoint state; fresh restore can retry with a higher fence to authenticated ENDED.
+      - Retry is serialized by state, repeated/concurrent calls cannot create multiple active winners, and provider termination is confirmed before FAILED_CLOSED.
+
+accepted_controls:
+  - All twenty-one artifacts and the subject are cryptographically bound to owner evidence.
+  - All three former findings, including the CRITICAL provider divergence finding, are closed with stateful fake-provider tests and independent source confirmation.
+  - Kids denial, moderator CAS, chat-first containment, replay VOD gate, command replay, durable restore and SHA-256 lineage controls pass.
+  - No raw secrets, PII or URLs are exposed by the reviewed runtime models.
+  - Zero network, provider, economic, real-fund or incremental-cost effects occurred.
+
+claims_excluded:
+  - real_provider
+  - real_ingest
+  - cdn
+  - real_users
+  - production
+  - provider_sla_certification
+  - formal_legal_opinion
+  - real_replay_processing
+
+residual_scope_notes:
+  - PASS covers only the bound local stateful fake-managed Live controller, provider adapter, containment retry and durable restore boundary.
+  - Real provider, ingest, CDN, users, production, SLA certification, legal opinion and real replay processing remain excluded gates.
+  - No finding remains open in this independent T0 review.

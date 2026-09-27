@@ -1,0 +1,29 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "date": "2026-08-26",
+  "scope": "persistent Repost and Retweet action",
+  "cache_bust": "20260826-neural49",
+  "behavior": {
+    "clips_and_posts": "Repost",
+    "tweets": "Retweet",
+    "toggle": true,
+    "idempotent": true,
+    "persistent_backend": true,
+    "counter": true,
+    "demo_negative_ids": "local state only"
+  },
+  "verification": {
+    "syntax": "pass",
+    "focused_ui_audit": "20/20 pass",
+    "full_local_suite": "92/92 pass",
+    "lan_http": "200 with neural49 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "F4D067368324EB07FA3DB41A2E126B1309D9A56DD24D0CECD759673AA239A519",
+    "apps/nexus-web/public/index.html": "6EE41811339D8FC5E526F88635C9EB08EF9632911B3EB12B710CAA1E3B44153F",
+    "apps/nexus-web/test/audit.test.js": "A1FA4F4430850EE611640506A42A6BE98D3E6D7D50945152903451559EC072FF",
+    "apps/nexus-web/test/core.test.js": "FF647153C6BF43B5626D343FA35C3018093C20E0F951B5ED27A06CBF807B725D",
+    "apps/nexus-web/lib/api.js": "5FBDD743FFB4580E17356E91F15D951000FFC28E928632CD3ABE43432852F65D",
+    "apps/nexus-web/lib/repo.js": "8E4B10D55C8E6B82D91B70E08FB3E53F6EBDD58057C77E6116ABDABA475FE17E"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-GDPR-LIFECYCLE-021",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "destructive_action_on_real_account": false,
+  "scope": "Step-up protected portable export, 30-day deletion grace/cancel, legal hold and retry-safe account purge",
+  "controls": {
+    "export": {
+      "allow_listed_fields": true,
+      "authenticated_owner_only": true,
+      "step_up_required": true,
+      "ttl_seconds": 900,
+      "seed_private_key_keystore_excluded": true,
+      "password_provider_subject_session_secret_excluded": true,
+      "other_users_private_payload_excluded": true
+    },
+    "deletion": {
+      "double_confirmation": true,
+      "grace_days": 30,
+      "cancel_supported": true,
+      "other_sessions_revoked": true,
+      "new_mutations_locked_during_grace": true,
+      "onchain_permanence_disclosed": true
+    },
+    "purge": {
+      "legal_hold_fail_closed": true,
+      "content_addressed_media_exact_delete": true,
+      "media_failure_retryable": true,
+      "shared_conversation_preserved": true,
+      "pii_free_tombstone": true,
+      "default_mode": "dry_run",
+      "execute_requires_two_explicit_controls": true
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "focused_tests": { "passed": 4, "failed": 0 },
+    "static_plus_focused_tests": { "passed": 30, "failed": 0 },
+    "full_tests": { "passed": 145, "failed": 0 },
+    "purge_default_deny": "PASS",
+    "purge_dry_run_real_db": { "eligible": 0, "mutated": false },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 16,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "browser_qa": {
+      "account_lifecycle_panel": true,
+      "active_state_visible": true,
+      "export_control_visible": true,
+      "double_confirmation_controls_visible": true,
+      "destructive_controls_executed": false,
+      "console_errors": 0,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 17800,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p1gdpr1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Account Center had no portable data export or cancellable erasure lifecycle.",
+      "resolution": "Added owner-bound step-up export and double-confirmed deletion with a 30-day grace period, mutation lock and cancellation."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Deleting a conversation creator through the existing CASCADE relation could erase messages authored by other participants.",
+      "resolution": "Purge transfers ownership to the earliest remaining participant before deleting only the departing user's authored data."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A maintenance command could otherwise execute destructive purges after a single operator typo.",
+      "resolution": "The worker defaults to dry-run and execution requires both an enable flag and a scoped NX-GDPR-PURGE approval identifier."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "c07ff535c29696a990b9d3c1eb709962006ccc0f8590ab0c5fc201fe13b8215f",
+    "apps/nexus-web/lib/account-lifecycle.js": "66d013b205f49c688accd64684fa8383970ab1024a5633616653915369540517",
+    "apps/nexus-web/lib/media.js": "f7c1c196728af3a50cfdadee49089b3181a7724dba508b5322fbacaa2bad24d9",
+    "apps/nexus-web/lib/api.js": "96a6a58344c44a2f3000cf87629c27f88625d109ec05ee1bbb81e9c932a998ce",
+    "apps/nexus-web/public/app.js": "c2e30292e77af0ba2d5f519dea6c8847f084076cc734f6b071ffb6afcd736e03",
+    "apps/nexus-web/public/p3-visual-foundation.css": "c1cced5543c05b386652eaf902c731133a24e051e6d4d2ae262879539c559b43",
+    "apps/nexus-web/public/index.html": "21c50d32732434d07ccd314db24ea2133242af9fb4c26c173c3981f8a3bf4ecc",
+    "apps/nexus-web/scripts/account-purge.mjs": "e152e3865f22d5a238d3c7a3a68a339d2399bd36587527ee32513aa177dc4698",
+    "apps/nexus-web/test/p1-account-lifecycle.test.js": "64aca10c0053a2933cdb8ac07e9f9908baf2d8214c36dfdbc0caea18cb23a590",
+    "apps/nexus-web/test/audit.test.js": "d314a01e33dfda56ead6e0588d172bf001977ce291c05d949ef5079b6f5f1434"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved" },
+  "p1_gdpr_lifecycle_gate": "PASS_LOCAL",
+  "release_gate": "PENDING_OPERATIONS_RECONCILIATION_AND_EXTERNAL_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P01-EMERGENCY-BACKUP-RESTORE-022"
+}

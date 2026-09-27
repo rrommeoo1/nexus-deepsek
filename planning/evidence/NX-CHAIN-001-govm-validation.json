@@ -1,0 +1,196 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5",
+    "executor_role":  "A20",
+    "status":  "PASS",
+    "scope":  "govm_v1_5_differential_and_actual_gas_snapshot",
+    "failures":  [
+
+                 ],
+    "runtime":  {
+                    "distro":  "Ubuntu-24.04",
+                    "wsl":  "2.7.11.0",
+                    "kernel":  "6.18.33.2-microsoft-standard-WSL2",
+                    "architecture":  "x86_64",
+                    "glibc":  "2.39"
+                },
+    "runner":  {
+                   "repository":  "multiversx/mx-chain-scenario-cli-go",
+                   "version":  "5.1.0",
+                   "vm":  "1.5",
+                   "archive_sha256":  "337c533d985174de61b86414fd21c8df567bcbb1d3e9989532cc8e0ed1852e48",
+                   "binary_sha256":  "588d1f4ba82e89bf9823af72b3b8af9d27cd38be2f75a420a3ba26ff95c03627",
+                   "mxsc_sha256":  "e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d",
+                   "wasm_sha256":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                   "rust_evidence_sha256":  "8961644de863d1517df20a5b2fb624ee265e00b842c9371f85ce9f3d8622b9a3",
+                   "version_output":  "mx-scenario-go version 5.1.0"
+               },
+    "differential":  {
+                         "rust_vm":  "PASS_8_OF_8",
+                         "go_vm":  "PASS_8_OF_8",
+                         "identical_scenario_subjects":  true
+                     },
+    "scenarios":  [
+                      {
+                          "scenario":  "signed-action-replay.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "1f34dc815b86e29864bc1a7eaf70b1d8707a5e41f80d840d08eb51cacbf6af0e",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/signed-action-replay.scen.json.log",
+                          "log_sha256":  "ff28009b590267e8ee11bd0ad7b0e7ce15a08f5043ee33a4d4056f3795a2cdc8"
+                      },
+                      {
+                          "scenario":  "private-scope-denied.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "aa5c3c6382ada4c0aee8f49dd1185e582d8bb7a1440673801f0b2bfc5371616f",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/private-scope-denied.scen.json.log",
+                          "log_sha256":  "32b723ffbde5061b71f9650b8d7b5e9b9c2eee2df4b5c07d7d8bf6b0768231aa"
+                      },
+                      {
+                          "scenario":  "private-action-success.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "0dc364ce80c2629d0ec1d43e90b44b49ad49002d06fbd0574a670b0d21c601a2",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/private-action-success.scen.json.log",
+                          "log_sha256":  "1b6d61e45132f6a2e613d5af89fdc7f407704b3bbdad7326ce1888918c112354"
+                      },
+                      {
+                          "scenario":  "pauser-stop.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "16aeef2ed76d45e34a799bb634b5e6c82949f4339a4da6f05693867e24bca8b0",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/pauser-stop.scen.json.log",
+                          "log_sha256":  "76af7ad1e4ab972d01f30ac6034b64710ec64e3287c48ab87e58ba0d40dc4654"
+                      },
+                      {
+                          "scenario":  "capability-revoked.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "4448c83e8295665efa83d63bb8a4cc2025680f261e9e3903b559cbd3ec9f174c",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/capability-revoked.scen.json.log",
+                          "log_sha256":  "b22f60e0a8ecc70db258e68a9ffdaba29641601c44fc735957ef820237774c71"
+                      },
+                      {
+                          "scenario":  "capability-rotation-escalation.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "fb10f89cd153e4f6eb9c9bc7b0176af565054cedb3dcad77c07391fe2214205f",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/capability-rotation-escalation.scen.json.log",
+                          "log_sha256":  "5be0a9aa6d75f594541b56cc4f6e5c576da74cbc25e5f51d7c35816c70e201af"
+                      },
+                      {
+                          "scenario":  "relayer-and-nonce-denied.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "b580ae05b719c5975a0e174b5e7a56564133fec101ad1d5d24ce8f043ea6132b",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/relayer-and-nonce-denied.scen.json.log",
+                          "log_sha256":  "6efa625cf5f33a6a27b8d78c141e6d75333582d577d6049826974ee479160ccc"
+                      },
+                      {
+                          "scenario":  "batch-shaped-extra-argument.scen.json",
+                          "status":  "PASS",
+                          "exit_code":  0,
+                          "scenario_sha256":  "fdbbe748edaf8563e80e39eb68fd60fd15e920a1a68cd2700f7586d54c2ec3ec",
+                          "log_path":  "planning/evidence/govm-logs/NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5/batch-shaped-extra-argument.scen.json.log",
+                          "log_sha256":  "efa36cca7cbc7570a0fff1d8a9c7f70b301203a06be22ced3def50a1091d4699"
+                      }
+                  ],
+    "gas":  {
+                "status":  "PASS_ACTUAL_GOVM_1_5",
+                "evidence_path":  "planning/evidence/NX-CHAIN-001-govm-gas.json",
+                "evidence_sha256":  "bf9cb8864fcfd01d43dc39e8644b00ac7efec06e2b1ef9be995e93071926e8e3",
+                "budget_summaries":  [
+                                         {
+                                             "function":  "__deploy__",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  8,
+                                             "min_gas":  5661580,
+                                             "median_gas":  5661580,
+                                             "max_gas":  5661580,
+                                             "mean_gas":  5661580,
+                                             "recommended_gas_limit":  7077000
+                                         },
+                                         {
+                                             "function":  "pauseActionType",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  1,
+                                             "min_gas":  2292036,
+                                             "median_gas":  2292036,
+                                             "max_gas":  2292036,
+                                             "mean_gas":  2292036,
+                                             "recommended_gas_limit":  2866000
+                                         },
+                                         {
+                                             "function":  "recordAction",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  1,
+                                             "min_gas":  5106811,
+                                             "median_gas":  5106811,
+                                             "max_gas":  5106811,
+                                             "mean_gas":  5106811,
+                                             "recommended_gas_limit":  6384000
+                                         },
+                                         {
+                                             "function":  "recordPrivateAction",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  1,
+                                             "min_gas":  5119346,
+                                             "median_gas":  5119346,
+                                             "max_gas":  5119346,
+                                             "mean_gas":  5119346,
+                                             "recommended_gas_limit":  6400000
+                                         },
+                                         {
+                                             "function":  "registerCapability",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  8,
+                                             "min_gas":  3737491,
+                                             "median_gas":  3737491,
+                                             "max_gas":  3737491,
+                                             "mean_gas":  3737491,
+                                             "recommended_gas_limit":  4672000
+                                         },
+                                         {
+                                             "function":  "revokeCapability",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  1,
+                                             "min_gas":  2533157,
+                                             "median_gas":  2533157,
+                                             "max_gas":  2533157,
+                                             "mean_gas":  2533157,
+                                             "recommended_gas_limit":  3167000
+                                         },
+                                         {
+                                             "function":  "setRelayerAllowed",
+                                             "outcome_class":  "SUCCESS",
+                                             "samples":  8,
+                                             "min_gas":  2275275,
+                                             "median_gas":  2275275,
+                                             "max_gas":  2275275,
+                                             "mean_gas":  2275275,
+                                             "recommended_gas_limit":  2845000
+                                         }
+                                     ],
+                "expected_rejections_excluded_from_budget":  true,
+                "headroom_policy":  "ceil(max_success_gas * 1.25 / 1000) * 1000"
+            },
+    "packet_completion":  {
+                              "ready_for_independent_t0_review":  true,
+                              "accepted":  false,
+                              "reason":  "INDEPENDENT_T0_REVIEW_PENDING"
+                          },
+    "claims_excluded":  [
+                            "devnet_transaction",
+                            "mainnet_readiness",
+                            "production_security_audit"
+                        ],
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "duration_seconds":  10.8552
+}

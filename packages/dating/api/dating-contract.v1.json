@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "owner": "A33",
+  "surface": "DATING_PRIVATE_COMMITMENTS",
+  "trust": {
+    "adultVerified": true,
+    "photoMatch": true,
+    "recentLivenessMaxDays": 30,
+    "rawKycStored": false,
+    "currentAuthorityRequired": true,
+    "claimAndVersionBound": true,
+    "preAndPostPrepareCas": true
+  },
+  "privacy": {
+    "targetInApiOrChain": false,
+    "preferenceInApiOrChain": false,
+    "preciseLocationInApiOrChain": false,
+    "saltEntropyBits": 128,
+    "generatedOnDevice": true,
+    "globalSearchEligible": false
+  },
+  "action": {
+    "type": "PRIVATE_ACTION",
+    "actions": ["SWIPE", "MATCH"],
+    "exactAuthorizationBinding": true,
+    "exactChainReceiptBindingBeforeEmission": true,
+    "postSignatureProfilePolicyTrustCas": true,
+    "preparedAbortOnConflict": true,
+    "oneTimeAuthorization": true,
+    "persistentNonceKey": true
+  },
+  "restore": {
+    "signedAuthorizationPerReceipt": true,
+    "orderedHashLineage": true,
+    "durableCheckpointHeadRequired": true,
+    "rebuildsAuthorizationAndNonceIndexes": true,
+    "exactShape": true
+  },
+  "synthetic": {"organicMetricEligible": false},
+  "exclusions": ["real_users","real_kyc","external_liveness","production_matching","mainnet","formal_legal_opinion"]
+}

@@ -1,0 +1,28 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "date": "2026-08-26",
+  "scope": "reference wordmark, compact comments, tap fullscreen",
+  "cache_bust": "20260826-neural47",
+  "changes": [
+    "NEXUS wordmark remains visible on mobile and gives X a cyan circuit treatment",
+    "comment drawer reduced from 62 percent to at most 40 percent on mobile",
+    "comment drawer title is a direct collapse control",
+    "background tap, close control, repeated comment action, swipe handle and Escape remain supported",
+    "tap on video requests stage fullscreen",
+    "iOS webkitEnterFullscreen fallback added",
+    "fullscreen media uses contain sizing on a black canvas"
+  ],
+  "verification": {
+    "node_check": "pass",
+    "focused_ui_audit": "20/20 pass",
+    "full_local_suite": "92/92 pass",
+    "lan_http": "200 with neural47 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "052E116512E7743460360CCFDF013CFBA8BE7C4441A716FE8F3C5EAE28841501",
+    "apps/nexus-web/public/styles.css": "999CE872DAA7E7469004CAE062A1155B4331B16F39E2B0F5F7F9EE42C9991D79",
+    "apps/nexus-web/public/index.html": "2763B84EF6E8BCA1255AEA6559B3AB3CADB46D0E7DEE945DA162AA34DA1C02F0",
+    "apps/nexus-web/test/audit.test.js": "6C9283AFFA9EAB5BEA5591B3B368E9068E0A86D2D6DBDB025258104FF1BF7A6E",
+    "apps/nexus-web/lib/repo.js": "559C396AC7F5097A1EBFBA8C50C3619F073D081158A05B7CDEEED0942C048FD0"
+  }
+}

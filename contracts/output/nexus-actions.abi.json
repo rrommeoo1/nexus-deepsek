@@ -1,0 +1,470 @@
+{
+    "buildInfo": {
+        "contractCrate": {
+            "name": "nexus-actions",
+            "version": "2.0.0-alpha.1"
+        },
+        "framework": {
+            "name": "multiversx-sc",
+            "version": "0.66.2"
+        }
+    },
+    "docs": [
+        "Gas-bounded action ledger. It stores only session capabilities and nonces;",
+        "user-visible action state is rebuilt off-chain from finalized events."
+    ],
+    "name": "NexusActions",
+    "constructor": {
+        "inputs": [
+            {
+                "name": "chain_id",
+                "type": "bytes"
+            },
+            {
+                "name": "pauser",
+                "type": "Address"
+            }
+        ],
+        "outputs": []
+    },
+    "upgradeConstructor": {
+        "inputs": [],
+        "outputs": []
+    },
+    "endpoints": [
+        {
+            "docs": [
+                "Owner allowlists funded protocol relayers. A capability can select only",
+                "one currently allowlisted relayer, keeping every call one-action-only."
+            ],
+            "name": "setRelayerAllowed",
+            "rustMethodName": "set_relayer_allowed",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "relayer",
+                    "type": "Address"
+                },
+                {
+                    "name": "allowed",
+                    "type": "bool"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "setPauser",
+            "rustMethodName": "set_pauser",
+            "onlyOwner": true,
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "pauser",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "pauseActionType",
+            "rustMethodName": "pause_action_type",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "action_type",
+                    "type": "u16"
+                },
+                {
+                    "name": "paused",
+                    "type": "bool"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "pauseRelayer",
+            "rustMethodName": "pause_relayer",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "relayer",
+                    "type": "Address"
+                },
+                {
+                    "name": "paused",
+                    "type": "bool"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Direct wallet call. No payment is accepted because the endpoint is not",
+                "annotated payable. The session key cannot authorize financial actions."
+            ],
+            "name": "registerCapability",
+            "rustMethodName": "register_capability",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "actor_kind",
+                    "type": "u8"
+                },
+                {
+                    "name": "actor_commitment",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "session_public_key",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "scope_bits",
+                    "type": "u32"
+                },
+                {
+                    "name": "max_actions",
+                    "type": "u32"
+                },
+                {
+                    "name": "expires_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "authorized_relayer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "revokeCapability",
+            "rustMethodName": "revoke_capability",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "session_public_key",
+                    "type": "array32<u8>"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Rotation can only reduce the remaining authority of the old key."
+            ],
+            "name": "rotateCapability",
+            "rustMethodName": "rotate_capability",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "old_session_public_key",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "new_session_public_key",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "new_scope_bits",
+                    "type": "u32"
+                },
+                {
+                    "name": "new_max_actions",
+                    "type": "u32"
+                },
+                {
+                    "name": "new_expires_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "new_authorized_relayer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "recordAction",
+            "rustMethodName": "record_action",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "envelope",
+                    "type": "ActionEnvelope"
+                },
+                {
+                    "name": "session_signature",
+                    "type": "array64<u8>"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "name": "recordPrivateAction",
+            "rustMethodName": "record_private_action",
+            "mutability": "mutable",
+            "inputs": [
+                {
+                    "name": "generic_commitment",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "envelope",
+                    "type": "ActionEnvelope"
+                },
+                {
+                    "name": "session_signature",
+                    "type": "array64<u8>"
+                }
+            ],
+            "outputs": []
+        },
+        {
+            "docs": [
+                "Canonical bytes signed by the device session key. The domain includes",
+                "protocol version, configured chain id, and this contract's raw address."
+            ],
+            "name": "getSigningMessage",
+            "rustMethodName": "get_signing_message",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "envelope",
+                    "type": "ActionEnvelope"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "getCapability",
+            "rustMethodName": "get_capability",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "session_public_key",
+                    "type": "array32<u8>"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "optional<SessionCapability>",
+                    "multi_result": true
+                }
+            ]
+        },
+        {
+            "name": "getChainId",
+            "rustMethodName": "chain_id",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "bytes"
+                }
+            ]
+        },
+        {
+            "name": "getDomainSeparator",
+            "rustMethodName": "domain_separator",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "array32<u8>"
+                }
+            ]
+        },
+        {
+            "name": "getPauser",
+            "rustMethodName": "pauser",
+            "mutability": "readonly",
+            "inputs": [],
+            "outputs": [
+                {
+                    "type": "Address"
+                }
+            ]
+        },
+        {
+            "name": "isRelayerAllowed",
+            "rustMethodName": "relayer_allowed",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "relayer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "isRelayerPaused",
+            "rustMethodName": "relayer_paused",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "relayer",
+                    "type": "Address"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "isActionPaused",
+            "rustMethodName": "action_paused",
+            "mutability": "readonly",
+            "inputs": [
+                {
+                    "name": "action_type",
+                    "type": "u16"
+                }
+            ],
+            "outputs": [
+                {
+                    "type": "bool"
+                }
+            ]
+        }
+    ],
+    "events": [
+        {
+            "identifier": "ActionRecorded",
+            "inputs": [
+                {
+                    "name": "actor_commitment",
+                    "type": "array32<u8>",
+                    "indexed": true
+                },
+                {
+                    "name": "object_commitment",
+                    "type": "array32<u8>",
+                    "indexed": true
+                },
+                {
+                    "name": "action_nonce",
+                    "type": "u64"
+                }
+            ]
+        }
+    ],
+    "esdtAttributes": [],
+    "hasCallback": false,
+    "types": {
+        "ActionEnvelope": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "version",
+                    "type": "u16"
+                },
+                {
+                    "name": "actor_kind",
+                    "type": "u8"
+                },
+                {
+                    "name": "actor_commitment",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "action_type",
+                    "type": "u16"
+                },
+                {
+                    "name": "object_commitment",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "payload_hash_or_cid",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "visibility_class",
+                    "type": "u8"
+                },
+                {
+                    "name": "action_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "issued_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "expires_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "session_public_key",
+                    "type": "array32<u8>"
+                }
+            ]
+        },
+        "SessionCapability": {
+            "type": "struct",
+            "fields": [
+                {
+                    "name": "schema_version",
+                    "type": "u16"
+                },
+                {
+                    "name": "controller",
+                    "type": "Address"
+                },
+                {
+                    "name": "actor_kind",
+                    "type": "u8"
+                },
+                {
+                    "name": "actor_commitment",
+                    "type": "array32<u8>"
+                },
+                {
+                    "name": "scope_bits",
+                    "type": "u32"
+                },
+                {
+                    "name": "max_actions",
+                    "type": "u32"
+                },
+                {
+                    "name": "used_actions",
+                    "type": "u32"
+                },
+                {
+                    "name": "valid_from",
+                    "type": "u64"
+                },
+                {
+                    "name": "expires_at",
+                    "type": "u64"
+                },
+                {
+                    "name": "last_action_nonce",
+                    "type": "u64"
+                },
+                {
+                    "name": "authorized_relayer",
+                    "type": "Address"
+                },
+                {
+                    "name": "active",
+                    "type": "bool"
+                }
+            ]
+        }
+    }
+}

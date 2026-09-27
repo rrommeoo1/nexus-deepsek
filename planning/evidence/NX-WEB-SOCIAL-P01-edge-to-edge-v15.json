@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-EDGE-TO-EDGE-V15",
+  "status": "PASS",
+  "release": "20260827-neural61",
+  "scope": "mobile_real_viewport_and_edge_to_edge_feed_media",
+  "implemented": {
+    "mobile_phone_mockup_removed": true,
+    "mobile_outer_radius_removed": true,
+    "mobile_outer_padding_removed": true,
+    "mobile_outer_shadow_removed": true,
+    "feed_media_cover": true,
+    "feed_media_full_width": true,
+    "feed_media_square_corners": true,
+    "desktop_showcase_preserved": true
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "lan_http": 200,
+    "lan_assets_include_release": true
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/styles.css": "ca47c24ef5cf5ecc2108d04b5d7a2eac0f2910162bdc224a05a3e4c8335d9b19",
+    "apps/nexus-web/public/index.html": "0a253ec3bea65bbd3e60fbb8c148781b9d8fc98f13c26e7fb70ca8aac22e2991",
+    "apps/nexus-web/test/audit.test.js": "f3e30f6cd8cbfa6c9453049f5a242c311b3fb74d91d3f0a2e24985d998e4ecf5"
+  },
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

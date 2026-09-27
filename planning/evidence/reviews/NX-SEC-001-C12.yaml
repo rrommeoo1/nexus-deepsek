@@ -1,0 +1,120 @@
+schema_version: 1
+task_id: NX-SEC-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only_final_retest
+decision: PASS
+gate_effect: APPROVE_REVIEW_TO_DONE
+run_id: NX-SEC-001-20260802T150408236Z-d84dd763
+validator_status: PASS
+assertions: 1137
+failures: 0
+negative_fixtures: 34/34
+positive_fixtures: 8/8
+review_subject_sha256: 0f7663c355a396c0a7e846f3f2e0b0b05113daab335f8d69b541f2eff7a11f8b
+expected_review_subject_sha256: 0f7663c355a396c0a7e846f3f2e0b0b05113daab335f8d69b541f2eff7a11f8b
+subject_digest_matches_expected: true
+
+finding_disposition:
+  - id: C12-SEC-001
+    prior_severity: CRITICAL
+    status: CLOSED
+    evidence: PUBLIC payloads containing sexual_orientation or child_profile_id are denied by schema and caller-classification conflict checks.
+  - id: C12-SEC-002
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: Unquoted, Unicode-escaped, .env, and malformed structured-data cases fail closed.
+  - id: C12-SEC-003
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      Independent execution of the actual AST checker denies side-effect imports,
+      literal dynamic imports, concatenated dynamic imports, parenthesized constants,
+      template constants, constant require calls, and unresolved import/require expressions.
+      The declared static Social-to-Media import remains allowed.
+  - id: C12-SEC-004
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: Required and authoritative censuses, normative owners, typed boundary controls, and declared edge direction all validate fail closed.
+  - id: C12-SEC-005
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: Canonical manifest contains exactly 24 unique sorted entries; all 24 hashes are current and reconstruct the expected digest.
+  - id: C12-SEC-006
+    prior_severity: MEDIUM
+    status: CLOSED
+    evidence: Runtime guard receipt remains bound to accepted CAP evidence, current guard hashes, zero spend, empty egress allowlist, and no hardcoded network_used claim.
+
+source_checker_retest:
+  source_context_for_denials: work
+  cases:
+    side_effect_import:
+      source: 'import "@nexus/dating";'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    dynamic_literal:
+      source: 'import("@nexus/dating")'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    dynamic_concatenation:
+      source: 'import("@nexus/" + "dating")'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    parenthesized_constant:
+      source: 'import((("@nexus/" + "dating")))'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    template_constant:
+      source: 'import(`@nexus/${"dating"}`)'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    unresolved_import_expression:
+      source: 'import(moduleName)'
+      decision: DENY
+      finding: dynamic_module_specifier_non_constant
+    unresolved_require_expression:
+      source: 'require(moduleName)'
+      decision: DENY
+      finding: dynamic_module_specifier_non_constant
+    constant_require:
+      source: 'require("@nexus/" + "dating")'
+      decision: DENY
+      finding: 'forbidden_import:work->dating'
+    allowed_static_import:
+      source_context: social
+      source: 'import media from "@nexus/media";'
+      decision: ALLOW
+      findings: []
+
+review_subject_evidence:
+  owner_run_id: NX-SEC-001-20260802T150302043Z-79398d39
+  owner_status: PASS
+  canonicalization: canonical_json_sorted_object_keys_ordered_array_utf8_no_bom
+  manifest_entries: 24
+  unique_paths: 24/24
+  current_hashes: 24/24
+  sorted_paths: true
+  reconstructed_digest: 0f7663c355a396c0a7e846f3f2e0b0b05113daab335f8d69b541f2eff7a11f8b
+
+closed_findings:
+  - C12-SEC-001
+  - C12-SEC-002
+  - C12-SEC-003
+  - C12-SEC-004
+  - C12-SEC-005
+  - C12-SEC-006
+open_findings: []
+new_findings: []
+blocking_findings: []
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-SEC-001-C12-retest1.yaml
+  - planning/evidence/reviews/NX-SEC-001-C12.yaml
+preserved_history:
+  - planning/evidence/reviews/NX-SEC-001-C12-initial.yaml
+  - planning/evidence/reviews/NX-SEC-001-C12-retest1.yaml

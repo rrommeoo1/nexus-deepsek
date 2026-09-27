@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "owner": "A32",
+  "surface": "CLIPS",
+  "durationSeconds": { "minimum": 3, "maximum": 180 },
+  "publishRequires": ["signed_command", "signed_policy_decision", "media_ready", "moderation_approved", "rights_cleared", "age_eligible", "audience_allowed"],
+  "labels": { "syntheticRequiredInPacket": true, "paidPromotionDisclosureRequired": true, "organicMetricsExcludedForSyntheticOrPaid": true },
+  "kidsEligible": false,
+  "engagement": { "likeAction": "distinct_PUBLIC_ACTION", "signedDecisionRequired": true, "signedExecutionAuthorizationRequired": true, "exactEnvelopeAndChainDomainBinding": true, "oneTimeAtomicConsumption": true, "postSignatureStateVersionCas": true, "postSignaturePolicyVersionCas": true, "preparedActionAbortOnConflict": true, "activeViewerProfileRequired": true, "blockAudienceDeviceChecked": true, "telemetryCreatesTransaction": false, "purgedAssetDenied": true },
+  "purge": { "verifiedMediaPurgeRequired": true, "playbackDeniedImmediately": true },
+  "effectsExcluded": ["real_upload", "managed_storage", "managed_transcode", "public_cdn", "external_moderation", "real_user_metrics", "mainnet"]
+}

@@ -1,0 +1,272 @@
+schema_version: 1
+program: Nexus
+cycle: bootstrap_0_16_weeks
+wip_limits:
+  active_workstreams: 1
+  tasks_per_agent: 1
+  same_bounded_context_writers: 2
+rules:
+  maker_checker_required: true
+  critical_high_self_close_forbidden: true
+  production_data_in_nonprod_forbidden: true
+  external_gate_substitution_forbidden: true
+
+tasks:
+  - task_id: NX-CAP-001
+    title: ChatGPT Plus capacity guardrails
+    objective: Keep delivery resumable and concentrate generative usage on accepted outcomes while local deterministic tests provide scale.
+    owner_agent: A00
+    peer_reviewers: [A10]
+    control_reviewers: [C10, C11]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 1
+    normative_refs: [AGENTS.md, planning/openai-plus-capacity-plan.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: []
+    contracts_changed: [delivery_policy, capacity_scorecard]
+    acceptance_tests:
+      - One active packet and standing no-cost agent authorization are explicit.
+      - Paid credits API billing auto-recharge and plan changes require explicit owner approval.
+      - Deterministic local actors form the majority of synthetic test volume.
+      - An interrupted packet can resume from persisted evidence without full conversation history.
+    observability: [usage_band, active_packets, spawned_agents, deterministic_to_llm_test_ratio]
+    rollback_or_kill_switch: Disable subagent spawning and continue root-only from the last persisted checkpoint.
+    evidence_required: [capacity_policy, sample_checkpoint, weekly_capacity_scorecard]
+    handoff_to: [NX-PROG-001]
+
+  - task_id: NX-PROG-001
+    title: Program registry and dependency graph
+    objective: Every P0/P1 epic has one owner, status, dependencies, risk tier and normative references.
+    owner_agent: A00
+    peer_reviewers: [A01, A02]
+    control_reviewers: [C11, C12]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 2
+    normative_refs: [docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-CAP-001]
+    contracts_changed: [planning]
+    acceptance_tests:
+      - No task without one owner and at least one independent checker.
+      - Dependency graph has no unowned node or cycle on the critical path.
+    evidence_required: [backlog_snapshot, dependency_report, ownership_report]
+    handoff_to: [NX-ARCH-001, NX-CTRL-001]
+
+  - task_id: NX-ARCH-001
+    title: Monorepo bounded-context architecture
+    objective: Produce ADRs, import boundaries, ownership map and change rules for the common platform.
+    owner_agent: A02
+    peer_reviewers: [A10, A12, A20]
+    control_reviewers: [C01, C02, C04]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/01-technical-architecture.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-PROG-001]
+    contracts_changed: [adr, codeowners, module_boundaries]
+    acceptance_tests:
+      - Import-policy test rejects a forbidden cross-module dependency.
+      - Kids and Dating boundaries are explicit and deny-by-default.
+    rollback_or_kill_switch: Revert ADR before code depends on it.
+    evidence_required: [architecture_decision, dependency_test, reviewer_decisions]
+    handoff_to: [NX-PLAT-001, NX-CONTRACT-001, NX-SEC-001]
+
+  - task_id: NX-CTRL-001
+    title: Control Registry and Evidence Pack v1
+    objective: Materialize control IDs, owners, frequency, thresholds, evidence and stage-gate mapping.
+    owner_agent: C11
+    peer_reviewers: [C01, C03, C04, C06, C07, C08, C09, C10]
+    control_reviewers: [C12]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/16-agent-delivery-continuous-assurance.md, docs/04-security-compliance.md]
+    depends_on: [NX-PROG-001]
+    contracts_changed: [control_registry, evidence_schema, stage_gates]
+    acceptance_tests:
+      - At least 131 stable control IDs exist with no duplicate objective-owner pair.
+      - Every T0 control has fail-closed behavior and 100 percent population coverage.
+      - Delivery cannot mutate immutable evidence or approve its own artifact.
+    rollback_or_kill_switch: Release promotion remains disabled if the registry is unavailable.
+    evidence_required: [control_catalog, sod_test, evidence_integrity_test, third_line_sample_plan]
+    handoff_to: [NX-QA-001, NX-SEC-001, NX-OBS-001]
+
+  - task_id: NX-PLAT-001
+    title: CI and immutable artifact foundation
+    objective: A sample module builds once, is scanned, signed, given an SBOM and promoted to an ephemeral environment.
+    owner_agent: A10
+    peer_reviewers: [A02, A15]
+    control_reviewers: [C01, C02, C11]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/01-technical-architecture.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-ARCH-001, NX-CTRL-001]
+    contracts_changed: [ci, artifacts, sbom, provenance]
+    acceptance_tests:
+      - Secrets or a critical dependency stop the build.
+      - Staging receives the same artifact digest produced by CI.
+      - Evidence links to commit, artifact, SBOM and test run.
+    rollback_or_kill_switch: Disable promotion while retaining build/test capability.
+    evidence_required: [pipeline_run, artifact_digest, sbom, provenance, promotion_test]
+    handoff_to: [NX-CONTRACT-001, NX-AUTH-001, NX-CHAIN-001, NX-MEDIA-001]
+
+  - task_id: NX-CONTRACT-001
+    title: OpenAPI event ABI and DB contract skeleton
+    objective: Establish versioned contracts and generated clients with drift detection.
+    owner_agent: A13
+    peer_reviewers: [A12, A20, A30]
+    control_reviewers: [C01, C02, C04, C03]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/02-smart-contracts.md, docs/03-data-api.md]
+    depends_on: [NX-ARCH-001, NX-PLAT-001]
+    contracts_changed: [openapi, events, abi, prisma]
+    acceptance_tests:
+      - Breaking contract change fails CI without a new version and migration window.
+      - TypeScript bindings and consumers compile from generated contracts.
+      - Sensitive fields have owner, purpose and retention metadata.
+    evidence_required: [contract_diff_test, generated_client_build, data_catalog_check]
+    handoff_to: [NX-AUTH-001, NX-CHAIN-001]
+
+  - task_id: NX-AUTH-001
+    title: Identity Broker and embedded-wallet proof
+    objective: Demonstrate provider identity binding, non-custodial wallet creation, recovery and export in sandbox.
+    owner_agent: A11
+    peer_reviewers: [A12, A30]
+    control_reviewers: [C02, C04, C05]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/13-global-auth-agent-network.md, docs/04-security-compliance.md]
+    depends_on: [NX-CONTRACT-001, NX-SEC-001]
+    contracts_changed: [auth_api, session, wallet_adapter]
+    acceptance_tests:
+      - Issuer-sub binding prevents email auto-merge.
+      - Nexus alone cannot reconstruct the user key.
+      - Recovery export revoke and provider outage paths are demonstrated.
+    rollback_or_kill_switch: Disable the provider adapter and preserve wallet login.
+    evidence_required: [threat_model, custody_boundary, recovery_drill, provider_adapter_tests]
+    external_gates: [cryptographic_audit_before_production, custody_legal_memo]
+    handoff_to: [NX-CHAIN-001]
+
+  - task_id: NX-CHAIN-001
+    title: Action capability and devnet record proof
+    objective: One signed adult mutation produces one accepted action transaction and terminal execution state.
+    owner_agent: A20
+    peer_reviewers: [A22, A11]
+    control_reviewers: [C03, C02, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/02-smart-contracts.md, docs/09-action-ledger-classifieds.md, docs/10-supernova-economics-compliance.md]
+    depends_on: [NX-CONTRACT-001, NX-AUTH-001]
+    contracts_changed: [abi, action_envelope, events]
+    acceptance_tests:
+      - Nonce replay capability escalation batching and relayer mutation fail.
+      - Ordered and executed states cannot be confused.
+      - Transaction payload scan finds no PII or predictable private target.
+      - Critical scenarios agree in Rust VM and Go VM.
+    rollback_or_kill_switch: Revoke capabilities and pause relayers without trapping funds.
+    evidence_required: [scenario_report, fuzz_corpus, differential_vm, gas_snapshot, privacy_payload_scan]
+    external_gates: [independent_audit_before_material_mainnet_funds]
+    handoff_to: [NX-CHAIN-002]
+
+  - task_id: NX-CHAIN-002
+    title: Indexer reducer and reconciliation skeleton
+    objective: Rebuild the same read model from chain events and detect/repair divergence.
+    owner_agent: A22
+    peer_reviewers: [A20, A13]
+    control_reviewers: [C03, C09, C10]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/01-technical-architecture.md, docs/02-smart-contracts.md]
+    depends_on: [NX-CHAIN-001, NX-OBS-001]
+    contracts_changed: [index_events, reducer_checkpoint, reconciliation]
+    acceptance_tests:
+      - Duplicate reorg delayed and out-of-order events converge deterministically.
+      - Double-entry liabilities and balances reconcile exactly.
+      - Full rebuild completes inside the declared RTO test window.
+    rollback_or_kill_switch: Serve last verified checkpoint and disable affected mutations.
+    evidence_required: [replay_report, reconciliation_report, failure_injection, rebuild_rto]
+    handoff_to: []
+
+  - task_id: NX-MEDIA-001
+    title: VOD upload transcode playback and purge proof
+    objective: A private upload becomes moderated HLS and is fully purged from origin and CDN on delete.
+    owner_agent: A40
+    peer_reviewers: [A41, A12, A30]
+    control_reviewers: [C01, C02, C04, C06, C10]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/15-recommendations-clips-watch-live-kids.md, docs/04-security-compliance.md]
+    depends_on: [NX-PLAT-001, NX-OBS-001]
+    contracts_changed: [media_api, media_events, lifecycle]
+    acceptance_tests:
+      - Corrupt malware and unsupported media fail closed.
+      - Signed playback cannot bypass audience or territory.
+      - Delete purges origin renditions CDN and index inside SLA.
+    rollback_or_kill_switch: Disable uploads and revoke playback tokens.
+    evidence_required: [codec_matrix, moderation_test, purge_receipt, cost_per_minute]
+    handoff_to: [NX-QA-001]
+
+  - task_id: NX-QA-001
+    title: Test fabric and first cross-layer E2E
+    objective: Establish fixtures, test taxonomy, flake tracking and one traceable client-to-worker E2E.
+    owner_agent: C01
+    peer_reviewers: [A10, A12, A30]
+    control_reviewers: [C11, C12]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 3
+    normative_refs: [docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-PLAT-001, NX-CONTRACT-001, NX-CTRL-001]
+    contracts_changed: [test_harness, fixtures, quality_scorecard]
+    acceptance_tests:
+      - Test flake is measured and release-critical quarantine is forbidden.
+      - Failure evidence links to requirement artifact and owner.
+      - Synthetic users are tagged and excluded from production metrics/economics.
+    evidence_required: [e2e_run, flake_baseline, trace_link, synthetic_isolation]
+    handoff_to: []
+
+  - task_id: NX-SEC-001
+    title: Threat model and baseline policy-as-code
+    objective: Model critical trust boundaries and enforce initial security privacy and data rules in CI.
+    owner_agent: C02
+    peer_reviewers: [A02, A11, A20, C04]
+    control_reviewers: [C12]
+    status: done
+    risk_class: T0
+    timebox_agent_days: 3
+    normative_refs: [docs/04-security-compliance.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-ARCH-001, NX-CTRL-001]
+    contracts_changed: [threat_model, security_policy, privacy_policy]
+    acceptance_tests:
+      - CI blocks secret PII child data and forbidden module flows.
+      - Critical assets threats and owners are mapped.
+      - T0 controls fail closed and cannot be waived by the author.
+    evidence_required: [threat_model, policy_tests, access_boundary_test, reviewer_signoff]
+    handoff_to: [NX-AUTH-001, NX-CHAIN-001]
+
+  - task_id: NX-OBS-001
+    title: Observability SLO and cost-tag baseline
+    objective: A trace spans API outbox worker and dependencies with SLO and unit-cost dashboards.
+    owner_agent: A15
+    peer_reviewers: [A10, A12, A13]
+    control_reviewers: [C09, C10, C11]
+    status: done
+    risk_class: T1
+    timebox_agent_days: 2
+    normative_refs: [docs/01-technical-architecture.md, docs/16-agent-delivery-continuous-assurance.md]
+    depends_on: [NX-PLAT-001, NX-CONTRACT-001]
+    contracts_changed: [telemetry_schema, slo, cost_tags]
+    acceptance_tests:
+      - Trace IDs cross process boundaries without logging secrets or PII.
+      - Alerts map to an owner runbook and severity.
+      - Cost tags separate gas media provider human agent and test traffic.
+    rollback_or_kill_switch: Disable high-cardinality telemetry without losing critical audit logs.
+    evidence_required: [trace_demo, dashboards, alert_test, privacy_log_scan, cost_report]
+    handoff_to: [NX-CHAIN-002, NX-MEDIA-001]

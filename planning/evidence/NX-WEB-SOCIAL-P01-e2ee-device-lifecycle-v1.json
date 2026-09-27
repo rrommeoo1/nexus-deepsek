@@ -1,0 +1,111 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-MESSAGING-E2EE-DEVICE-LIFECYCLE-025",
+  "checkpoint_date": "2026-08-30",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Messaging E2EE device inventory, step-up revocation, replay safety and historical-envelope isolation",
+  "controls": {
+    "device_inventory": {
+      "owner_scoped": true,
+      "coarse_metadata_only": true,
+      "public_jwk_exposed": false,
+      "private_key_received_by_server": false
+    },
+    "revocation": {
+      "password_step_up": true,
+      "xportal_step_up": true,
+      "idempotent_exact_replay": true,
+      "one_security_notification": true,
+      "irreversible": true,
+      "revival_denied": true
+    },
+    "historical_access": {
+      "revoked_device_envelope_denied": true,
+      "new_device_retroactive_envelope": false,
+      "silent_plaintext_downgrade": false,
+      "exact_active_device_coverage": true
+    },
+    "truthful_limits": {
+      "e2ee_text": "PASS_LOCAL_DEVICE_COVERED",
+      "e2ee_attachments": "NOT_IMPLEMENTED",
+      "key_backup_and_safety_numbers": "NOT_IMPLEMENTED",
+      "independent_crypto_review": "REQUIRED_EXTERNAL_GATE"
+    },
+    "external_share": "DENY"
+  },
+  "verification": {
+    "focused_static_core_tests": { "passed": 98, "failed": 0 },
+    "full_tests": { "passed": 162, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 20,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "synthetic_actor_lab": {
+      "actors": 1000,
+      "issues": 0,
+      "organic_leak": false,
+      "network_egress": false
+    },
+    "action_ledger_reconciliation": {
+      "status": "PASS",
+      "completed_mutations": 52,
+      "action_intents": 52,
+      "mismatches": 0,
+      "pii_findings": 0,
+      "chain_claim": "LOCAL_ONLY_NOT_CONFIRMED",
+      "report_hash": "6ed8d46ca0991cecf2fa5bce173ec3d15fe8fa40be170ff5cd0d802d20b2dcd3"
+    },
+    "runtime": {
+      "pid": 18404,
+      "listen_address": "0.0.0.0",
+      "local_health": 200,
+      "phone_lan_health": 200,
+      "root": 200,
+      "versioned_app_asset": 200,
+      "versioned_css_asset": 200,
+      "browser_build": "20260830-p1e2ee1",
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "An authenticated stolen session could revoke an E2EE device without fresh proof of account control.",
+      "resolution": "Both revocation routes now require password or xPortal step-up and remain behind the mutation idempotency boundary."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The owner device-inventory endpoint echoed full public JWK material that the Account UI did not need.",
+      "resolution": "Inventory and registration responses now use an owner-safe coarse projection with no JWK fields."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Device recovery expectations were ambiguous for historical ciphertext.",
+      "resolution": "Tests and UI state explicitly prove that revoked devices lose access and newly created keys do not receive retroactive envelopes."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "8dbd3dbaf21f7401821df29e033dc5c7e549fd8caeed47fb9674636a32dd0d28",
+    "apps/nexus-web/public/app.js": "f98cfa8775f923800e837fd4d7cdfad37e00a9832b587957e0f04bc1397a4025",
+    "apps/nexus-web/public/p3-visual-foundation.css": "a21674a0b8de71dc5de6402e78e4bb7681ab457a6198cc02254c29cdac3b6a28",
+    "apps/nexus-web/public/index.html": "9ae9f6de4f3f402e536b4f52aa42280570111cad5702293b4390dd16657da0f9",
+    "apps/nexus-web/test/core.test.js": "b73e49849f25c4c4333c22de79a2d92a499238fd00ab9ec62677bc27e86098e1",
+    "apps/nexus-web/test/p1-sessions-devices.test.js": "6e14f8005adb46852cca84f1f8e6c2654ee9089ce2af237113b089cb35d75170",
+    "apps/nexus-web/test/audit.test.js": "182f7cfc33c8fd3e0c09e7ac9be4537b448da65561d13080ae5e735b6e6b1658",
+    "apps/nexus-web/README.md": "9bc6b23f37b419877ee81538e4565eec8fdc6ba94be1d9d9955d860c8aed4f51",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "ebee06730b272456c87cb6ebe4b5b290d9f8c80d65cdf2305b8e06df62bd2caf",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "e1f3a314ef7f0345c44017678174b16759f916f931ac443ffd6c4b194de59cd8"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; single main agent and bounded local packet only"
+  },
+  "local_device_lifecycle_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_ATTACHMENT_E2EE",
+  "next_packet": "NX-WEB-SOCIAL-P01-MESSAGING-E2EE-ATTACHMENT-LIFECYCLE-026"
+}

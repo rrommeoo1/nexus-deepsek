@@ -1,0 +1,68 @@
+{
+  "packet": "NX-WEB-SOCIAL-P03-PROFILE-VISUAL-017",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Mobile Profile and Account Center information architecture",
+  "controls": {
+    "journeys": {
+      "profile": ["public preview", "avatar", "cover", "bio", "profile kind", "persona privacy", "paid private profile", "near and language"],
+      "wallet": ["MultiversX address", "positive-balance assets", "Nexus username", "username payment entry"],
+      "access": ["login providers", "xPortal link", "session sign-out", "recovery policy", "demo chain activity"]
+    },
+    "privacy": {
+      "persona_specific_avatar_cover_bio": true,
+      "persona_specific_visibility": true,
+      "seed_phrase_exposed": false,
+      "wallet_recovery_via_xportal": true
+    },
+    "ux": {
+      "single_long_form_removed": true,
+      "three_tab_navigation": true,
+      "selected_tab_announced": true,
+      "inactive_panels_aria_hidden": true,
+      "minimum_tab_target_px": 44,
+      "sticky_navigation": true
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "static_visual_tests": { "passed": 23, "failed": 0 },
+    "full_tests": { "passed": 130, "failed": 0 },
+    "mobile_browser_qa": {
+      "viewport": "390x844",
+      "profile_default_selected": true,
+      "wallet_panel_isolated": true,
+      "access_panel_isolated": true,
+      "profile_panel_restored": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 12996,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p3profile1"
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "cc8bce53ca3c420c148681a1be18c8f43565bca88e99f44574f8f8567f9fbabb",
+    "apps/nexus-web/public/p3-visual-foundation.css": "f9a65531cc88c66e2ab77c88bb7ece1e74a7a7eacb128dd308831a81fdc1a437",
+    "apps/nexus-web/public/index.html": "09b17cc194788db44dd460613d8d711594b83b4624bed48d26dadc7b43deb532",
+    "apps/nexus-web/test/audit.test.js": "e6f8237c3d51badfaf2e7bd287666007c1912635b77ad22a13340d7dfc09a3eb"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p3_profile_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_VISUAL_REVIEW_AND_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-RELEASE-READINESS-018"
+}

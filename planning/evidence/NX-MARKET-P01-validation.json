@@ -1,0 +1,80 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-MARKET-P01",
+    "run_id":  "NX-MARKET-P01-A34-FINALFIX02",
+    "executor_role":  "A34",
+    "status":  "PASS",
+    "scope":  "local_legal_listing_distinct_action_and_zero_real_value_capped_escrow_release_refund_dispute",
+    "assertions":  116,
+    "scenario_assertions":  33,
+    "deterministic_repetitions":  3,
+    "failures":  [
+
+                 ],
+    "listing":  {
+                    "active":  true,
+                    "moderated":  true,
+                    "market_profile":  true,
+                    "distinct_action":  true,
+                    "classifed_without_escrow":  true,
+                    "reconciled":  true
+                },
+    "escrow":  {
+                   "real_value_atomic":  "0",
+                   "max_test_total_atomic":  "1000000",
+                   "release":  true,
+                   "refund":  true,
+                   "dispute":  true,
+                   "conservation":  true,
+                   "restore":  true
+               },
+    "source_boundary_findings":  0,
+    "credential_name_matches":  0,
+    "network_operations":  0,
+    "economic_operations":  0,
+    "external_provider_operations":  0,
+    "real_fund_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "claims_excluded":  [
+                            "real_goods",
+                            "real_funds",
+                            "mainnet",
+                            "external_kyc",
+                            "tax_opinion",
+                            "formal_legal_opinion",
+                            "production_persistence",
+                            "production_dispute_resolution"
+                        ],
+    "review_subject_sha256":  "52270ce6818788a1a23d0b55166aebbdd7a780c897a9b65c0e9fa314d43bc922",
+    "artifact_sha256":  {
+                            "packages/marketplace/api/index.ts":  "1e80bb56cf804018aaf91eab284ba9bd7eaeffe9cb1e9ee2e46396907811d16c",
+                            "packages/marketplace/api/index.test.ts":  "978510ca09b3f7cec1097e92b74ec23ae2241adc951dd0ad1c7c88a4519aa48e",
+                            "packages/marketplace/api/marketplace-contract.v1.json":  "ecd8806c027a6071a6df62debaa995e96dbba8e61c3f7dea65f985c8786057c7",
+                            "packages/commerce/api/index.ts":  "2c7c1eaac91a4867dc2d487040f292f952001d83bbb881b3b02912f45e2e4879",
+                            "packages/chain-actions-api/index.ts":  "acf9540c9b66a9b1d939a8d7d15210c4fc1fa6126a4b5b7c5b04943adda4cc34",
+                            "packages/chain-adapter/api/index.ts":  "2865687251ada576530af398fb95aeae346e00fd75a2b2654d051a31c353db4b",
+                            "docs/02-smart-contracts.md":  "b4ac0223ed360a2d361427c3228052a30bafa641ac5e883035f44dc688e197eb",
+                            "docs/05-user-flows.md":  "e04e1887a9adbe99e5ea48d945fa9bf65ab38e032b2df9a648424296c5fb1db9",
+                            "docs/09-action-ledger-classifieds.md":  "543b173b170175eaaf5c0edae78a26e95109047b4a317b5d823801811ec6a5b6",
+                            "docs/10-supernova-economics-compliance.md":  "ccc171a6f6bd79d82badb0c4384a26565b05231bfbd230533726fcebb2f0fccd",
+                            "architecture/bounded-contexts.yaml":  "4d67b6e95dd766dd07ccc48c1c4da9dd004a4ad9757393a899b86c20e1d770ed",
+                            "planning/backlog-p0.yaml":  "4f0a41e09d6668d0813df2bd85b6bc19e470af83f07e4722e96294866b2bb27c",
+                            "planning/backlog-p1.yaml":  "e73f21c743b082863f4c2294e9340d171f714cfa1ff729f3a9bb741877a086e7",
+                            "planning/capacity-scorecard.yaml":  "c1923c26e4e1d883d8f3c269aa0d6cd32f1b2c2bdc222966e5c2426b884617ae",
+                            "planning/product-progress.yaml":  "a8c397de7c6246d67065494924f33f2c07583d629cf732674f9f3ee9a40929c8",
+                            "planning/checkpoints/NX-MARKET-P01.md":  "033bdfff3252d0fd2f8ec9180a65fac05f8b7ff0399d89c0a9c6827343cb14c4",
+                            "planning/spend-control.yaml":  "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+                            "planning/evidence/NX-PROFILE-P01-validation.json":  "984dc00697af6c56f85dd63e1342e4b7ed0220ccbe0d82c6e4dd64a3a7a6da3f",
+                            "planning/evidence/NX-MOD-P01-validation.json":  "051793b880182fdca0b10db47f93c44a664ab15c98509330ed199da0fa09cf79",
+                            "planning/evidence/NX-CHAIN-002-validation.json":  "7febbb932e553b0dad44781b6ca43aaff87a92977c7455f6ae3e4e7a475f0aa0",
+                            "planning/evidence/NX-SEC-001-validation.json":  "1f527a4af477dbd6b4cc1c0717d9aa26b8f4befae34f3095968a0d14ea6a6cf8",
+                            "security/source-boundary-check.js":  "b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b",
+                            "packages/contracts/node_modules/typescript/bin/tsc":  "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+                            "packages/contracts/package-lock.json":  "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b",
+                            "planning/validate-marketplace.ps1":  "5199d3777efd11aadeb14d559f5a611e2cffeb0c6c8f6b304566217c25d8e122"
+                        },
+    "duration_seconds":  2.5204
+}

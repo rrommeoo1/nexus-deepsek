@@ -1,0 +1,24 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "stories_yield_space_to_reel_content",
+  "date": "2026-08-27",
+  "cache_bust": "20260827-neural59",
+  "product_decision": "Stories are visible at feed origin, disappear after vertical reel navigation, and reappear only when returning to the top.",
+  "browser_verification": {
+    "initial": { "scroll_top": 0, "stories_collapsed": false, "stories_height_px": 119.67, "opacity": 1 },
+    "after_swipe": { "scroll_top": 641.30, "stories_collapsed": true, "stories_height_px": 0, "opacity": 0 },
+    "after_return_top": { "scroll_top": 0, "stories_collapsed": false, "stories_height_px": 119.67, "opacity": 1 }
+  },
+  "automated_verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural59 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "980A3A8D903C22A675EB9FC02684699E98B699B734E8FEF3D598AC4FE4F81642",
+    "apps/nexus-web/public/styles.css": "A2AFA00777A9DA73DF1C7EE48F5FCE0FA19FCE548F469283718404F0450EAE52",
+    "apps/nexus-web/public/index.html": "E4457EDD36AA0C1520CD0FF76C670EF2F972499B3816FD42DAB51E9C0787CE2F"
+  },
+  "cost": "0"
+}

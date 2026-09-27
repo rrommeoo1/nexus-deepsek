@@ -1,0 +1,68 @@
+{
+  "schema": "NEXUS_M11_LOCAL_EVIDENCE_V1",
+  "date": "2026-09-10",
+  "cycle_range": "306-325",
+  "milestone": {
+    "id": "M11",
+    "gate": "PASS_LOCAL",
+    "acceptance": "17/17",
+    "focused_tests": "6/6"
+  },
+  "full_regression": {
+    "passed": 366,
+    "failed": 0,
+    "duration_ms": 8435.7512
+  },
+  "release_gate": {
+    "gate": "PASS",
+    "test_files": 64,
+    "synthetic_actors": 1000,
+    "synthetic_issues": 0,
+    "production_health": "PASS",
+    "insecure_api_denied": true,
+    "isolated_data": true
+  },
+  "controls": {
+    "music_owned_resumable_master": true,
+    "music_rights_declaration_before_local_publish": true,
+    "music_raw_play_royalty_eligible": false,
+    "music_library_and_history_private": true,
+    "music_commercial_catalog_claim": false,
+    "grow_w0_w1_only": true,
+    "grow_paid_course_activated_without_payment": false,
+    "grow_private_entries_ciphertext_only": true,
+    "grow_sensitive_data_reused_for_ads_dating_work_reputation": false,
+    "system_test_creators_in_organic_discovery": false,
+    "external_share": false
+  },
+  "data_gate": {
+    "gate": "PASS_LOCAL",
+    "index_count": 216,
+    "required_indexes_present": true,
+    "integrity_ok": true,
+    "foreign_keys_ok": true
+  },
+  "source_sha256": {
+    "lib/db.js": "59d20005e3add41f7306e563d14b2eed8928c76aaaf5d4b70f200c0a921ddc44",
+    "lib/repo.js": "eaa29eca4f79716bfc7e174e6d1d322edeb2480dcc37591e698c1d85d146f68c",
+    "lib/api.js": "8d02d0ead39c468adfa550bb685bd52dd26f977ce4f894d830db13cb682f1344",
+    "public/music-grow-module.js": "bda026c230e5ea2569f5d3767105116b54de275d8fd8e6aa273e4cf6857b83be",
+    "test/p1-m11-music-grow.test.js": "4baaE49B8DC051B4B6756CAA51401A4C0677DF771210120492ECC94BDCDE20AC"
+  },
+  "runtime_evidence": {
+    "music_ui_dom_verified": true,
+    "grow_ui_dom_verified": true,
+    "mobile_module_switcher_verified": true,
+    "browser_console_errors": 0,
+    "screenshot": "planning/evidence/nexus-m11-music-mobile-2026-09-10.png"
+  },
+  "external_network": false,
+  "real_funds": false,
+  "incremental_cost": 0,
+  "external_gates_open": [
+    "music_rights_contracts_fingerprinting_transcoding_signed_cdn_and_royalty_methodology",
+    "music_takedown_counter_notice_and_independent_legal_security_privacy_review",
+    "grow_dpia_credentials_country_pack_editorial_medical_board_and_claims_review",
+    "real_payment_tax_refund_payout_and_app_store_review"
+  ]
+}

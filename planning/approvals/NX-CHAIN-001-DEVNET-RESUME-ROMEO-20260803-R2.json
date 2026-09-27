@@ -1,0 +1,27 @@
+{
+  "approval_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-R2",
+  "approved_run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-02",
+  "consumed_at": "2026-08-03T04:39:20.640720Z",
+  "consumed_by_run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-02",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+  "decision": "APPROVE",
+  "environment": "devnet",
+  "expires_at": "2026-08-10T23:59:59Z",
+  "gateway": "https://devnet-gateway.multiversx.com",
+  "incremental_cost_cap": {
+    "amount": 0,
+    "currency": "EGLD"
+  },
+  "issued_at": "2026-08-03T04:37:16Z",
+  "max_public_transactions": 3,
+  "max_real_value": 0,
+  "operation_mode": "Resume",
+  "owner": "Romeo",
+  "schema_version": 1,
+  "single_use": true,
+  "source_message_sha256": "eb334f0a1232e270f5057369ea505a984428d4fc90d7c4a6c5400b12bbce7ec0",
+  "status": "CONSUMED",
+  "subject_sha256": "12327c5aa43468a1e59fd6c499cdaee7625bf00cc8893244716327d4bfd5a9f9",
+  "wallet_source": "PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY",
+  "wasm_sha256": "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f"
+}

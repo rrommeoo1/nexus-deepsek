@@ -1,0 +1,71 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-ATOMIC-POST-COMMAND-004",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": [
+    "post domain write",
+    "canonical automated assessment",
+    "append-only moderation event",
+    "local intent proof",
+    "encrypted idempotent response",
+    "durable realtime invalidation outbox"
+  ],
+  "atomicity": {
+    "single_sqlite_transaction": true,
+    "crash_before_commit_rolls_back_domain": true,
+    "crash_before_commit_rolls_back_response": true,
+    "lease_expiry_retry_creates_exactly_one_post": true,
+    "exact_retry_replays_same_post": true,
+    "unique_outbox_event": true
+  },
+  "privacy": {
+    "outbox_payload_contains_post_body": false,
+    "public_post_persona_invalidation": true,
+    "private_post_broad_persona_channel": false,
+    "private_post_owner_invalidation_only": true,
+    "authorized_clients_refetch_through_privacy_matrix": true
+  },
+  "finding_remediated": {
+    "severity": "HIGH",
+    "id": "NX-P0-SQLITE-TRANSACTION-STATE-001",
+    "cause": "node:sqlite DatabaseSync does not expose the inTransaction property assumed by the new P0 rollback paths",
+    "remediation": "explicit transaction-state tracking in mutation reservation and unconditional rollback inside known-open transaction catch boundaries"
+  },
+  "verification": {
+    "syntax": "PASS",
+    "targeted_tests": { "passed": 6, "failed": 0 },
+    "full_tests": { "passed": 106, "failed": 0 },
+    "synthetic_actor_lab": {
+      "actors": 1000,
+      "posts": 1000,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "messages": 100,
+      "stories": 125,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "gate": "PASS"
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "6e911bad9edab471e844e23cde9b6b0953d1fdd1821e0946613bee56d8d154fa",
+    "apps/nexus-web/lib/mutation-idempotency.js": "7894b816ac87c8311dec5209feb9710cf188e171dee4d03915b97db917e14d0b",
+    "apps/nexus-web/lib/outbox.js": "18dd13fcd4a49b9f2a6494019550256b49a0e5ac771cf6dac864a7f669ed94e3",
+    "apps/nexus-web/server.js": "e457cb0dd7b87fceb389b774bd032265b5599380042b44acbf389607fae053ba",
+    "apps/nexus-web/test/mutation-outbox.test.js": "5cb5ac6097b2d86c2c07ce64d23be408f6ede67ca2ef4b0a586ba1504f272fe4"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "implementation": "main_agent_only",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-MEDIA-GRANT-MIGRATION-005"
+}

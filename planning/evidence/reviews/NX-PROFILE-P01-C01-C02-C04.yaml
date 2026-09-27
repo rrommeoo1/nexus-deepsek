@@ -1,0 +1,117 @@
+schema_version: 1
+task_id: NX-PROFILE-P01
+review_id: NX-PROFILE-P01-C01-C02-C04-20260809-REREVIEW01
+reviewer_roles: [C01, C02, C04]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A12
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-PROFILE-P01-validation.json
+  sha256: 984dc00697af6c56f85dd63e1342e4b7ed0220ccbe0d82c6e4dd64a3a7a6da3f
+  run_id: NX-PROFILE-P01-OWNER-REMEDIATION01
+  executor_role: A12
+  status: PASS
+  assertions: 110
+  scenario_assertions: 91
+  deterministic_repetitions: 3
+  artifact_count: 17
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: d775d20b797d116976259aef33adc29d59d5525395f0b9ebabf399449c613641
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  run_id: NX-PROFILE-P01-C01-REREVIEW-20260809-01
+  executor_role: C01
+  status: PASS
+  assertions: 110
+  scenario_assertions: 91
+  deterministic_repetitions: 3
+  review_subject_sha256: d775d20b797d116976259aef33adc29d59d5525395f0b9ebabf399449c613641
+  output_sha256: a8b62697bee82b33f7079376d52657943bc58239ee31bca9818dee176318c5df
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_retest:
+  status: PASS
+  subject_code_modified: false
+  results:
+    canonical_work_self: ALLOW
+    work_id_with_dating_resource_type: PROFILE_TYPE_BINDING_MISMATCH
+    dating_self_private: ALLOW
+    dating_self_global: DATING_GLOBAL_DENIED
+    boolean_string_substitution: ACCESS_REQUEST_INVALID
+    extra_field_substitution: ACCESS_REQUEST_INVALID
+    grant_replay_after_restart: GRANT_EVENT_REPLAY
+    revoked_grant_after_restart: AUDIENCE_DENIED
+    missing_reordered_tampered_registry_events: REGISTRY_SNAPSHOT_INVALID
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all seventeen current hashes match owner evidence and independently recompute the declared subject
+  exact_shape_and_runtime_types:
+    status: PASS
+    evidence: exact own-key schemas reject extra fields accessors proxies ambiguous booleans numeric strings unknown enums duplicate bindings and invalid generations
+  profile_type_provenance:
+    status: PASS
+    evidence: both actor and SELF resource-owner profile types are resolved against the signed session profile bindings before authorization
+  dating_isolation:
+    status: PASS
+    evidence: canonical Dating SELF private access is allowed while Dating global access without entitlement is denied in API and client decision paths
+  grant_and_revocation_runtime:
+    status: PASS
+    evidence: signed grants bind owner grantee types purposes relation policy version active time and cross-profile scope while revocation and block checks fail closed
+  grant_registry_restart:
+    status: PASS
+    evidence: canonical ordinal events signatures checkpoint derived state revocation and replay denial survive restart; missing reordered or tampered history is denied
+  denial_trace_privacy:
+    status: PASS
+    evidence: synthetic denial evidence contains commitments rather than raw profile identifiers
+  effect_boundary:
+    status: PASS
+    evidence: no network provider economic or incremental-cost operation occurred
+
+findings:
+  - id: C02-PROFILE-P01-001
+    severity: MEDIUM
+    status: CLOSED
+    title: SELF access accepts a substituted resource-owner profile type
+    closure_evidence:
+      - authorizeProfileRead now resolves the canonical resourceOwnerProfileId binding from the signed session when owner and actor are the same profile.
+      - A WORK self request carrying resourceOwnerProfileType DATING is rejected with PROFILE_TYPE_BINDING_MISMATCH.
+      - The canonical WORK SELF request remains allowed.
+      - The five-profile owner-type substitution matrix and API/client deny regressions are included in the regenerated deterministic suite.
+
+accepted_controls:
+  - Signed session ownership active profile generation risk expiry actor type and SELF owner type are enforced.
+  - Work to Social without an explicit grant is denied in API and client paths.
+  - Dating self-private is allowed while Dating global without entitlement is denied even for SELF.
+  - Incognito global discovery block and stale context precede grant evaluation.
+  - Signed grant registration revocation policy-version ordering replay denial and verified restart are deterministic.
+  - Denial telemetry is synthetic and commitment-only.
+
+claims_excluded:
+  - production_identity
+  - production_persistence
+  - real_personal_data
+  - dating_candidate_service
+  - global_search_index
+  - formal_privacy_audit
+  - legal_opinion
+
+residual_scope_notes:
+  - This PASS covers the local deterministic profile visibility boundary only.
+  - Production identity persistence real personal data Dating candidate/search services formal privacy audit and legal opinion remain external gates.

@@ -1,0 +1,22 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "sticky_story_rail_isolated_reel_scroll",
+  "date": "2026-08-27",
+  "cache_bust": "20260827-neural52",
+  "behaviour": {
+    "stories": "anchored in the Social viewport while changing reels",
+    "vertical_gesture": "scrolls only the snap-based reel viewport",
+    "overscroll": "contained so the outer application shell does not consume reel navigation"
+  },
+  "verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural52 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/styles.css": "82E42563A7B29B979B74EB9C7A80DB27AFB91686D877F97A3EA5E2002EF28CCD",
+    "apps/nexus-web/public/index.html": "41DF9B5B16479209FDD1B7EA60B61227B6395D8BD1ADEE27E81E9CFCEF89FB94"
+  },
+  "cost": "0"
+}

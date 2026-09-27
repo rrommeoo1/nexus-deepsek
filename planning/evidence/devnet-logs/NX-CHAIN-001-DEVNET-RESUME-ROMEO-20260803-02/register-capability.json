@@ -1,0 +1,83 @@
+{
+    "emittedTransaction": {
+        "nonce": 928,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1kyaqzaprcdnv4luvanah0gfxzzsnpaygsy6pytrexll2urtd05ts9vegu7",
+        "senderUsername": "",
+        "receiverUsername": "",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "data": "cmVnaXN0ZXJDYXBhYmlsaXR5QDAzQDExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTFAMjE1MmY4ZDE5Yjc5MWQyNDQ1MzI0MmUxNWYyZWFiNmNiN2NmZmE3YjZhNWVkMzAwOTc5NjBlMDY5ODgxZGIxMkAwMUAwM0AwMTlmY2IxMmEwZDBAYjJhMTE1NTVjZTUyMWU0OTQ0ZTA5YWIxNzU0OWQ4NWI0ODdkY2QyNmM4NGI1MDE3YTM5ZTMxYTM2NzA4ODliYQ==",
+        "chainID": "D",
+        "version": 2,
+        "options": 0,
+        "guardian": "",
+        "signature": "1aa5aa66f46f24e8ba1bdf16f9de6fdea38a63143eca747fca975409f8c3e71a8c6580f285629bc814d164cea13fdb0b1e5fbd330d8c0508ed82db56abf9fb0e",
+        "guardianSignature": "",
+        "relayer": "",
+        "relayerSignature": ""
+    },
+    "emittedTransactionData": "registerCapability@03@1111111111111111111111111111111111111111111111111111111111111111@2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12@01@03@019fcb12a0d0@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba",
+    "emittedTransactionHash": "947da932196cd9d5a37386a0d9727ab936d1e8f3e054694c39d8aa935f7be6f2",
+    "contractAddress": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+    "transactionOnNetwork": {
+        "type": "normal",
+        "processingTypeOnSource": "SCInvoking",
+        "processingTypeOnDestination": "SCInvoking",
+        "hash": "947da932196cd9d5a37386a0d9727ab936d1e8f3e054694c39d8aa935f7be6f2",
+        "nonce": 928,
+        "round": 15288673,
+        "epoch": 6334,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1kyaqzaprcdnv4luvanah0gfxzzsnpaygsy6pytrexll2urtd05ts9vegu7",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "gasUsed": 20000000,
+        "data": "cmVnaXN0ZXJDYXBhYmlsaXR5QDAzQDExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTFAMjE1MmY4ZDE5Yjc5MWQyNDQ1MzI0MmUxNWYyZWFiNmNiN2NmZmE3YjZhNWVkMzAwOTc5NjBlMDY5ODgxZGIxMkAwMUAwM0AwMTlmY2IxMmEwZDBAYjJhMTE1NTVjZTUyMWU0OTQ0ZTA5YWIxNzU0OWQ4NWI0ODdkY2QyNmM4NGI1MDE3YTM5ZTMxYTM2NzA4ODliYQ==",
+        "signature": "1aa5aa66f46f24e8ba1bdf16f9de6fdea38a63143eca747fca975409f8c3e71a8c6580f285629bc814d164cea13fdb0b1e5fbd330d8c0508ed82db56abf9fb0e",
+        "sourceShard": 1,
+        "destinationShard": 1,
+        "blockNonce": 15188273,
+        "blockHash": "edfbb15747399d26d6c18b5d92188c70ed60d0d917230dd03c1529237caa651f",
+        "miniblockType": "TxBlock",
+        "miniblockHash": "2862f4467865da9532a5a619969092ea077ac0f7fec7fbce0486db0020d39232",
+        "timestamp": 1785732038,
+        "timestampMs": 1785732038000,
+        "logs": {
+            "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+            "events": [
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "writeLog",
+                    "topics": [
+                        "sToBdCPDZsr/jOz7d6EmEKEw9IiBNBIseTf+rg1tfRc=",
+                        "QHRvbyBtdWNoIGdhcyBwcm92aWRlZCBmb3IgcHJvY2Vzc2luZzogZ2FzIHByb3ZpZGVkID0gMTk1OTc1MDAsIGdhcyB1c2VkID0gMzc1MjYzNw=="
+                    ],
+                    "data": "QDZmNmI=",
+                    "additionalData": [
+                        "QDZmNmI="
+                    ]
+                },
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "completedTxEvent",
+                    "topics": [
+                        "lH2pMhls2dWjc4ag2XJ6uTbR6PPgVGlMOdiqk1975vI="
+                    ],
+                    "data": null,
+                    "additionalData": null
+                }
+            ]
+        },
+        "status": "success",
+        "operation": "transfer",
+        "function": "registerCapability",
+        "initiallyPaidFee": "598475000000000",
+        "fee": "598475000000000",
+        "chainID": "D",
+        "version": 2,
+        "options": 0
+    }
+}

@@ -1,0 +1,48 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-E2EE-DEVICE-RECOVERY-UI-058",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "inventory_locales": ["ro", "en", "pl", "ar"],
+    "inventory_latest_request_and_persona_bound": true,
+    "device_shape_duplicates_and_limit_fail_closed": true,
+    "explicit_revoke_idempotency": true,
+    "recovery_json_max_bytes": 65536,
+    "expired_capability_cleared_before_activation": true,
+    "detached_recovery_completion_rejected": true,
+    "raw_crypto_or_provider_errors_rendered": false,
+    "cryptographic_protocol_changed": false,
+    "external_share_enabled": false,
+    "cache_generation": "20260905-p1locale22"
+  },
+  "verification": {
+    "syntax_and_catalogue": "PASS",
+    "focused_e2ee_ui_audit": { "passed": 4, "failed": 0 },
+    "product_full_tests": { "passed": 221, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Stale, malformed or duplicate E2EE devices could become interactive.", "resolution": "Latest-request and strict inventory validation now fail closed." },
+    { "severity": "HIGH", "finding": "Device revoke lacked explicit stable replay and detached-screen controls.", "resolution": "Stable key, single-flight and persona/screen guards added." },
+    { "severity": "HIGH", "finding": "Expired pending recovery could remain actionable.", "resolution": "Expiry is checked and persisted capability is cleared before activation." },
+    { "severity": "MEDIUM", "finding": "Recovery accepted any small file and exposed exception strings.", "resolution": "Bounded JSON admission and controlled error states added." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "f699920f94777e71b99d473aeb40e78e3ada0904e009437c7317d7e4878fbe89",
+    "apps/nexus-web/public/app.js": "348bc21de2f15c3b8865abc8a1a5464024a0f8b6fa1e77cbd154df0f79946626",
+    "apps/nexus-web/public/index.html": "eebe3c90ac152f9e23db4226ac4b0a68d2ff81068236355036db1ad804f6693c",
+    "apps/nexus-web/test/audit.test.js": "fc363536d8a078f483fabde88337eca8d62712b8a6b1ed59578f8ab133247ab5",
+    "apps/nexus-web/public/chat-crypto.js": "c1219b73bcca9f673ce6d871b68149b869873f976942148cfd47bf6ff93d1304",
+    "planning/NX-WEB-SOCIAL-e2ee-device-recovery-ui-hardening-v1.md": "314d68e107efe25e649114852ff00594bef7ead34c75188da61abbd1c31f7922",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "42f9cc98d76ed71977b1f8f1cfeaebc29192283998db648f09ba35451c422bb1",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "27753be62cb06956be8a9396221c000611e0b9c42b5d9efcd25ab012ff052174"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_FORMAL_CRYPTO_NATIVE_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-GDPR-LIFECYCLE-059"
+}

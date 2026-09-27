@@ -1,0 +1,75 @@
+{
+  "packet_range": "NX-WEB-SOCIAL-111-120",
+  "date": "2026-09-07",
+  "gate": "PASS_LOCAL",
+  "closed_cycles": [111, 112, 113, 114, 115, 116, 117, 118, 119, 120],
+  "controls": {
+    "fullscreen_clips": "Session generation, continuous navigation, background pause and stale callback denial.",
+    "stories": "Session/frame generations, partial progress receipts, interruption-safe pause/resume and expiry binding.",
+    "search_relations": "Privacy-filtered cursor pagination, duplicate denial and exact viewer/profile result binding.",
+    "media_reads": "Private no-store range reads with bounded single ranges and immediate relationship revocation.",
+    "post_lifecycle": "Owner/profile-bound edit, archive and withdrawal with immutable versions and transactional Outbox events.",
+    "client_errors": "Unified machine-readable offline/HTTP/retry contract with localized recovery keys.",
+    "performance": "Deterministic 400-post feed and explicit first-party transfer-size regression budgets.",
+    "inventory": "Reproducible Social integrity inventory V2 with 44/44 local source controls."
+  },
+  "findings_resolved": [
+    {
+      "severity": "HIGH",
+      "problem": "Late fullscreen and Story callbacks could mutate a newer viewer session.",
+      "resolution": "Session and frame generations now reject detached callbacks and pause safely in the background."
+    },
+    {
+      "severity": "HIGH",
+      "problem": "Post withdrawal had no immutable lifecycle record and archive/withdraw races lacked optimistic conflict checks.",
+      "resolution": "Version commitments, optimistic version predicates and transactional lifecycle Outbox events preserve history."
+    },
+    {
+      "severity": "MEDIUM",
+      "problem": "Search pagination applied its offset before privacy filtering and could repeat an item across pages.",
+      "resolution": "Privacy filtering now precedes pagination, with duplicate-free client validation on every page."
+    },
+    {
+      "severity": "MEDIUM",
+      "problem": "JSON and transport failures had inconsistent retry and localization metadata.",
+      "resolution": "The browser normalizes every result without overwriting domain status fields."
+    }
+  ],
+  "verification": {
+    "full": "262/262",
+    "test_files": 30,
+    "social_inventory": "44/44",
+    "synthetic_actors": 1000,
+    "synthetic_issues": 0,
+    "production_smoke": "PASS_LOCAL",
+    "performance_fixture_posts": 400,
+    "performance_observed_ms": 719,
+    "performance_regression_cap_ms": 4000
+  },
+  "constraints": {
+    "external_network": false,
+    "real_funds": false,
+    "incremental_cost": 0,
+    "production_ready_claim": false,
+    "remaining_external_gates": [
+      "trusted HTTPS edge",
+      "real WalletConnect attestation",
+      "independent T0/T1 review",
+      "real-device validation",
+      "Live SFU and moderation infrastructure",
+      "formal legal and provider approvals"
+    ]
+  },
+  "sha256": {
+    "apps/nexus-web/lib/api.js": "316e3a7b863b26dc851cee314c4ee750231abe5008aec97f0988e429795a2185",
+    "apps/nexus-web/lib/repo.js": "6de4caa8d602140a2939cb61a37ab01e86159cd4f1a5f34bb52e2fcf64b953b3",
+    "apps/nexus-web/lib/db.js": "5e8d06c9e9a786a2405a0e8af381ba9095bae625b576b12a81289192f437d748",
+    "apps/nexus-web/public/app.js": "d050a6b186ee8eeb037a0fb65ad97d834f3d7fed7c716ff7570f7f541b6ccc82",
+    "apps/nexus-web/public/client.js": "5fad9ab755b53522af7445ccd1526af36e13942dbeca67ca7dfc9432e92db080",
+    "apps/nexus-web/public/interface-locale.js": "75b14af895a2d55eab2f495354162a177eb020adc58c3c5d6750dabedc2aed24",
+    "apps/nexus-web/scripts/social-integrity-inventory.mjs": "f41aad0bc32cd0292eb1b4f32c51cbcedd6d9e2469f7a5ceaa04c3a83f1a8ece",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "bc9c15555cc83c787d69c6c24e820db2a25f2afd9397370b8c072b9928944fc7",
+    "apps/nexus-web/test/p1-performance-budget.test.js": "03326891317b662c7e88042efcee2381a57d787a0e1920f3a5db3224efbff71c"
+  },
+  "next": "NX-WEB-SOCIAL-P01-OWNER-POST-CONTROLS-121"
+}

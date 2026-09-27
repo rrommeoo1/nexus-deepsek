@@ -1,0 +1,111 @@
+schema_version: 1
+task_id: NX-OBS-001
+review_id: NX-OBS-001-C09-C10-C11-RETEST-20260803T063443490Z
+reviewer_roles: [C09, C10, C11]
+risk_class: T1
+review_mode: independent_bounded_read_only_retest
+decision: PASS
+task_status_recommendation: eligible_for_owner_transition_to_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+review_history:
+  prior_review_id: NX-OBS-001-C09-C10-C11-20260803T062953348Z
+  prior_review_sha256: e7d93793cb6d450d009e492d4bccc1135519b625872a790c27051bc2712853e6
+  prior_decision: CHANGES_REQUIRED
+  retested_finding: C09-OBS-001-001
+
+owner_evidence:
+  path: planning/evidence/NX-OBS-001-validation.json
+  sha256: d03311eae3c5cd4927db5c0adbd1ac733ddf32b4c75490d85e81ac28f01abe38
+  run_id: NX-OBS-001-20260803T063314132Z-d6b6932d
+  status: PASS
+  assertions: 109
+  scenario_assertions: 54
+  review_subject_sha256: 44a75125060f0a5727aed0140039615b2aa8c9ade5c05d8da4b7a16199f49790
+  artifact_count: 17
+  current_artifact_hash_mismatches: 0
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  executor_role: C09
+  run_id: NX-OBS-001-C09-20260803-FINALRETEST01
+  status: PASS
+  assertions: 109
+  scenario_assertions: 54
+  review_subject_sha256: 44a75125060f0a5727aed0140039615b2aa8c9ade5c05d8da4b7a16199f49790
+  output_sha256: 383c8cf858272aa458ef0f2f5325f0dbe1ea427edd84ecd5401b5a3c15e43b4a
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+control_assessment:
+  end_to_end_trace_lineage:
+    status: PASS
+    evidence: four ordered SERVER_PRODUCER_CONSUMER_CLIENT spans preserve one trace_id and explicit parentage through traceparent_only carrier
+  pii_and_secret_denial:
+    status: PASS
+    evidence: ingest scans every allowlisted attribute and independent attacks with wallet IP and JWT were rejected before persistence
+  alert_owner_severity_runbook:
+    status: PASS
+    evidence: six SLOs each have PAGE and TICKET rules owned by A15 and mapped to an existing runbook anchor
+  cost_domain_runtime_validation:
+    status: PASS
+    evidence: five domain_unit pairs and environment_traffic_workload_provider enums are validated fail_closed
+  system_test_isolation:
+    status: PASS
+    evidence: SYSTEM_TEST requires TEST_TRAFFIC amountMicrosEur_zero and economicEffect_false
+  high_cardinality_kill_switch:
+    status: PASS
+    evidence: high_cardinality attributes are dropped while critical audit remains present
+  no_egress_or_spend:
+    status: PASS
+    evidence: local validator reports zero network economic and external provider operations with zero incremental cost
+  reproducibility_and_evidence_binding:
+    status: PASS
+    evidence: all seventeen owner artifact hashes are current and the independently recomputed subject equals both owner and verifier subjects
+
+findings:
+  - id: C09-OBS-001-001
+    severity: HIGH
+    status: CLOSED
+    title: Raw identifiers can be persisted through allowlisted telemetry attributes
+    requirement: planning/backlog-p0.yaml requires traces without secrets or PII and operational-baseline.v1.json sets rawIdentifiersAllowed_false
+    original_evidence:
+      source: packages/observability/api/index.ts
+      detail: the prior subject validated only attribute key and SAFE_VALUE shape and did not invoke scanTelemetryForPrivateData before storing the span
+      independent_reproduction: operation accepted and stored erd1 plus 58 lowercase characters; post-ingest scanner then returned $telemetry.spans[0].attributes.operation:forbidden_value
+    impact: a caller can persist a raw wallet or another scanner-detectable identifier under an allowed key, contradicting the fail-closed privacy contract and making the privacy_log_scan receipt insufficient
+    remediation: enforce private-data scanning or equivalent value-specific denial before any normal or high-cardinality attribute is appended, add negative tests for wallet IP token and other forbidden values under allowed keys, and make the validator require those ingest-time rejection tests
+    closure_evidence:
+      source: packages/observability/api/index.ts
+      ingest_control: validateAttributes invokes scanTelemetryForPrivateData before assigning each allowed attribute and throws ATTRIBUTE_PRIVATE_DATA_FORBIDDEN on any finding
+      fixtures: wallet erd1 IP 203.0.113.7 and JWT under allowed keys
+      independent_reproduction: all three attacks returned ATTRIBUTE_PRIVATE_DATA_FORBIDDEN with zero persisted spans and zero persisted audit records
+      owner_run: NX-OBS-001-20260803T063314132Z-d6b6932d_PASS_109_OF_109_AND_54_SCENARIOS
+      independent_run: NX-OBS-001-C09-20260803-FINALRETEST01_PASS_109_OF_109_AND_54_SCENARIOS
+
+accepted_controls:
+  - W3C traceparent propagation excludes baggage and preserves API-to-dependency lineage.
+  - Alert ownership severity and runbook coverage are complete for all six SLOs.
+  - Cost domains and SYSTEM_TEST zero-effect isolation pass deterministic runtime validation.
+  - The high-cardinality switch preserves critical audit records.
+  - Owner evidence is fresh reproducible and bound to the independently verified subject.
+  - Review execution used no network provider economic operation or incremental spend.
+
+claims_excluded:
+  - production_slo_measurement
+  - external_on_call_activation
+  - managed_observability_deploy
+  - paid_provider_validation
+
+closure_conditions:
+  fail_closed_ingest_privacy_enforcement: SATISFIED
+  wallet_ip_jwt_regression_tests: SATISFIED
+  regenerated_owner_evidence: SATISFIED
+  independent_retest: SATISFIED
+  open_findings: 0

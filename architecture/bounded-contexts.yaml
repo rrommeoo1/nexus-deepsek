@@ -1,0 +1,743 @@
+schema_version: 1
+architecture_id: nexus-monorepo-boundaries
+default_policy: deny
+cross_context_access: public_contract_or_event_only
+
+zones:
+  - id: apps
+    root: apps/
+    purpose: deployable_user_interfaces
+  - id: services
+    root: services/
+    purpose: deployable_application_and_protocol_processes
+  - id: packages
+    root: packages/
+    purpose: versioned_domain_and_shared_libraries
+  - id: contracts
+    root: contracts/
+    purpose: multiversx_rust_smart_contracts
+
+contexts:
+  - id: architecture_governance
+    bounded_context: ArchitectureGovernance
+    owner: A02
+    public_api_path: packages/architecture-api
+    import_specifier: "@nexus/architecture"
+    allowed_imports: []
+    publish_events: []
+    consume_events: []
+    data_access: [INTERNAL_CONFIG]
+  - id: platform
+    bounded_context: PlatformDevEx
+    owner: A10
+    allowed_imports: [architecture_governance]
+    publish_events: []
+    consume_events: []
+    data_access: [INTERNAL_CONFIG]
+  - id: contract_registry
+    bounded_context: ContractRegistry
+    owner: A13
+    public_api_path: packages/contracts/api
+    import_specifier: "@nexus/contracts"
+    allowed_imports: [architecture_governance]
+    publish_events: [contract.schema.changed]
+    consume_events: []
+    data_access: [PUBLIC, INTERNAL_CONFIG]
+  - id: observability
+    bounded_context: Observability
+    owner: A15
+    public_api_path: packages/observability/api
+    import_specifier: "@nexus/observability"
+    allowed_imports: [contract_registry]
+    publish_events: [observability.signal.recorded]
+    consume_events: []
+    data_access: [TELEMETRY_REDACTED]
+  - id: identity
+    bounded_context: IdentityWallet
+    owner: A11
+    public_api_path: packages/identity/api
+    import_specifier: "@nexus/identity"
+    allowed_imports: [contract_registry]
+    publish_events: [identity.account.ready, identity.capability.revoked]
+    consume_events: [contract.schema.changed]
+    data_access: [KYC_RAW]
+  - id: profile_core
+    bounded_context: ProfileCore
+    owner: A12
+    public_api_path: packages/profile/api
+    import_specifier: "@nexus/profile"
+    allowed_imports: [identity, contract_registry]
+    publish_events: [profile.context.changed, profile.visibility.changed]
+    consume_events: [identity.account.ready, identity.capability.revoked]
+    data_access: [PUBLIC, ACCOUNT_PRIVATE]
+  - id: core_api_shell
+    bounded_context: CoreApiShell
+    owner: A12
+    allowed_imports: [identity, profile_core, moderation, messaging, media, recommendations, social, commerce, dating, live, agent_network, chain_integration, contract_registry, observability]
+    publish_events: []
+    consume_events: []
+    data_access: [INTERNAL_CONFIG]
+  - id: chain_actions
+    bounded_context: ChainActions
+    owner: A20
+    public_api_path: packages/chain-actions-api
+    import_specifier: "@nexus/chain-actions"
+    allowed_imports: [contract_registry]
+    publish_events: []
+    consume_events: []
+    data_access: [CHAIN_COMMITMENT]
+  - id: chain_escrow
+    bounded_context: ChainEscrow
+    owner: A21
+    public_api_path: packages/chain-escrow-api
+    import_specifier: "@nexus/chain-escrow"
+    allowed_imports: [contract_registry]
+    publish_events: []
+    consume_events: []
+    data_access: [FINANCIAL]
+  - id: chain_integration
+    bounded_context: ChainIntegration
+    owner: A22
+    public_api_path: packages/chain-adapter/api
+    import_specifier: "@nexus/chain"
+    allowed_imports: [chain_actions, chain_escrow, contract_registry]
+    publish_events: [chain.action.executed, chain.escrow.settled, chain.runtime.changed]
+    consume_events: [contract.schema.changed]
+    data_access: [CHAIN_COMMITMENT, FINANCIAL]
+  - id: moderation
+    bounded_context: ModerationSafety
+    owner: A32
+    public_api_path: packages/moderation/api
+    import_specifier: "@nexus/moderation"
+    allowed_imports: [profile_core, contract_registry]
+    publish_events: [moderation.decision.changed, moderation.emergency.contained]
+    consume_events: [profile.context.changed]
+    data_access: [PUBLIC, SAFETY_EVIDENCE]
+  - id: messaging
+    bounded_context: Messaging
+    owner: A14
+    public_api_path: packages/messaging/api
+    import_specifier: "@nexus/messaging"
+    allowed_imports: [profile_core, moderation, chain_integration, contract_registry]
+    publish_events: [messaging.ciphertext.available]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, chain.action.executed]
+    data_access: [MESSAGE_CIPHERTEXT, MESSAGE_PLAINTEXT_ON_DEVICE]
+  - id: media
+    bounded_context: Media
+    owner: A40
+    public_api_path: packages/media/api
+    import_specifier: "@nexus/media"
+    allowed_imports: [profile_core, moderation, contract_registry]
+    publish_events: [media.asset.ready, media.asset.purged]
+    consume_events: [profile.visibility.changed, moderation.decision.changed]
+    data_access: [PUBLIC, MEDIA_PRIVATE_SOURCE]
+  - id: recommendations
+    bounded_context: Recommendations
+    owner: A42
+    public_api_path: packages/recommendations/api
+    import_specifier: "@nexus/recommendations"
+    allowed_imports: [profile_core, media, moderation, contract_registry]
+    publish_events: [recommendation.candidates.ready]
+    consume_events: [profile.visibility.changed, media.asset.ready, moderation.decision.changed]
+    data_access: [PUBLIC, TELEMETRY_REDACTED]
+  - id: experience
+    bounded_context: CrossModeExperience
+    owner: A42
+    public_api_path: packages/experience/api
+    import_specifier: "@nexus/experience"
+    allowed_imports: [profile_core, messaging, media, moderation, recommendations, contract_registry]
+    publish_events: [experience.story.changed, experience.download.authorized, experience.room.authorized, experience.discovery.selected]
+    consume_events: [profile.context.changed, messaging.ciphertext.available, media.asset.ready, media.asset.purged, moderation.decision.changed, recommendation.candidates.ready]
+    data_access: [PUBLIC, ACCOUNT_PRIVATE, TELEMETRY_REDACTED, LOCATION_PRECISE_EPHEMERAL]
+  - id: social
+    bounded_context: SocialPulseWatch
+    owner: A32
+    public_api_path: packages/social/api
+    import_specifier: "@nexus/social"
+    allowed_imports: [profile_core, moderation, media, recommendations, chain_integration, contract_registry]
+    publish_events: [social.object.changed]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, media.asset.ready, chain.action.executed]
+    data_access: [PUBLIC]
+  - id: work
+    bounded_context: Work
+    owner: A12
+    public_api_path: packages/work/api
+    import_specifier: "@nexus/work"
+    allowed_imports: [profile_core, moderation, chain_integration, contract_registry]
+    publish_events: [work.object.changed]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, chain.action.executed]
+    data_access: [PUBLIC, WORK_PRIVATE]
+  - id: commerce
+    bounded_context: Commerce
+    owner: A34
+    public_api_path: packages/commerce/api
+    import_specifier: "@nexus/commerce"
+    allowed_imports: [profile_core, moderation, chain_integration, contract_registry]
+    publish_events: [commerce.object.changed, commerce.outcome.recorded]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, chain.escrow.settled]
+    data_access: [PUBLIC, FINANCIAL, LOCATION_PRECISE_EPHEMERAL]
+  - id: dating
+    bounded_context: Dating
+    owner: A33
+    public_api_path: packages/dating/api
+    import_specifier: "@nexus/dating"
+    allowed_imports: [profile_core, moderation, messaging, chain_integration, contract_registry]
+    publish_events: [dating.private.commitment.changed]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, messaging.ciphertext.available, chain.action.executed]
+    data_access: [DATING_SENSITIVE, MESSAGE_CIPHERTEXT, CHAIN_COMMITMENT]
+  - id: live
+    bounded_context: Live
+    owner: A41
+    public_api_path: packages/live-api
+    import_specifier: "@nexus/live"
+    allowed_imports: [social, media, moderation, chain_integration, contract_registry]
+    publish_events: [live.state.changed, live.emergency.ended]
+    consume_events: [social.object.changed, media.asset.ready, moderation.decision.changed, chain.action.executed]
+    data_access: [PUBLIC, MEDIA_PRIVATE_SOURCE]
+  - id: music_grow
+    bounded_context: MusicGrow
+    owner: A36
+    public_api_path: packages/music-grow-api
+    import_specifier: "@nexus/music-grow"
+    allowed_imports: [profile_core, media, commerce, moderation, chain_integration, contract_registry]
+    publish_events: [music.catalog.changed, grow.content.changed]
+    consume_events: [profile.visibility.changed, media.asset.ready, moderation.decision.changed, commerce.outcome.recorded]
+    data_access: [PUBLIC, WELLNESS_PRIVATE]
+  - id: rights_creator
+    bounded_context: RightsCreator
+    owner: A43
+    public_api_path: packages/rights-creator-api
+    import_specifier: "@nexus/rights"
+    allowed_imports: [media, commerce, contract_registry]
+    publish_events: [rights.entitlement.changed]
+    consume_events: [media.asset.ready, media.asset.purged, commerce.outcome.recorded]
+    data_access: [PUBLIC, FINANCIAL]
+  - id: economics
+    bounded_context: SustainableEconomics
+    owner: A43
+    public_api_path: packages/economics/api
+    import_specifier: "@nexus/economics"
+    allowed_imports: [contract_registry]
+    publish_events: [economics.epoch.allocated, economics.kill_switch.changed]
+    consume_events: [contract.schema.changed]
+    data_access: [FINANCIAL, TELEMETRY_REDACTED]
+  - id: adult
+    bounded_context: PriveAdult
+    owner: A43
+    public_api_path: packages/adult/api
+    import_specifier: "@nexus/adult"
+    allowed_imports: [identity, profile_core, media, moderation, rights_creator, economics, chain_integration, contract_registry]
+    publish_events: [adult.asset.changed, adult.entitlement.changed, adult.settlement.recorded]
+    consume_events: [identity.capability.revoked, profile.visibility.changed, media.asset.ready, media.asset.purged, moderation.decision.changed, rights.entitlement.changed, economics.kill_switch.changed, chain.escrow.settled]
+    data_access: [ADULT_PRIVATE, FINANCIAL, CHAIN_COMMITMENT]
+  - id: payments
+    bounded_context: NexusPay
+    owner: A21
+    public_api_path: packages/payments/api
+    import_specifier: "@nexus/payments"
+    allowed_imports: [identity, chain_integration, economics, contract_registry]
+    publish_events: [payment.state.changed, payment.refund.changed]
+    consume_events: [identity.account.ready, chain.action.executed, economics.kill_switch.changed, contract.schema.changed]
+    data_access: [FINANCIAL, ACCOUNT_AUTHORIZED_PROJECTION]
+  - id: agent_network
+    bounded_context: AgentNetwork
+    owner: A37
+    public_api_path: packages/agent-sdk/api
+    import_specifier: "@nexus/agents"
+    allowed_imports: [profile_core, moderation, chain_integration, contract_registry]
+    publish_events: [agent.manifest.changed, agent.task.completed]
+    consume_events: [profile.visibility.changed, moderation.decision.changed, chain.escrow.settled]
+    data_access: [PUBLIC, AGENT_PRIVATE]
+  - id: node_network
+    bounded_context: NodeNetwork
+    owner: A16
+    public_api_path: packages/node-sdk/api
+    import_specifier: "@nexus/node"
+    allowed_imports: [chain_integration, contract_registry]
+    publish_events: [node.checkpoint.changed, node.receipt.recorded]
+    consume_events: [chain.runtime.changed, chain.escrow.settled]
+    data_access: [PUBLIC, MESSAGE_CIPHERTEXT, NODE_CIPHERTEXT]
+  - id: mobile_shell
+    bounded_context: MobileShell
+    owner: A30
+    allowed_imports: [identity, profile_core, social, work, commerce, messaging, moderation, dating, live, music_grow, agent_network, contract_registry]
+    publish_events: []
+    consume_events: [identity.account.ready, profile.context.changed]
+    data_access: [PUBLIC, ACCOUNT_AUTHORIZED_PROJECTION, MESSAGE_PLAINTEXT_ON_DEVICE]
+  - id: public_web_shell
+    bounded_context: PublicWebShell
+    owner: A31
+    allowed_imports: [identity, profile_core, social, work, commerce, moderation, live, rights_creator, adult, agent_network, contract_registry]
+    publish_events: []
+    consume_events: [profile.context.changed]
+    data_access: [PUBLIC, ACCOUNT_AUTHORIZED_PROJECTION]
+  - id: admin_shell
+    bounded_context: AdminShell
+    owner: A31
+    allowed_imports: [identity, profile_core, commerce, moderation, live, rights_creator, agent_network, observability, contract_registry]
+    publish_events: []
+    consume_events: [profile.context.changed, moderation.emergency.contained]
+    data_access: [PUBLIC, ACCOUNT_AUTHORIZED_PROJECTION, SAFETY_EVIDENCE]
+  - id: kids
+    bounded_context: Kids
+    owner: A44
+    allowed_imports: [contract_registry]
+    publish_events: [kids.catalog.changed]
+    consume_events: [contract.schema.changed]
+    data_access: [CHILD_DATA]
+
+sensitive_data_rules:
+  - data_class: ACCOUNT_PRIVATE
+    owner_context: profile_core
+    allowed_contexts: [profile_core]
+    authorized_projection_consumers: [mobile_shell, public_web_shell, admin_shell]
+    projection_contract: "@nexus/profile#authorized_projection"
+    projection_data_class: ACCOUNT_AUTHORIZED_PROJECTION
+    transport: encrypted_purpose_bound
+    purpose: active_profile_rendering_and_authorized_support
+    authorized_audiences: [self_active_profile, policy_authorized_operator]
+    event_payload: deny
+  - data_class: ACCOUNT_AUTHORIZED_PROJECTION
+    owner_context: profile_core
+    allowed_contexts: [mobile_shell, public_web_shell, admin_shell]
+    transport: encrypted_purpose_bound_projection
+    purpose: active_profile_rendering_and_authorized_support
+    authorized_audiences: [self_active_profile, policy_authorized_operator]
+    event_payload: deny
+  - data_class: DATING_SENSITIVE
+    allowed_contexts: [dating]
+    transport: ciphertext_or_on_device
+  - data_class: CHILD_DATA
+    allowed_contexts: [kids]
+    transport: kids_tenant_only
+  - data_class: MESSAGE_PLAINTEXT_ON_DEVICE
+    allowed_contexts: [messaging, mobile_shell]
+    transport: on_device_only
+  - data_class: KYC_RAW
+    allowed_contexts: [identity]
+    transport: provider_vault_only
+  - data_class: WELLNESS_PRIVATE
+    allowed_contexts: [music_grow]
+    transport: encrypted_purpose_bound
+  - data_class: LOCATION_PRECISE_EPHEMERAL
+    allowed_contexts: [commerce]
+    transport: encrypted_ttl
+  - data_class: SAFETY_EVIDENCE
+    allowed_contexts: [moderation, admin_shell]
+    transport: evidence_vault_only
+
+event_policy:
+  default: deny
+  schema_owner: A13
+  payload_mode: identifiers_commitments_or_ciphertext
+  forbidden_payload_data_classes: [ACCOUNT_PRIVATE, ACCOUNT_AUTHORIZED_PROJECTION, DATING_SENSITIVE, CHILD_DATA, MESSAGE_PLAINTEXT_ON_DEVICE, KYC_RAW, WELLNESS_PRIVATE, LOCATION_PRECISE_EPHEMERAL, SAFETY_EVIDENCE]
+  unknown_event_result: deny
+
+artifacts:
+  - id: app_mobile
+    kind: app
+    zone: apps
+    path: apps/mobile
+    bounded_context: mobile_shell
+    owner: A30
+  - id: app_public_web
+    kind: app
+    zone: apps
+    path: apps/public-web
+    bounded_context: public_web_shell
+    owner: A31
+  - id: app_nexus_demo
+    kind: app
+    zone: apps
+    path: apps/nexus-demo
+    bounded_context: public_web_shell
+    owner: A31
+  - id: app_admin_web
+    kind: app
+    zone: apps
+    path: apps/admin-web
+    bounded_context: admin_shell
+    owner: A31
+  - id: app_kids
+    kind: app
+    zone: apps
+    path: apps/kids
+    bounded_context: kids
+    owner: A44
+  - id: service_api
+    kind: service
+    zone: services
+    path: services/api
+    bounded_context: core_api_shell
+    owner: A12
+  - id: service_identity
+    kind: service
+    zone: services
+    path: services/identity
+    bounded_context: identity
+    owner: A11
+  - id: service_messaging
+    kind: service
+    zone: services
+    path: services/messaging
+    bounded_context: messaging
+    owner: A14
+  - id: service_moderation
+    kind: service
+    zone: services
+    path: services/moderation
+    bounded_context: moderation
+    owner: A32
+  - id: service_media_worker
+    kind: service
+    zone: services
+    path: services/media-worker
+    bounded_context: media
+    owner: A40
+  - id: service_live_adapter
+    kind: service
+    zone: services
+    path: services/live-adapter
+    bounded_context: live
+    owner: A41
+  - id: service_chain_indexer
+    kind: service
+    zone: services
+    path: services/chain-indexer
+    bounded_context: chain_integration
+    owner: A22
+  - id: service_action_relayer
+    kind: service
+    zone: services
+    path: services/action-relayer
+    bounded_context: chain_integration
+    owner: A22
+  - id: service_agent_gateway
+    kind: service
+    zone: services
+    path: services/agent-gateway
+    bounded_context: agent_network
+    owner: A37
+  - id: service_node_daemon
+    kind: service
+    zone: services
+    path: services/nexus-node
+    bounded_context: node_network
+    owner: A16
+  - id: service_observability
+    kind: service
+    zone: services
+    path: services/observability
+    bounded_context: observability
+    owner: A15
+  - id: service_kids_api
+    kind: service
+    zone: services
+    path: services/kids-api
+    bounded_context: kids
+    owner: A44
+  - id: package_contracts
+    kind: package
+    zone: packages
+    path: packages/contracts/api
+    bounded_context: contract_registry
+    owner: A13
+    public_api: true
+    import_specifier: "@nexus/contracts"
+  - id: package_identity
+    kind: package
+    zone: packages
+    path: packages/identity/api
+    bounded_context: identity
+    owner: A11
+    public_api: true
+    import_specifier: "@nexus/identity"
+  - id: package_profile
+    kind: package
+    zone: packages
+    path: packages/profile/api
+    bounded_context: profile_core
+    owner: A12
+    public_api: true
+    import_specifier: "@nexus/profile"
+  - id: package_social
+    kind: package
+    zone: packages
+    path: packages/social/api
+    bounded_context: social
+    owner: A32
+    public_api: true
+    import_specifier: "@nexus/social"
+  - id: package_work
+    kind: package
+    zone: packages
+    path: packages/work/api
+    bounded_context: work
+    owner: A12
+    public_api: true
+    import_specifier: "@nexus/work"
+  - id: package_commerce
+    kind: package
+    zone: packages
+    path: packages/commerce/api
+    bounded_context: commerce
+    owner: A34
+    public_api: true
+    import_specifier: "@nexus/commerce"
+  - id: package_dating
+    kind: package
+    zone: packages
+    path: packages/dating/api
+    bounded_context: dating
+    owner: A33
+    public_api: true
+    import_specifier: "@nexus/dating"
+  - id: package_messaging
+    kind: package
+    zone: packages
+    path: packages/messaging/api
+    bounded_context: messaging
+    owner: A14
+    public_api: true
+    import_specifier: "@nexus/messaging"
+  - id: package_moderation
+    kind: package
+    zone: packages
+    path: packages/moderation/api
+    bounded_context: moderation
+    owner: A32
+    public_api: true
+    import_specifier: "@nexus/moderation"
+  - id: package_media
+    kind: package
+    zone: packages
+    path: packages/media/api
+    bounded_context: media
+    owner: A40
+    public_api: true
+    import_specifier: "@nexus/media"
+  - id: package_recommendations
+    kind: package
+    zone: packages
+    path: packages/recommendations/api
+    bounded_context: recommendations
+    owner: A42
+    public_api: true
+    import_specifier: "@nexus/recommendations"
+  - id: package_kids
+    kind: package
+    zone: packages
+    path: packages/kids
+    bounded_context: kids
+    owner: A44
+  - id: package_node_sdk
+    kind: package
+    zone: packages
+    path: packages/node-sdk/api
+    bounded_context: node_network
+    owner: A16
+    public_api: true
+    import_specifier: "@nexus/node"
+  - id: package_agent_sdk
+    kind: package
+    zone: packages
+    path: packages/agent-sdk/api
+    bounded_context: agent_network
+    owner: A37
+    public_api: true
+    import_specifier: "@nexus/agents"
+  - id: package_chain_adapter
+    kind: package
+    zone: packages
+    path: packages/chain-adapter/api
+    bounded_context: chain_integration
+    owner: A22
+    public_api: true
+    import_specifier: "@nexus/chain"
+  - id: package_architecture_api
+    kind: package
+    zone: packages
+    path: packages/architecture-api
+    bounded_context: architecture_governance
+    owner: A02
+    public_api: true
+    import_specifier: "@nexus/architecture"
+  - id: package_observability_api
+    kind: package
+    zone: packages
+    path: packages/observability/api
+    bounded_context: observability
+    owner: A15
+    public_api: true
+    import_specifier: "@nexus/observability"
+  - id: package_chain_actions_api
+    kind: package
+    zone: packages
+    path: packages/chain-actions-api
+    bounded_context: chain_actions
+    owner: A20
+    public_api: true
+    import_specifier: "@nexus/chain-actions"
+  - id: package_chain_escrow_api
+    kind: package
+    zone: packages
+    path: packages/chain-escrow-api
+    bounded_context: chain_escrow
+    owner: A21
+    public_api: true
+    import_specifier: "@nexus/chain-escrow"
+  - id: package_live_api
+    kind: package
+    zone: packages
+    path: packages/live-api
+    bounded_context: live
+    owner: A41
+    public_api: true
+    import_specifier: "@nexus/live"
+  - id: package_music_grow_api
+    kind: package
+    zone: packages
+    path: packages/music-grow-api
+    bounded_context: music_grow
+    owner: A36
+    public_api: true
+    import_specifier: "@nexus/music-grow"
+  - id: package_rights_creator_api
+    kind: package
+    zone: packages
+    path: packages/rights-creator-api
+    bounded_context: rights_creator
+    owner: A43
+    public_api: true
+    import_specifier: "@nexus/rights"
+  - id: package_economics_api
+    kind: package
+    zone: packages
+    path: packages/economics/api
+    bounded_context: economics
+    owner: A43
+    public_api: true
+    import_specifier: "@nexus/economics"
+  - id: package_payments_api
+    kind: package
+    zone: packages
+    path: packages/payments/api
+    bounded_context: payments
+    owner: A21
+    public_api: true
+    import_specifier: "@nexus/payments"
+  - id: contract_actions
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-actions
+    bounded_context: chain_actions
+    owner: A20
+  - id: contract_profile_registry
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-profile-registry
+    bounded_context: chain_actions
+    owner: A20
+  - id: contract_marketplace
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-marketplace
+    bounded_context: chain_escrow
+    owner: A21
+  - id: contract_booking
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-booking
+    bounded_context: chain_escrow
+    owner: A21
+  - id: contract_ride
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-ride
+    bounded_context: chain_escrow
+    owner: A21
+  - id: contract_appointments
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-appointments
+    bounded_context: chain_escrow
+    owner: A21
+  - id: contract_tipping
+    kind: contract
+    zone: contracts
+    path: contracts/nexus-tipping
+    bounded_context: chain_escrow
+    owner: A21
+
+task_ownership:
+  - task_id: NX-PAY-001
+    bounded_context: payments
+  - task_id: NX-PAY-P01
+    bounded_context: payments
+  - task_id: NX-PROFILE-001
+    bounded_context: profile_core
+  - task_id: NX-PROFILE-P01
+    bounded_context: profile_core
+  - task_id: NX-MOD-001
+    bounded_context: moderation
+  - task_id: NX-MOD-P01
+    bounded_context: moderation
+  - task_id: NX-CHAT-001
+    bounded_context: messaging
+  - task_id: NX-CHAT-P01
+    bounded_context: messaging
+  - task_id: NX-SOCIAL-001
+    bounded_context: social
+  - task_id: NX-SOCIAL-P01
+    bounded_context: social
+  - task_id: NX-MARKET-001
+    bounded_context: commerce
+  - task_id: NX-MARKET-P01
+    bounded_context: commerce
+  - task_id: NX-BIZ-001
+    bounded_context: commerce
+  - task_id: NX-BIZ-P01
+    bounded_context: commerce
+  - task_id: NX-DATING-001
+    bounded_context: dating
+  - task_id: NX-DATING-P01
+    bounded_context: dating
+  - task_id: NX-LIVE-001
+    bounded_context: live
+  - task_id: NX-LIVE-P01
+    bounded_context: live
+  - task_id: NX-SYNTH-001
+    bounded_context: agent_network
+  - task_id: NX-SYNTH-P01
+    bounded_context: agent_network
+  - task_id: NX-NODE-001
+    bounded_context: node_network
+  - task_id: NX-NODE-P01
+    bounded_context: node_network
+  - task_id: NX-EXPERIENCE-P01
+    bounded_context: experience
+  - task_id: NX-ADULT-001
+    bounded_context: adult
+  - task_id: NX-ADULT-P01
+    bounded_context: adult
+  - task_id: NX-UX-001
+    bounded_context: public_web_shell
+  - task_id: NX-UX-P01
+    bounded_context: public_web_shell
+
+change_rules:
+  default_cross_context_import: deny
+  public_surface_pattern: packages/{context}/api
+  direct_foreign_table_read: deny
+  contract_first: true
+  additive_or_versioned_contract_change: required
+  source_owner_approval: required
+  target_owner_approval: required
+  new_dependency_edge_review: A02
+  sensitive_data_reviewers: [C02, C04]
+  kids_boundary_reviewers: [A44, C04, C07]
+  chain_boundary_reviewers: [A20, C03]
+  event_schema_owner: A13
+  event_outbox_required: true
+  owner_may_self_approve: false
+  rollback_or_migration_required: true

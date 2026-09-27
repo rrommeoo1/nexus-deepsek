@@ -1,0 +1,68 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-GROUP-E2EE-500-DEVICE-PERFORMANCE-034",
+  "checkpoint_date": "2026-09-03",
+  "environment": "local_node_24",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "benchmark": {
+    "protocol": "NEXUS_GROUP_ENVELOPE_V1_LOCAL_NODE",
+    "devices": 500,
+    "distinct_p256_recipient_keys": 500,
+    "message_text_bytes": 4000,
+    "payload_plaintext_bytes": 4046,
+    "shared_ciphertext_bytes": 4062,
+    "wrapper_ciphertext_bytes_total": 151000,
+    "wrapper_ciphertext_bytes_average": 302,
+    "current_ciphertext_bytes_total": 155062,
+    "legacy_repeated_payload_ciphertext_bytes_estimate": 2031000,
+    "estimated_ciphertext_storage_reduction_ratio": 13.1,
+    "owner_encrypt_elapsed_ms": 312.99,
+    "owner_decrypt_first_device_elapsed_ms": 2.19,
+    "owner_decrypt_last_device_elapsed_ms": 1.09,
+    "checker_encrypt_elapsed_ms": 282.14,
+    "checker_decrypt_first_device_elapsed_ms": 2.03,
+    "checker_decrypt_last_device_elapsed_ms": 1.07,
+    "exact_sorted_unique_coverage": true,
+    "first_and_last_device_decrypt": true,
+    "device_501_rejected_nonzero": true,
+    "real_device_claim": false,
+    "local_gate": "PASS_LOCAL_OBSERVATION"
+  },
+  "verification": {
+    "product_full_tests": { "passed": 194, "failed": 0 },
+    "packet_033_release_check": { "gate": "PASS", "test_files": 24, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "verdict": "PASS_LOCAL", "critical": 0, "high": 0, "medium": 0 }
+  },
+  "resolved_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "Initial benchmark reused one public key and checked only wrapper count.",
+      "resolution": "Generate 500 distinct keys outside timing, require exact sorted unique IDs and decrypt first and last distinct devices."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Initial report labeled 4,000 text bytes as the encrypted plaintext size although the JSON payload was 4,046 bytes.",
+      "resolution": "Report message text and actual serialized plaintext separately; storage math uses the 4,046-byte value."
+    }
+  ],
+  "residual_findings": [],
+  "limitations": [
+    "Node Web Crypto observation is not a mobile or browser performance result",
+    "heap delta is observational and not a deterministic allocation bound",
+    "ciphertext-only comparison excludes JSON and HTTP framing overhead",
+    "trusted-HTTPS real-device interoperability remains required"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/package.json": "f87686a7c69ab071dd0208ae95524e3b75d8f6c2b66d1427d910aa43471a70f4",
+    "apps/nexus-web/scripts/group-e2ee-benchmark.mjs": "cee6d98a1dd8071314ce7a780991202472bf90d35bc96a9bbf05dd50460a6581",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "6dce592db11cf476f7f8fcb56379d21445663c4c85abe350f3947370eb87373f"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Capacity telemetry is unobserved; one bounded local packet plus one sequential checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_TRUSTED_HTTPS_REAL_DEVICE_LAB_AND_FORMAL_CRYPTO_AUDIT",
+  "next_packet": "NX-WEB-SOCIAL-P01-REAL-DEVICE-LAB-HARNESS-035"
+}

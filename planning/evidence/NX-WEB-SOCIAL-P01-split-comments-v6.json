@@ -1,0 +1,24 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "date": "2026-08-26",
+  "scope": "Instagram-style split comments and relevance ranking",
+  "cache_bust": "20260826-neural48",
+  "behavior": {
+    "closed": "reel occupies the complete feed card",
+    "open": "reel occupies the upper 50 percent and comments the lower 50 percent",
+    "default_sort": "reaction total descending, reply count descending, recency descending",
+    "close_routes": ["comment action", "comment header", "close button", "swipe handle", "Escape"]
+  },
+  "verification": {
+    "node_check": "pass",
+    "focused_ui_audit": "20/20 pass",
+    "full_local_suite": "92/92 pass",
+    "lan_http": "200 with neural48 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "B3809A0E79C90D2CB045C1A9BCCA50D5980C861B1130241742E48673A9A833BE",
+    "apps/nexus-web/public/styles.css": "23E8F3DE94702B2FA24E611A8E03EB5A73D1C74C7A2B753B2CFC124FBADD4A90",
+    "apps/nexus-web/public/index.html": "17A060D8D4C5D52A67A5177DB82CE682BF04296B37E0CCAAD930C46FA8075B7C",
+    "apps/nexus-web/test/audit.test.js": "80C2F9DE0B68C7A06419708485BC6A2E10D003E10C9FED56E7F9F6814F8737CF"
+  }
+}

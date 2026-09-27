@@ -1,0 +1,98 @@
+{
+  "schema": "NEXUS_M6_M8_LOCAL_CLOSURE_EVIDENCE_V1",
+  "date": "2026-09-08",
+  "cycle_range": "251-280",
+  "decision_scope": "local_demo_only",
+  "milestones": {
+    "M6_fair_market": {
+      "gate": "PASS_LOCAL",
+      "acceptance_criteria": { "total": 8, "passed": 8, "failed": 0 },
+      "capabilities": [
+        "persona-isolated local and global classifieds discovery",
+        "validated categories and fail-closed prohibited-item baseline",
+        "fixed-price and classified listings with immutable TEST-USDC quotes",
+        "replay-safe offers with one transactional winner",
+        "seller fulfillment and buyer completion lifecycle",
+        "reviews permitted only after a completed transaction",
+        "legacy listing mutation endpoint retired to prevent policy bypass",
+        "responsive Market workspace without external share or real settlement"
+      ]
+    },
+    "M7_privacy_safe_stay": {
+      "gate": "PASS_LOCAL",
+      "acceptance_criteria": { "total": 8, "passed": 8, "failed": 0 },
+      "capabilities": [
+        "Travel-persona listing and booking isolation",
+        "public approximate location with exact address hidden from discovery",
+        "transactional overlap protection and immutable booking commitment",
+        "participant-only booking reads and exact-address disclosure",
+        "pre-check-in cancellation and post-check-out host completion",
+        "double-blind reviews until both parties submit or fourteen days pass",
+        "responsive Stay host, discovery and trips workspace",
+        "local no-payment settlement boundary"
+      ]
+    },
+    "M8_privacy_safe_ride": {
+      "gate": "PASS_LOCAL",
+      "acceptance_criteria": { "total": 8, "passed": 8, "failed": 0 },
+      "capabilities": [
+        "Travel-persona request and driver isolation",
+        "interactive CSS map with explicitly synthetic moving cars",
+        "optional browser geolocation preview kept device-local",
+        "zone-only storage with no precise-coordinate database fields",
+        "one-driver transactional dispatch winner",
+        "hashed trip PIN and matched-to-trip-to-completed lifecycle",
+        "driver profile cannot reset while on a trip",
+        "production Ride fails closed without approved identity, maps, routing and safety providers"
+      ]
+    }
+  },
+  "economic_scope": {
+    "settlement_mode": "LOCAL_DEMO_NO_PAYMENT",
+    "allowed_demo_currency": "TEST-USDC",
+    "real_value": 0
+  },
+  "integrated_verification": {
+    "m6_m8_acceptance_inventory": { "total": 24, "passed": 24, "failed": 0, "gate": "PASS_LOCAL" },
+    "focused_tests": { "total": 7, "passed": 7, "failed": 0, "skipped": 0 },
+    "full_suite": { "files": 59, "tests": 348, "passed": 348, "failed": 0, "skipped": 0 },
+    "release_check": "PASS_LOCAL",
+    "synthetic_actors": { "total": 1000, "issues": 0, "organic_leak": false },
+    "data_index_inventory": { "required_indexes": 34, "total_indexes": 167, "integrity": "ok", "foreign_keys": "ok" },
+    "read_authorization_inventory": { "total": 18, "passed": 18, "failed": 0 },
+    "mutation_outbox_drill": { "total": 6, "passed": 6, "failed": 0 },
+    "migration_restore_drill": { "total": 4, "passed": 4, "failed": 0, "integrity": "ok", "foreign_key_violations": 0 },
+    "production_isolated_health": "PASS",
+    "insecure_api_denied": true,
+    "incremental_cost": 0,
+    "external_network": false,
+    "real_funds": false
+  },
+  "runtime": {
+    "listen_host": "0.0.0.0",
+    "port": 3000,
+    "local_url": "http://127.0.0.1:3000/",
+    "lan_url": "http://192.168.1.153:3000/",
+    "process_id_at_verification": 15544,
+    "health": "ready"
+  },
+  "visual_verification": {
+    "status": "OPEN_EXTERNAL_GATE",
+    "reason": "The Codex in-app browser has a saved permission that blocks localhost automation; no policy circumvention was attempted.",
+    "static_and_interaction_contract_tests": "PASS_LOCAL"
+  },
+  "independent_review": {
+    "status": "OPEN_EXTERNAL_GATE",
+    "reason": "No independent T1 reviewer certified this packet; local checks are not a formal security, privacy, accessibility or legal audit."
+  },
+  "external_gates_open": [
+    "real_payment_escrow_refund_chargeback_and_tax_rails",
+    "shipping_tracking_maps_routing_eta_and_background_location",
+    "property_driver_vehicle_identity_insurance_and_country_licensing",
+    "real_device_geolocation_camera_accessibility_and_visual_matrix",
+    "automated_moderation_safety_operations_and_independent_security_privacy_legal_review",
+    "production_deploy_mainnet_and_real_funds_approval"
+  ],
+  "competitor_parity_claim": false,
+  "closure": "M6_M8_PASS_LOCAL_EXTERNAL_GATES_REMAIN_OPEN"
+}

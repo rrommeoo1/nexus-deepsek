@@ -1,0 +1,27 @@
+schema_version: 1
+review_id: NX-CAP-001-C11-20260802T065259551Z-6f26edff
+task_id: NX-CAP-001
+reviewer_role: C11
+review_type: final_provenance_gate
+decision: PASS
+observed_at: 2026-08-02T06:52:59.5645987+00:00
+
+replay:
+  run_id: NX-CAP-001-20260802T065259551Z-6f26edff
+  executor_role: C11
+  exit_code: 0
+  assertions: 80
+  failures: 0
+  artifact_hashes_matching: 11
+  artifact_hash_mismatches: 0
+
+evaluated_source_snapshot_sha256: 5fd2754a7009b50b6d1e1b79f7baa375c375a486c7460e0c671b277f9fbf2570
+persisted_evidence_run_id: NX-CAP-001-20260802T065209103Z-0a61b5d4
+persisted_evidence_sha256: c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a
+
+maker_checker:
+  A10: PASS
+  C10: PASS
+  C11: PASS
+
+open_gate_blockers: 0

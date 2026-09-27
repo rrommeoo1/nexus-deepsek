@@ -1,0 +1,101 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-NOTIFICATIONS-019",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Persona-scoped in-app Activity Center, preferences, read lifecycle and external-channel gates",
+  "controls": {
+    "privacy": {
+      "owner_only_reads": true,
+      "persona_scoped": true,
+      "dating_preview_forced_generic": true,
+      "foreign_notification_mutation_denied": true
+    },
+    "delivery": {
+      "in_app": true,
+      "group_window_seconds": 300,
+      "mark_read": "idempotent",
+      "mark_all_read": "idempotent",
+      "security_and_system_mandatory": true,
+      "push": "GATED_PROVIDER_AND_CONSENT",
+      "email": "GATED_PROVIDER_AND_CONSENT"
+    },
+    "ui": {
+      "location": "Messages > Activity",
+      "persona_filters": true,
+      "preference_editor": true,
+      "external_links": 0
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "focused_tests": { "passed": 3, "failed": 0 },
+    "static_tests": { "passed": 25, "failed": 0 },
+    "full_tests": { "passed": 136, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 14,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "browser_qa": {
+      "activity_loaded": true,
+      "preference_forms": 12,
+      "console_errors": 0,
+      "external_links": 0,
+      "horizontal_overflow": false,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 4552,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p1notif1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "In-app notifications were a read-only list with no preference or read lifecycle.",
+      "resolution": "Added profile-scoped preferences, authoritative unread counts, idempotent mark-read/all-read and an Activity journey in the unified inbox."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "The first migration revision created a persona index before adding persona to an existing notifications table, preventing a real restart.",
+      "resolution": "Moved index creation behind an idempotent notification migration and added an explicit legacy-schema ordering regression test."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Message notifications defaulted to Social even for another conversation persona.",
+      "resolution": "Notification generation now binds the exact conversation persona and forces generic preview for Dating."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Push/email controls could imply delivery without an approved provider and consent flow.",
+      "resolution": "Both channels reject enablement with CHANNEL_GATED and remain visibly disabled."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "882512dbf1e1a1c4c738ec50b9fa53ae4e5ee8e85c504b211fe0fd3ed57aaeb8",
+    "apps/nexus-web/lib/repo.js": "d23dd60eaaeadaaf8d90c9a9d34fe1ac2a70fbff06d870f2219b26659d2591ea",
+    "apps/nexus-web/lib/api.js": "9b1c1f349e04ba3668d1cf500f2e658fc228c48d5fcfa53026a3ddb635a4683f",
+    "apps/nexus-web/public/app.js": "e0d79c5f21b63720d1dcd0d882b8fc018f8b26fa7c077b652a578fa268347d7c",
+    "apps/nexus-web/public/p3-visual-foundation.css": "94f4b32dab28415521ef3abeba75f368e4bca411619f2068abb2c8aa9f53e35b",
+    "apps/nexus-web/public/index.html": "a162bfa12350279bedeb6c9abfcd3584edfaa9d593589c3dc0722ee1eb5e8b38",
+    "apps/nexus-web/test/p1-notifications.test.js": "b07a6711f4eee9428e6950851b6549caeacdc9dad3abd677eea222a352471077",
+    "apps/nexus-web/test/audit.test.js": "f4d4a39940cf9a977a17439c0cc1c74e5bb8b54284b25753b9ac0da27a25ad64",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "125ad6d0854c74848d1eb9e3f9d6a3dff05698d97aa49f546384618a651b91d4"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved" },
+  "p1_notification_gate": "PASS_LOCAL",
+  "release_gate": "PENDING_REMAINING_MUST_HAVES_AND_EXTERNAL_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P01-SESSIONS-DEVICES-020"
+}

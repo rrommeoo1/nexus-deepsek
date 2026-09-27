@@ -1,0 +1,12 @@
+{
+  "name": "@nexus/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexus core API foundation (Phase I.1): StorageProvider + issuer-sub identity + persona-scoped /me handler + durable HTTP server.",
+  "scripts": {
+    "dev": "node src/index.js",
+    "start": "node src/index.js",
+    "test": "node --test test/core.test.js test/store.test.js test/server.test.js"
+  }
+}

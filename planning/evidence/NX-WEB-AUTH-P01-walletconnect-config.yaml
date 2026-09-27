@@ -1,0 +1,50 @@
+schema_version: 1
+task_id: NX-WEB-AUTH-P01
+observed_at: "2026-08-23T11:55:00.000Z"
+scope: local_browser_read_only_pairing_diagnostic
+origin: "http://192.168.1.153:3000"
+configuration:
+  project_id_present: true
+  project_id_format_32_hex: true
+  project_id_value_recorded: false
+  walletconnect_dashboard_issuance_evidence: owner_configured_and_relay_accepted
+  origin_allowlist_evidence: relay_pairing_succeeded_from_exact_lan_origin
+  runtime_dashboard_attestation: true
+  runtime_attested_origins:
+    - "http://192.168.1.153:3000"
+observation:
+  provider_initialization: completed
+  pairing_uri_created: false
+  xportal_deep_link_created: false
+  terminal_result: WALLETCONNECT_PAIRING_TIMEOUT
+  ui_message_version: auth26_xportal16
+fail_closed_retest:
+  http_status: 503
+  code: WALLETCONNECT_PROJECT_NOT_ATTESTED
+  block_hash_fetch_started: false
+  relay_started: false
+  project_id_exposed: false
+  browser_result: immediate_truthful_gate
+configured_project_retest:
+  provider_initialization: completed
+  relay_pairing_uri_created: true
+  xportal_universal_link_created: true
+  console_errors: 0
+  owner_phone_approval_and_nativeauth: pass_reported_by_owner
+  owner_phone_nexus_session_established: true
+  owner_confirmation_observed_at: "2026-08-23T12:39:00.000Z"
+  project_id_value_recorded: false
+  transactions: 0
+  real_funds: 0
+conclusion: >-
+  The configured Nexus Project ID is now accepted by WalletConnect Relay from the
+  exact LAN origin. A pairing URI and xPortal universal link are generated. The
+  owner subsequently confirmed the complete phone journey works, including the
+  xPortal approval, NativeAuth signature and successful Nexus session. No chain
+  transaction or payment is part of this login.
+effects:
+  transactions: 0
+  real_funds: 0
+  provider_mutations: 0
+  external_accounts_created: 0
+  incremental_cost_eur: 0

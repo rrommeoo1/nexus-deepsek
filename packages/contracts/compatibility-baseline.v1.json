@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "baseline_id": "nexus-contracts-v1-initial",
+  "openapi": {"version": "1.0.0", "surface_sha256": "19545a269dc6bbbca869a4b9e46c4e41094908c7aeaec0517a7a6e3aa1072efd", "operations": ["createActionIntentV1", "getActionIntentV1"], "required_create_fields": ["actionType", "objectCommitment", "payloadHash", "visibilityClass", "actionNonce", "expiresAt"]},
+  "event": {"version": "1.0.0", "surface_sha256": "f3232763742f612d31e4b063683677d4c849d59e3c68e611bf66f90a93539b91", "type": "chain.action.executed.v1", "required_envelope_fields": ["eventId", "eventType", "occurredAt", "producer", "aggregateId", "aggregateVersion", "actorKind", "traceId", "privacyClass", "data"], "required_data_fields": ["network", "contractAddress", "originalTxHash", "sourceTxHash", "sourceKind", "eventIndex", "shard", "blockNonce", "blockHash", "hyperblockNonce", "hyperblockHash", "canonicality", "finality", "status", "actionType", "actorCommitment", "objectCommitment"]},
+  "abi": {"version": "1.0.0", "surface_sha256": "7790deb6afed3c61a3329c87d3a12d3d9892a76137312e8fb53632b2be19dce0", "endpoints": ["recordAction", "recordPrivateAction"], "events": ["ActionRecorded"]},
+  "migration_windows": []
+}

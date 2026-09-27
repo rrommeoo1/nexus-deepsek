@@ -1,0 +1,102 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-THREAD-LOAD-SEND-RECOVERY-050",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_composer_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["thread_load", "initial_composer", "plaintext_send", "attachment_admission", "read_frontier"],
+    "catalog_parity_enforced": true,
+    "thread_load": {
+      "latest_request_gate": true,
+      "close_invalidates_pending_load": true,
+      "conversation_id_validated": true,
+      "collections_guarded": ["participants", "messages", "receipts", "meetings", "calls", "typing"],
+      "stale_async_completion_rejected": true
+    },
+    "plaintext_send": {
+      "stable_idempotency_key_for_unchanged_form": true,
+      "stable_client_nonce_for_unchanged_form": true,
+      "both_rotate_after_edit_or_success": true,
+      "simultaneous_duplicate_submission_blocked": true,
+      "detached_completion_ignored": true,
+      "empty_message_rejected_before_network": true,
+      "raw_backend_error_rendered": false
+    },
+    "read_acknowledgement": {
+      "deterministic_key_bound_to_latest_visible_message": true
+    },
+    "privacy_matrix_server_authoritative": true,
+    "e2ee_protocol_changed": false,
+    "encrypted_ambiguous_reencryption_claimed": false,
+    "external_share_enabled": false,
+    "cache_generation": {
+      "app_and_locale": "20260904-p1locale14",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_core_audit_operational_tests": { "passed": 117, "failed": 0 },
+    "product_full_tests": { "passed": 213, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "real_device_e2ee_interruption_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Concurrent refreshes could render stale messages or stale authorization and E2EE state.",
+      "resolution": "Latest-request generation checks guard asynchronous boundaries and closing invalidates pending work."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Rapid plaintext submission could dispatch duplicate mutations.",
+      "resolution": "Send is single-flight and unchanged content retains one mutation key and client nonce."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Malformed thread collections could break rendering or become interactive.",
+      "resolution": "All bounded thread collections and identifiers are validated before use."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Read acknowledgement used a fresh mutation identity on every refresh.",
+      "resolution": "The key is deterministic for user, persona, conversation and latest visible message ID."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Initial composer controls mixed Romanian literals and raw send errors.",
+      "resolution": "The bounded surface uses parity-checked RO/EN/PL/AR copy and controlled failures."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "7a765895d0065b11450622b28226f0b99a515c74cc9054f98755698d628e8229",
+    "apps/nexus-web/public/app.js": "11b7b53dc4a161a1c1f6426e4a1d9d6d48d7355811e81a5dda264eb233243300",
+    "apps/nexus-web/public/index.html": "dbce6f1c46397a9ab0d108c7ab1893aed554bda9c4b23cf3cbd773f7ddf54725",
+    "apps/nexus-web/test/audit.test.js": "2f8cb6c9d1ce7e52a2531b94c139bf8ea54d4c0c9a54eee00494b456860d4012",
+    "apps/nexus-web/public/latest-request.js": "8437610408d4fee4f875266bfcf4226750537d1b1a5f10954d751304cc4f4260",
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-thread-load-send-recovery-v1.md": "ca5aad337dff59253f96121fa6b09a3055216c3bc1b1840f0915f3976d89cc59"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_TRUSTED_HTTPS_REAL_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-THREAD-CONTENT-051"
+}

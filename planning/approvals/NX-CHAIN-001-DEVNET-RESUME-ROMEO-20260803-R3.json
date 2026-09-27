@@ -1,0 +1,38 @@
+{
+  "approval_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-R3",
+  "approved_run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03",
+  "authorized_operations": [
+    "setRelayerAllowed:erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede:true",
+    "rotateCapability:2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12:22fc297792f0b6ffc0bfcfdb7edb0c0aa14e025a365ec0e342e86e3829cb74b6",
+    "recordAction:SYSTEM_TEST"
+  ],
+  "consumed_at": "2026-08-03T05:54:20.105080Z",
+  "consumed_by_run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+  "decision": "APPROVE",
+  "environment": "devnet",
+  "expires_at": "2026-08-03T23:59:59Z",
+  "gateway": "https://devnet-gateway.multiversx.com",
+  "incremental_cost_cap": {
+    "amount": 0,
+    "currency": "EGLD"
+  },
+  "issued_at": "2026-08-03T05:50:57Z",
+  "max_public_transactions": 3,
+  "max_real_value": 0,
+  "operation_mode": "Resume",
+  "owner": "Romeo",
+  "recovery_state": {
+    "new_relayer": "erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede",
+    "new_session_key": "22fc297792f0b6ffc0bfcfdb7edb0c0aa14e025a365ec0e342e86e3829cb74b6",
+    "old_capability_sha256": "06d4daa84ef9d440c96fab13f2b7d415b8cb2645130fc25bdf9c305163bf6033",
+    "old_session_key": "2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12"
+  },
+  "schema_version": 1,
+  "single_use": true,
+  "source_message_sha256": "5b0b2d44e0ecc79c5326800d1b2d1822b7aa363d96e027fefe1584ca47190f96",
+  "status": "CONSUMED",
+  "subject_sha256": "1f28ab4abfc74136bafa2d7aa5a5407504e160aa032dc6828c31caafe07ac7d6",
+  "wallet_source": "PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY",
+  "wasm_sha256": "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f"
+}

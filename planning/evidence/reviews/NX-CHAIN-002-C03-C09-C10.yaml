@@ -1,0 +1,156 @@
+schema_version: 1
+task_id: NX-CHAIN-002
+review_id: NX-CHAIN-002-C03-C09-C10-20260803-FINALRETEST03
+reviewer_roles: [C03, C09, C10]
+risk_class: T0
+review_mode: independent_bounded_read_only
+decision: PASS
+task_status_recommendation: eligible_for_done_after_owner_checkpoint_update
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+review_history:
+  prior_review_sha256: b58e57c12287a50411a815f01af3e5d0f77406fe1f463ee5bca460134d8140e1
+  prior_decision: CHANGES_REQUIRED
+  retest_scope:
+    - C03-CHAIN-002-001
+    - C03-CHAIN-002-003
+    - C09-CHAIN-002-004
+
+owner_evidence:
+  path: planning/evidence/NX-CHAIN-002-validation.json
+  sha256: 7febbb932e553b0dad44781b6ca43aaff87a92977c7455f6ae3e4e7a475f0aa0
+  run_id: NX-CHAIN-002-OWNER-FINAL2-20260803-04
+  status: PASS
+  assertions: 157
+  scenario_assertions: 81
+  review_subject_sha256: b751bc77e8cfea081cf422219228a4bd4845813408562ac238cc6c694b1e1915
+  artifact_count: 20
+  current_artifact_hash_mismatches: 0
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  executor_role: C03
+  run_id: NX-CHAIN-002-C03-20260803-FINALRETEST03
+  status: PASS
+  assertions: 157
+  scenario_assertions: 81
+  review_subject_sha256: b751bc77e8cfea081cf422219228a4bd4845813408562ac238cc6c694b1e1915
+  output_sha256: 6f6f6f7ceb2c887771933f9c766547b97d316347e6bbbdf07d16edab7c45627e
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_review:
+  status: PASS
+  mode: read_only_source_contract_and_deterministic_interleaving_review
+  findings_opened: 0
+  checks:
+    - persistence round trip restores every required lineage and authenticity field before deterministic rebuild
+    - payload or lineage substitution invalidates the registered authenticity binding and is denied
+    - repair authorization is authenticated and bound to subject expiry and the exact authoritative event set
+    - unique durable approval consumption and replacement observations are committed through one fail-closed port before in-memory promotion
+    - a fresh reducer sharing the durable store rejects reuse of the consumed approval
+    - applied duplicate and ignored-observation mutations during asynchronous hashing all invalidate checkpoint promotion
+
+control_assessment:
+  duplicate_out_of_order_and_conflicts:
+    status: PASS
+    evidence: duplicate delivery is idempotent ordering converges and divergent canonical keys or aggregate versions fail closed
+  finality_and_canonicality:
+    status: PASS
+    evidence: only FINALIZED_CANONICAL plus HYPERBLOCK_FINAL observations become authoritative and mismatched pairs are denied
+  durable_lineage_and_authenticity:
+    status: PASS
+    evidence: indexed schema TypeScript persistence mapping and Prisma model carry complete lineage contentHash authenticityProofHash and payload while restore revalidates shape domains finality payload and the injected authenticity proof
+  persistence_round_trip:
+    status: PASS
+    evidence: JSON serialize reload and restore reconstruct the identical deterministic snapshot and state root; substituted lineage is rejected by authenticity verification
+  double_entry_and_accounting:
+    status: PASS
+    evidence: three balanced journals end with asset 10 and liabilities 10 while journal balance per-account nonnegative accounting equation and observed-chain-balance mismatches fail closed
+  checkpoint_tamper_and_reference_isolation:
+    status: PASS
+    evidence: state-root tamper is rejected and returned checkpoint mutation cannot alter the internal rollback snapshot
+  checkpoint_atomic_promotion:
+    status: PASS
+    evidence: generation advances for APPLIED duplicate and ignored non-final mutations and deterministic deferred-hasher tests deny promotion for all three interleavings
+  repair_authorization_and_durable_single_use:
+    status: PASS
+    evidence: RepairAuthorizationVerifier binds roles quorum evidence subject event set and expiry; RepairCommitStore persists a unique approval receipt plus the replacement observation set before memory promotion and cross-restart replay is denied
+  automatic_economic_write:
+    status: PASS
+    evidence: repair changes local reducer state only requires economicEffect_false and contains no transfer or network capability
+  rebuild_rto:
+    status: PASS_LOCAL_FIXTURE_ONLY
+    evidence: the independent run rebuilt 500 synthetic in-memory events in 29ms against the declared 2000ms local limit
+  privacy_and_kids:
+    status: PASS
+    evidence: exact payload shapes accept commitments only and raw wallet target PII and Kids fields remain absent or rejected
+  zero_egress_and_spend:
+    status: PASS
+    evidence: validator reports zero source-boundary findings credentials network operations economic operations and incremental cost
+  reproducibility_and_evidence_binding:
+    status: PASS
+    evidence: all twenty current artifact hashes match owner evidence and independently recompute the same subject for owner and checker runs
+
+findings:
+  - id: C03-CHAIN-002-001
+    severity: HIGH
+    status: CLOSED
+    title: Complete verified observation lineage survives persistence and deterministic replay
+    closure_evidence:
+      schema_and_model: indexed-observation.v1.schema.json and VerifiedChainObservation require the complete lineage plus contentHash authenticityProofHash and payload
+      implementation: serializeObservationForPersistence and restoreObservationFromPersistence round-trip nonce representations and validate complete records
+      runtime_reverification: restoreFromPersistence invokes EventAuthenticityVerifier before accepting any restored event
+      regressions: database serialize reload reproduces the read model and state root while lineage substitution is denied
+
+  - id: C09-CHAIN-002-002
+    severity: HIGH
+    status: CLOSED
+    title: Applied-event mutation during asynchronous checkpoint hashing remains fenced
+    closure_evidence:
+      implementation: checkpoint promotion compares captured generation after the asynchronous hash and uses the immutable snapshot event count
+      regression: deferred-hasher APPLIED mutation produces CHECKPOINT_CONCURRENT_MUTATION
+
+  - id: C03-CHAIN-002-003
+    severity: HIGH
+    status: CLOSED
+    title: Repair authorization is authenticated and durably single-use across restart
+    closure_evidence:
+      authorization: the injected verifier binds approval identity subject event set roles quorum evidence and validity window
+      persistence: ReducerRepairCommit has a unique approvalId and stores subject set and evidence hashes plus replacement observations
+      ordering: commitRepairAtomically completes before any in-memory event replacement or return to NORMAL mode
+      regressions: forgery subject drift wrong event set expiry same-instance replay and fresh-instance replay are denied
+
+  - id: C09-CHAIN-002-004
+    severity: MEDIUM
+    status: CLOSED
+    title: Checkpoint generation covers duplicate and ignored-observation counters
+    closure_evidence:
+      implementation: both duplicate and non-final ingest branches increment generation when their checkpointed counters change
+      regressions: deferred-hasher duplicate and non-final interleavings each produce CHECKPOINT_CONCURRENT_MUTATION
+
+accepted_controls:
+  - All mandatory NX-CHAIN-002 local skeleton acceptance tests pass on the independently recomputed subject.
+  - The reducer deterministically reconstructs its read model from complete authenticated persisted observations.
+  - Repair is fail-closed authenticated non-economic durably replay-resistant and promotes memory only after durable commit.
+  - Checkpoint promotion rejects every tested mutation represented in canonicalState during asynchronous hashing.
+  - The Evidence Pack is synthetic local zero-egress zero-funds and zero incremental cost.
+
+claims_excluded:
+  - mainnet_repair
+  - production_rto
+  - real_funds_reconciliation
+  - external_chain_audit
+  - production_database_adapter_certification
+
+closure_conditions:
+  - All findings in the bounded NX-CHAIN-002 T0 review are closed for subject b751bc77e8cfea081cf422219228a4bd4845813408562ac238cc6c694b1e1915.
+  - Owner may update backlog checkpoint and scorecard state without changing the reviewed subject artifacts.
+  - Any material change to a reviewed artifact invalidates this PASS and requires regenerated owner evidence plus a new independent T0 review.

@@ -1,0 +1,99 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "feed-tweets-content-space-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "scope": [
+    "Social feed switcher",
+    "Tweets/X-like text-only feed source",
+    "Removal of redundant Mix/Clips/Postari sub-tabs below Stories",
+    "Larger content area below Stories",
+    "Create Hub camera/gallery/story behavior review"
+  ],
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "external_services": false
+  },
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Added Tweets as the final Social feed switcher option, mapped it to socialTopView=tweets and socialFormat=tweets, and removed rendered data-format sub-tabs from renderPulse."
+    },
+    {
+      "file": "apps/nexus-web/lib/api.js",
+      "summary": "Allowed /api/social/feed format=tweets."
+    },
+    {
+      "file": "apps/nexus-web/lib/repo.js",
+      "summary": "Filtered format=tweets to text-only posts without attached media."
+    },
+    {
+      "file": "apps/nexus-web/public/styles.css",
+      "summary": "Hid the old feedTabs surface and expanded .pulsePosts/.clipVisual height so content starts directly after Stories."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Bumped static asset version to 20260825-social36."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Added static assertions for Tweets feed, text-only backend filtering and removal of data-format sub-tabs."
+    }
+  ],
+  "verification": {
+    "npm_test": {
+      "status": "not_run",
+      "reason": "npm is not available in the current PowerShell PATH"
+    },
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social36_index": true,
+        "tweets_option": true,
+        "tweets_label": true,
+        "activate_tweets": true,
+        "no_rendered_data_format": true,
+        "backend_accepts_tweets": true,
+        "repo_filters_text_only": true,
+        "css_hides_feed_tabs": true,
+        "tests_updated": true
+      },
+      "syntax": {
+        "app.js": true,
+        "api.js": true,
+        "repo.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social36",
+      "observed": {
+        "app_script": "http://192.168.1.153:3000/app.js?v=20260825-social36",
+        "selected_feed": "Tweets",
+        "tweets_option_worked": true,
+        "has_stories": true,
+        "has_visible_feed_tabs": false,
+        "data_format_buttons": 0,
+        "pulse_posts_height": "557.111px"
+      }
+    },
+    "create_hub_review": {
+      "status": "pass_static",
+      "notes": [
+        "Camera action calls openComposer('post', { camera: true }). On insecure local HTTP mobile browsers it falls back to native capture picker with capture=environment.",
+        "Gallery action calls openComposer('post', { pick: 'all' }) and opens the native image/video file picker directly.",
+        "Story action calls openComposer('story', { pick: 'all' }) and opens story composer with media picker."
+      ]
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "57261D7475174CE58C23B099182359762043F04755D562A13E7B8FFA800A919C",
+    "apps/nexus-web/public/styles.css": "C30D9A533096D6BA5DBCC29C207373432CA8E241A61E91DC628526AA6369E836",
+    "apps/nexus-web/public/index.html": "EF251C361C34654527CFFCFE11BFC2930D618E40A211F246CDECE9DF49D34D93",
+    "apps/nexus-web/lib/api.js": "57F7395728A2840C497A0E05467148624433FA4082C1CBED86C8C1EA955F1B1B",
+    "apps/nexus-web/lib/repo.js": "AC048DE5C1ABFF8092CB9DD86B4D262972576764261029E90AA6E53C91B1D918",
+    "apps/nexus-web/test/audit.test.js": "6238E1E5713B031522CCB1F3D747477FD1855946D491B4D62FBDC219BF6D7954"
+  },
+  "runtime_note": "If the existing local server process does not hot-reload backend files, /api/social/feed?format=tweets requires a safe server restart to load api.js/repo.js changes. Static UI social36 is live immediately."
+}

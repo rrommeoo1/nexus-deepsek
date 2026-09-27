@@ -1,0 +1,41 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZED-CONNECTIVITY-SHELL-066",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "locales": ["ro", "en", "pl", "ar"],
+    "offline_warning_localized": true,
+    "connection_restored_localized": true,
+    "profile_locale_resynchronizes_banner": true,
+    "offline_event_stream_closed": true,
+    "offline_mutations_fail_closed": true,
+    "cache_generation": "20260905-p1locale30"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_connectivity_contract": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 228, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "MEDIUM", "finding": "The global offline/restored state remained Romanian after selecting another interface locale.", "resolution": "Both states use the shared catalogue and the banner is resynchronized after locale changes." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "d1a2df9dcd0cbd0c8c5a20bb0c228218c05d1fe0d05514b8270fc974cc6d7a83",
+    "apps/nexus-web/public/app.js": "5f8beffc505656a58420a359a074f728f109649a90132dcee823180e54d033e1",
+    "apps/nexus-web/public/index.html": "89964866d4502c5c51e966ebdf602892dcbd85aea77b03e424b9c8bc75cd17b9",
+    "apps/nexus-web/test/audit.test.js": "9c96b4d4a7109872983d66e5c24f21133ce02483e08ea1f700ff9d09b4462a68",
+    "planning/NX-WEB-SOCIAL-localized-connectivity-shell-v1.md": "00c29b5a45d1b9dab168720d9ef4010a95847fea884a6a5970bb325c09798581",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "6122c1a089e9f7dcad76640e2cd8d134e68c388ec23d060e9d5afbc5055a8038",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "b676f478023a7042e22a348cabbc8c3acef47eea754fbbcd317fe97592ae802e"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_NETWORK_TRANSITIONS_NATIVE_RTL_LTR_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZATION-COMPLETENESS-INVENTORY-067"
+}

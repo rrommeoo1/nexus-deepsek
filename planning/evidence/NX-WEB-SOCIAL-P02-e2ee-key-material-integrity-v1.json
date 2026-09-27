@@ -1,0 +1,64 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-E2EE-KEY-MATERIAL-RESULT-INTEGRITY-080",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "cross_profile_key_material_denied": true,
+    "conversation_viewer_persona_scope": true,
+    "privacy_marker_required": true,
+    "active_participants_bounded": 50,
+    "public_devices_bounded": 500,
+    "participant_device_ownership_validated": true,
+    "per_user_device_limit_validated": true,
+    "canonical_device_commitment_recomputed": true,
+    "local_device_coverage_required": true,
+    "private_jwk_fields_rejected": true,
+    "failure_state_consistency_validated": true,
+    "secure_send_owner_profile_propagated": true,
+    "cache_generation": "20260906-p2keys1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_api_browser_audit": { "passed": 140, "failed": 0 },
+    "product_full_tests": { "passed": 239, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "An active participant could request conversation public key material while another profile was active on the same account.",
+      "resolution": "The endpoint now requires the conversation profile to equal the authenticated session profile and returns the exact validated scope."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Secure send did not propagate the owner ID required by the hardened device registration boundary introduced in packet 079.",
+      "resolution": "Both secure text and attachment paths carry the captured owner/profile and validate them before encryption."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Encryption accepted server key material without independently checking participant ownership, exact local-device coverage or the device-set commitment.",
+      "resolution": "A bounded browser validator canonicalizes all participants/devices and recomputes SHA-256 before any safety observation or encryption."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "8ecd092601b9144683348d31470404aa310975e0e9c4d143e612da93b12ac02f",
+    "apps/nexus-web/lib/repo.js": "1b555b3b1ecf56a30d3781982650b65e18a6a0b44741e8f5e1c1bf72c6c94ecb",
+    "apps/nexus-web/public/app.js": "5548dae6e9c5da842d3d4ab5a078af855deabbda383d8762cdda4820de0d0fd1",
+    "apps/nexus-web/public/chat-crypto.js": "ecd8b27237438fd4ef1065687e7edddf8b918e7237f46a800b0317e8370c5fc3",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "4ad9a621075d7d281630b984179f28028518c0dd4e39c535823983363c2d179d",
+    "apps/nexus-web/public/index.html": "1787abf1938a631c4812db15bd075500e9fa403655ae040a2d757d9a6cc13df8",
+    "apps/nexus-web/test/audit.test.js": "3466d0c43d1b03746d5c9784eb2cdf6005cc91299c27e8fa95a53e5ba9e40234",
+    "apps/nexus-web/test/core.test.js": "615a76483d298203c2625c40a0474489fe6dd61b3803d709f49682dcd5ac4b42",
+    "planning/NX-WEB-SOCIAL-e2ee-key-material-integrity-v1.md": "f62ef94a88943b8ffa170d3ca548b4a0e240440da78972d618363b75fe90336d",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "ae1139aa93f63a90865b4f2eb67ed53571e80444a04bbf4627d6c83f1b550d16",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "3b247478bde3db713927abf8dd3afba3ffd9a8df054bc5f31292dd143ac72e32"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_FORMAL_CRYPTO_REVIEW_REAL_DEVICE_INTEROP_TRUSTED_HTTPS_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-E2EE-DECRYPTION-CONTEXT-INTEGRITY-081"
+}

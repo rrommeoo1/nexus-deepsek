@@ -1,0 +1,104 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LIVE-PREVIEW-015",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Live device check, preview truthfulness, persisted audience controls and discovery privacy",
+  "controls": {
+    "device_check": {
+      "selfie_camera_first": true,
+      "local_preview_only": true,
+      "secure_context_required": true,
+      "tracks_stopped_on_close": true,
+      "stale_visibility_listener_removed": true,
+      "keyboard_escape": true,
+      "dialog_focusable": true
+    },
+    "preview": {
+      "default_visibility": "private",
+      "visibility_persisted": true,
+      "language_persisted": true,
+      "comments_policy_persisted": true,
+      "public_broadcast": false,
+      "transport_status": "GATED_NO_SFU"
+    },
+    "privacy": {
+      "one_privacy_matrix": true,
+      "live_visibility_used_for_discovery": true,
+      "private_live_visible_to_owner": true,
+      "private_live_hidden_from_other_viewer": true,
+      "synthetic_traffic_eligible": false
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_tests": { "passed": 84, "failed": 0 },
+    "full_tests": { "passed": 128, "failed": 0 },
+    "database": {
+      "migration_columns_present": ["visibility", "language", "comments_enabled"],
+      "integrity_check": "ok"
+    },
+    "mobile_browser_qa": {
+      "viewport": "390x844",
+      "live_screen_loaded": true,
+      "device_check_dialog_opened": true,
+      "private_selected_by_default": true,
+      "http_lan_secure_context_denial_truthful": true,
+      "save_disabled_without_device_permission": true,
+      "dialog_closed_without_navigation_trap": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 12996,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p2live1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The Live setup displayed audience, language and comment controls but did not persist them.",
+      "resolution": "Added schema migration, repository validation/persistence and API/UI binding for all three controls."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Live discovery evaluated every verified session as public instead of using its stored audience.",
+      "resolution": "Discovery now evaluates the stored visibility through the shared deny-first Privacy Matrix, with an owner-versus-viewer regression test."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A visibilitychange listener survived manual dialog close and could later close a reused Live host unexpectedly.",
+      "resolution": "The listener is retained by reference and removed on every close path before media teardown."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The Live setup attempted programmatic focus without being focusable.",
+      "resolution": "The modal now has tabindex=-1 and supports Escape without trapping the user."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "f9f85656cba69a869c8cb65607ecaddf9259169742f4b3cc283ab94e82b0404a",
+    "apps/nexus-web/lib/repo.js": "2b641bb086d79073c5bc5cfb83b9d47ab2d798e96900000bd25e1ee3d62b2011",
+    "apps/nexus-web/lib/api.js": "93e06f2a03d08ee73c08947693ad18bd054f7b38e4ada8774e36e4e3e1e1b264",
+    "apps/nexus-web/public/app.js": "3502ce3c4ed08cf18bbe9a4e6dfab0e1e1bf002b4824aecaa5994eee832ad397",
+    "apps/nexus-web/public/index.html": "96102650aa42020a297eaf014ea256d3226b5607a20bf7bddf592c7e226efd2b",
+    "apps/nexus-web/test/core.test.js": "544ba7223dad11008699d3bef75dc9d656c158f5d512b417ae0fce2d4dcd49bd",
+    "apps/nexus-web/test/audit.test.js": "9ab4a476d0363c34655971b56f92b463263cbcdf7013420e51e4f7f63a2677d5"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p2_live_preview_local_gate": "PASS",
+  "release_gate": "PENDING_HTTPS_SFU_MODERATION_AND_INDEPENDENT_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P03-VISUAL-FOUNDATION-016"
+}

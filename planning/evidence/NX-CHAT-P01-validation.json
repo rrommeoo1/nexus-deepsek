@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAT-P01",
+  "run_id": "NX-CHAT-P01-OWNER-FINAL02",
+  "executor_role": "A14",
+  "status": "PASS",
+  "scope": "local_one_to_one_e2ee_private_action_and_reducer_proof",
+  "assertions": 127,
+  "scenario_assertions": 41,
+  "deterministic_repetitions": 3,
+  "failures": [],
+  "e2ee_boundary": {
+    "service_plaintext_fields": 0,
+    "chain_target_fields": 0,
+    "chain_ciphertext_fields": 0
+  },
+  "chain": {
+    "action_class": "PRIVATE_ACTION",
+    "terminal": true,
+    "reconciled": true
+  },
+  "lifecycle": {
+    "sent": true,
+    "delivered": true,
+    "read": true,
+    "tombstoned": true,
+    "restored": true
+  },
+  "source_boundary_findings": 0,
+  "credential_name_matches": 0,
+  "network_operations": 0,
+  "economic_operations": 0,
+  "external_provider_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" },
+  "claims_excluded": [
+    "production_e2ee",
+    "matrix_provider",
+    "real_device_keys",
+    "real_messages",
+    "push_delivery",
+    "production_persistence_adapter",
+    "mainnet_transaction",
+    "formal_cryptographic_audit"
+  ],
+  "review_subject_sha256": "1f05f0f686467f94988909db102f93b1b297bf56f18a220a9a9e9351db06a0e6",
+  "artifact_sha256": {
+    "packages/messaging/api/index.ts": "3a018a9e66bb14b212c4a2bb31ddc8c9a1c3ea8cf8b4c57f5eb636f20e1f50e1",
+    "packages/messaging/api/index.test.ts": "9fbdbe7ad3f0ae8bc62b7fde237e1e0443a38bd22d1a32f8c32b56cbb976b044",
+    "packages/messaging/api/messaging-contract.v1.json": "8c4aeada9583a7ac02844f151bb173cb6bf963be8b191a547118af27e6185f34",
+    "packages/chain-actions-api/index.ts": "ecfd7b0a679ef554cf279ba50f3c054f46d2a8d3ef54b40926e67259dfbce37c",
+    "packages/chain-adapter/api/index.ts": "2865687251ada576530af398fb95aeae346e00fd75a2b2654d051a31c353db4b",
+    "docs/02-smart-contracts.md": "b4ac0223ed360a2d361427c3228052a30bafa641ac5e883035f44dc688e197eb",
+    "docs/04-security-compliance.md": "52195c00add418a59066ad8ab5cb8c6f41d60e8c6ae5162728c55afc4e0ca8cc",
+    "docs/09-action-ledger-classifieds.md": "543b173b170175eaaf5c0edae78a26e95109047b4a317b5d823801811ec6a5b6",
+    "architecture/bounded-contexts.yaml": "4d67b6e95dd766dd07ccc48c1c4da9dd004a4ad9757393a899b86c20e1d770ed",
+    "planning/backlog-p0.yaml": "4f0a41e09d6668d0813df2bd85b6bc19e470af83f07e4722e96294866b2bb27c",
+    "planning/backlog-p1.yaml": "3f4fae1898b89278ed9c9cce120b1a0ac530a300e3f2393c236b5b1336bdb854",
+    "planning/capacity-scorecard.yaml": "8701811bc0f794feeb348b8f4a54ffc5800c445e8f62aa0d236d89058d02dc64",
+    "planning/product-progress.yaml": "15c76a900a735ab91456b214ca14ed9d9b4a43d89e4a6843143063dff95fb756",
+    "planning/checkpoints/NX-CHAT-P01.md": "76ec6fee23e1e475e6345b20187298f6b481a8ec1d1ef0e76072e4bdcb754de1",
+    "planning/spend-control.yaml": "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+    "planning/evidence/NX-CAP-001-validation.json": "c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a",
+    "planning/evidence/NX-CHAIN-002-validation.json": "7febbb932e553b0dad44781b6ca43aaff87a92977c7455f6ae3e4e7a475f0aa0",
+    "security/source-boundary-check.js": "b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b",
+    "packages/contracts/node_modules/typescript/bin/tsc": "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+    "packages/contracts/package-lock.json": "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b",
+    "planning/validate-chat.ps1": "dc5c7a93aa50880b5af903a84744a653dd6b701e0d9cf2e29796ad953b9977bb"
+  }
+}

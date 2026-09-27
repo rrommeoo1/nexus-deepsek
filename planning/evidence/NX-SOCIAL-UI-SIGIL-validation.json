@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "evidence_id": "NX-SOCIAL-UI-SIGIL-20260824",
+  "task_packet": "NX-SOCIAL-P01",
+  "created_at": "2026-08-24T21:50:48+02:00",
+  "status": "PARTIAL_OPEN_NODE_GATE",
+  "scope": "Nexus Sigil header identity and per-mode profile persistence",
+  "cost": {
+    "incremental_amount": 0,
+    "currency": "EUR",
+    "network_operations": 0,
+    "real_fund_operations": 0
+  },
+  "checks": {
+    "browser_header_route": "PASS",
+    "fifteen_accessible_choices": "PASS",
+    "live_preview_and_archetype": "PASS",
+    "save_and_full_reload_continuity": "PASS",
+    "original_test_choice_restored": "PASS",
+    "per_mode_repository_persistence": "PASS",
+    "api_allowlist_and_color_validation_static_audit": "PASS",
+    "backend_and_test_source_parse": "PASS",
+    "full_node_test_suite": "OPEN_RUNTIME_EXECUTION_DENIED_BY_SANDBOX"
+  },
+  "privacy": {
+    "voluntary_selection": true,
+    "gender_or_personality_inference": false,
+    "separate_from_verified_badges_and_nfts": true,
+    "local_cache_contains_decorative_choice_only": true
+  },
+  "artifacts_sha256": {
+    "apps/nexus-web/public/app.js": "9395569b3be7323565878b08275f0bd21ce9dcdac3bd2f1c2bbd7888aa0572e1",
+    "apps/nexus-web/public/styles.css": "7689b0bef90d39895297323038c41085b813c55fbb9b957f6ceb7c4088189e45",
+    "apps/nexus-web/lib/db.js": "b856de104ada440a9eca7aa5a75145694cb6f1d564f2daf2bf3a389dabd50e7d",
+    "apps/nexus-web/lib/repo.js": "99dccedd6eb5f766678e3bcb89c64819e3318207870095610cfe98b3e1ca7c32",
+    "apps/nexus-web/lib/api.js": "4a40a358b5ea5c1158a29862fe4e0a6a84e76f5ee7dd4beba63d46574c6066d0",
+    "apps/nexus-web/test/audit.test.js": "5e490c009ddb6d30398b1e85c5717b90490dc6b1fa14f99887c4061cffdcddf3",
+    "apps/nexus-web/test/core.test.js": "6948cec089425462d53d4b7329c6bca0b5e2b201671c9773ef72ee81f07bf580",
+    "docs/17-ui-action-blueprint.md": "b50f1dec62835043dac4c9c2fb4f78c515c410e855d561d09cf1c2c74aae94ad"
+  },
+  "claims_excluded": [
+    "formal_accessibility_audit",
+    "independent_security_audit",
+    "production_deployment",
+    "mainnet_identity_badge"
+  ]
+}

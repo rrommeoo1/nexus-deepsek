@@ -1,0 +1,82 @@
+schema_version: 1
+task_id: NX-WEB-SOCIAL-P01
+slice_id: TRUST_LENS_V1
+reviewer_role: INDEPENDENT_T1_CHECKER
+control_scope: [C02, C04, C06, C10]
+mode: YELLOW_LOCAL_DETERMINISTIC_ZERO_EXTERNAL_EFFECTS
+decision: PASS
+gate_effect: TRUST_LENS_V1_MAY_CLOSE
+run_id: NX-WEB-SOCIAL-P01-20260824T182953298Z-TRUST-LENS-FINAL04-T1
+observed_at: 2026-08-24T18:29:53.298Z
+supersedes_local_receipt_sha256: 3dacfaac29cb049d8d565ebd933c7444cd40c94b7fa211ee963d7100aa5e80bf
+
+owner_evidence:
+  path: planning/evidence/NX-WEB-SOCIAL-P01-trust-lens-v1.json
+  run_id: NX-WEB-SOCIAL-P01-20260824-TRUST-LENS-V1-FINAL04
+  manifest_file_sha256: 2b2562e5a955c15e33809f010af622e11a9ed3d7895b256ac9d331269a485e52
+  expected_subject_sha256: 1c04439b1cbbe9bb4002adb0b2d1eb6c797921546165c177cf3b9a57699d6ed0
+  recomputed_subject_sha256: 1c04439b1cbbe9bb4002adb0b2d1eb6c797921546165c177cf3b9a57699d6ed0
+  artifact_hashes_matched: 9/9
+  artifact_drift: []
+  subject_matches: true
+
+independent_execution:
+  node_tests: PASS_73_OF_73
+  syntax: PASS_5_OF_5
+  databases: IN_MEMORY_ONLY
+  external_network_or_provider_operations: 0
+  broadcast_transactions: 0
+  real_funds: 0
+  incremental_cost_eur: 0
+
+closure_retest:
+  TL-T1-001:
+    result: CLOSED
+    exact_remaining_cases:
+      "I sell excellent cocaine today": BLOCK
+      "Vând cocaină ieftină azi": BLOCK
+      "I sell a book about cocaine policy": ALLOW_WITH_CONTEXT
+    matcher_review:
+      bounded_sale_clause: true
+      modifier_allowlist_dependency: false
+      unicode_safe_token_boundaries: true
+      romanian_diacritic_boundary: PASS
+      strict_benign_education_context: PASS
+    prior_subcases:
+      context_keyword_injection: PASS_BLOCK
+      contradictory_warning_plus_solicitation: PASS_BLOCK
+      punctuation_zero_width_hyphen_obfuscation: PASS_BLOCK
+      revised_caption_reason_cannot_bypass: PASS
+      explicit_resubmission_required: true
+      automatic_publication: false
+
+  TL-T1-002:
+    result: CLOSED_NO_REGRESSION
+    evidence: authoritative commitment, provenance and assessment binding remain fail-closed.
+  TL-T1-003:
+    result: CLOSED_NO_REGRESSION
+    evidence: account-level report idempotency, subject validation and SYSTEM_TEST exclusion remain covered.
+  TL-T1-004:
+    result: CLOSED_NO_REGRESSION
+    evidence: audit output remains truthfully scoped to unauthenticated internal-link consistency.
+  TL-T1-005:
+    result: CLOSED_NO_REGRESSION
+    evidence: keyboard-bounded modal, focus restoration and author-only appeal remain covered.
+
+passed_checks:
+  - Exact 9/9 artifact and canonical subject binding reproduced.
+  - Full deterministic suite passes 73/73 and bounded syntax passes 5/5.
+  - All TL-T1-001 safety and reconsideration closure cases pass independently.
+  - TL-T1-002 through TL-T1-005 show no blocking regression.
+  - No truth score, visual-classifier certification or immutable audit claim was introduced.
+  - No external network, provider, blockchain, real-fund or economic effect occurred.
+
+scope_guard:
+  implementation_modified: false
+  owner_evidence_modified: false
+  checkpoint_modified: false
+  backlog_modified: false
+  external_network_or_provider_used: false
+  production_or_economic_effects: false
+files_modified:
+  - planning/evidence/reviews/NX-WEB-SOCIAL-P01-TRUST-LENS-C02-C04-C06-C10.yaml

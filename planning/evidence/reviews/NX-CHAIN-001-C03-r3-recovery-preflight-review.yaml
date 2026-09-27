@@ -1,0 +1,36 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+reviewer_role: C03
+reviewed_at: '2026-08-03T05:01:54Z'
+verdict: PASS_PREFLIGHT_FOR_R3_OWNER_APPROVAL
+scope: guarded_relayer_recovery_and_capability_rotation
+network_operations: 0
+economic_operations: 0
+closed_findings:
+  - id: C03-CHAIN-001-R3-001
+    control: guardian_response_fail_closed
+    evidence: planning/test-chain-devnet-guards.ps1
+  - id: C03-CHAIN-001-R3-002
+    control: capability_absence_exact_empty_json_array
+    evidence: planning/test-chain-devnet-guards.ps1
+  - id: C03-CHAIN-001-R3-003
+    control: preconsume_ttl_budget_and_post_rotation_payload_regeneration
+    evidence: planning/run-chain-devnet.ps1
+  - id: C03-CHAIN-001-R3-004
+    control: mocked_negative_guard_coverage
+    evidence: planning/evidence/NX-CHAIN-001-devnet-preflight.json
+execution_sequence:
+  - all_read_only_preconditions
+  - consume_single_use_receipt
+  - setRelayerAllowed_Grace
+  - rotateCapability_old_to_seed43
+  - recordAction
+test_evidence:
+  guard_regression: PASS_16_OF_16
+  runner_regression: PASS_43_OF_43
+  payload_parity: PASS_10_OF_10
+  preflight: PASS_27_OF_27
+  integrated: PASS_109_OF_109
+subject_sha256: 1f28ab4abfc74136bafa2d7aa5a5407504e160aa032dc6828c31caafe07ac7d6
+wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+next_gate: NEW_SUBJECT_AND_OPERATION_BOUND_OWNER_APPROVAL_REQUIRED

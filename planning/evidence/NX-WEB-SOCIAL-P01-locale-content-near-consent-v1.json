@@ -1,0 +1,62 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-LOCALE-CONTENT-NEAR-CONSENT-038",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_interface_locales": ["ro", "en", "pl", "ar"],
+    "locale_precedence": "EXPLICIT_PERSONA_THEN_DEVICE_NEVER_IP",
+    "rtl_semantics": true,
+    "content_languages_separate": true,
+    "content_language_limit": 10,
+    "invalid_content_languages_fail_closed": true,
+    "near_requires_explicit_region": true,
+    "near_consent_strict_boolean": true,
+    "uses_ip_as_nationality": false,
+    "external_share_enabled": false
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_tests": { "passed": 107, "failed": 0 },
+    "product_full_tests": { "passed": 206, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_SAVED_LOCAL_PERMISSION_DENIED_127_0_0_1",
+      "visual_rtl_or_device_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "PASS_LOCAL_FUNCTIONAL",
+      "findings": { "critical": 0, "high": 0, "medium": 0 },
+      "focused_tests": { "passed": 107, "failed": 0 },
+      "final_independent_pass_claimed": true
+    }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Saved interface locale did not drive authenticated Social UI.", "resolution": "A persona-first resolver now applies translated critical navigation and document lang/direction immediately." },
+    { "severity": "MEDIUM", "finding": "Malformed content-language entries were silently filtered.", "resolution": "The API rejects invalid type, cardinality or entries and preserves a normalized unique list." },
+    { "severity": "MEDIUM", "finding": "Near could be enabled without an explicit region.", "resolution": "Strict boolean consent plus effective-state validation rejects contradictory state." },
+    { "severity": "MEDIUM", "finding": "An enabled Near profile could clear its region.", "resolution": "Effective resulting state must retain a valid explicit region or disable Near in the same mutation." },
+    { "severity": "MEDIUM", "finding": "An empty Near feed could be replaced by unfiltered demo clips.", "resolution": "Demo fallback is restricted to the initial mix/For You surface; every other empty lens renders an authentic empty state." },
+    { "severity": "MEDIUM", "finding": "Breaking-disabled and Near-consent early exits retained previous feed authors for relation suggestions.", "resolution": "One fail-closed reset clears posts and visual feed state on API failure, disabled provider, consent-required and empty-feed exits." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "517882ef7fe5a61b7f4d7c53de644eedda5fd534c81075358e7d471318460355",
+    "apps/nexus-web/public/app.js": "31f31a28ad24034798c6ab0688856ec31016bfbbdf2e4595ef5a65ef0db8155c",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/test/core.test.js": "da2342e4a68321fd1c78ec43d67015e89258538fb54614ae27c205b29fc087c9",
+    "apps/nexus-web/test/audit.test.js": "d3ef0768461442044f5823f28b5e8e68a07efe0151773858420959c29fb551e8",
+    "apps/nexus-web/public/index.html": "51eacfc42440fbf21312fd4446109ebd04fd2716620c8d2e415c901af4ccd1f9",
+    "planning/NX-WEB-SOCIAL-locale-content-near-consent-v1.md": "e35045019cfb4fe82b38354022c848721ff7415886f8abd04d97e1cd4e0ba80c"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "User screenshot: five-hour window 100 percent left; weekly 18 percent left.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_NO_NEW_WORKSTREAM"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_COMPLETE_TRANSLATION_NATIVE_LANGUAGE_REVIEW_REAL_DEVICE_RTL_LTR_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-LOCALIZE-FEED-AND-RELATIONS-SHEETS-039"
+}

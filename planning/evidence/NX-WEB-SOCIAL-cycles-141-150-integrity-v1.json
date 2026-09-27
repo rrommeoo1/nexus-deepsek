@@ -1,0 +1,22 @@
+{
+  "schema": "NEXUS_EVIDENCE_PACK_V1",
+  "cycle_range": "141-150",
+  "generated_at": "2026-09-08",
+  "environment": "local_only",
+  "gates": {
+    "full_tests": { "passed": 296, "failed": 0 },
+    "social_inventory": { "passed": 55, "failed": 0 },
+    "synthetic_actor_lab": { "actors": 1000, "issues": 0, "gate": "PASS" },
+    "bounded_soak": { "rounds": 3, "actors_per_round": 100, "p95_ms": 425, "gate": "PASS_LOCAL" },
+    "release_check": "PASS"
+  },
+  "sha256": {
+    "apps/nexus-web/scripts/social-integrity-inventory.mjs": "a437c50d84b077fd415f13dae721081d6a74347dff416cdebc7a8d954e2fd879",
+    "apps/nexus-web/scripts/local-soak.mjs": "98ee38f6350206c08e10b420f094d63c11f643b2ae5bb33fc9886d43973bc301",
+    "apps/nexus-web/scripts/abuse-simulation.mjs": "2ef11ce2e6adb7222a2d23fd9dca5fc9c586bec127418fb26456da484cdbb0d4",
+    "apps/nexus-web/test/privacy-matrix.test.js": "03a92487aec5f89f3215ed44fff19b7391517d27bdf1f32a1d9eca976fcb3317",
+    "apps/nexus-web/public/p3-visual-foundation.css": "ed524634eac2607629a021c1ce34a560efd54d63264b203d81b2727736fb6b69"
+  },
+  "claims": { "external_network": false, "real_funds": false, "incremental_cost": 0 },
+  "not_claimed": ["production_capacity", "real_device_validation", "independent_security_audit", "formal_legal_approval"]
+}

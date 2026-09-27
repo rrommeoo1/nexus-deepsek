@@ -1,0 +1,146 @@
+schema_version: 1
+task_id: NX-CHAT-P01
+review_id: NX-CHAT-P01-C01-C02-C04-C06-20260809-FINALREVIEW02
+reviewer_roles: [C01, C02, C04, C06]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A14
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-CHAT-P01-validation.json
+  sha256: b94ffdf1fd2b967ebedcd65376dcb82216cec924ccd79647355256db22ba3c0e
+  run_id: NX-CHAT-P01-OWNER-FINAL02
+  executor_role: A14
+  status: PASS
+  assertions: 127
+  scenario_assertions: 41
+  deterministic_repetitions: 3
+  artifact_count: 21
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 1f05f0f686467f94988909db102f93b1b297bf56f18a220a9a9e9351db06a0e6
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-chat.ps1
+  run_id: NX-CHAT-P01-C01-FINALREVIEW02
+  executor_role: C01
+  status: PASS
+  assertions: 127
+  scenario_assertions: 41
+  deterministic_repetitions: 3
+  review_subject_sha256: 1f05f0f686467f94988909db102f93b1b297bf56f18a220a9a9e9351db06a0e6
+  output_sha256: 8b1cedbf3bdf712948952e5b1de8b30d7e4fe86be471d653cbd71f06dca7880e
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_retest:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: local_in_memory_typescript
+  probe_output_sha256: 3e7d6e1e006804a5430270527077fc08810d48984eae9bef0bb166d3785d307c
+  results:
+    signed_ac_deliver_before_restore: CONVERSATION_PARTICIPANTS_STALE
+    signed_ac_read_before_restore: CONVERSATION_PARTICIPANTS_STALE
+    signed_ac_deliver_after_fresh_restore: CONVERSATION_PARTICIPANTS_STALE
+    signed_ac_read_after_fresh_restore: CONVERSATION_PARTICIPANTS_STALE
+    recipient_present_in_public_service_projection: false
+    old_capability_with_pre_rotation_access_after_rotation: CAPABILITY_STALE
+    old_capability_with_pre_rotation_access_after_restore: CAPABILITY_STALE
+    duplicate_or_stale_rotation: CAPABILITY_STALE
+    gap_rotation: CAPABILITY_ROTATION_INVALID
+    rotate_lineage_missing: MESSAGING_SNAPSHOT_INVALID
+    rotate_lineage_reordered: MESSAGING_SNAPSHOT_INVALID
+    rotate_lineage_tampered: MESSAGING_SNAPSHOT_INVALID
+    recipient_lineage_tampered: MESSAGING_SNAPSHOT_INVALID
+    exact_shape_proxy_getter_boolean_string_regressions: DENIED
+    block_audience_device_before_send_deliver_read: DENIED
+    sender_fake_deliver_and_recipient_fake_tombstone: DENIED
+    retrograde_receipt_time: RECEIPT_TIME_INVALID
+    reused_access_decision: DENIED
+    message_and_receipt_replay_after_fresh_restore: DENIED
+    private_payload_public_chain_leakage: NOT_OBSERVED
+    reducer_authenticity_terminal_state_and_reconciliation: PASS
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-one current artifact hashes match owner evidence and independently recompute the declared subject
+  immutable_conversation_and_recipient_lineage:
+    status: PASS
+    evidence: the facade pins the unordered A/B participant pair per conversation and original recipient per message while DELIVER and READ require that exact signed SEND recipient before and after restore
+  public_projection_privacy:
+    status: PASS
+    evidence: the public service projection contains sender and commitments but excludes recipient plaintext and ciphertext material; recipient binding remains internal replay-derived state
+  rotation_promotion_and_stale_denial:
+    status: PASS
+    evidence: facade rotation atomically promotes the current per-profile device and epoch, journals ROTATE, and denies the old capability plus a pre-rotation access decision immediately and after restore
+  rotation_lineage_and_checkpoint:
+    status: PASS
+    evidence: duplicate stale and gap rotations fail while missing reordered or tampered ROTATE histories fail exact event fingerprint replay state and checkpoint reconstruction
+  exact_shape_signature_and_access_binding:
+    status: PASS
+    evidence: exact own-key typed parsing individual signature verification and access binding deny malformed proxy getter boolean-string and signed context substitutions
+  moderation_receipts_and_replay:
+    status: PASS
+    evidence: block audience active-device actor-role temporal state-order access single-use and fresh-instance message and receipt replay controls remain enforced
+  private_action_and_reducer:
+    status: PASS
+    evidence: the public action contains generic commitments only and the authentic finalized reducer observation reaches terminal EXECUTED_SUCCESS with reconciliation PASS
+  effect_boundary:
+    status: PASS
+    evidence: no network provider economic mainnet or incremental-cost operation occurred
+
+findings:
+  - id: C02-CHAT-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: A signed capability can substitute the original message recipient during receipt processing
+    closure_evidence:
+      - Conversation participant binding is pinned on first accepted event and must remain the immutable unordered A/B pair.
+      - Original recipient is retained in internal state derived from the signed SEND but is absent from the public service projection.
+      - DELIVER and READ require the receipt actor to equal the original SEND recipient; signed A/C substitutions fail before and after fresh restore.
+      - Missing reordered or tampered message lineage fails snapshot validation and deterministic replay reconstruction.
+
+  - id: C02-CHAT-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Old device and key epoch remain usable after a successful capability rotation
+    closure_evidence:
+      - Facade rotate requires the exact stored current capability and promotes the next signed capability with exactly one higher epoch and a new device.
+      - Old capability plus a still-valid pre-rotation access decision fails CAPABILITY_STALE immediately after rotation and after fresh restore.
+      - Duplicate and stale rotations fail CAPABILITY_STALE and gap rotation fails CAPABILITY_ROTATION_INVALID.
+      - ROTATE is an ordinal fingerprinted replay event; missing reordered or tampered rotation lineage fails snapshot restoration.
+
+accepted_controls:
+  - The current twenty-one-artifact subject is cryptographically bound to owner evidence.
+  - One-to-one participants and each message recipient are immutable through receipt processing and restart.
+  - Current capability device and epoch promotion survives restart and invalidates lower capability state.
+  - Exact-shape typed validation signatures access decisions moderation and replay controls fail closed.
+  - Public service and chain projections do not expose recipient plaintext ciphertext nonce or message identifier material beyond the explicitly internal signed event history.
+  - The private action reaches authentic finalized terminal reducer state with reconciliation PASS.
+
+claims_excluded:
+  - production_e2ee
+  - matrix_provider
+  - real_device_keys
+  - real_messages
+  - push_delivery
+  - production_persistence_adapter
+  - mainnet_transaction
+  - formal_cryptographic_audit
+
+residual_scope_notes:
+  - This PASS covers only the local deterministic synthetic one-to-one messaging and private-action proof boundary.
+  - Production E2EE Matrix integration real keys and messages push delivery production persistence mainnet and formal cryptographic audit remain external gates.

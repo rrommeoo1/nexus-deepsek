@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "owner": "A34",
+  "surface": "BUSINESS_APPOINTMENTS",
+  "business": {"entityNotPersonalProfile": true, "activeControllerBoundaryRequired": true, "verifiedTraderRequiredInPacket": true, "serviceCategories": ["HAIRCUT", "HAIR_STYLING"], "completeSignedServiceTermsRequired": true, "minimumCustomerAge": 18, "medicalRiskExcluded": true},
+  "slot": {"capacity": 1, "atomicReservation": true, "operationalCalendarOffChain": true, "commitmentOnChain": true},
+  "deposit": {"realValueAtomic": "0", "maxTestDepositAtomic": "100000", "maxPlatformFeeBps": 500, "oneWinner": true, "loserFullRefund": true, "quoteOneTime": true, "restartReconstructsSlotReservation": true, "exactShapeCheckpointAndEvents": true, "exactConservation": true},
+  "privacy": {"onChain": "commitments_only", "preciseLocationOnChain": false, "pinOrQrOnChain": false},
+  "exclusions": ["real_service", "real_funds", "mainnet", "external_calendar", "external_kyc", "tax_opinion", "formal_legal_opinion"]
+}

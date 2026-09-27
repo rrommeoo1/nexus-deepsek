@@ -1,0 +1,259 @@
+/* Nexus post page + the compact action row and the pull-to-refresh hint (2026-09-19).
+   These rules load last, so they refine the base card without rewriting it. */
+
+.postDetailLayer{position:absolute;inset:0;z-index:44;display:flex;flex-direction:column;background:#060b11;color:#eef8fb;overflow:hidden}
+.postDetailBar{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:4px;min-height:48px;padding:2px 6px;border-bottom:1px solid #1d2b33;background:#0a1219}
+.postDetailBar button{min-width:40px;min-height:40px;border:0;border-radius:12px;background:transparent;color:#fff;font-size:19px;opacity:.82}
+.postDetailBar>[data-detail-more]{grid-column:3}
+.postDetailBar b{font-size:15px}
+.postDetailBar .postCreatorMenu{top:50px;right:8px}
+.postDetailScroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 26px}
+.postDetailNotice{padding:60px 22px;color:#93a4ad;text-align:center}
+.postDetailMain{padding-bottom:10px;border-bottom:1px solid #1d2b33}
+.postDetailAuthor{display:flex;align-items:center;gap:10px}
+.postDetailAuthor i{display:grid;width:48px;height:48px;place-items:center;overflow:hidden;border-radius:50%;background:#10202b;color:#dff;font-size:18px;font-style:normal}
+.postDetailAuthor i img{width:100%;height:100%;object-fit:cover}
+.postDetailAuthor span{display:flex;min-width:0;flex:1;flex-direction:column}
+.postDetailAuthor b{font-size:16px}
+.postDetailAuthor small{color:#93a4ad;font-size:12px}
+.postDetailAuthor button{min-height:36px;padding:0 14px;border:1px solid #2c4d55;border-radius:14px;background:#0e1c25;color:#8ff5ee;font-size:13px}
+.postDetailText{margin:12px 0 0;font-size:20px;line-height:1.38;white-space:pre-wrap;word-break:break-word}
+.postDetailMedia{display:block;width:100%;max-height:58vh;margin-top:12px;border-radius:16px;object-fit:contain;background:#0b141b}
+.postDetailMeta{margin:12px 0 0;color:#93a4ad;font-size:13px}
+.postDetailMeta b{color:#dff;font-size:14px}
+.detailActionRow{display:flex;align-items:center;gap:2px;margin-top:8px;padding-top:6px;border-top:1px solid #16232b}
+.detailActionRow button{display:inline-flex;min-width:44px;min-height:44px;align-items:center;justify-content:center;gap:5px;border:0;border-radius:14px;background:transparent;color:#9fb0ba;font-size:15px}
+.detailActionRow button.on{color:#ff7d95}
+.detailActionRow small{font-size:12px}
+.detailReplyForm{display:flex;align-items:center;gap:8px;margin:12px 0 8px}
+.detailReplyForm input{min-width:0;min-height:44px;flex:1;padding:0 14px;border:1px solid #26343d;border-radius:16px;background:#0b151d;color:#eef8fb;font-size:14px}
+.detailReplyForm .cancelReply{position:static;width:36px;min-height:36px}
+.detailSortTabs{display:flex;gap:4px;margin:6px 0 10px;border-bottom:1px solid #1d2b33}
+.detailSortTabs button{min-height:42px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:none;color:#8e9ca5;font-size:13px}
+.detailSortTabs button.active{border-color:#32e8dd;color:#67f5ed}
+.detailEmpty{display:grid;gap:6px;padding:34px 16px;text-align:center;color:#93a4ad}
+.detailEmpty b{color:#dff;font-size:15px}
+.postViews{display:inline-flex;min-height:40px;align-items:center;gap:5px;padding:0 6px;color:#93a4ad;font-size:12px}
+.postViews b{color:#d8e4ea;font-size:13px}
+.postViews.compact{gap:4px;min-height:32px}
+.rankReasonList{margin:6px 0;padding-left:18px;color:#c9d6dc;font-size:13px;line-height:1.5}
+.profilePhotoLayer{position:absolute;inset:0;z-index:46;display:grid;place-items:center;background:#000c;backdrop-filter:blur(4px)}
+.profilePhotoLayer img{max-width:86%;max-height:74%;border-radius:22px;object-fit:contain}
+.profilePhotoLayer button{position:absolute;top:16px;right:16px;width:44px;height:44px;border:1px solid #2c414d;border-radius:50%;background:#0b151dcc;color:#dff;font-size:22px}
+.nexusPullHint{position:sticky;z-index:12;top:2px;margin:0 auto 6px;width:max-content;padding:6px 12px;border-radius:18px;background:#11323a;color:#75eee5;font-size:11px}
+
+/* A reply is read like a tweet: identity, text, then its own counters and actions. */
+.detailReplyList{display:flex;flex-direction:column}
+.detailReply{padding:12px 0;border-bottom:1px solid #16232b}
+.detailReplyHead{display:grid;grid-template-columns:40px minmax(0,1fr) 40px;align-items:center;gap:8px}
+.detailReplyHead i{display:grid;width:40px;height:40px;place-items:center;overflow:hidden;border-radius:50%;background:#10202b;color:#dff;font-size:14px;font-style:normal}
+.detailReplyHead i img{width:100%;height:100%;object-fit:cover}
+.detailReplyHead span{display:flex;min-width:0;flex-direction:column}
+.detailReplyHead b{font-size:14px}
+.detailReplyHead small{color:#8e9ca5;font-size:11px}
+.detailReplyHead button{width:40px;height:40px;border:0;border-radius:12px;background:transparent;color:#93a4ad;font-size:16px}
+.detailReplyBody{margin:6px 0 0 48px;font-size:15px;line-height:1.42;white-space:pre-wrap;word-break:break-word}
+.detailReplyBody.isWithdrawn{color:#8b98a0;font-style:italic}
+.detailReplyActions{display:flex;align-items:center;gap:2px;margin:2px 0 0 40px}
+.detailReplyActions button{display:inline-flex;min-width:44px;min-height:40px;align-items:center;justify-content:center;gap:5px;border:0;border-radius:12px;background:transparent;color:#9fb0ba;font-size:13px}
+.detailReplyActions button.on{color:#ff7d95}
+.detailReplyMenu{display:grid;gap:2px;margin:6px 0 0 48px;padding:6px;border:1px solid #23323b;border-radius:14px;background:#0a131a}
+.detailReplyMenu button{min-height:40px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:#c9d6dc;font-size:13px;text-align:left}
+
+/* C. The reaction palette is a small popover: one row of glyphs above its own trigger, with a
+   real fade and a real exit. It never adds height to the card, so it cannot push the next
+   post down the way the old in-card grid did. */
+.xPalette{left:8px;right:auto;bottom:calc(100% + 8px);display:flex;gap:2px;padding:6px;border:1px solid #2e5557;border-radius:16px;background:rgba(5,14,20,.95);backdrop-filter:blur(14px);box-shadow:0 12px 30px rgba(0,0,0,.45);opacity:0;visibility:hidden;pointer-events:none;transform:translateY(6px) scale(.98);transition:opacity .16s ease,transform .16s ease,visibility 0s linear .16s;overflow-x:auto;scrollbar-width:none}
+.xPalette.dropDown{bottom:auto;top:calc(100% + 8px);transform:translateY(-6px) scale(.98)}
+.xPalette.expanded{opacity:1;visibility:visible;pointer-events:auto;transform:none;transition-delay:0s}
+.xPalette button{display:inline-flex;min-width:38px;min-height:38px;flex-direction:row;align-items:center;justify-content:center;padding:0;border-radius:12px}
+.xPalette button span{font-size:20px;line-height:1}
+.xPalette button small{display:none}
+/* The clip palette keeps its own grid overlay, labels included (styles.css, social-human-ux.css). */
+.post.clipPost>.reactionBar button small{display:block}
+
+/* B. Replies climb: every answer sits one step further in, with a guide line per level, so a
+   conversation is read as a staircase instead of a flat list. Logical properties keep the
+   same behaviour in RTL. */
+.postDetailMain{position:relative}
+.detailReply{padding-inline-start:10px;border-inline-start:2px solid rgba(78,220,221,.22)}
+.detailReply[data-depth="0"]{padding-inline-start:0;border-inline-start:0}
+.detailReplyList .detailReply{margin-inline-start:calc(min(var(--depth,0),5) * 20px)}
+.detailReply[data-depth="0"]{margin-inline-start:0}
+@media(max-width:390px){
+  .detailReplyList .detailReply{margin-inline-start:calc(min(var(--depth,0),4) * 16px)}
+  .detailReply{padding-inline-start:8px}
+}
+
+/* A. Reposts are internal shares: the card says who shared it, and the post underneath keeps
+   its own author, timestamp and counters. */
+.postRepostedBy{display:flex;align-items:center;gap:5px;margin:0 0 6px;padding:0 2px;color:#8ff5ee;font-size:12px}
+.postRepostedBy b{font-weight:600}
+.postRepostedBy bdi{color:#9fb0ba}
+/* P4: a gallery is a carousel, a caption carries real tag links, and a tag page is its own
+   surface. All of it lives here so the guarded CSS budgets stay untouched. */
+.mediaCarousel{position:relative;margin:10px 0}
+.mediaCarouselTrack{display:flex;gap:6px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border-radius:16px}
+.mediaCarouselTrack::-webkit-scrollbar{display:none}
+.mediaSlide{position:relative;flex:0 0 100%;min-width:100%;border:0;padding:0;border-radius:16px;overflow:hidden;background:#0b141b;scroll-snap-align:center}
+.mediaSlide img,.mediaSlide video{display:block;width:100%;max-height:58vh;object-fit:cover}
+.mediaSlide i{position:absolute;inset:auto 10px 10px auto;color:#fff;font-style:normal;text-shadow:0 2px 6px #000}
+.mediaCounter{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:10px;background:#000000a6;color:#eef8fb;font-size:11px}
+.mediaDots{position:absolute;bottom:10px;left:50%;display:flex;gap:5px;transform:translateX(-50%)}
+.mediaDots i{width:6px;height:6px;border-radius:50%;background:#ffffff59}
+.mediaDots i.on{background:#67f5ed}
+.mediaLightbox{position:absolute;inset:0;z-index:48;display:grid;place-items:center;background:#000d;backdrop-filter:blur(4px)}
+.mediaLightboxBody{max-width:92%;max-height:80%}
+.mediaLightboxBody img,.mediaLightboxBody video{max-width:100%;max-height:80vh;border-radius:16px;object-fit:contain}
+.mediaLightboxClose,.mediaLightboxNav{position:absolute;width:44px;height:44px;border:1px solid #2c414d;border-radius:50%;background:#0b151dcc;color:#dff;font-size:22px}
+.mediaLightboxClose{top:16px;right:16px}
+.mediaLightboxNav{top:50%;transform:translateY(-50%)}
+.mediaLightboxNav.prev{left:14px}
+.mediaLightboxNav.next{right:14px}
+.mediaLightboxCounter{position:absolute;bottom:18px;left:50%;padding:3px 10px;border-radius:12px;background:#000000a6;color:#eef8fb;font-size:12px;transform:translateX(-50%)}
+.tagChip{display:inline;min-height:0;padding:0 2px;border:0;background:none;color:#6ef0e6;font:inherit;font-weight:600;cursor:pointer}
+.tagChip:hover,.tagChip:focus-visible{text-decoration:underline}
+.postTagRow{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0 0}
+.postTagRow .tagChip{padding:2px 8px;border:1px solid #24444c;border-radius:12px;background:#0d1f26;font-size:12px}
+.tagPageLayer{position:absolute;inset:0;z-index:45;display:flex;flex-direction:column;background:#060b11;color:#eef8fb}
+.tagPageBar{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:center;gap:6px;min-height:52px;padding:2px 8px;border-bottom:1px solid #1d2b33;background:#0a1219}
+.tagPageBar button{min-width:44px;min-height:44px;border:0;border-radius:14px;background:transparent;color:#8ff5ee;font-size:22px}
+.tagPageBar b{font-size:16px}
+.tagPageHead{display:grid;gap:3px;padding:14px 16px 8px;border-bottom:1px solid #16232b}
+.tagPageHead b{font-size:22px}
+.tagPageHead small{color:#93a4ad;font-size:12px}
+.tagPageScroll{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:12px 14px 26px}
+.tagPageList .post{margin-bottom:12px}
+.socialTrends{margin:12px 0 16px;padding:12px;border:1px solid #1f2f38;border-radius:16px;background:#0a151d}
+.socialTrends header{display:grid;gap:2px;margin-bottom:8px}
+.socialTrends header b{font-size:14px}
+.socialTrends header small{color:#8e9ca5;font-size:11px}
+.socialTrends>div{display:grid;gap:6px}
+.socialTrends button{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:8px;min-height:44px;padding:6px 8px;border:1px solid #24353f;border-radius:12px;background:#0c1720;color:#eef8fb;text-align:left}
+.socialTrends button em{color:#67f5ed;font-style:normal;font-size:12px}
+.socialTrends button span{display:grid;gap:1px;min-width:0}
+.socialTrends button b{font-size:14px}
+.socialTrends button small{color:#8e9ca5;font-size:11px}
+.profileRepostBadge{position:absolute;top:6px;left:6px;padding:1px 5px;border-radius:9px;background:#0b1720cc;color:#8ff5ee;font-size:11px;font-weight:700;font-style:normal}
+/* Community notes: context added by readers, public only when it was judged helpful from more
+   than one perspective. It sits between the post and the replies, and it never hides the post. */
+.communityNotesHost{display:grid;gap:10px;margin:12px 0 4px}
+.communityNote{display:grid;gap:8px;padding:12px;border:1px solid #2a4a53;border-left:3px solid #32e8dd;border-radius:14px;background:#0a1720}
+.communityNote.isMine{border-left-color:#f5c451;background:#161207}
+.communityNoteHead{display:grid;gap:2px}
+.communityNoteHead b{color:#dff;font-size:14px}
+.communityNoteHead small{color:#8e9ca5;font-size:11px}
+.communityNoteStatus{margin:0;color:#f5c451;font-size:12px;font-weight:600}
+.communityNoteBody{margin:0;color:#eaf4f8;font-size:15px;line-height:1.45;white-space:pre-wrap;word-break:break-word}
+.communityNoteSources{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
+.communityNoteSources a{display:inline-flex;min-height:32px;align-items:center;padding:0 10px;border:1px solid #24444c;border-radius:12px;background:#0d1f26;color:#6ef0e6;font-size:12px;text-decoration:none}
+.communityNoteSources a:hover,.communityNoteSources a:focus-visible{text-decoration:underline}
+.communityNoteActions{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.communityNoteActions button{min-height:36px;padding:0 14px;border:1px solid #2c4d55;border-radius:14px;background:#0e1c25;color:#9fd9d5;font-size:13px}
+.communityNoteActions button.on{border-color:#32e8dd;background:#0f2a2c;color:#8ff5ee;font-weight:600}
+.communityNoteRule{color:#8e9ca5;font-size:11px;line-height:1.4}
+.communityNoteWrite{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.communityNoteWrite button{min-height:40px;padding:0 14px;border:1px dashed #2c4d55;border-radius:14px;background:transparent;color:#8ff5ee;font-size:13px}
+.communityNoteWrite small{color:#8e9ca5;font-size:11px}
+.noteComposer{display:grid;gap:8px;padding:12px;border:1px solid #24353f;border-radius:14px;background:#0b151d}
+.noteComposer[hidden]{display:none}
+.noteComposerField{display:grid;gap:4px}
+.noteComposerField span{color:#8e9ca5;font-size:11px}
+.noteComposerField textarea,.noteComposerField input{min-width:0;padding:9px 12px;border:1px solid #26343d;border-radius:12px;background:#08121a;color:#eef8fb;font:inherit;font-size:13px}
+.noteComposerField textarea{resize:vertical}
+.noteComposerActions{display:flex;justify-content:flex-end;gap:8px}
+.noteComposerActions .cancelNote{border:0;background:transparent;color:#8e9ca5;font-size:13px;min-height:36px}
+.postContextChip{display:inline-flex;align-items:center;gap:4px;margin:8px 0 0;padding:2px 9px;border:1px solid #2a4a53;border-radius:11px;background:#0a1720;color:#8ff5ee;font-size:11px;font-weight:600}
+/* Reply context and reply shares: a reply says who it answers, and a shared reply is marked where
+   it was opened, so a link never promises something the page does not point at. */
+.detailReplyContext{margin:2px 0 0;color:#8e9ca5;font-size:12px}
+.detailReplyContext bdi{color:#8ff5ee}
+.detailReplyContext.isWithdrawn{color:#f5a05a}
+.detailReply.isFocused{border-left:2px solid #32e8dd;border-radius:12px;background:#0a1a22;box-shadow:0 0 0 1px #2a4a5366}
+.detailReplyActions button[data-comment-share].on{color:#8ff5ee}
+.detailReplyActions button[data-comment-share]{gap:4px}
+.ownerSharedReplyCard{border-left:2px solid #2a4a53}
+.ownerSharedReplyCard .postRepostedBy span{color:#8e9ca5;font-weight:400}
+.ownerSharedReplyOpen{display:inline-flex;min-height:36px;align-items:center;padding:0 12px;border:1px solid #2c4d55;border-radius:12px;background:#0e1c25;color:#8ff5ee;font-size:12px}
+.ownerSharedReplyOpen:hover,.ownerSharedReplyOpen:focus-visible{border-color:#32e8dd}
+/* Clip options: one panel per clip, opened from the ⚙ in the clip chrome, as the last row of the clip's own menu (wave 14i: the mark that floated over the clip left the clip). Every switch inside is a
+   real behaviour on this device (captions, speed, auto-advance, data saver, download, offline), and
+   the panel states what the platform refuses instead of pretending. */
+.clipOptionsPanel{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;display:grid;gap:6px;max-height:72%;overflow-y:auto;padding:12px;border:1px solid #2a4a53;border-radius:16px;background:#07131be6;backdrop-filter:blur(6px);color:#eef8fb}
+.clipOptionsPanel[hidden]{display:none}
+.clipOptionsPanel header{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.clipOptionsPanel header b{font-size:14px}
+.clipOptionsPanel header button{min-width:34px;min-height:34px;border:0;border-radius:12px;background:transparent;color:#8ff5ee;font-size:18px}
+.clipOptionRow{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:13px}
+.clipOptionRow small{color:#9db0ba;font-size:12px}
+.clipOptionSwitch{min-height:34px;padding:0 12px;border:1px solid #2c4d55;border-radius:12px;background:#0e1c25;color:#9fd9d5;font-size:12px}
+.clipOptionSwitch[aria-pressed="true"]{border-color:#32e8dd;background:#0f2a2c;color:#8ff5ee;font-weight:600}
+.clipSpeedGroup{display:flex;flex-wrap:wrap;gap:4px}
+.clipSpeed{min-width:42px;min-height:32px;border:1px solid #24353f;border-radius:10px;background:#0c1720;color:#9db0ba;font-size:12px}
+.clipSpeed.on{border-color:#32e8dd;color:#8ff5ee;font-weight:600}
+.clipOptionActions{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.clipOptionActions button{flex:1;min-height:40px;border:1px solid #2c4d55;border-radius:12px;background:#0e1c25;color:#8ff5ee;font-size:13px}
+.clipOptionActions button[disabled]{opacity:.55;color:#8e9ca5}
+.clipOptionNote{margin:0;color:#8e9ca5;font-size:11px;line-height:1.4}
+.clipSubtitles{position:absolute;left:12px;right:12px;bottom:84px;z-index:3;padding:6px 10px;border-radius:12px;background:#000000a8;color:#f4fbfd;font-size:14px;line-height:1.35;text-align:center;pointer-events:none}
+.clipSubtitles[hidden]{display:none}
+/* Identity onboarding and the hero that edits itself: the first-run sheet asks once, and the name and
+   bio are changed exactly where they are read. */
+.onboardingLayer{position:absolute;inset:0;z-index:60;display:grid;place-items:center;padding:14px;background:#040a10ee;backdrop-filter:blur(6px)}
+.onboardingCard{display:grid;gap:10px;width:100%;max-width:420px;max-height:92%;overflow-y:auto;padding:18px;border:1px solid #2a4a53;border-radius:20px;background:#08141c;color:#eef8fb}
+.onboardingCard header{display:grid;gap:4px}
+.onboardingCard header b{font-size:18px}
+.onboardingCard header small{color:#9db0ba;font-size:12px;line-height:1.4}
+.onboardField{display:grid;gap:4px}
+.onboardField>span{color:#9db0ba;font-size:12px}
+.onboardField input,.onboardField textarea{min-width:0;padding:10px 12px;border:1px solid #26343d;border-radius:12px;background:#08121a;color:#eef8fb;font:inherit;font-size:14px}
+.onboardField em{min-height:16px;font-size:11px;font-style:normal;color:#8e9ca5}
+.onboardField em[data-tone="good"]{color:#6ef0b8}
+.onboardField em[data-tone="bad"]{color:#ff8f9c}
+.onboardRow{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px}
+.onboardingChoices{display:flex;flex-wrap:wrap;gap:4px}
+.onboardingChoice{min-height:34px;padding:0 10px;border:1px solid #24353f;border-radius:12px;background:#0c1720;color:#9db0ba;font-size:12px}
+.onboardingChoice[aria-pressed="true"]{border-color:#32e8dd;background:#0f2a2c;color:#8ff5ee;font-weight:600}
+.onboardActions{display:flex;justify-content:flex-end}
+/* The hero edits itself: the name and the description are text you type into, not buttons. Nothing
+   moves when a field opens, there is no Save button and no Cancel button — leaving the field saves,
+   Escape abandons the change, and the check in the description row confirms it on purpose. */
+.heroEditable{cursor:text;border-radius:6px;transition:background .15s ease}
+.heroEditable:hover{background:#ffffff12}
+.heroEditable:focus-visible{outline:2px solid #32e8dd;outline-offset:2px}
+.heroEditable[hidden]{display:none}
+.heroEditorInput{display:block;width:100%;min-width:0;margin:0;padding:0;border:0;border-radius:6px;background:#ffffff14;color:inherit;font:inherit;line-height:inherit;letter-spacing:inherit;box-shadow:0 0 0 1px #32e8dd55}
+.heroEditorInput[hidden]{display:none}
+.heroEditorInput:focus{outline:0;box-shadow:0 0 0 1px #32e8dd}
+/* Three rows tall at every text size: three lines are what a description gets, and anything longer
+   scrolls inside the field instead of pushing the profile around. */
+textarea.heroEditorInput{height:calc(3 * 1.4em + 4px);min-height:calc(3 * 1.4em + 4px);max-height:calc(3 * 1.4em + 4px);padding:2px 4px;resize:none;overflow-y:auto;white-space:pre-wrap}
+.heroIconButton{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;margin-top:-2px;padding:0;border:1px solid #23343d;border-radius:50%;background:#0d1a22;color:#9fb2bb;font:inherit;font-size:13px;line-height:1}
+.heroIconButton:hover,.heroIconButton:focus-visible{border-color:#2fbdb3;color:#dff9f6}
+.heroIconButton[hidden]{display:none}
+.heroConfirm{border-color:#2fbdb3;color:#32e8dd}
+.ownerBio.isEmpty .heroEditable{color:#7d8b94}
+/* Location: the button shows the chosen city, the panel suggests the rest. */
+.ownerLocationPanel{position:absolute;z-index:12;top:calc(100% + 4px);left:0;display:grid;gap:6px;width:min(280px,86vw);padding:8px;border:1px solid #23343d;border-radius:14px;background:#08131b;box-shadow:0 18px 40px #000a}
+.ownerLocationPanel[hidden]{display:none}
+.ownerLocationField input{width:100%;min-width:0;padding:8px 10px;border:1px solid #26343d;border-radius:10px;background:#0b1720;color:#eef8fb;font:inherit;font-size:13px}
+.ownerLocationField input:focus{outline:0;border-color:#32e8dd}
+.ownerLocationList{display:grid;gap:2px;margin:0;padding:0;max-height:196px;overflow-y:auto;list-style:none}
+.ownerLocationList [role="option"]{padding:7px 9px;border-radius:9px;color:#cbd8dd;font-size:12.5px;cursor:pointer}
+.ownerLocationList [role="option"]:hover,.ownerLocationList [role="option"]:focus{background:#123039;color:#eafeff;outline:0}
+.ownerLocationList [role="option"][aria-selected="true"]{color:#7ff0e8}
+.ownerLocationHint{padding:6px 9px;color:#7d8b94;font-size:12px}
+.ownerLocationClear{min-height:28px;border:0;background:none;color:#f0a3a3;font:inherit;font-size:12px;text-align:left}
+.ownerLocationClear[hidden]{display:none}
+
+
+
+
+
+
+/* Wave 9v — the description reads like a field and not like a grey slab. The box is padded, it is bounded by
+   one line instead of a border, and the three lines it promises are exactly the three lines it draws: a
+   border would eat into the height the growing field measures for itself, an outline would not. */
+textarea.heroEditorInput{padding:8px 10px;border:0;background:#08121a;border-radius:12px;box-shadow:0 0 0 1px #26343d}
+textarea.heroEditorInput:focus{border-color:#2fbdb3;box-shadow:0 0 0 1px #2fbdb3}
+

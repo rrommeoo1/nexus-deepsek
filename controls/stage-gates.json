@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "policy_id": "nexus-stage-gates-v1",
+  "default_decision": "DENY",
+  "missing_registry": "DENY",
+  "missing_evidence": "CONTROL_NOT_EXECUTED_AND_DENY",
+  "immutable_evidence": "APPEND_ONLY_SUPERSEDING_PACK",
+  "evidence_store": {
+    "draft_create_roles": ["AUTHOR", "OWNER"],
+    "seal_roles": ["CHECKER"],
+    "sealed_read_roles": ["OWNER", "PEER", "CONTROL", "CHECKER", "InternalAudit"],
+    "sealed_update": "DENY",
+    "sealed_delete": "DENY",
+    "superseding_pack_create": "ALLOW_WITH_NEW_PACK_ID_AND_VALID_SUPERSEDES_LINK",
+    "same_pack_id_reuse": "DENY",
+    "canonical_digest_verification_required": true
+  },
+  "maker_checker": {
+    "author_may_approve_own_artifact": false,
+    "owner_may_be_only_reviewer": false,
+    "checker_must_differ_from_author": true,
+    "T0_requires_independent_control": true
+  },
+  "conditional_pass": {
+    "requires": ["owner", "reason", "compensating_control", "expires_at"],
+    "forbidden_for": ["Critical", "child_adult_data_leak", "custody_ambiguity", "unreconciled_funds", "inoperable_kill_switch", "T0_missing_evidence"]
+  },
+  "gates": [
+    {"gate_id":"G0","name":"Scope","required_evidence":["prd","owner","dependencies","out_of_scope","risk_class"],"allowed_decisions":["START","REFINE","REJECT"],"fail_decision":"REFINE"},
+    {"gate_id":"G1","name":"Architecture","required_evidence":["adr","threat_privacy_data_flow","api_abi_draft"],"allowed_decisions":["APPROVE","REWORK"],"fail_decision":"REWORK"},
+    {"gate_id":"G2","name":"Implementation","required_evidence":["tests","lint_type_static","peer_review","migration_rollback"],"allowed_decisions":["MERGE","BLOCK"],"fail_decision":"BLOCK"},
+    {"gate_id":"G3","name":"Integration","required_evidence":["contract_e2e","reconciliation","telemetry","failure_injection"],"allowed_decisions":["PROMOTE","FIX"],"fail_decision":"FIX"},
+    {"gate_id":"G4","name":"Assurance","required_evidence":["security","privacy","safety","model","finops","control_results"],"allowed_decisions":["PASS","CONDITIONAL","FAIL"],"fail_decision":"FAIL"},
+    {"gate_id":"G5","name":"External","required_evidence":["applicable_audit_legal_license_provider_store"],"allowed_decisions":["ENABLE","GEO_BLOCK"],"fail_decision":"GEO_BLOCK"},
+    {"gate_id":"G6","name":"Canary","required_evidence":["caps","slo","incidents","cost","business_guardrails","rollback"],"allowed_decisions":["EXPAND","ROLLBACK"],"fail_decision":"ROLLBACK"},
+    {"gate_id":"G7","name":"General","required_evidence":["observation_window","no_regression","owner_C11_approval"],"allowed_decisions":["RELEASE","HOLD"],"fail_decision":"HOLD"},
+    {"gate_id":"G8","name":"PostRelease","required_evidence":["control_effectiveness","incidents","cost","feedback"],"allowed_decisions":["RETAIN","CHANGE","RETIRE"],"fail_decision":"CHANGE"}
+  ],
+  "severity_sla": {
+    "Critical": {"containment_hours":1,"capa_plan_hours":24,"remediation_hours":72,"generative_close_allowed":false},
+    "High": {"containment_hours":24,"capa_plan_days":3,"remediation_days":14,"generative_close_allowed":false},
+    "Medium": {"containment_days":5,"capa_plan_days":10,"remediation_days_max":60,"generative_close_allowed":true,"independent_retest_required":true},
+    "Low": {"containment":"CONTROLLED_BACKLOG","capa_plan":"NEXT_REVIEW","remediation_days_max":90,"generative_close_allowed":true,"independent_retest_required":true}
+  },
+  "evidence_content_policy": {
+    "content_addressed": true,
+    "read_only_after_gate": true,
+    "onchain_anchor_allowed": true,
+    "onchain_content_forbidden": ["PII", "secrets", "vulnerabilities", "child_data", "private_plaintext"]
+  }
+}

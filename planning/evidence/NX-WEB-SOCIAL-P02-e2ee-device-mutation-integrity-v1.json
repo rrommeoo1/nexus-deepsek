@@ -1,0 +1,62 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-E2EE-DEVICE-MUTATION-RESULT-INTEGRITY-079",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "device_inventory_owner_binding": true,
+    "device_registration_intent_binding": true,
+    "recovery_provision_intent_binding": true,
+    "recovery_activation_intent_binding": true,
+    "device_revocation_intent_binding": true,
+    "stable_bounded_replay_keys": true,
+    "uncertain_failure_preserves_device_identity": true,
+    "explicit_collision_required_for_rotation": true,
+    "secret_bearing_results_rejected": true,
+    "local_key_write_after_exact_result_only": true,
+    "cache_generation": "20260906-p2device1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_device_recovery_api": "PASS",
+    "product_full_tests": { "passed": 237, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Device and recovery mutation success was not cryptographically useful unless the client could prove that the response belonged to its authenticated owner, exact device and requested action.",
+      "resolution": "Every response now carries and validates an exact owner/device/action intent before local device or recovery state changes."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "An uncertain registration result could rotate local identity and create orphaned device keys on retry.",
+      "resolution": "Registration uses a stable replay key and preserves the same local device after transient or malformed failures; rotation requires an explicit ID-unavailable result."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Device inventory and recovery results required explicit data-minimization checks at the browser boundary.",
+      "resolution": "Owner scope is explicit and any private key, public JWK duplication or activation-token exposure fails closed."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "fa9d9c948e93bfaa2f9db10f852ef1a1cefbd03acff326e610f726df987adea4",
+    "apps/nexus-web/public/app.js": "87dd002464d933166776c2e6d94d6ccfff4d6e50b8a288d28bd98c483a97249f",
+    "apps/nexus-web/public/chat-crypto.js": "f6abdeb77121244e629b380b0543d04e879250a26caa97e2bab2eae8620c7146",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "e9be163b8a27d3dfc8c55366b48fd667b61d155dc127a139817a562f0823029f",
+    "apps/nexus-web/public/index.html": "45c42981a9dd6ae8722cd9090758cc1d6433e333ba625d579a70c7762c993690",
+    "apps/nexus-web/test/audit.test.js": "cb8da445835d056e14866d48d081a93b97e66d2b6276d52e32da71a1d409f3ef",
+    "apps/nexus-web/test/core.test.js": "abdeeb05eb3d369280b02519bdb4a17764f7b6a0ab32699a2f0d9daea40e7f32",
+    "apps/nexus-web/test/p1-sessions-devices.test.js": "8926384f4000175e88423d7d14f78185a59a14d97e8237f898adc56490deda93",
+    "planning/NX-WEB-SOCIAL-e2ee-device-mutation-integrity-v1.md": "6792ef7fe026a96c5a0c1ca19e1688d63194ddc0f6765655f0282449c1585b50",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "3f1968d544195841f3feb9c8fd1d0f2d8472d449d3d74f73badb4457de50b819",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "f77d0f096de9f0b9c4dbfc74f24a6ad5b0731ade6256b552b0f1fe53cea01dc1"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_RECOVERY_SECURE_KEYSTORE_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-E2EE-KEY-MATERIAL-RESULT-INTEGRITY-080"
+}

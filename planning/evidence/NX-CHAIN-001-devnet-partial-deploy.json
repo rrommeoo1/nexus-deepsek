@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAIN-001",
+  "run_id": "NX-CHAIN-001-DEVNET-20260802T215812Z-retry01",
+  "status": "PARTIAL_PASS_DEPLOY_FINALIZED_RUNNER_AWAIT_FAILED",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+  "contract_owner": "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th",
+  "wasm_sha256": "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+  "on_chain_codehash_hex": "00a65735a13a6fb18193f3dfcfb95a784e52041c062fe87524ecbcc40f59d17e",
+  "gateway_contract_query": "PASS_CODE_PRESENT_OWNER_AND_CODEHASH_MATCH",
+  "deploy_transaction_hash": "PENDING_INDEX_RECOVERY",
+  "deploy_transaction_status": "SUCCESS_INFERRED_FROM_FINALIZED_CONTRACT_ACCOUNT",
+  "public_devnet_transactions_confirmed": 1,
+  "remaining_authorized_calls_executed": 0,
+  "real_value": 0,
+  "approval_receipt_status": "CONSUMED",
+  "approval_receipt_canonical_sha256": "ba62c743573c4a3c329bbf65aa4ce299938e0952a9bce5d31a87edfea50c2458",
+  "runner_failure": {
+    "component": "mxpy_11.4.1_transaction_awaiter",
+    "cause": "CLI_TIMEOUT_ARGUMENT_RETAINED_AS_STRING",
+    "exception": "TypeError: unsupported operand type(s) for //: 'str' and 'int'",
+    "occurred_after_broadcast": true
+  },
+  "safety_decision": "NO_ADDITIONAL_MUTATION_WITHOUT_NEW_SUBJECT_BOUND_APPROVAL"
+}

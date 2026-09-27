@@ -1,0 +1,166 @@
+schema_version: 1
+task_id: NX-NODE-P02
+review_id: NX-NODE-P02-C13-20260815-FINAL01
+reviewer_roles: [C13]
+required_control_scope: [C02, C03, C09, C10, C13]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A16
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-NODE-P02-validation.json
+  sha256: d25364e339b41565cdd09a721c57c35b4603732b2a2750588217421091db3d7b
+  run_id: NX-NODE-P02-20260815-OWNER-FINAL02
+  executor_role: A16
+  status: PASS
+  assertions: 163
+  scenario_assertions: 122
+  deterministic_repetitions: 3
+  artifact_count: 18
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 95f3ddb1ab052d7317f4c4d810c7326acbd09985c79163ea8b6d70d1f8e0da74
+  expected_review_subject_sha256: 95f3ddb1ab052d7317f4c4d810c7326acbd09985c79163ea8b6d70d1f8e0da74
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-node-mesh.ps1
+  run_id: NX-NODE-P02-20260815-C13-INDEPENDENT01
+  executor_role: C13
+  process_execution_policy: Bypass
+  status: PASS
+  assertions: 163
+  scenario_assertions: 122
+  deterministic_repetitions: 3
+  failures: 0
+  review_subject_sha256: 95f3ddb1ab052d7317f4c4d810c7326acbd09985c79163ea8b6d70d1f8e0da74
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+artifact_binding:
+  status: PASS
+  artifact_count: 18
+  mismatches: 0
+  subject_recomputed_from_sorted_path_hash_lines: true
+  artifact_sha256:
+    packages/node-network/mesh/index.ts: ead5a07cf520efd340efb53a97c6f37e343271f76e694dbe58aac0734bc14708
+    packages/node-network/mesh/index.test.ts: 2f01470bbba95ad0a4da6dd732dd2292b5151ffe52b51adfbda7d19d8ff25fcb
+    packages/node-network/mesh/mesh-contract.v1.json: 397974567b66ea64a8ef0c08f4fff5b7dc8f0899c3caa8edbe7bb30f471f7da3
+    docs/01-technical-architecture.md: 82ab5f665d600cf1ce9da6c80489defc745f02b6fb8f2d906a5c278e5c68655c
+    docs/16-agent-delivery-continuous-assurance.md: dd8ef8bc88cd892fec6bab6d870d83be0f75c87ba4dfd2b94b2843619d39e915
+    docs/17-decentralized-node-network.md: f2586d5b84e4f3827adb6ce6c2824aac00349178dfefde4a5a002cd9f26f0f51
+    AGENTS.md: a2091ac4c3e7b1435c8fceec398e9bd8dd066c3d2317871d355f39d0cf21cec0
+    planning/backlog-p0.yaml: 4f0a41e09d6668d0813df2bd85b6bc19e470af83f07e4722e96294866b2bb27c
+    planning/backlog-p1.yaml: 3b52507a85362fd76b8b599787aceda5499de6a305dcbb1aa3c09ecafabc62db
+    planning/capacity-scorecard.yaml: c3f2cd89df3696deaef7fb7c88860f6e6f6268a96f494b063e23d378747201b3
+    planning/product-progress.yaml: 5b8d098b1c067a120728d3810fe1adcf23748a7fb406026dc6a9f846190a34c5
+    planning/checkpoints/NX-NODE-P02.md: 7c87e35b36b266ac8d3a937ad83d38209c5f9b485c43d1cd24d7764df3679bde
+    planning/spend-control.yaml: b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c
+    planning/evidence/NX-NODE-P01-validation.json: bde81c3510c8c695cb3d076d839da1ef89b1afbd7b0447028c370bc5c13d32c4
+    planning/evidence/reviews/NX-NODE-P01-C02-C03-C09-C13.yaml: de7f4a84311e6788bd483c07651f6290bb4aa5741d23dd613dad445d5bfd125c
+    packages/contracts/node_modules/typescript/bin/tsc: 8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0
+    packages/contracts/package-lock.json: 8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b
+    planning/validate-node-mesh.ps1: 6e24cf9efe91079a543bd84a588c706c6a80f9c2489755d9ec79e7a58f0d7d5b
+
+product_quality_assessment:
+  ordinary_data_consistency:
+    status: PASS
+    evidence:
+      - Fixtures cover every N from 1 through 8 and independently reproduce the same complete projection for a same-input twin.
+      - Replica counts are exactly 1, 2, 3, 3, 3, 3, 3, 3, implementing R=min(eligibleNodes,3).
+      - Sequential growth from one to eight nodes updates the target before repair, then converges each object to the target with a common catalog root.
+  node_availability_and_repair:
+    status: PASS
+    evidence:
+      - Taking an assigned holder offline exposes UNDER_REPLICATED with two online replicas before any repair.
+      - Repair excludes the offline holder, restores three online replicas and converges; bringing the node back does not regress availability.
+      - Concurrent repairs serialize and an idempotent second repair emits no duplicate receipts.
+  snapshot_save_and_load:
+    status: PASS
+    evidence:
+      - Exported state restores into a fresh instance with byte-for-byte equal projection, catalog root and receipt head.
+      - The restored instance continues the signed receipt lineage and denies historical command replay.
+      - Restore captures one immutable input representation before its first asynchronous suspension and rejects a stale expected checkpoint.
+  receipt_history_and_ordering:
+    status: PASS
+    evidence:
+      - Restore enforces consecutive ordinals, previous-hash chaining, receipt hashes, signatures and nondecreasing placement epochs.
+      - Each receipt is bound to an existing node and object, the value commitment, the catalog root at its epoch, and a valid ASSIGN/RELEASE state transition.
+      - A prefix, reorder, full history strip, replay, fabricated release and incomplete per-object history are all denied.
+  atomicity_and_determinism:
+    status: PASS
+    evidence:
+      - All three independent scenario runs produced identical output and each reported 122 assertions.
+      - Injected receipt-signing failure during publish rolls back the epoch, object, replay index and receipts.
+      - Injected mid-repair failure rolls back all staged assignments, releases and receipts; the same repair succeeds after recovery.
+  zero_external_and_economic_effects:
+    status: PASS
+    evidence:
+      - Static capability screening found no runtime network or child-process path in the mesh source.
+      - The independent validator observed zero matching production credential names and records zero network, provider, economic, real-fund and incremental-cost effects.
+      - SYSTEM_TEST actors accrue zero rewards and contribute zero organic events.
+
+prior_observations:
+  - id: PRIOR-NODE-P02-001
+    severity: HIGH
+    status: CLOSED
+    title: A coordinated removal of all receipts and replica assignments could erase object history.
+    closure_locations:
+      - packages/node-network/mesh/index.ts:539
+      - packages/node-network/mesh/index.ts:564
+      - packages/node-network/mesh/index.test.ts:176
+    closure_evidence:
+      - Restore now maintains a per-object receipt count and rejects any object with an empty receipt history.
+      - The dedicated full-strip regression removes every receipt and replica, reseals the snapshot and receives MESH_RECEIPT_RECONCILIATION_FAILED.
+      - Independent C13 output reports nonempty_object_history=true and receipt_full_strip=true.
+  - id: PRIOR-NODE-P02-002
+    severity: HIGH
+    status: CLOSED
+    title: A receipt could be moved to an epoch before its node joined or its object was published.
+    closure_locations:
+      - packages/node-network/mesh/index.ts:541
+      - packages/node-network/mesh/index.ts:547
+      - packages/node-network/mesh/index.test.ts:182
+      - packages/node-network/mesh/index.test.ts:188
+    closure_evidence:
+      - Restore enforces nondecreasing receipt epochs and requires placementEpoch to be at least joinedAtEpoch and publishedAtEpoch.
+      - Dedicated node-before-join and object-before-publication regressions both receive MESH_RECEIPT_CAUSALITY_INVALID.
+      - Independent C13 output reports causal_epoch_order=true, receipt_node_causality=true and receipt_object_causality=true.
+
+findings_summary:
+  total: 2
+  open: 0
+  closed: 2
+  critical: 0
+  high: 2
+
+accepted_controls:
+  - All eighteen recorded hashes and the review subject match the current files exactly.
+  - N=1..8 replication, availability transitions, deterministic placement, repair and catalog convergence satisfy the bounded mesh contract.
+  - Snapshot restore preserves current state and reconciles complete, causal, ordered and authenticated receipt history.
+  - Both prior T0 lineage observations have dedicated passing negative regressions and are closed on this subject.
+  - The reviewed run remained local-only, SYSTEM_TEST-only and zero-cost with zero external or economic effects.
+
+acceptance_blockers: []
+
+claims_excluded:
+  - real_p2p_network
+  - dht_gossipsub
+  - production_storage
+  - public_ports
+  - mainnet_anchor
+  - real_settlement
+  - hardware_failure_sla
+  - real_data
+
+residual_scope_notes:
+  - PASS applies only to the content-addressed local deterministic D0 mesh subject and its declared N=1..8 acceptance slice.
+  - It does not certify a real transport, distributed consensus, persistence provider, public node operation, economic incentives or production SLA.
+  - No finding remains open on the reviewed subject.

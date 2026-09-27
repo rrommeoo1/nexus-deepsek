@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "slice_id": "MESSAGES_WEBRTC_LOCAL_P2P_V1",
+  "run_id": "NX-WEB-SOCIAL-P01-20260824-WEBRTC-LOCAL-01",
+  "observed_at": "2026-08-24T19:15:48.0560673+02:00",
+  "executor_role": "OWNER_A31",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "canonicalization": "sha256(UTF8(join(LF, sort(path) map path + ':' + sha256)))",
+  "subject_sha256": "97f069072aa6fc2b58d3e14fc8c99a13841c4add547a46ee7beceeccd7f85829",
+  "validation": {
+    "node_tests": "PASS_67_OF_67",
+    "syntax": "PASS_DB_REPO_API_SERVER_APP_CALL_CLIENT",
+    "call_state_machine": "PASS_RING_ACCEPT_DECLINE_END_MISS_EXPIRE_RESTART_FAIL_CLOSED",
+    "authorization": "PASS_DIRECT_ACTIVE_MEMBERS_EXACT_ROLE_AND_CALL_BINDING",
+    "busy_policy": "PASS_ONE_ACTIVE_OR_RINGING_CALL_PER_USER_ACROSS_CONVERSATIONS",
+    "signal_replay": "PASS_EXACT_NONCE_HASH_BINDING_AND_DUPLICATE_DENY",
+    "signal_persistence": "PASS_NO_SQLITE_CALL_SIGNALS_TABLE",
+    "database_integrity": "PASS_PRAGMA_INTEGRITY_CHECK_OK",
+    "runtime_listener": "PASS_0.0.0.0_3000_PID_5960",
+    "runtime_http": "PASS_200_LOOPBACK_LAN_AND_CALL_CLIENT_ASSET",
+    "browser_shell": "PASS_SOCIAL05_ZERO_CONSOLE_ERRORS"
+  },
+  "transport": {
+    "media": "browser_WebRTC_DTLS_SRTP",
+    "topology": "direct_peer_to_peer_local_candidates_only",
+    "signaling": "authenticated_Nexus_SSE_and_HTTP",
+    "ice_servers": [],
+    "signaling_persisted": false,
+    "restart_behavior": "open_calls_marked_failed",
+    "supported_modes": ["audio", "video"],
+    "group_calls": false
+  },
+  "truthful_runtime_limits": {
+    "phone_lan_http": "CALLS_DISABLED_REQUIRES_HTTPS_OR_LOCALHOST",
+    "stun": false,
+    "turn": false,
+    "sfu": false,
+    "internet_nat_certification": false,
+    "media_e2ee_beyond_webrtc_transport": false,
+    "formal_security_or_accessibility_audit": false
+  },
+  "effects": {
+    "external_provider_operations": 0,
+    "external_network_writes": 0,
+    "broadcast_transactions": 0,
+    "real_funds": 0,
+    "mainnet_state_changes": 0,
+    "new_external_accounts": 0,
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "artifacts": [
+    { "path": "apps/nexus-web/lib/api.js", "sha256": "d7591188039ed3ba319cdee8a6160ec8e399f3e3f03c4a3b5d71fc37a00939e7" },
+    { "path": "apps/nexus-web/lib/db.js", "sha256": "de7630df9f3befe041d39282eed5bf270a43ccd719a6ecfada5d55131006ff3e" },
+    { "path": "apps/nexus-web/lib/repo.js", "sha256": "97758b59ce387f8281749bce9a92cc5ca254936d94977539139a040328c9e6a7" },
+    { "path": "apps/nexus-web/public/app.js", "sha256": "6177ad067ac75e5cfc71f2373bec82eb3905dd97f2dd344029a23cfa28281cd9" },
+    { "path": "apps/nexus-web/public/call-client.js", "sha256": "7925c73f18fde4390c3e8da9198854838d6c808c7823b1dc8c1c0f8632e04bc1" },
+    { "path": "apps/nexus-web/public/index.html", "sha256": "35fd94f6f20782b5c9680542e1181ec90dc8e39b6196fa4f083744b6c3b25c62" },
+    { "path": "apps/nexus-web/public/styles.css", "sha256": "fbf210e3f823c9a902008c96583f589cfb73807f48c9de6caf8894b18a7ea47f" },
+    { "path": "apps/nexus-web/server.js", "sha256": "3e39da8fdb09050bd4d16be9c053d80fd906149a2ad6bfe8af5818477a564cd9" },
+    { "path": "apps/nexus-web/test/audit.test.js", "sha256": "a0e253fb39bc8c4a170e67db50a9f73af3ffa198299cd7694067ae9ac9951f6a" },
+    { "path": "apps/nexus-web/test/core.test.js", "sha256": "99639d5b25fae993a6236e8dd835bee64690cc95c66e3edb206cdcadce8b1003" }
+  ],
+  "exclusions": [
+    "TURN relay, STUN discovery and SFU group-call infrastructure",
+    "reliable Internet or carrier-grade NAT traversal",
+    "production HTTPS certificate and phone secure-context certification",
+    "push notifications for background incoming calls",
+    "recording, transcription, screen sharing and webinar controls",
+    "formal WebRTC security, privacy, device and accessibility audit",
+    "completion of the full NX-WEB-SOCIAL-P01 packet"
+  ]
+}

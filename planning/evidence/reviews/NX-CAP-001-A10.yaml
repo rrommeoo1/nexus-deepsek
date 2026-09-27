@@ -1,0 +1,32 @@
+schema_version: 1
+review_id: NX-CAP-001-A10-20260802-02
+task_id: NX-CAP-001
+reviewer_role: A10
+reviewer_identity: /root/audit_technical
+review_type: independent_peer_rereview
+observed_at: 2026-08-02
+decision: PASS
+attestation_type: logical_agent_review
+attestation: >-
+  Reviewerul a verificat read-only politica, backlog-ul, scorecard-ul, spend
+  guard-ul, procesul copil fix, validatorul, checkpoint-ul, findings registry și
+  decizia C10. Toate cele patru acceptance tests sunt satisfăcute; există 13
+  taskuri, numai NX-CAP-001 activ, zero dependențe lipsă, zero cicluri și zero
+  taskuri ready cu dependențe neîndeplinite.
+acceptance:
+  CAP-AT-01: PASS
+  CAP-AT-02: PASS
+  CAP-AT-03: PASS
+  CAP-AT-04: PASS
+findings:
+  - finding_id: A10-CAP-001
+    title: UNOBSERVED fallback was not normative
+    disposition: CLOSED
+  - finding_id: A10-CAP-002
+    title: Validation evidence was not reproducible
+    disposition: CLOSED
+limitations:
+  - CAP-F-002 and CAP-F-003 remain LOW and open-mitigating with owners and due dates.
+  - Evidence must be regenerated after this decision is persisted.
+  - General runner sandboxing remains a Platform handoff; C11 remains a separate gate.
+source_message_preserved_by: A00

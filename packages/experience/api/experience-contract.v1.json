@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A42",
+  "mode": "LOCAL_DETERMINISTIC_SYSTEM_TEST",
+  "story": {
+    "durationOptions": ["PT1H", "PT6H", "PT24H", "P3D", "P7D", "UNTIL_AUTHOR_REMOVES"],
+    "untilRemovedProjectsAsHighlight": true,
+    "archivePrivateByDefault": true,
+    "audienceSafetyRightsAndPurgeAlwaysOverrideDuration": true,
+    "roleSeparatedSafetyOrRightsPurgeReceiptRequired": true,
+    "enforcementReceiptBindsRuleReasonTerritoryDurationAndAppeal": true,
+    "datingSaveOrExportDefault": false,
+    "kidsCompetitiveCounts": false
+  },
+  "pulse": {
+    "formats": ["TEXT", "PHOTO", "CLIP", "LINK", "POLL", "QUOTE", "REPOST", "THREAD"],
+    "sourceProvenanceRequired": true,
+    "materialEditCreatesGeneration": true,
+    "withdrawCreatesTombstone": true,
+    "creatorMayEraseForeignReply": false
+  },
+  "saveAndDownload": {
+    "operations": ["SAVE_IN_NEXUS", "OFFLINE_CACHE", "DOWNLOAD_TO_DEVICE"],
+    "profileScopedCollections": true,
+    "offlineCacheEncryptedAndExpiring": true,
+    "downloadRequiresAuthorAudienceRightsAndLicense": true,
+    "signedAudienceAndRightsReceiptsRequired": true,
+    "offlineGrantBindsProfileDeviceContentKeyEpochAndExpiry": true,
+    "offlineGrantBindsLicenseRightsStateAndPurgeEpoch": true,
+    "offlineAccessDeniedAfterWithdrawalPurgeExpiryOrRevocation": true,
+    "generatedWatermarkReceiptRequiredBeforeExport": true,
+    "watermarkFields": ["NEXUS", "CREATOR_HANDLE", "CONTENT_COMMITMENT", "VERIFICATION_CODE"],
+    "watermarkAlsoBindsDeviceAndExportArtifact": true,
+    "watermarkInnerContentAndDeviceMustMatchRequest": true,
+    "defaultExportDeniedSurfaces": ["DATING", "KIDS", "PRIVATE_MESSAGES", "PAID_DRM", "UNLICENSED_MUSIC"]
+  },
+  "communication": {
+    "messageFilters": ["ALL", "SOCIAL", "WORK", "DATING", "MARKET", "TRAVEL", "BUSINESS", "REQUESTS"],
+    "callKinds": ["AUDIO_1_TO_1", "VIDEO_1_TO_1", "GROUP_AUDIO", "GROUP_VIDEO", "WORK_MEETING"],
+    "meetingControls": ["SCHEDULE", "WAITING_ROOM", "HOST", "COHOST", "MUTE", "REMOVE", "SCREEN_SHARE", "HAND_RAISE", "BREAKOUT", "CAPTIONS", "POLL", "NOTES"],
+    "recordingRequiresExplicitParticipantNoticeAndConsent": true,
+    "recordingConsentReceiptPerParticipant": true,
+    "datingE2EEAndSessionReceiptRequired": true,
+    "datingE2EEReceiptBindsCanonicalPeersDevicesSuiteAndSessionKey": true,
+    "encryptionModeDisclosureRequired": true,
+    "datingContactMetadataLeakageAllowed": false,
+    "realRtcProviderInPacket": false
+  },
+  "identityPresentation": {
+    "SOCIAL": { "publicName": "NICKNAME", "agePublicRequired": false },
+    "WORK": { "publicName": "FULL_PROFESSIONAL_NAME", "agePublicRequired": false },
+    "DATING": { "publicName": "FIRST_NAME_OR_ALIAS", "ageProofRequired": true, "exactBirthDatePublic": false },
+    "ADULT": { "publicName": "ALIAS", "adultProofRequired": true, "exactBirthDatePublic": false },
+    "MARKET_TRAVEL_BUSINESS": { "publicName": "SELLER_HOST_OR_BUSINESS_NAME" },
+    "PAYMENTS": { "publicName": "GLOBAL_NEXUS_USERNAME", "walletBindingRequired": true, "immediateRecycleAllowed": false },
+    "crossProfilePublicLinkDefault": false
+  },
+  "discovery": {
+    "lenses": ["NEAR", "FOR_YOU", "GLOBAL", "BREAKING"],
+    "nearLocationDefault": "COARSE_CONSENTED_GEOHASH_OR_MANUAL_CITY",
+    "preciseLocationPersistentForDiscovery": false,
+    "languagePreferencesPerProfile": true,
+    "globalTrendCrossRegionNormalizationRequired": true,
+    "globalInterestWeightingRequired": true,
+    "candidateProfileIsolationRequired": true,
+    "duplicateCandidateCommitmentsAllowed": false,
+    "breakingMinIndependentSources": 2,
+    "breakingAuthorityAlertAlternative": true,
+    "breakingValidTrustEvidenceReceiptRequired": true,
+    "breakingIndependentRegisteredSourceRootsRequired": true,
+    "globalSignedRegionalAggregatesMinRegions": 2,
+    "breakingRequiresSignificanceFreshnessJurisdictionAndReasonCode": true,
+    "breakingPaidPlacementAllowed": false,
+    "breakingPoliticalViewpointTargetingAllowed": false,
+    "breakingInterruptsDatingCallsOrMessages": false,
+    "datingPublicGlobalOrBreakingLensAllowed": false,
+    "kidsGeneralBreakingNews": false
+  },
+  "securityReceipts": {
+    "exactShapeAndDataOnlyBoundary": true,
+    "accessorsAndProxiesRejected": true,
+    "authorityRolesSeparated": true,
+    "subjectObjectBindingSurfaceGenerationJurisdictionPurposeRequired": true,
+    "signedIssuedExpiryNoncePolicyVersionRequired": true,
+    "revocationEnforced": true,
+    "concurrentIssueSingleNonceWinner": true,
+    "snapshotBundleSignedAndDurableCheckpointBound": true,
+    "restoreUsesIsolatedReceiptRegistryAndIsFailAtomic": true,
+    "receiptNoncePrefixOmissionDenied": true
+  },
+  "timeAuthority": {
+    "callerProvidedDecisionTimeAllowed": false,
+    "injectedMonotonicClockRequired": true,
+    "storyBreakingReceiptAndSnapshotExpiryUseSameAuthority": true,
+    "authoritativeTimeRecheckedAfterAwaitAndBeforeCommit": true,
+    "receiptRevocationVersionRecheckedBeforeDecision": true
+  },
+  "followerIntegrity": {
+    "followerMarketplaceAllowed": false,
+    "qualifiedAudienceSeparateFromRawCount": true,
+    "paidAgentSyntheticIncentivizedOrQuarantinedOrganicContribution": 0,
+    "rawFollowerCountDirectCreatorRewardAllowed": false,
+    "appealRequired": true
+  },
+  "effects": {
+    "networkOperationsMax": 0,
+    "providerOperationsMax": 0,
+    "economicOperationsMax": 0,
+    "organicMetricOperationsMax": 0,
+    "realFundOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  }
+}

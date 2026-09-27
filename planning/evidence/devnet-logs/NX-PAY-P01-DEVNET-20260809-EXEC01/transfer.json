@@ -1,0 +1,23 @@
+{
+    "emittedTransaction": {
+        "nonce": 930,
+        "value": "0",
+        "receiver": "erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede",
+        "sender": "erd1kyaqzaprcdnv4luvanah0gfxzzsnpaygsy6pytrexll2urtd05ts9vegu7",
+        "senderUsername": "",
+        "receiverUsername": "",
+        "gasPrice": 1000000000,
+        "gasLimit": 600000,
+        "data": "RVNEVFRyYW5zZmVyQDU1NTM0NDQzMmQzMzM1MzA2MzM0NjVAMDE=",
+        "chainID": "D",
+        "version": 2,
+        "options": 0,
+        "guardian": "",
+        "signature": "12438df27b29ab85e8415021e331b3c827bfd7f4c4e40f5f28ee425d50ed4d2d4ade84f5d6ebbf8c60bfd25cbb87a54720b6a16d692e03d7018053c4d51ee702",
+        "guardianSignature": "",
+        "relayer": "",
+        "relayerSignature": ""
+    },
+    "emittedTransactionData": "ESDTTransfer@555344432d333530633465@01",
+    "emittedTransactionHash": ""
+}

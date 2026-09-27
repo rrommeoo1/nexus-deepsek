@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "NX-PROG-001-20260802T072024225Z-752a7b58",
+  "observed_at": "2026-08-02T07:20:24.2396694+00:00",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\planning\\validate-program.ps1 -RunId NX-PROG-001-20260802T072024225Z-752a7b58 -ObservedAt 2026-08-02T07:20:24.2396694+00:00 -ExecutorRole A00",
+  "task_id": "NX-PROG-001",
+  "executor_role": "A00",
+  "status": "PASS",
+  "assertions": 344,
+  "failures": [],
+  "inventory": {
+    "p0_packets": 13,
+    "p1_records": 20,
+    "p1_epics": 10,
+    "p1_entry_packets": 10,
+    "total_records": 33,
+    "executable_task_packets": 23,
+    "epic_records": 10,
+    "owned_records": 33,
+    "records_with_independent_peer_and_control_checkers": 33,
+    "active_packet_ids": ["NX-PROG-001"]
+  },
+  "p1_coverage": {
+    "normative_epics_covered": 10,
+    "normative_epics_total": 10,
+    "demo_critical": {"epics": 6, "entry_packets": 6, "total_records": 12},
+    "post_demo_proof": {"epics": 4, "entry_packets": 4, "total_records": 8}
+  },
+  "dependency_report": {
+    "declared_edges": 115,
+    "duplicate_edges": [],
+    "missing_targets": [],
+    "cycles": 0,
+    "ready_with_unmet_dependencies": []
+  },
+  "ownership_report": {
+    "unowned": [],
+    "without_independent_checker": [],
+    "unknown_roles": []
+  },
+  "reference_report": {"missing_normative_refs": []},
+  "evidence_mapping": {
+    "backlog_snapshot": ["planning/backlog-p0.yaml", "planning/backlog-p1.yaml"],
+    "dependency_report": "dependency_report",
+    "ownership_report": "ownership_report",
+    "checkpoint": "planning/checkpoints/NX-PROG-001.md",
+    "maker_checker_decisions": [
+      "planning/evidence/reviews/NX-PROG-001-A01.yaml",
+      "planning/evidence/reviews/NX-PROG-001-A02.yaml"
+    ]
+  },
+  "duration_seconds": 0.5558,
+  "review_subject_sha256": "fecdb8969ac151dca7783efbd7ddc625334641403ca5326d0654d894fac0e6bf",
+  "review_subject_artifact_sha256": {
+    "planning/backlog-p0.yaml": "3f7532dbfcfc603f47278c9f1ff61d759257e809d8174a789d153da8f866863f",
+    "planning/backlog-p1.yaml": "9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab",
+    "planning/checkpoints/NX-PROG-001.md": "b69cffda1418bdebcd9271e4de707c11b095fd85617965fc91e08733b0acfac6",
+    "docs/16-agent-delivery-continuous-assurance.md": "dd8ef8bc88cd892fec6bab6d870d83be0f75c87ba4dfd2b94b2843619d39e915"
+  },
+  "source_snapshot_sha256": "f54ad82df217bfaf1d12335dd488efa7fc1a4c7e3de1e63f17265fd2279a3185",
+  "artifact_sha256": {
+    "planning/backlog-p0.yaml": "3f7532dbfcfc603f47278c9f1ff61d759257e809d8174a789d153da8f866863f",
+    "planning/backlog-p1.yaml": "9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab",
+    "planning/checkpoints/NX-PROG-001.md": "b69cffda1418bdebcd9271e4de707c11b095fd85617965fc91e08733b0acfac6",
+    "docs/16-agent-delivery-continuous-assurance.md": "dd8ef8bc88cd892fec6bab6d870d83be0f75c87ba4dfd2b94b2843619d39e915",
+    "planning/evidence/reviews/NX-PROG-001-A01.yaml": "e3e4cd1fca228029e07bcc7b168b34b3e79b138891788ac68de1dfe56ced5a12",
+    "planning/evidence/reviews/NX-PROG-001-A02.yaml": "065466d1747fda5fe38a0dbd20825ad005bd91fee34b1ce45cc9989cc946a4ec",
+    "planning/validate-program.ps1": "e0999de6d65c0621a8cbcde838be02dec9da618a2e479aaa3baca49c92b2cf5f"
+  }
+}

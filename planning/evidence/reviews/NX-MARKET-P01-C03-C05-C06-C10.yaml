@@ -1,0 +1,157 @@
+schema_version: 1
+task_id: NX-MARKET-P01
+review_id: NX-MARKET-P01-C03-C05-C06-C10-20260809-FINALREREVIEW03
+reviewer_roles: [C03, C05, C06, C10]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A34
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-MARKET-P01-validation.json
+  sha256: d6547ca79a842b4e76622f2429bd9d9a9d6ee40742daa84937b3671df44ade30
+  run_id: NX-MARKET-P01-A34-FINALFIX02
+  executor_role: A34
+  status: PASS
+  assertions: 116
+  scenario_assertions: 33
+  deterministic_repetitions: 3
+  artifact_count: 25
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 52270ce6818788a1a23d0b55166aebbdd7a780c897a9b65c0e9fa314d43bc922
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-marketplace.ps1
+  run_id: NX-MARKET-P01-C03-FINALREREVIEW03
+  executor_role: C03
+  status: PASS
+  assertions: 116
+  scenario_assertions: 33
+  deterministic_repetitions: 3
+  review_subject_sha256: 52270ce6818788a1a23d0b55166aebbdd7a780c897a9b65c0e9fa314d43bc922
+  output_sha256: 0caef336b3d769c40d37e720c141f0c00fc0582ad3b0e0aba9d94e75f6165b00
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_static_deterministic_source_review
+  results:
+    coordinated_command_and_decision_substitution_under_old_authorization: DENIED
+    authorization_full_commercial_term_binding: PASS
+    authoritative_now_after_accept_by_with_backdated_occurred_at: DENIED
+    authoritative_now_after_fulfil_by_with_backdated_occurred_at: DENIED
+    resolver_equals_buyer_or_seller_at_live_fund: DENIED
+    checkpoint_resolver_mismatch: DENIED
+    resolver_equals_buyer_or_seller_during_restore_with_permissive_verifiers: ESCROW_SNAPSHOT_INVALID
+    signed_expected_checkpoint_prefix_or_tamper: DENIED
+    fabricated_fund_to_release_with_permissive_verifiers: DENIED
+    terminal_restore_and_historical_action_replay: DENIED
+    integer_caps_fee_rounding_and_terminal_conservation: PASS
+    regression_exact_shape_signatures_async_race_classified_pause_reducer: PASS
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-five current artifact hashes match owner evidence and independently recompute the declared subject
+  independent_validation:
+    status: PASS
+    evidence: independent C03 validation passed 116 controls and 33 scenarios in each of three deterministic repetitions
+  listing_execution_binding:
+    status: PASS
+    evidence: authorization exact-parses and binds the complete approved commercial projection, decision, policy, session, nonce and action domain; coordinated substitution under the old authorization is denied before prepare
+  async_listing_commit:
+    status: PASS
+    evidence: profile and policy state are checked around prepare, denied races abort prepared actions, and no action or capability is consumed
+  classified_and_effect_boundary:
+    status: PASS
+    evidence: CLASSIFIED_ONLY cannot enter escrow and every exercised path remains local synthetic zero-value with no network provider economic or cost effect
+  escrow_amounts_and_conservation:
+    status: PASS
+    evidence: positive principal, total cap, fee cap, exact funding equality, deterministic dispute rounding and terminal credit conservation remain enforced with integer arithmetic
+  deadlines_and_timeout_semantics:
+    status: PASS
+    evidence: live ACCEPT, FULFIL and DISPUTE deadline predicates now use trusted authoritative now; a backdated occurredAt cannot extend acceptBy, fulfilBy or autoReleaseAt, while replay validates historical signed event timestamps
+  role_and_state_separation:
+    status: PASS
+    evidence: live funding and restored FUND lineage reject a resolver equal to buyer or seller; RESOLVE still requires the distinct configured resolver
+  durable_restore_and_replay:
+    status: PASS
+    evidence: the signed checkpoint includes resolverCommitment and exact snapshot content; resolver mismatch, stale prefix and tamper fail, and deterministic replay enforces exact shape immutable lineage roles deadlines state graph ordinals conservation and used-action rebuilding even with permissive verifiers for internal invariants
+  action_reducer:
+    status: PASS
+    evidence: only an authentic finalized canonical listing action reaches terminal reduction and reconciliation
+
+findings:
+  - id: C06-MARKET-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Listing execution authorization did not bind the complete approved listing
+    closure_evidence:
+      - Authorization binds every approved commercial field plus decision, policy, session, nonce, chain and contract.
+      - Coordinated replacement command and decision under the original authorization fail before prepare with zero mutation.
+
+  - id: C03-MARKET-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Escrow lifecycle deadlines were bypassable with a backdated occurredAt
+    closure_evidence:
+      - transition compares authoritative now directly with acceptBy for ACCEPT, fulfilBy for FULFIL and autoReleaseAt for DISPUTE.
+      - Deterministic tests submit a signed backdated occurredAt while authoritative now is after acceptBy and fulfilBy; both fail with the specific deadline-expired error.
+      - The denied transitions occur before projection, event and replay-index mutation; normal and historical restore regressions remain passing.
+
+  - id: C05-MARKET-P01-003
+    severity: HIGH
+    status: CLOSED
+    title: Restore did not enforce resolver independence from buyer and seller
+    closure_evidence:
+      - EscrowSnapshot exact shape now carries resolverCommitment and restore requires equality with the configured resolver.
+      - Initial FUND replay rejects when configured resolver equals buyer or seller before the event becomes observable.
+      - The deterministic resolver-substitution snapshot fails ESCROW_SNAPSHOT_INVALID even with permissive event and checkpoint verifiers.
+      - Live buyer-as-resolver funding remains denied and distinct-resolver dispute resolution remains passing.
+
+  - id: C03-MARKET-P01-004
+    severity: HIGH
+    status: CLOSED
+    title: Escrow snapshot restore permitted history truncation replay and fabricated state transitions
+    closure_evidence:
+      - Exact signed checkpoint prefix and content tamper are denied.
+      - Restore deterministically validates immutable lineage, state transitions, actors, deadlines, ordinals, conservation and action uniqueness.
+      - Fabricated FUND-to-RELEASED fails with permissive verifiers, and full terminal restore denies historical replay and terminal reentry.
+
+accepted_controls:
+  - Current subject and all twenty-five artifacts are cryptographically bound to owner evidence.
+  - All four prior HIGH findings are closed by deterministic owner tests, independent validation and source-level confirmation.
+  - Exact-shape, signature, moderation, profile, policy, async prepared-action, classified-only, pause/refund and canonical reducer controls remain passing.
+  - Principal, fee, cap, party separation, resolver separation, deadlines, rounding, conservation, checkpoint lineage and replay controls remain passing.
+  - All executions remained local and synthetic with zero network, provider, economic, real-fund or incremental-cost effects.
+
+claims_excluded:
+  - real_goods
+  - real_funds
+  - mainnet
+  - external_kyc
+  - tax_advice_or_opinion
+  - formal_legal_opinion
+  - production_persistence
+  - production_dispute_operations
+
+residual_scope_notes:
+  - PASS applies only to the local deterministic synthetic Marketplace listing, escrow, restore and reducer boundary in the bound subject.
+  - Real goods, real funds, mainnet, external KYC, tax/legal opinions, production persistence and production dispute operations remain excluded external gates.
+  - No finding remains open in this independent T0 review.

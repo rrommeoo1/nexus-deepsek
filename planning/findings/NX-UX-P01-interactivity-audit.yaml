@@ -1,0 +1,70 @@
+schema_version: 1
+task_id: NX-UX-P01
+finding_id: NX-UX-P01-AUDIT-INTERACTIVITY-20260819
+kind: quality_audit
+severity: INFO
+status: CLOSED
+summary: Full button/feature interactivity pass (no dead controls) — product-grade local demo.
+
+scope:
+  - Every control on all five profile modes (Social / Work / Dating / Travel / Market)
+    and all launcher modules now performs a real action (state change, persistence,
+    device capture, audio generation, or a real sub-view sheet).
+
+verified_functionality:
+  composer:
+    - "Add sound" opens an on-device sound library (Web Audio API) with preview +
+      attach (Pop / Chime / Kick / Snap / Whoosh / Rise / None).
+    - "Effects" provides live image editing via range sliders (brightness, contrast,
+      saturation, sepia, blur, grayscale) + reset, applied to the selected photo.
+    - "Audience" is a real, persistent selector per mode (Public / Friends /
+      Work network / Approved connections / Guests + hosts / Buyers + sellers / Only me).
+    - "Open camera" streams the device camera and captures a real photo into the
+      gallery (nothing is uploaded).
+    - "Choose media" supports multiple files, reorder (left/right) and delete.
+    - "Save draft" / "Load draft" persist to localStorage per mode+content-type.
+    - Note: this is still a local demo. Publishing, real accounts, real video calls,
+      and real live streaming are production capabilities and remain out of scope.
+
+  account:
+    - "Not signed in" header state opens Sign up / Sign in (local synthetic identity).
+    - Session persists in localStorage across refresh; Create is gated behind sign-in
+      (sign-in reminder opens otherwise).
+
+  messaging:
+    - "Video call" opens a real device-camera preview with mute / camera / end controls.
+    - "Schedule meeting" opens a working day/time planner.
+    - Chat threads open with an input + send that updates the transcript.
+    - Mode filters (All / Social / Work / Dating / Travel / Market) filter the list.
+
+  live:
+    - "Go live" opens a device-camera live sheet with a local chat and simulated
+      viewer counter; "End live" closes it.
+
+  header:
+    - Search (⌕) opens a working global search sheet.
+    - Notifications (♢) opens a notification list.
+
+  other verified:
+    - Market: category filters, product details sheet, order actions, search.
+    - Work: tab filters, follow, like/share/comment, job details sheet + apply.
+    - Dating: filters sheet, like/pass/save, incognito, connections actions.
+    - Travel: stay/trip details sheets, booking action, search, trip rows.
+    - Watch: Go Live + video player sheet + recommendations.
+    - Creator: stats, payout, ranking rows all interactive.
+    - Pay: send/request/scan/history sheets, balances interactive.
+    - Privé: safe preview, tab filters.
+    - Profiles: edit profile (persisted), privacy rows interactive.
+
+verification:
+  build: PASS
+  lint: PASS_0_ERRORS_0_WARNINGS
+  tests: PASS_3_OF_3
+  local_service: HTTP_200_ON_0.0.0.0_3000
+  incremental_cost: { amount: 0, currency: EUR }
+
+residual_limits:
+  - All network/economic/media-operations remain local and synthetic; no provider,
+    no upload, no funds, no production deployment (requires explicit owner approval).
+  - Real multi-user accounts, real video calls, real live streaming, and public
+    hosting are production gates, not agent-completable.

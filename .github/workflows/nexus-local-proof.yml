@@ -1,0 +1,31 @@
+name: nexus-local-proof
+
+on:
+  workflow_dispatch:
+    inputs:
+      approval_id: {description: Registered approval ID, required: true, type: string}
+      provider_or_category: {description: Metered provider category, required: true, type: string}
+      max_amount: {description: Approved monetary ceiling, required: true, type: string}
+      currency: {description: Approval currency, required: true, type: string}
+      environment: {description: Approved environment, required: true, type: string}
+      expires_at: {description: Approval expiry timestamp, required: true, type: string}
+      owner: {description: Approval owner, required: true, type: string}
+
+jobs:
+  zero-cost-proof:
+    # Hard-disabled: a reviewed workflow change may remove this false term only
+    # after all inputs match an active approval in planning/spend-control.yaml.
+    if: ${{ false }}
+    runs-on: windows-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - name: Build scan attest and promote the same artifact
+        shell: pwsh
+        run: ./platform/run-local-ci.ps1 -ExecutorRole A10
+
+# The job cannot allocate a metered runner in this baseline. All seven approval
+# fields remain machine-readable so a future reviewed change can validate them
+# against the active approval registry before enabling provider execution.

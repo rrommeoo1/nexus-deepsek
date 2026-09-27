@@ -1,0 +1,140 @@
+schema_version: 1
+task_id: NX-AUTH-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only_T0
+decision: CHANGES_REQUIRED
+gate_effect: BLOCK_REVIEW_TO_DONE
+run_id: NX-AUTH-001-20260802T155632359Z-33edc49f
+validator_status: PASS
+assertions: 99
+identity_test_assertions: 46
+failures: 0
+current_subject_sha256: 8ec1272db828feb00d6461e734f41ee9b75f8f49eacd5ef97b554e6dea40b208
+owner_run_id: NX-AUTH-001-20260802T154454810Z-919728ff
+owner_subject_sha256: d5a0014f0419e8669908058718a5bdd95a21978512d6cdf500b3b7826768e477
+
+artifact_verification:
+  matched: 3/3
+  artifacts:
+    packages/identity/api/index.ts: ef54cdc6c19e2991fc5f3a86b2bab3d08d5e819bba83083c276e86a40bd5b651
+    packages/identity/api/index.test.ts: 03264ef0f641ee2fc5c2a949afc89c2433e681559ebc5892c5c3f5973690f7a0
+    planning/validate-auth.ps1: d3ca01215270ec1dc07caef8492e6c66c2151b991364742d61b175bb22749434
+
+findings:
+  - id: C12-AUTH-001
+    severity: CRITICAL
+    classification: authentication_replay
+    title: Concurrent completion can reuse one login challenge.
+    finding: >-
+      completeSocialLogin checks challenge.consumed before awaiting derivePkceChallenge.
+      The consumed flag is set only after that await. Two concurrent calls can both observe
+      consumed=false, pass the asynchronous PKCE computation, and invoke the provider
+      verifier with the same state. The sequential STATE_REPLAY test does not exercise this race.
+    evidence:
+      pre_await_check: 'if (challenge.consumed) ... STATE_REPLAY'
+      asynchronous_gap: 'await derivePkceChallenge(pkceVerifier)'
+      post_await_claim: 'challenge.consumed = true'
+      concurrent_test_present: false
+    required_change: >-
+      Atomically claim the challenge before any await, restore or terminally invalidate it
+      under an explicit failure policy, and add a Promise.all concurrency test proving one
+      provider verification and one successful completion maximum.
+
+  - id: C12-AUTH-002
+    severity: HIGH
+    classification: recovery_factor_independence_and_replay
+    title: Recovery independence is based on labels, not independent authenticators.
+    finding: >-
+      setupRecovery requires distinct factorId and factor type but does not require distinct
+      publicRef or verifier domain. Two differently typed factors can reference the same
+      authenticator and be satisfied by the same reusable proof. Recovery proofs are also
+      verified only as verify(publicRef, proof), without case ID, purpose, nonce, expiry, or
+      key-version binding, so proofs can be replayed across recovery, export, and outage login.
+    evidence:
+      distinct_public_ref_check_present: false
+      proof_context_binding_present: false
+      proof_api: 'verify(publicRef: string, proof: string)'
+    required_change: >-
+      Enforce distinct authenticator roots and verifier domains, issue purpose-bound one-time
+      challenges, and bind every proof to account, case/action, nonce, expiry, and key version.
+      Add duplicate-publicRef and cross-purpose proof-replay negative tests.
+
+  - id: C12-AUTH-003
+    severity: HIGH
+    classification: persistence_and_atomicity
+    title: Replay, revocation, identity, wallet, and recovery state exist only in process memory.
+    finding: >-
+      All authoritative state uses local Map/Set collections and there is no persistence or
+      transactional interface. Restart loses consumed challenges, entropy history, revoked
+      identities, recovery cooldowns, and wallet state. Concurrent same-subject account
+      creation also has no durable uniqueness or transaction boundary.
+    evidence:
+      in_memory_maps: [pending, identities, accounts, wallets, recoveries]
+      durable_store_interface_present: false
+      transaction_or_unique_constraint_evidence_present: false
+      restart_replay_test_present: false
+    required_change: >-
+      Introduce a durable repository with atomic challenge consumption, unique issuer-subject
+      identity constraints, transactional recovery transitions, revocation persistence, and
+      restart/crash/concurrency tests. Keep production enablement denied until that packet passes T0 review.
+
+  - id: C12-AUTH-004
+    severity: HIGH
+    classification: evidence_integrity
+    title: Owner evidence does not seal the current full review subject.
+    finding: >-
+      The three requested core artifact hashes are current, but the owner evidence subject is
+      d5a001... while the C12 replay over the validator's complete artifact set produces
+      8ec127.... Operational artifacts included by the validator drifted after owner evidence,
+      so the existing owner result cannot approve the current subject as a single sealed unit.
+    evidence:
+      core_artifact_hashes_current: 3/3
+      owner_subject: d5a0014f0419e8669908058718a5bdd95a21978512d6cdf500b3b7826768e477
+      current_subject: 8ec1272db828feb00d6461e734f41ee9b75f8f49eacd5ef97b554e6dea40b208
+      subjects_match: false
+    required_change: >-
+      Regenerate owner evidence for the exact current subject and use a canonical manifest
+      that separates immutable review artifacts from mutable execution provenance.
+
+  - id: C12-AUTH-005
+    severity: MEDIUM
+    classification: custody_attestation_and_overclaim
+    title: Custody properties are accepted from an unverified receipt.
+    finding: >-
+      Runtime validation checks receipt flags and commitment formatting but does not validate
+      the provider value, positive keyVersion, or a cryptographic proof that commitments map to
+      independent shares. The sandbox scope excludes production wallet cryptography, so the
+      current receipt cannot support a production non-custodial claim.
+    evidence:
+      receipt_provider_runtime_allowlist_check_present: false
+      key_version_runtime_validation_present: false
+      cryptographic_share_proof_present: false
+      production_crypto_claim_excluded: true
+    required_change: >-
+      Validate provider and version invariants and require an audited cryptographic receipt
+      protocol before promoting custody claims beyond the sandbox.
+
+passed_checks:
+  - Exact issuer plus subject hashing is present and email equality is not used for account merge.
+  - Issuer, audience, nonce, redirect, expiry, subject, state, and PKCE checks exist.
+  - Sequential state replay is denied and the challenge is consumed before provider adapter invocation.
+  - Threshold receipt rejects Nexus full-key access, wrong holder ordering, and duplicate commitments.
+  - Recovery cooldown, invalid proof, last recovery path, export, revoke, and provider-outage paths are exercised locally.
+  - Source boundary, strict TypeScript, credential, zero-network, zero-economic-operation, and zero-cost checks pass nominally.
+  - The implementation explicitly identifies itself as a sandbox and excludes production provider, cryptographic audit, and legal custody claims.
+
+external_gates:
+  cryptographic_audit_before_production: OPEN
+  custody_legal_memo: OPEN
+  external_provider_conformance: REQUIRED_NOT_EVIDENCED
+  durable_persistence_and_concurrency_T0: REQUIRED_NOT_EVIDENCED
+  production_enablement: BLOCKED
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-AUTH-001-C12.yaml

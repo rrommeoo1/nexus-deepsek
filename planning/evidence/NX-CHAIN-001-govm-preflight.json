@@ -1,0 +1,56 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-GOVM-PREFLIGHT-20260802T211323393Z-b3de8afb",
+    "executor_role":  "A20",
+    "status":  "READY",
+    "scope":  "official_govm_artifact_and_linux_runtime_preflight",
+    "official_runner":  {
+                            "repository":  "multiversx/mx-chain-scenario-cli-go",
+                            "release":  "v5.1.0",
+                            "vm":  "1.5",
+                            "archive_sha256_expected":  "337c533d985174de61b86414fd21c8df567bcbb1d3e9989532cc8e0ed1852e48",
+                            "archive_sha256_actual":  "337c533d985174de61b86414fd21c8df567bcbb1d3e9989532cc8e0ed1852e48",
+                            "binary_sha256_expected":  "588d1f4ba82e89bf9823af72b3b8af9d27cd38be2f75a420a3ba26ff95c03627",
+                            "binary_sha256_actual":  "588d1f4ba82e89bf9823af72b3b8af9d27cd38be2f75a420a3ba26ff95c03627",
+                            "verified":  true
+                        },
+    "scenarios":  {
+                      "required":  [
+                                       "signed-action-replay.scen.json",
+                                       "private-scope-denied.scen.json",
+                                       "private-action-success.scen.json",
+                                       "pauser-stop.scen.json",
+                                       "capability-revoked.scen.json",
+                                       "capability-rotation-escalation.scen.json",
+                                       "relayer-and-nonce-denied.scen.json",
+                                       "batch-shaped-extra-argument.scen.json"
+                                   ],
+                      "missing":  [
+
+                                  ],
+                      "ready":  true
+                  },
+    "runtime":  {
+                    "windows_native_supported":  false,
+                    "wsl_ready":  true,
+                    "wsl_distributions":  [
+                                              "U\u0000b\u0000u\u0000n\u0000t\u0000u\u0000-\u00002\u00004\u0000.\u00000\u00004\u0000",
+                                              "\u0000",
+                                              "\u0000"
+                                          ],
+                    "docker_command_available":  false,
+                    "podman_command_available":  false,
+                    "linux_runtime_ready":  true
+                },
+    "next_command_linux":  "./mx-scenario-go run --vm 1.5 --force-trace-gas \u003cscenario.scen.json\u003e",
+    "blocked_reason":  null,
+    "system_changes_performed":  0,
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "duration_seconds":  1.1431
+}

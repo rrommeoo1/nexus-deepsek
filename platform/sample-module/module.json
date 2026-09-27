@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "module_id": "nexus.platform.sample",
+  "version": "0.1.0",
+  "owner": "A10",
+  "bounded_context": "platform",
+  "runtime": "static-json",
+  "entrypoint": "health.json",
+  "dependencies": [],
+  "capabilities": ["health_read"],
+  "data_classes": ["PUBLIC"],
+  "network_required": false
+}

@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-REACTION-DISTRIBUTION-V20",
+  "status": "PASS",
+  "release": "20260827-neural66",
+  "scope": "inline_follow_creator_story_dislike_and_proportional_reaction_summary",
+  "implemented": {
+    "follow_inline_with_display_name": true,
+    "creator_avatar_and_name_open_story": true,
+    "creator_profile_fallback_without_story": true,
+    "dislike_direct_action": true,
+    "dominance_threshold": 0.8,
+    "dominant_reaction_uses_aggregate_total": true,
+    "balanced_reactions_show_two_or_three_counts": true,
+    "feed_and_fullscreen_parity": true
+  },
+  "examples": {
+    "three_like_three_sad": "♡ 😢 / 3 · 3",
+    "two_thousand_like_thirty_sad": "♡ / 2030",
+    "one_hundred_like_ninety_eight_sad": "♡ 😢 / 100 · 98"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "lan_http": 200,
+    "lan_assets_include_release": true
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "ea9d2207244579958272ce23030028945185be5046bad487452fa087adba2d40",
+    "apps/nexus-web/public/styles.css": "5fa3a91b19fc023d7bae9a37d77cdea9986b9c71b01514460de3d9b98c4b4ee7",
+    "apps/nexus-web/public/index.html": "2af60fae59ca64ff1799245f0bff7c1b4bd3ecec2cca3b7d04a095cb6339f388",
+    "apps/nexus-web/test/audit.test.js": "acc3b4877bfc22905cbad07af2a2c2ecdebaf890a934d710fab07cfc78b58b24"
+  },
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

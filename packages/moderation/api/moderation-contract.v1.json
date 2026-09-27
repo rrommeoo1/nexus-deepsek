@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A32",
+  "surfaces": ["SOCIAL", "MARKETPLACE"],
+  "severity": ["P0", "P1", "P2", "P3"],
+  "states": ["OPEN", "CONTAINED", "ACTIONED", "DISMISSED", "APPEALED", "UPHELD", "OVERTURNED", "CLOSED"],
+  "rules": {
+    "defaultDecision": "DENY",
+    "accountBlockPrecedesSurfacePolicy": true,
+    "p0RequiresContainmentBeforeFinalDecision": true,
+    "p0ContainmentRequiresSignedExpiry": true,
+    "expiredContainmentCannotAuthorizeDecision": true,
+    "appealReviewerMustDifferFromModerator": true,
+    "subjectMayAppealOwnCaseOnly": true,
+    "signedBlockCommandRequired": true,
+    "verifiedCheckpointRequiredForRestore": true,
+    "replayDeniedAcrossRestart": true,
+    "rawContentAllowedInAuditTrace": false,
+    "evidenceVaultCommitmentRequired": true,
+    "syntheticOnlyInCurrentPacket": true
+  },
+  "eventPayload": "IDENTIFIERS_AND_COMMITMENTS_ONLY",
+  "claimsExcluded": [
+    "production_moderation",
+    "real_user_reports",
+    "automated_content_classifier",
+    "evidence_vault_provider",
+    "legal_notice_or_authority_reporting",
+    "formal_trust_and_safety_audit"
+  ]
+}

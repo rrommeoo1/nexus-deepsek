@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-MOBILE-COMPOSITION-20260824-01",
+  "recorded_at": "2026-08-24T23:31:51+02:00",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "owner_feedback_source": ".codex-remote-attachments/019fbd01-3512-7600-b11d-1b3f0346f4a8/a61cc1c1-3472-454e-b82c-5fdb07d776bd/1-Photo-1.jpg",
+  "requirements": {
+    "nexus_logo_returns_to_home": "PASS",
+    "bottom_navigation_touch_targets_larger": "PASS",
+    "clip_content_owns_most_of_feed_viewport": "PASS",
+    "creator_and_trust_context_remain_visible": "PASS",
+    "secondary_safety_actions_remain_reachable": "PASS",
+    "fake_phone_notch_hidden_on_real_mobile": "PASS",
+    "stale_devnet_ribbon_absent": "PASS"
+  },
+  "browser_journey": {
+    "url": "http://192.168.1.153:3000/?v=social33",
+    "asset": "/app.js?v=20260824-social33",
+    "steps": [
+      "open Profile from the Nexus Dock",
+      "activate the NEXUS wordmark",
+      "verify Clips screen, Mix top context and Home destination are restored"
+    ],
+    "result": "PASS",
+    "old_local_functional_banner_present": false,
+    "old_devnet_funds_strip_present": false
+  },
+  "layout_metrics_css_px": {
+    "phone_screen_height": 711.054,
+    "content_viewport_height": 534.257,
+    "stories_height": 88.0,
+    "format_tabs_height": 34.315,
+    "clip_card_height": 411.932,
+    "clip_stage_height": 411.932,
+    "clip_stage_share_of_content_percent": 77.1,
+    "rendered_dock_icon_widths": [37, 37, 51, 37, 37],
+    "note": "The desktop QA phone shell is responsively scaled from the authored 42 px destination and 58 px Create targets."
+  },
+  "focused_checks": {
+    "client_syntax": "PASS",
+    "logo_home_event_binding": "PASS",
+    "immersive_clip_overlay": "PASS",
+    "overflow_safety_menu": "PASS",
+    "large_dock_css_contract": "PASS",
+    "cache_bust_social33": "PASS",
+    "loopback_http": 200,
+    "lan_http": 200
+  },
+  "limitations": [
+    "The full node:test suite was not rerun because execution of the external Node binary is access-denied by the current sandbox; focused parsing, static contracts and browser journey QA passed.",
+    "The owner photograph documents a stale cached build. Current HTML is no-store and social33 uses new versioned application and stylesheet URLs, but the phone must load the social33 URL or refresh the bare URL once.",
+    "This slice improves the Social shell and clip feed only; the full Social packet and production Live/provider gates remain open."
+  ],
+  "effects": {
+    "incremental_cost": 0,
+    "external_provider_calls": 0,
+    "real_value_transactions": 0,
+    "production_mutations": 0
+  },
+  "artifacts": {
+    "apps/nexus-web/public/app.js": "3f81bb8b955dfe04f5c6871b6a41422f14c0a1eac55a314d1579f92e05a4325c",
+    "apps/nexus-web/public/styles.css": "1af2ac4f889d35ef5830ada8fa8f9194ae4a561fc0ec9c54ac1eb6b96353a538",
+    "apps/nexus-web/public/index.html": "2bb032ef6ed056cd35257321d6a9883056a4320f3b1f35bb564d36451ea6b6d1",
+    "apps/nexus-web/test/audit.test.js": "5d81ca9a308967d45e6c671e4357651a2ec1ab62dde76b22922635dd9bc9c854",
+    "docs/17-ui-action-blueprint.md": "42ad96cfa01d750597beb27cf4b555d11c5c6b85cac1e1282932c180b5bddd38",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "1f8b6b243d124e4bab16938ee1ff77a4af107980e0dfaef3d7c0fc5afed15a46"
+  }
+}

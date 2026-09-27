@@ -1,0 +1,201 @@
+schema_version: 2
+task_id: NX-WEB-AUTH-P01
+reviewer_role: C12
+control_scope: [C01, C02, C04, C10, C12]
+independence: single_independent_checker_consolidated_T0_scope
+mode: YELLOW_local_mock_only_read_only
+decision: PASS
+gate_effect: AUTH_PACKET_MAY_CLOSE
+run_id: NX-WEB-AUTH-P01-20260823T125439502Z-C12-LEGACY-STORAGE-FINAL15
+observed_at: 2026-08-23T12:54:39.502Z
+supersedes_local_receipt_sha256: f1a4dcae14420cf0b8b85ca8c5e90b99d7d9da5442369a773b8df550b2a06a9b
+
+owner_evidence:
+  path: planning/evidence/NX-WEB-AUTH-P01-validation.json
+  run_id: NX-WEB-AUTH-P01-20260823-LEGACY-STORAGE-FINAL14
+  status: PASS_READY_FOR_FINAL_INDEPENDENT_REVIEW
+  manifest_file_sha256: 1b39fef9e5f49654761dac4ef599faf393a640202da8a777359b17a923d992f5
+  expected_subject_sha256: ed6fc9de5c93b1e86a7863541eb08adde7f7c744ca41544e84c6d0ff1b4f7697
+  recomputed_subject_sha256: ed6fc9de5c93b1e86a7863541eb08adde7f7c744ca41544e84c6d0ff1b4f7697
+  canonicalization: "sha256(UTF8(join(LF, sort(path) map path + ':' + sha256)))"
+  subject_matches: true
+  artifact_hashes_matched: 36/36
+  artifact_drift: []
+  secret_or_address_content_inspected: false
+
+independent_execution:
+  node_tests:
+    command: node --test test/*.test.js
+    result: PASS_58_OF_58
+  http_smoke:
+    command: node scripts/smoke-auth.mjs
+    result: PASS_8_OF_8
+    boundary: loopback_only_no_external_provider
+  syntax:
+    command: node --check over 12 bounded auth/purge/sanitizer/runtime files
+    result: PASS_12_OF_12
+  runtime_observation:
+    listener: 0.0.0.0:3000
+    pid: 24868
+    loopback_http_status: 200
+  retired_purge_fixture_probes:
+    row_counts: [5, 6, 7]
+    attempts_per_count: 2
+    approval_reuse_attempted: true
+    all_execute_attempts: REJECTED_LEGACY_WALLET_PURGE_RETIRED
+    rows_changed: 0
+  retired_cli_probes:
+    purge_cli_5_6_7_execute: REJECTED_ALL
+    sanitizer_execute: REJECTED_LEGACY_STORAGE_SANITIZE_RETIRED
+    external_effects: 0
+
+legacy_storage_closure:
+  logical_state:
+    database_open_mode: read_only
+    wallet_rows: 0
+    integrity_check: ok
+    freelist_pages: 0
+  durable_receipt:
+    operation_id: NX-WEB-AUTH-P01-LEGACY-STORAGE-SANITIZE-20260823
+    present_exactly_once: true
+    target_matches_legacy_server_keystore_generation: true
+    historical_target_count: 6
+    observed_remaining: 0
+    completed_at_present: true
+    execution_tool_sha256_matches_owner_evidence: true
+    verified_after_restart: true
+  quiesced_boundary_from_sealed_evidence:
+    listener_stopped_before_database_write: true
+    checkpoint_truncate: true
+    journal_mode_during_rebuild: delete
+    secure_delete_during_rebuild: 1
+    vacuum_live_rows_only: true
+    wal_and_shm_absent_at_completion: true
+    workspace_database_named_files_at_completion: 1
+  post_restart_lineage:
+    runtime_database_generation_integrity: ok
+    current_wallet_rows: 0
+    current_wal_exists: true
+    current_shm_exists: true
+    current_wal_mtime_not_before_receipt: true
+    current_shm_mtime_not_before_receipt: true
+    current_sidecars_classification: POST_SANITIZATION_RUNTIME_GENERATION
+    runtime_secure_delete_source_policy: ON_BEFORE_SCHEMA_OR_MIGRATIONS
+    runtime_secure_delete_deterministic_test: PASS
+  exact_workspace_remnant_scan:
+    candidate_count: 3
+    candidates:
+      - apps/nexus-web/data/nexus.sqlite
+      - apps/nexus-web/data/nexus.sqlite-wal
+      - apps/nexus-web/data/nexus.sqlite-shm
+    pre_sanitization_database_backup_or_sidecar_found: false
+    interpretation: only_current_database_and_post_receipt_runtime_sidecars
+  truthful_limit:
+    accepted: true
+    statement: >-
+      The evidence proves sanitization of the current Nexus-managed SQLite
+      generation, removal of its pre-sanitization WAL/SHM sidecars and absence of
+      obvious database remnants inside this workspace. It does not claim forensic
+      erasure from SSD firmware, operating-system restore points or external backups.
+
+finding_disposition:
+  C12-WEB-AUTH-001:
+    result: CLOSED_NO_REGRESSION
+    basis: reset routes expose no usable bearer and remain fail-closed.
+
+  C12-WEB-AUTH-002:
+    result: CLOSED
+    basis: C12-WEB-AUTH-002A and C12-WEB-AUTH-002B are independently closed below.
+
+  C12-WEB-AUTH-002A:
+    result: CLOSED
+    previous_issue: >-
+      Logical row deletion did not prove removal of legacy keystore bytes from
+      SQLite free pages or the pre-deletion WAL/SHM generation.
+    closure_evidence:
+      - Owner-authorized deletion is followed by sealed quiesced checkpoint evidence.
+      - secure_delete=ON plus VACUUM rebuilt live pages with zero wallet rows.
+      - Pre-sanitization WAL/SHM were absent at the quiesced completion boundary.
+      - A durable aggregate-only receipt binds the six-row operation and tool hash.
+      - Current read-only state has integrity ok, zero wallet rows and zero freelist pages.
+      - Current WAL/SHM timestamps establish that they belong to the post-restart generation.
+      - Workspace scan found no older database, sidecar or obvious wallet backup candidate.
+      - SSD, restore-point and external-backup limitations are stated without overclaiming.
+
+  C12-WEB-AUTH-002B:
+    result: CLOSED
+    previous_issue: >-
+      The reusable purge approval ID could be combined with a caller-selected count
+      and thereby authorize a target other than the approved six rows.
+    closure_evidence:
+      - Mutation was removed from the library; execute always throws the retired error.
+      - Purge CLI rejects execute before opening the database and has no count override.
+      - Storage sanitizer rejects execute before opening the database.
+      - Independent 5/6/7-row fixture probes and repeated approval reuse changed zero rows.
+      - Independent purge CLI probes rejected execute for 5/6/7 and sanitizer execute rejected.
+      - The one-time approval can no longer reach a destructive execution path.
+
+  C12-WEB-AUTH-003:
+    result: CLOSED_NO_REGRESSION
+    basis: production configuration and migration secrets remain fail-closed.
+
+  C12-WEB-AUTH-004:
+    result: CLOSED_NO_REGRESSION
+    basis: password-bound server recovery and seed export remain retired.
+
+  C12-WEB-AUTH-005:
+    result: CLOSED_NO_REGRESSION
+    basis: cross-column identity uniqueness and canonical address resolution tests pass.
+
+  C12-WEB-AUTH-006:
+    result: CLOSED_NO_REGRESSION
+    basis: >-
+      WalletConnect attestation, exact-origin and NativeAuth regressions pass locally;
+      the phone journey remains owner-reported evidence and was not re-executed by this checker.
+
+  C12-WEB-AUTH-007:
+    result: CLOSED_EXACT_36_ARTIFACT_SUBJECT
+    basis: all 36 current manifest hashes and the canonical subject were independently reproduced.
+    owner_label_advisory: >-
+      finding_closure_claims retains the older phrase COMPLETE_34_ARTIFACT_SUBJECT;
+      the authoritative artifacts array contains 36 entries and binds exactly 36/36.
+      This stale descriptive count does not weaken the reproduced subject.
+
+  C12-WEB-AUTH-008:
+    result: CLOSED_NO_REGRESSION
+    basis: hashed token, bounded input and production edge gates remain covered.
+
+  C12-WEB-AUTH-009:
+    result: CLOSED_NO_REGRESSION
+    basis: same-origin, CSP, HSTS and query-redaction controls remain covered.
+
+  C12-WEB-AUTH-010:
+    result: CLOSED_NO_REGRESSION
+    basis: uncertified OAuth providers remain truthfully unavailable and fail-closed.
+
+passed_checks:
+  - Exact owner Evidence Pack binding reproduced at 36/36 with zero drift.
+  - Deterministic tests pass 58/58, HTTP smoke passes 8/8 and syntax passes 12/12.
+  - C12-WEB-AUTH-002A storage-generation sanitization and lineage are independently supported.
+  - C12-WEB-AUTH-002B destructive approval reuse is eliminated by permanent retirement.
+  - All prior C12-WEB-AUTH-001 through C12-WEB-AUTH-010 findings are closed without blocking regression.
+  - No secret/address content was selected, decrypted, read or output.
+  - No external network, provider, transaction, real-fund or incremental-cost effect occurred.
+
+residual_out_of_scope:
+  - SSD firmware, operating-system restore points and external backups outside the workspace.
+  - Production OAuth/provider, passkey/MPC and external formal security/custody certification.
+  - Mainnet transactions and real-fund operations.
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  checkpoint_modified: false
+  owner_evidence_modified: false
+  local_database_modified: false
+  wallet_row_content_selected: false
+  legacy_addresses_ciphertext_mnemonics_or_secrets_read_or_output: false
+  external_network_used: false
+  production_or_mainnet_effects: false
+files_modified:
+  - planning/evidence/reviews/NX-WEB-AUTH-P01-C01-C02-C04-C10-C12.yaml

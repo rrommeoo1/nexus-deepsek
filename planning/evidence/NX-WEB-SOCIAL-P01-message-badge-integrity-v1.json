@@ -1,0 +1,47 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-MESSAGE-BADGE-INTEGRITY-072",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "latest_request_guard": true,
+    "authenticated_user_binding": true,
+    "logout_invalidation": true,
+    "api_query_scope": { "persona": "all", "box": "inbox" },
+    "server_privacy_assertion_required": true,
+    "maximum_conversations": 100,
+    "unique_positive_conversation_ids": true,
+    "maximum_unread_per_conversation": 10000,
+    "maximum_aggregate": 9999,
+    "malformed_response_false_zero": false,
+    "cache_generation": "20260905-p1locale36"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_client_badge_integrity": { "passed": 1, "failed": 0 },
+    "focused_unified_messaging_api": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 234, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "The global unread badge trusted an unscoped response and could be overwritten after the authenticated user changed.", "resolution": "API scope/privacy markers plus latest-request and exact-user guards now bind every accepted refresh." },
+    { "severity": "MEDIUM", "finding": "Malformed or extreme unread values could produce an invalid aggregate or false UI state.", "resolution": "Collections, unique IDs, per-row counts and aggregate are bounded; invalid responses preserve the last verified count." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "ba4409c31322cafc3279043e75bfa03c655d9003ef9ed7d5a4d1823001fe55c0",
+    "apps/nexus-web/public/app.js": "9a263c0574a06a8085965f1dae1c179edacf0d9c079745876796c949155bc5c8",
+    "apps/nexus-web/public/index.html": "0ecabcce9156b4b63019d916a92fa1feea10e20430fb685e0594876d85285277",
+    "apps/nexus-web/test/audit.test.js": "394a286ee4e23b3fc3127d31ccc0bbe2526beef2c6d9ac9cc551f8dade33ecf8",
+    "apps/nexus-web/test/core.test.js": "08f7faa36a857b360d638b87f23eed531922054731027f833b8d5ad211cf77f3",
+    "planning/NX-WEB-SOCIAL-message-badge-integrity-v1.md": "d9424731ba79a51c8b0e65c14c9732779c72cc59e078b6d4aaa15c952490d2d3",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "051739f97f7d198af9c65793e2ae353a2c2998a8ca7aef589c91ea9cb045d288",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "4c0a7401aeddbce48835966e60d42d7092352c5378904862d2ad6f0717311145"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_PRODUCTION_PUSH_INFRASTRUCTURE_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-INBOX-RESULT-INTEGRITY-073"
+}

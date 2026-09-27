@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "evidence_id": "NX-WEB-SOCIAL-P01-IDENTITY-MEDIA-PICKER-V1",
+  "task_packet": "NX-WEB-SOCIAL-P01",
+  "created_at": "2026-08-24T22:18:43+02:00",
+  "status": "PARTIAL_OPEN_NODE_AND_DEVICE_GATES",
+  "scope": "header identity, fullscreen media navigation and safe camera/gallery cancellation",
+  "runtime_url": "http://192.168.1.153:3000/?v=social29",
+  "checks": {
+    "single_header_mode_switch": "PASS_SOURCE_AND_BROWSER_DOM",
+    "active_profile_avatar_in_header": "PASS_BROWSER_DOM",
+    "quick_nexus_sigil_picker": "PASS_SOURCE_AND_BROWSER_DOM",
+    "sigil_adjacent_to_username": "PASS_BROWSER_DOM",
+    "duplicate_profile_mode_and_sigil_controls_removed": "PASS_SOURCE_ASSERTION",
+    "fullscreen_media_viewer_four_direction_contract": "PASS_SOURCE_ASSERTION",
+    "composer_labelled_back_control": "PASS_BROWSER_DOM",
+    "composer_back_restores_social_clips": "PASS_BROWSER_INTERACTION",
+    "native_picker_cancel_listener": "PASS_SOURCE_ASSERTION",
+    "mobile_focus_visibility_cancel_fallback": "PASS_SOURCE_ASSERTION",
+    "focused_deterministic_assertions": "PASS_6_OF_6",
+    "javascript_module_syntax": "PASS_APP_REPO_AUDIT",
+    "real_phone_native_picker_cancel": "OPEN_USER_DEVICE_RETEST",
+    "full_node_test_suite": "OPEN_RUNTIME_EXECUTION_DENIED_BY_SANDBOX"
+  },
+  "privacy_and_safety": {
+    "cancel_uploads_bytes": false,
+    "cancel_creates_draft": false,
+    "camera_stream_stopped_on_return": true,
+    "sigil_is_user_selected_not_inferred": true,
+    "wallet_transaction_executed": false
+  },
+  "effects": {
+    "incremental_cost_amount": 0,
+    "currency": "EUR",
+    "network_provider_operations": 0,
+    "economic_operations": 0,
+    "real_fund_operations": 0
+  },
+  "artifacts_sha256": {
+    "apps/nexus-web/public/app.js": "3ced67c619d6fa97b0fb3444152caee29f224882d85d46dd8ec3623fc49e9f0a",
+    "apps/nexus-web/public/styles.css": "f2277cdea6df73b3d119d86c4bbd8333055d24cd0827eba77a0efa888c77f595",
+    "apps/nexus-web/public/index.html": "cddb823348fb9a8bbe3e5f50beba52dc728dd0fea97317ec02f7215026d527e6",
+    "apps/nexus-web/test/audit.test.js": "ddf72740fa86c6db7feb8e07bbee8bc68d80c6f446baa8cd4aceaaaa6f1589f5",
+    "apps/nexus-web/lib/repo.js": "599da82aebbec1eb6f29e662b7feb8efbf5ddce342d89243dd6a96dac4a038e7",
+    "docs/17-ui-action-blueprint.md": "c29f12f16db5b72328911670638a87d3854acebebc8a28d6ef5a356af86aa2bc",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "c2bd6fb47cc084b432f0113bbee7511dee7ad67b2c551cbcf045f96bf518c7f1"
+  },
+  "claims_excluded": [
+    "real_device_picker_cancel_verified",
+    "production_mobile_qa_complete",
+    "full_node_suite_passed_in_current_environment",
+    "production_wallet_payment"
+  ]
+}

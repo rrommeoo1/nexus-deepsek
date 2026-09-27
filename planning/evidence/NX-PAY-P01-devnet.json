@@ -1,0 +1,73 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-PAY-P01",
+    "run_id":  "NX-PAY-P01-DEVNET-20260809-EXEC01",
+    "executor_role":  "A21",
+    "mode":  "Recover",
+    "status":  "PASS",
+    "recovery_reason":  "mxpy_11_4_1_wait_timeout_type_error_after_successful_broadcast",
+    "authorization":  {
+                          "approval_id":  "NX-PAY-P01-DEVNET-ZERO-REAL-VALUE-20260809",
+                          "authorized_subject_sha256":  "f6f9c7a4fab2dc8095716eb2bae9ded52a31de11080439677dd4a70ae86ee876",
+                          "consumed_sha256":  "ccf1691ffcba67082c00c0979864acc25cce26d790d93316cacd2a2bacc09fab",
+                          "single_use_consumed":  true
+                      },
+    "recovery_subject_sha256":  "c2429fed4de5ce50b8d38126353c0c454dca9bd3bda3830a606533857920ad03",
+    "artifact_sha256":  {
+                            "packages/payments/api/index.ts":  "1236b59a50d14e87231e09893937acb1aaa3cd7b165b572fa92c9ba8498259ff",
+                            "packages/payments/api/index.test.ts":  "800339c783404fdf0d8d6ec1d49d37ce25612707133c603ed515e847df77ee14",
+                            "packages/payments/api/payment-contract.v1.json":  "130a38da1469c6e44fac92279bf0ae771461ef62fb388a5f956188bc5071d354",
+                            "docs/19-username-payments.md":  "f560f412d6ce8a540fe4ff7d1b7083d96dcc8f923fb02524dd3b5cbd4acb9913",
+                            "planning/checkpoints/NX-PAY-P01.md":  "65b38e92684e2862ad95010750fd35c3e72288c3f46f4b19826102230c0a786c",
+                            "planning/run-payments-devnet.ps1":  "c7474458d58565d3be58397b4864a07722726b259e58ca1cc862ca12d696932c"
+                        },
+    "signed_receipt_sha256":  "0c9fdc4c7c03d948f563c0ed86f36c34bc1830d22fd3813603c114f4ebd75fca",
+    "network":  {
+                    "name":  "MultiversX Devnet",
+                    "chain_id":  "D",
+                    "gateway":  "https://devnet-gateway.multiversx.com",
+                    "api":  "https://devnet-api.multiversx.com",
+                    "real_value":  false
+                },
+    "transaction":  {
+                        "hash":  "10c4e1014c9c2a212f802f6163ac3a2c4651f79e21e0c21339a7fe25439006da",
+                        "status":  "success",
+                        "nonce":  930,
+                        "sender":  "erd1kyaqzaprcdnv4luvanah0gfxzzsnpaygsy6pytrexll2urtd05ts9vegu7",
+                        "receiver":  "erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede",
+                        "token_id":  "USDC-350c4e",
+                        "decimals":  6,
+                        "atomic_amount":  "1",
+                        "native_value":  "0",
+                        "data":  "ESDTTransfer@555344432d333530633465@01",
+                        "signature":  "12438df27b29ab85e8415021e331b3c827bfd7f4c4e40f5f28ee425d50ed4d2d4ade84f5d6ebbf8c60bfd25cbb87a54720b6a16d692e03d7018053c4d51ee702"
+                    },
+    "balance_effect":  {
+                           "sender_before":  "200000",
+                           "sender_after":  "199999",
+                           "sender_delta":  "-1",
+                           "receiver_before":  "0",
+                           "receiver_after":  "1",
+                           "receiver_delta":  "1",
+                           "token_imbalance":  "0",
+                           "proof":  "current balances plus identical latest sender/receiver token-transfer history and signed receipt"
+                       },
+    "public_devnet_transactions":  1,
+    "repeated_broadcasts":  0,
+    "recovery_network_operations":  5,
+    "real_fund_operations":  0,
+    "xmoney_provider_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "claims_excluded":  [
+                            "xmoney_sandbox",
+                            "xmoney_production",
+                            "mainnet",
+                            "real_funds",
+                            "production_compliance",
+                            "formal_legal_opinion"
+                        ],
+    "duration_seconds":  13.239
+}

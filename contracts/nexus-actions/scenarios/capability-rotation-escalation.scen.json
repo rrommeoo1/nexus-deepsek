@@ -1,0 +1,154 @@
+{
+    "steps": [
+        {
+            "step": "setState",
+            "accounts": {
+                "address:owner": {
+                    "nonce": "1"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:pauser": {
+                    "nonce": "1"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:relayer": {
+                    "nonce": "1"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "accounts": {
+                "address:controller": {
+                    "nonce": "1"
+                }
+            }
+        },
+        {
+            "step": "setState",
+            "currentBlockInfo": {
+                "blockTimestampMs": "1800000000000"
+            }
+        },
+        {
+            "step": "setState",
+            "newAddresses": [
+                {
+                    "creatorAddress": "address:owner",
+                    "creatorNonce": "1",
+                    "newAddress": "sc:nexus-actions"
+                }
+            ]
+        },
+        {
+            "step": "scDeploy",
+            "txId": "deploy",
+            "tx": {
+                "from": "address:owner",
+                "contractCode": "mxsc:../output/nexus-actions.mxsc.json",
+                "arguments": [
+                    "0x44",
+                    "0x7061757365725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "100,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "allow relayer",
+            "tx": {
+                "from": "address:owner",
+                "to": "sc:nexus-actions",
+                "function": "setRelayerAllowed",
+                "arguments": [
+                    "0x72656c617965725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+                    "0x01"
+                ],
+                "gasLimit": "20,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "register capability",
+            "tx": {
+                "from": "address:controller",
+                "to": "sc:nexus-actions",
+                "function": "registerCapability",
+                "arguments": [
+                    "0x01",
+                    "0x1111111111111111111111111111111111111111111111111111111111111111",
+                    "0x2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12",
+                    "0x01",
+                    "0x03",
+                    "0x01a31d82ac00",
+                    "0x72656c617965725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "20,000,000"
+            },
+            "expect": {
+                "out": [],
+                "status": "0"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "reject rotation scope escalation",
+            "tx": {
+                "from": "address:controller",
+                "to": "sc:nexus-actions",
+                "function": "rotateCapability",
+                "arguments": [
+                    "0x2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12",
+                    "0x5151515151515151515151515151515151515151515151515151515151515151",
+                    "0x03",
+                    "0x02",
+                    "0x01a31d82ac00",
+                    "0x72656c617965725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "20,000,000"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:CAPABILITY_SCOPE_ESCALATION"
+            }
+        },
+        {
+            "step": "scCall",
+            "txId": "reject zero replacement key",
+            "tx": {
+                "from": "address:controller",
+                "to": "sc:nexus-actions",
+                "function": "rotateCapability",
+                "arguments": [
+                    "0x2152f8d19b791d24453242e15f2eab6cb7cffa7b6a5ed30097960e069881db12",
+                    "0x0000000000000000000000000000000000000000000000000000000000000000",
+                    "0x01",
+                    "0x02",
+                    "0x01a31d82ac00",
+                    "0x72656c617965725f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+                ],
+                "gasLimit": "20,000,000"
+            },
+            "expect": {
+                "status": "4",
+                "message": "str:SESSION_KEY_INVALID"
+            }
+        }
+    ]
+}

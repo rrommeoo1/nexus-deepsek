@@ -1,0 +1,82 @@
+{
+  "packet": "NX-WEB-SOCIAL-P03-ACCESSIBILITY-AND-RESPONSIVE-INTERACTION-AUDIT-037",
+  "checkpoint_date": "2026-09-03",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "labelled_current_dialogs_minimum": 12,
+    "shared_modal_manager": true,
+    "runtime_fake_dom_journeys": 2,
+    "coarse_pointer_min_target_css_px": 44,
+    "high_contrast_preference": true,
+    "reduced_motion_preserved": true,
+    "external_share_enabled": false
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_tests": { "passed": 42, "failed": 0 },
+    "product_full_tests": { "passed": 205, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_SAVED_LOCAL_PERMISSION_DENIED_127_0_0_1",
+      "claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "PASS_LOCAL",
+      "initial_findings_resolved": { "critical": 0, "high": 1, "medium": 6 },
+      "final_findings": { "critical": 0, "high": 0, "medium": 0 },
+      "final_independent_pass_claimed": true,
+      "artifact_hashes_reverified": true
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Media and moderation surfaces could restore an already-mutated inert/aria-hidden snapshot and leave the app inaccessible.",
+      "resolution": "Removed feature-level ownership; one shared manager now snapshots, isolates and restores exact state."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Nested dialogs did not restore their parent invoking control.",
+      "resolution": "Parent-dialog openers are retained and restored when they belong to the newly exposed top dialog."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Hidden or inert ancestors were not considered when choosing focusable controls.",
+      "resolution": "Usability now rejects hidden/inert/aria-hidden ancestry and zero rendered geometry."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Keyboard activation could synchronously move focus before observer registration.",
+      "resolution": "Click capture plus pre-registration focus preservation retains the true opener."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Older important dimensions overrode 44px coarse-pointer targets in header, creator and comments states.",
+      "resolution": "Final specific coarse-pointer overrides cover mode switches, Follow, more menus, expanded comments and clip menus."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Two audit assertions pinned the prior application cache token.",
+      "resolution": "A single current appAssetVersion invariant now covers both assertions."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "5301ae63b2054180c1d26062bdd201fbb3ca479650a5979c759845bee2bee4c6",
+    "apps/nexus-web/public/modal-accessibility.js": "ac3b196f0390c361ae521c4e650f5d290c060d678b3c1d7b81e4ce925cc1edd9",
+    "apps/nexus-web/public/styles.css": "4150cf693afc32b5f0ba964c21f1006f538be969c184ea572edc3477a854fba8",
+    "apps/nexus-web/public/index.html": "3bec65d48984f64221f341dcbfdab6951538067de888f1b92b20d9cd7c0d8936",
+    "apps/nexus-web/test/audit.test.js": "dfe2221669b87a737c9b37969730468dda9a931866c6e6ae11021049d998d44d",
+    "apps/nexus-web/test/p3-accessibility-modal.test.js": "e9649f6354f44ebfae600e2c5f3dd6f2a6a4d11cfdbed2b95820dc37ba3e082e",
+    "planning/NX-WEB-SOCIAL-accessibility-responsive-audit-v1.md": "09d65975efd8dfc996bcdec0c9f09fb83c4716d0f8ccf61c0fb28468e6fc08fc"
+  },
+  "capacity": {
+    "band": "RED",
+    "reason": "The persistent goal reports usageLimited; packet 037 is safely closed and no new delivery packet is opened until capacity resets."
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_ACCESSIBILITY_MATRIX_INDEPENDENT_T1_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "AFTER_CAPACITY_RESET_SELECT_ONE_BOUNDED_SOCIAL_GAP_FROM_ACCEPTANCE_TRACE"
+}

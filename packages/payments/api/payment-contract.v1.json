@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A21",
+  "environment": "local_mock_and_devnet_only",
+  "realValueCap": 0,
+  "rails": ["MULTIVERSX_DIRECT", "XMONEY_MERCHANT_ADAPTER"],
+  "xMoneyP2PUsernameAssumed": false,
+  "paymentPolicy": {
+    "exactShape": true,
+    "hashContentAllowlisted": true,
+    "activeWindowRequired": true,
+    "defaultCountryDecision": "DENY",
+    "devnetTokenOnly": "USDC-350c4e",
+    "maxAtomicAmount": "1"
+  },
+  "capabilityBinding": ["subjectProfileId", "countryCode", "network", "tokenId", "tokenDecimals", "maxAtomicAmount", "rail", "sanctionsClear", "transactionMonitoringClear", "policyHash", "expiry", "signature"],
+  "authorizationReverification": { "signedCapabilityEmbedded": true, "signatureReverifiedAtResolution": true, "expiryRecheckedAtResolution": true, "forgedOrStaleAuthorization": "DENY" },
+  "resolutionBinding": ["receiptId", "aliasHash", "aliasVersion", "senderProfileId", "senderAddress", "receiverAddress", "network", "tokenId", "tokenDecimals", "atomicAmount", "policyHash", "issuedAt", "expiresAt", "resolverKeyId", "signature"],
+  "finality": ["PREVIEWED", "SIGNED", "SUBMITTED", "ORDERED", "EXECUTED_SUCCESS", "FAILED_TERMINAL"],
+  "executionSuccessRequires": ["sameTxHash", "chainStatusSuccess", "exactSenderDelta", "exactReceiverDelta", "zeroTokenImbalance", "indexedObservation"],
+  "directLedger": { "snapshotRestore": true, "eventReplayDeniedAfterRestore": true, "receiptSubstitutionDenied": true, "ordinalLineageReconstructed": true, "phantomOrMissingEventsDenied": true, "fingerprintRecomputed": true, "typedChainObservationPersisted": true, "chainObservationReverifiedAtRuntimeAndRestore": true },
+  "aliasPolicy": { "asciiPilot": true, "nfkcMutationDenied": true, "mixedScriptDenied": true, "staleVersionDenied": true, "addressVerifierRequired": true, "maxReceiptLifetimeSeconds": 120 },
+  "providerPolicy": { "credentials": "SERVER_ONLY_NOT_IN_CURRENT_PACKET", "webhookSignatureRequired": true, "eventIdPayloadCollisionDenied": true, "idempotencyPayloadCollisionDenied": true, "outOfOrderFactsConverge": true, "snapshotRestore": true, "restoreSignatureReverification": true, "sequenceMonotonicityRequired": true, "factsReconstructedFromEvents": true, "phantomEventsDenied": true, "sandboxExternalAccess": false },
+  "devnetDraft": { "chainId": "D", "nativeValue": "0", "gasLimit": 600000, "publicSubmissionInLocalEvidence": false },
+  "claimsExcluded": ["public_devnet_transaction", "xmoney_live_p2p", "xmoney_sandbox", "mainnet", "real_funds", "production_compliance", "formal_legal_opinion"]
+}

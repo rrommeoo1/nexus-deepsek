@@ -1,0 +1,21 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "artifact": "collectible_identity_market_economy",
+  "status": "completed",
+  "date": "2026-08-25",
+  "files": [
+    "docs/23-collectible-identity-market-economy.md"
+  ],
+  "decisions": [
+    "Username, story collectibles, empty profile shells and transparent business/creator pages can become transferable assets.",
+    "Wallets, private keys, private messages, KYC/KYB, earned sigils, sanctions, dating history and personal reputation are non-transferable.",
+    "Story UX should use a prism-chain tap-to-peek interaction before full-screen open.",
+    "Private access keeps the 1 USD stablecoin-equivalent minimum and 90/10 creator/Nexus split already defined for private content.",
+    "A transferred page or username does not transfer hidden trust; owner changes are labelled and ranking enters anti-fraud cooldown."
+  ],
+  "constraints": [
+    "No real payments implemented in this packet.",
+    "No external provider or paid API used.",
+    "Production rollout requires legal terms, country capability matrix, age gates where relevant, anti-wash controls and smart-contract audit."
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-COMMENT-MUTATION-RESULT-INTEGRITY-084",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "controls": {
+    "comment_read_post_viewer_persona_bound": "PASS",
+    "latest_request_and_profile_switch_guard": "PASS",
+    "bounded_thread_shape": "PASS_500_MAX",
+    "create_reply_parent_bound": "PASS",
+    "reaction_edit_withdraw_exact_result": "PASS",
+    "stable_retry_and_single_flight": "PASS",
+    "withdrawal_tombstone_history": "PASS",
+    "external_share": "DENIED"
+  },
+  "verification": {
+    "focused_tests": { "passed": 74, "failed": 0 },
+    "product_full_tests": { "passed": 243, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "external_network": false,
+    "real_funds": false
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "992a336460b6cdd800d68b5194ba75ce53908b8299531783bfab86ebaf9b1c6a",
+    "apps/nexus-web/public/app.js": "7a486b311b464a1e498327d5ca42ecd5bca0815d026d48bb05acd6d42aaa1785",
+    "apps/nexus-web/public/index.html": "84f93c4b1dc176c85f3c02ad68bc108bf6f4d97edd291350c7fae9488c8337b2",
+    "apps/nexus-web/test/audit.test.js": "1fe57bf49d67eca0de2ad32e07bc7289da27052050e3053cea29d5ac2b81080d",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "efcfb2c3845edba15cbf5bfa48723a04d618befe44e39c3923dcad495cdfbd4b",
+    "planning/NX-WEB-SOCIAL-comment-mutation-integrity-v1.md": "b63acaa6f146b465d7f7344f39a41589f704413a5c544c280b0b896a7b509d05"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-SECONDARY-ENGAGEMENT-INTEGRITY-085"
+}

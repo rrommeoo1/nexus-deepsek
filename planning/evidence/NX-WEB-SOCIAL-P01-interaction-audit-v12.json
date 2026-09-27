@@ -1,0 +1,34 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "clip_interaction_browser_audit_and_reaction_palette_repair",
+  "date": "2026-08-27",
+  "cache_bust": "20260827-neural58",
+  "findings_fixed": [
+    "Like click selected LIKE instead of opening an explicit reaction chooser",
+    "A retired CSS rule forced the expanded reaction palette to display:none",
+    "The reaction palette showed only six of eight choices without horizontal scrolling",
+    "Browsers without a Fullscreen API had no explicit Nexus viewer fallback",
+    "Demo guidance still described the retired hold-only interaction"
+  ],
+  "browser_verification": {
+    "reaction_palette_open_close": "pass",
+    "reaction_choices_visible": ["Like", "Love", "Haha", "Wow", "Sad", "Angry", "Fake?", "Dislike"],
+    "comments_open_close": "pass",
+    "more_menu_open_close": "pass",
+    "sound_toggle_and_restore": "pass",
+    "single_tap_play_pause_restore": "pass",
+    "visual_layout": "pass, 4x2 reaction grid"
+  },
+  "automated_verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural58 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "044724F5947A6C573F5A9EA2ABB4817E0B2F359FA850A6D56402626AEC366687",
+    "apps/nexus-web/public/styles.css": "DEC13948FF348D4350F15550DE8D681E1761ABD25E0F4C1A1804EF24A34F8286",
+    "apps/nexus-web/public/index.html": "2AD5756B8701AEE91DF1B638420B1489FA8CEA9945B4B7C5A15035A02D51CF86"
+  },
+  "cost": "0"
+}

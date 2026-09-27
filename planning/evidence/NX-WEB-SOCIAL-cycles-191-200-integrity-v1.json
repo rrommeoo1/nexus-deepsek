@@ -1,0 +1,44 @@
+{
+  "schema": "NEXUS_LOCAL_INTEGRITY_EVIDENCE_V1",
+  "date": "2026-09-08",
+  "cycle_range": "191-200",
+  "scope": ["M1_identity", "M2_data_integrity", "M3_social_demo"],
+  "changes": [
+    "cold_start_exploration",
+    "negative_signal_separation",
+    "coordinated_abuse_containment",
+    "safe_social_search",
+    "moderation_transparency",
+    "persona_privacy_settings",
+    "private_cache_boundary",
+    "static_and_csp_hardening"
+  ],
+  "verification": {
+    "full_suite": { "tests": 330, "passed": 330, "failed": 0, "files": 53 },
+    "social_inventory": { "invariants": 72, "passed": 72, "failed": 0 },
+    "e2ee_inventory": { "invariants": 40, "passed": 40, "failed": 0 },
+    "critical_read_inventory": { "controls": 18, "passed": 18, "failed": 0 },
+    "responsive_deterministic": { "tests": 23, "passed": 23, "failed": 0 },
+    "synthetic_release": { "actors": 1000, "issues": 0, "gate": "PASS_LOCAL" },
+    "real_browser_visual": { "gate": "OPEN", "reason": "saved browser permission denied 127.0.0.1 access" }
+  },
+  "source_sha256": {
+    "apps/nexus-web/public/app.js": "9ee70c757aa505e52967f3780d6117dfd690f9726342572d3312970a2c1a145e",
+    "apps/nexus-web/public/interface-locale.js": "7e90a6a053180060641db1b943f01b34f0334052e5c8756aa63f96383ab6e275",
+    "apps/nexus-web/lib/api.js": "60a6f92914bf2f95bac10df71e29138898dc4b4c2a931bcb150f5a0662dfacf6",
+    "apps/nexus-web/lib/repo.js": "071dc3cfd8eee265b8a8aa140580ca711b9c45df5ce532ba0efaba9a9ee4b506",
+    "apps/nexus-web/server.js": "346ebebb2d3f898abc86a6450fa48c45d0a451ddb8bfad45af8a386eb2ad1a70",
+    "apps/nexus-web/lib/static-policy.js": "c334e25e511e770afdfffd039cd0492c9ff8e0643e28d6d9eb146e5dc4205b86",
+    "apps/nexus-web/scripts/social-integrity-inventory.mjs": "0c0412fc92519c4203934b4f5b516b30370d58d7e08a2dc9730cdfa904d72cfb"
+  },
+  "external_network": false,
+  "real_funds": false,
+  "incremental_cost": 0,
+  "local_gate": "PASS_WITH_EXPLICIT_VISUAL_GATE_OPEN",
+  "not_claimed": [
+    "real_device_validation",
+    "independent_security_or_cryptographic_audit",
+    "production_provider_readiness",
+    "formal_legal_approval"
+  ]
+}

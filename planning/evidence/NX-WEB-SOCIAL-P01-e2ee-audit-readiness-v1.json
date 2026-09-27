@@ -1,0 +1,76 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-CRYPTO-PROTOCOL-REVIEW-PREPARATION-036",
+  "checkpoint_date": "2026-09-03",
+  "environment": "local_source_and_test_inventory",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "inventory": {
+    "schema": "NEXUS_E2EE_AUDIT_INVENTORY_V1",
+    "artifact_count": 18,
+    "artifact_groups": 4,
+    "construction_scoped_invariants": 28,
+    "invariants_passed": 28,
+    "invariants_failed": 0,
+    "assurance": "SOURCE_SHAPE_ONLY_PLUS_SEPARATE_EXECUTABLE_TEST_ARTIFACTS",
+    "local_gate": "PASS_LOCAL_SOURCE_SHAPE_INVENTORY"
+  },
+  "verification": {
+    "focused_tests": { "passed": 2, "failed": 0 },
+    "product_full_tests": { "passed": 199, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 26, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "verdict": "PASS_LOCAL", "critical": 0, "high": 0, "medium": 0 }
+  },
+  "resolved_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "The first audit brief ambiguously treated server-side message expiry as an AEAD-protected binding.",
+      "resolution": "Expiry is explicitly server-validated metadata, not client AEAD-authenticated against a compromised server."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The initial manifest omitted schema, security, encrypted-media, resumable and privacy artifacts.",
+      "resolution": "The categorized manifest now hashes 18 security-relevant implementation, migration and executable-test artifacts."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Global substring markers could pass from unrelated recovery code after a direct/group regression.",
+      "resolution": "Markers are isolated to named function scopes with exact scope and evidence lines; direct, group-shared, group-wrapper and recovery constructions are separate."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Group shared IV/tag markers could be satisfied by the later per-device wrapper loop.",
+      "resolution": "Shared-payload and wrapper-loop markers use disjoint subscopes and distinct evidence lines."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Primary executable browser recovery tests and current marker count were inconsistent with the manifest/brief.",
+      "resolution": "test/core.test.js is hash-bound and the generated invariant_summary.total is authoritative."
+    }
+  ],
+  "residual_findings": [],
+  "explicit_non_claims": [
+    "independent cryptographic audit",
+    "formal verification or Signal compatibility",
+    "Double Ratchet or ratcheting Sender Keys",
+    "forward secrecy or post-compromise security",
+    "automatic peer identity authentication or key transparency",
+    "metadata anonymity",
+    "cryptographic authentication of message expiry",
+    "real-device interoperability"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/scripts/e2ee-audit-inventory.mjs": "ca8bbce058ca7d0a7aab89e456e1355f6f85efc80ff6a9c7f86192d8d9c86ee7",
+    "apps/nexus-web/test/p1-e2ee-audit-inventory.test.js": "762cb58e25d82dff4fefe47e31cb17c310ee58832c1800d31dc0b4f8c6a01fed",
+    "apps/nexus-web/package.json": "94fbfb9489463cdc302d0b7cc7efaeb96d9abea3d13b1060a3d29bb044336e34",
+    "apps/nexus-web/README.md": "f0837cd3ba828f50b976da7eeba0c6df7642bb6414fcc0b648167319c0e1a330",
+    "planning/NX-WEB-SOCIAL-e2ee-crypto-audit-brief-v1.md": "039b5fe6aa9ef5d277005424b53aba6a25602a969f4855d704b9b0571e9c05a8"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Capacity telemetry is unobserved; one bounded local packet plus one sequential checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_FORMAL_INDEPENDENT_CRYPTO_AUDIT_AND_TRUSTED_HTTPS_REAL_DEVICE_TESTS",
+  "next_packet": "NX-WEB-SOCIAL-P03-ACCESSIBILITY-AND-RESPONSIVE-INTERACTION-AUDIT-037"
+}

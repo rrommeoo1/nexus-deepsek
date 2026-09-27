@@ -1,0 +1,116 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "create-hub-direct-actions-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "scope": [
+    "Create Hub UX labels",
+    "Direct camera/gallery/story entry points",
+    "Tweets feed placement",
+    "Removal of redundant feed tabs below Stories",
+    "Browser smoke on local demo"
+  ],
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "native_camera_permission_prompted_by_automation": false
+  },
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Create Hub now uses user-facing direct action labels: Deschide camera, Alege din galerie, Story, Clip, Tweet / postare, Drafturi and Live. Composer receives source metadata and displays source-specific guidance."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Social feed switcher includes Tweets as the last option and maps it to a dedicated tweets view."
+    },
+    {
+      "file": "apps/nexus-web/public/styles.css",
+      "summary": "Content starts directly below Stories; legacy feedTabs are hidden and the Pulse content area is expanded."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Static assets bumped to 20260825-social37."
+    },
+    {
+      "file": "apps/nexus-web/lib/api.js",
+      "summary": "The Social feed endpoint accepts format=tweets."
+    },
+    {
+      "file": "apps/nexus-web/lib/repo.js",
+      "summary": "The tweets format filters to text-only posts without media attachments."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Static audit expectations updated for social37, Tweets, direct Create Hub labels and removed data-format sub-tabs."
+    }
+  ],
+  "verification": {
+    "npm_test": {
+      "status": "not_run",
+      "reason": "npm is not available in the current PowerShell PATH"
+    },
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social37_index": true,
+        "tweets_option": true,
+        "no_rendered_data_format": true,
+        "backend_accepts_tweets": true,
+        "repo_filters_text_only": true,
+        "content_area_expanded": true,
+        "camera_copy": true,
+        "gallery_copy": true,
+        "story_pick": true,
+        "tests_updated": true
+      },
+      "syntax": {
+        "app.js": true,
+        "api.js": true,
+        "repo.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social37",
+      "observed": {
+        "app_script": "http://192.168.1.153:3000/app.js?v=20260825-social37",
+        "selected_feed": "Tweets",
+        "has_visible_feed_tabs": false,
+        "data_format_buttons": 0,
+        "has_stories": true,
+        "pulse_posts_height": "557.111px",
+        "create_hub_open": true,
+        "camera_button": true,
+        "gallery_button": true,
+        "story_button": true,
+        "create_hub_text_contains": [
+          "Deschide camera",
+          "Alege din galerie",
+          "Story",
+          "Tweet / postare",
+          "Drafturi",
+          "Live"
+        ]
+      }
+    },
+    "camera_gallery_story_review": {
+      "status": "pass_static",
+      "notes": [
+        "Camera routes to openComposer('post', { camera: true, source: 'camera' }); on insecure mobile HTTP it falls back to native capture picker with capture=environment.",
+        "Gallery routes to openComposer('post', { pick: 'all', source: 'gallery' }) and launches the native photo/video picker.",
+        "Story routes to openComposer('story', { pick: 'all', source: 'story' }) and opens the story composer with media picker and duration controls.",
+        "Automation intentionally did not click Camera/Gallery native pickers to avoid blocking the browser on OS permission/file dialogs."
+      ]
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "860FEECCC4F6E8A7ABE76F6AE0F3B947C9C2B9AF9FB926FB4AFFD5C56A71590C",
+    "apps/nexus-web/public/styles.css": "B2B5436D8875219BB340E7EF51CA87FAE7B8AF9A51A838BDA39A99F3434A5A50",
+    "apps/nexus-web/public/index.html": "3ECBF3AC435CE831C96FB8F71DDDCC6B27BDC4BC8FD5B8405D3214BAB02B9A21",
+    "apps/nexus-web/lib/api.js": "57F7395728A2840C497A0E05467148624433FA4082C1CBED86C8C1EA955F1B1B",
+    "apps/nexus-web/lib/repo.js": "AC048DE5C1ABFF8092CB9DD86B4D262972576764261029E90AA6E53C91B1D918",
+    "apps/nexus-web/test/audit.test.js": "D2B50BA94B1427320DC2AB01C86CE1851E13AF2B98B26B365E6B38BB177147B3"
+  },
+  "runtime_note": "Static UI changes are live at social37. Backend format=tweets may require a safe server restart if the existing local process does not hot-reload api.js/repo.js."
+}

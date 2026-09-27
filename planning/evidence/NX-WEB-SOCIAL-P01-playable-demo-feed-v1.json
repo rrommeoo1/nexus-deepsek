@@ -1,0 +1,91 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "playable-demo-feed-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "user_issue": "User could not press Play in the Social feed.",
+  "root_cause": [
+    "For You/Clips feed could be empty, so no <video> player existed in the DOM.",
+    "When a clip did autoplay muted, the central play/pause affordance had opacity 0, which made the UI feel non-clickable on mobile."
+  ],
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Added demoSocialFeedPosts() fallback so an empty For You/Clips feed renders a local playable demo MP4, and an empty Tweets feed renders a text-only demo tweet."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Added a central data-clip-play button with Play/Pause state sync. The glyph changes to ▶ when paused and Ⅱ while playing."
+    },
+    {
+      "file": "apps/nexus-web/public/styles.css",
+      "summary": "Made the central clip play button visible and clickable by default, stronger when paused."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Static assets bumped to 20260825-social40."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Added static assertions for demo feed fallback, local MP4 source, central clip play button and social40 cache bust."
+    }
+  ],
+  "verification": {
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social40_index": true,
+        "demo_feed_fn": true,
+        "uses_demo_when_empty": true,
+        "central_play_button": true,
+        "glyph_toggles": true,
+        "clickable_default": true,
+        "tests_updated": true
+      },
+      "syntax": {
+        "app.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social40",
+      "observed": {
+        "app_script": "http://192.168.1.153:3000/app.js?v=20260825-social40",
+        "video_count": 1,
+        "video_ready_state": 4,
+        "video_error": null,
+        "video_src": "http://192.168.1.153:3000/media/ed3db7e0ba32e5dd5a6bf964d75e507d9fb5849c219ea52cc1dfd511c5190a2e.mp4",
+        "initial": {
+          "paused": false,
+          "button_text": "Ⅱ",
+          "button_label": "Pauză clip",
+          "button_opacity": "0.34",
+          "pointer_events": "auto"
+        },
+        "after_first_click": {
+          "paused": true,
+          "button_text": "▶",
+          "button_label": "Pornește clipul",
+          "stage_paused": true
+        },
+        "after_second_click": {
+          "paused": false,
+          "button_text": "Ⅱ",
+          "button_label": "Pauză clip",
+          "stage_paused": false
+        }
+      }
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "AB0AB32AE1FD2D7CFA284AA363CC988C96088350BD3B7EB50301872E0995788E",
+    "apps/nexus-web/public/styles.css": "0D768CC448E590D3BD18D24222C04BB611F105448BC01AC182950FF449CC57EE",
+    "apps/nexus-web/public/index.html": "C41CB8867A2D3BD4E524C09AF9B1E487511DF655E6F0355EE4AAC204C1FFDCCE",
+    "apps/nexus-web/test/audit.test.js": "9F2A09DE81DDB0104A4AF44F98756CCB87FFC0FDDA95E68D3D79E654525CBBF9"
+  },
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "external_services": false
+  }
+}

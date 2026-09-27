@@ -1,0 +1,12 @@
+.composerCamera { box-sizing: border-box; width: min(100%, 540px); max-width: 100%; height: min(100dvh, 820px); max-height: 100dvh; padding: 12px; border: 1px solid #324b55; border-radius: 18px; background: #0a1118; color: #f1f7f8; }
+.composerCamera[open] { display: flex; flex-direction: column; gap: 12px; }
+.composerCamera::backdrop { background: #000b; }
+.composerCameraStage { flex: 1; min-height: 0; overflow: hidden; display: grid; place-items: center; background: #000; border-radius: 10px; }
+.composerCameraStage > video, .composerCameraStage > img { width: 100%; height: 100%; min-height: 0; object-fit: contain; }
+.composerCamera [hidden] { display: none !important; }
+.composerCamera output { font-size: 16px; line-height: 1.4; }
+.composerCameraControls { display: flex; gap: 8px; flex-wrap: wrap; padding-bottom: env(safe-area-inset-bottom); }
+.composerCameraControls button { min-width: 48px; min-height: 48px; padding: 8px 14px; border: 1px solid #426068; border-radius: 24px; color: #eafafa; background: #17373b; font: inherit; font-size: 16px; cursor: pointer; }
+.composerCameraControls button:focus-visible { outline: 3px solid #00e5ff; outline-offset: 2px; }
+.composerCameraControls button:disabled { opacity: .45; cursor: wait; }
+@media (max-width: 600px) { .composerCamera { width: 100%; height: 100dvh; border-radius: 0; margin: 0; padding-top: max(12px, env(safe-area-inset-top)); } }

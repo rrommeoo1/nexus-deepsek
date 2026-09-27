@@ -1,0 +1,122 @@
+schema_version: 1
+task_id: NX-ECON-P01
+review_id: NX-ECON-P01-C03-C05-C08-C10-20260809-FINAL-CLOSURE-01
+reviewer_roles: [C03, C05, C08, C10]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A43
+decision: PASS
+gate_effect: T0_ACCEPTANCE_UNBLOCKED
+task_status_recommendation: accepted
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-ECON-P01-validation.json
+  sha256: dc41083464a7ff99330d9c170dcc8b235638be8eb3f54157939b806c4fa05f41
+  run_id: NX-ECON-P01-OWNER-REMEDIATED-FINAL-20260809-03
+  executor_role: A43
+  status: PASS
+  assertions: 131
+  scenario_assertions: 98
+  deterministic_repetitions: 3
+  review_subject_sha256: b54785ce9271ff2c88169daa951cf632bfe9f664288289955e559c4e489eb692
+  artifact_count: 18
+  current_artifact_hash_mismatches: 0
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  executor_role: C03
+  run_id: NX-ECON-P01-C03-FINAL-CLOSURE-20260809-01
+  status: PASS
+  assertions: 131
+  scenario_assertions: 98
+  deterministic_repetitions: 3
+  review_subject_sha256: b54785ce9271ff2c88169daa951cf632bfe9f664288289955e559c4e489eb692
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all 18 current artifact hashes match the owner evidence and independently recompute the declared subject
+  runtime_exactness:
+    status: PASS
+    evidence: false strings for creator eligibility and node receipt validity are rejected; exact-shape parsing rejects extra fields
+  creator_and_node_caps:
+    status: PASS
+    evidence: verifier-backed stable principal and risk-cluster aggregation caps 20 creator aliases at 50000/1000000 and 8 node aliases at 150000/1000000
+  gas_target_hard_cap_priority:
+    status: PASS
+    evidence: signed active config-bound snapshot rejects unknown priority; ordinary actions stop at 5 percent and SAFETY/FINANCIAL at 8 percent
+  prive_capability:
+    status: PASS
+    evidence: exact signed unexpired capability binds profile subject, allocation identifier, country code, operation, config hash, all gates, and WEB channel
+  canonical_config:
+    status: PASS
+    evidence: same-hash content spoof is denied; all allocation results bind epoch/effectiveAt; creatorPoolBudget and nodePoolBudget require nowIso and reject CONFIG_NOT_ACTIVE at expiresAt; creator pool, engagement qualification, and node pool pass their parsed now to validateEconomicConfig
+  deductions_and_settlement:
+    status: PASS
+    evidence: local injected InMemoryAtomicClaimStore reconstructs and consumes the allocation-epoch-principal key before reservation; fresh-instance, restart, substitution, and restore replay probes deny
+  production_distributed_claim_store:
+    status: EXCLUDED
+    evidence: production distributed database adapter is outside the local synthetic skeleton and does not block this T0 gate
+  zero_effect_boundary:
+    status: PASS
+    evidence: owner and independent validation observed zero network, credential, provider, economic, or incremental-cost operations
+
+findings:
+  - id: C03-ECON-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Truthiness and malformed economic input paths
+    closure_evidence: exact boolean and exact-shape parsing rejects false strings and extra fields
+
+  - id: C08-ECON-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Anti-Sybil alias caps
+    closure_evidence: verified principal/risk-cluster aggregate caps limit creator and node alias rotation
+
+  - id: C10-ECON-P01-003
+    severity: HIGH
+    status: CLOSED
+    title: Gas target hard-cap priority control
+    closure_evidence: active signed budget snapshot, priority validation, 5-percent target, and 8-percent hard cap execute fail-closed
+
+  - id: C05-ECON-P01-004
+    severity: HIGH
+    status: CLOSED
+    title: Prive capability profile country allocation and operation binding
+    closure_evidence: profile, country, allocation, operation, validity, signature, configuration, gates, and WEB channel compare exactly
+
+  - id: C03-ECON-P01-005
+    severity: MEDIUM
+    status: CLOSED
+    title: Active configuration window at every public calculation
+    closure_evidence:
+      - creatorPoolBudget and nodePoolBudget now require nowIso and pass it to validateEconomicConfig.
+      - both budget functions deterministically deny CONFIG_NOT_ACTIVE at 2027-08-01T00:00:00Z, the configuration expiry boundary.
+      - allocateCreatorPool, qualifyEngagement, and allocateNodePool pass parsed now to validateEconomicConfig.
+      - validator records expired_pool_config_denied true across three deterministic repetitions.
+
+  - id: C03-ECON-P01-006
+    severity: MEDIUM
+    status: CLOSED
+    title: Local atomic claim consumption and canonical claim identity
+    closure_evidence: canonical allocation-epoch-principal key reconstruction and shared-store fresh/restart/replay denial execute before payout reservation
+
+claims_excluded:
+  - xmoney_sandbox
+  - production_economics
+  - mainnet
+  - real_funds
+  - formal_legal_opinion
+  - external_financial_audit

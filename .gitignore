@@ -1,0 +1,42 @@
+# Dependencies and generated build output
+node_modules/
+coverage/
+dist/
+.next/
+out/
+target/
+__pycache__/
+*.py[cod]
+
+# Local agent/runtime state
+.ephemeral/
+.codex/
+planning/evidence/screenshots/chrome-profile-*/
+
+# Secrets and machine-local configuration
+**/.env
+**/.env.*
+!**/.env.example
+**/.certs/
+*.pem
+*.key
+*.p12
+*.pfx
+*.cer
+*.crt
+
+# Runtime databases, uploads and logs
+apps/nexus-web/data/
+tools/cloudflared.exe
+**/*.log
+**/*.err
+**/*.out
+*.sqlite
+*.sqlite3
+*.db
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

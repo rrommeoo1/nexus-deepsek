@@ -1,0 +1,100 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-STORY-LIFECYCLE-012",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Story expiry, archival, media authorization, persona binding and mobile continuity",
+  "controls": {
+    "lifecycle": {
+      "expired_story_view_denied": true,
+      "archived_story_view_denied": true,
+      "expired_story_media_denied": true,
+      "archived_story_media_denied": true,
+      "persistent_until_owner_archive_supported": true,
+      "archive_owner_and_persona_bound": true
+    },
+    "privacy": {
+      "privacy_matrix_on_story_list": true,
+      "privacy_matrix_on_view": true,
+      "privacy_matrix_on_media_read": true,
+      "cross_persona_mutation": "DENY",
+      "api_internal_media_metadata": "REDACTED",
+      "archive_realtime_payload": "owner_only_story_id"
+    },
+    "viewer_continuity": {
+      "horizontal_tap_navigation": true,
+      "horizontal_swipe_navigation": true,
+      "swipe_synthetic_click_double_advance_prevented": true,
+      "completed_story_removed_from_unseen_rail": true,
+      "manual_close_available": true
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_story_tests": { "passed": 2, "failed": 0 },
+    "focused_story_privacy_static_tests": { "passed": 25, "failed": 0 },
+    "full_tests": { "passed": 127, "failed": 0 },
+    "database": {
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "mobile_browser_dom_qa": {
+      "viewport": "390x844",
+      "story_rail_visible": true,
+      "add_story_entry_visible": true,
+      "feed_and_navigation_preserved": true,
+      "browser_build": "20260829-p2story1",
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 11036,
+      "listen_address": "0.0.0.0",
+      "local_http": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Direct Story view and media authorization could treat expired content as active by overriding lifecycle state.",
+      "resolution": "Expiry and persisted status are now checked before view recording or media authorization; the real Story status is never overwritten for policy evaluation."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Story API responses exposed internal media records including validation and ownership metadata.",
+      "resolution": "Added an explicit Story API view model containing only playback-safe media fields and the public content commitment."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A Work session belonging to the owner could archive or record a view against its Social Story.",
+      "resolution": "All Story view/archive mutations now require the active Social persona; repository archival also verifies actor persona."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Touch swipe followed by a browser-generated click could advance two Stories.",
+      "resolution": "Added a bounded post-swipe click suppression window while preserving tap navigation."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/repo.js": "3082d17f731d1bce127ec1c399c20def22f026f280c41877097e02093068c15d",
+    "apps/nexus-web/lib/api.js": "29bd9f53ff47f597c8690e033279878222e4573c9f3296ab41ceaa5255c0a7e8",
+    "apps/nexus-web/public/app.js": "08a587b8aeff6016856427933209da5877be991b88d1498d2054fda532671bc4",
+    "apps/nexus-web/public/index.html": "3749407b62d2e166b8188fd756872ef24802006b2e63c6589e16898b2280ca15",
+    "apps/nexus-web/test/p2-story-lifecycle.test.js": "bedb646aaca6fe43501a77382143797f5a8bf3b4e0997161987f3130257c143c",
+    "apps/nexus-web/test/audit.test.js": "1590da6096542f692fa03afc9ede435efd4c3d2113a82de3ceb57a708bf67890"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p2_story_lifecycle_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-CLIP-CONTINUITY-013"
+}

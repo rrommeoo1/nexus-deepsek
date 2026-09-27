@@ -1,0 +1,64 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-SAFETY-NUMBER-028",
+  "checkpoint_date": "2026-09-01",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Browser-side E2EE identity comparison and persistent device-key change warning",
+  "controls": {
+    "algorithm": "SHA256 over versioned conversation and canonical device-set commitment",
+    "display": "12 groups of 5 decimal digits",
+    "server_commitment_recomputed_on_client": true,
+    "private_keys_in_safety_number": false,
+    "verification_state_storage": "local IndexedDB only",
+    "manual_comparison_required": true,
+    "external_share_endpoint": false,
+    "changed_key_warning_persists_after_reload": true,
+    "changed_key_blocks_new_e2ee_send": true,
+    "verified_baseline_not_silently_replaced": true,
+    "explicit_reverification_required": true
+  },
+  "verification": {
+    "targeted_core_tests": { "passed": 66, "failed": 0 },
+    "full_tests": { "passed": 169, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The device-set commitment protected message envelopes but users had no human-comparable identity verification surface.",
+      "resolution": "The browser now recomputes the canonical device-set commitment and derives a versioned 60-digit safety number for explicit comparison."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A changed device key could otherwise be accepted as ordinary key rotation without user visibility.",
+      "resolution": "Any observed change preserves the old verified baseline, raises a persistent warning and disables new E2EE sends until explicit reverification."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "The first changed-key implementation would have downgraded the warning to unverified after page reload.",
+      "resolution": "A persisted changePending state keeps the warning fail-closed across reloads and is cleared only by explicit verification of the current commitment."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/chat-crypto.js": "d3fb2defa05616ae98086815c609205d60c84c9f7fc5fd9d37fa7eec2d8f2b62",
+    "apps/nexus-web/public/app.js": "d921d3a97f11be6ab3058a3b0e9c408e4f3c98b62485435ca273f4df5264f9bb",
+    "apps/nexus-web/public/index.html": "f05840dba78c7cbba2d981eb083c4e4d7cce720a62e8cdec2a0f5c27deb226ff",
+    "apps/nexus-web/test/core.test.js": "bbdaadf151b2113a43dac15ee32c331bcf32b355c5b20fc4c6804a20a75ace09",
+    "apps/nexus-web/test/audit.test.js": "a7131ac6214583d559f5602b7f160d847cc9f084defee5ea5e78d8845c9e175d"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; completed one bounded local packet without a worker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_TRUSTED_HTTPS",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-OPT-IN-KEY-RECOVERY-029"
+}

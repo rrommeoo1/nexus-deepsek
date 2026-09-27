@@ -1,0 +1,116 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-UPLOAD-001",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": {
+    "implemented": [
+      "resumable upload session and part persistence",
+      "create/part/complete/cancel idempotency",
+      "single durable media.upload.completed outbox event",
+      "persona-scoped media upload grants",
+      "private no-store authenticated media delivery",
+      "browser resume metadata and server-confirmed progress",
+      "retryable transient assembly failure"
+    ],
+    "adapter_limits": {
+      "kind": "local_truthful_adapter",
+      "max_bytes": 20971520,
+      "chunk_bytes": 1048576,
+      "ttl_seconds": 86400
+    }
+  },
+  "findings": {
+    "fixed": [
+      {
+        "severity": "Critical",
+        "id": "MEDIA-CACHE-001",
+        "finding": "authenticated media used a public immutable one-year cache policy",
+        "control": "private, no-store, max-age=0; Pragma no-cache; Vary Cookie"
+      },
+      {
+        "severity": "High",
+        "id": "MEDIA-RESUME-001",
+        "finding": "active browser uploads were full-body base64 without resume or request idempotency",
+        "control": "chunk sessions with persisted acknowledgements and conflict-safe keys"
+      },
+      {
+        "severity": "High",
+        "id": "MEDIA-PERSONA-001",
+        "finding": "upload grants were not isolated by active profile persona",
+        "control": "exact user, purpose and actor_persona grant checks"
+      }
+    ],
+    "open": [
+      {
+        "severity": "High",
+        "id": "MUTATION-IDEMPOTENCY-002",
+        "finding": "idempotency is not yet enforced by one common boundary for every mutable Social endpoint",
+        "next_packet": true
+      },
+      {
+        "severity": "High",
+        "id": "MEDIA-LEGACY-002",
+        "finding": "legacy base64 POST /api/media remains for compatibility although active UI no longer uses it",
+        "next_packet": true
+      },
+      {
+        "severity": "High",
+        "id": "OUTBOX-DISPATCH-001",
+        "finding": "outbox persistence exists but retry/dead-letter dispatch is not implemented",
+        "next_packet": true
+      },
+      {
+        "severity": "High",
+        "id": "PRIVACY-MATRIX-002",
+        "finding": "media/persona boundary is covered but the complete read-query Privacy Matrix is not centralized",
+        "next_packet": true
+      },
+      {
+        "severity": "Medium",
+        "id": "MEDIA-PRODUCTION-003",
+        "finding": "local adapter buffers and synchronously assembles up to 20 MB; production object storage/transcode/malware workers remain gated"
+      }
+    ]
+  },
+  "verification": {
+    "syntax": "PASS",
+    "tests": {
+      "passed": 97,
+      "failed": 0
+    },
+    "resumable_actor_simulation": {
+      "traffic_class": "SYSTEM_TEST",
+      "actors": 100,
+      "interrupted_then_resumed": 100,
+      "completed_uploads": 100,
+      "unique_outbox_events": 100,
+      "cross_owner_reads": 0,
+      "duplicate_retry_conflicts": 0,
+      "gate": "PASS"
+    },
+    "social_actor_lab": {
+      "version": "NEXUS_SYNTHETIC_ACTOR_LAB_V2",
+      "seed": 1314415955,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1202,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "messages": 100,
+      "stories": 125,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "gate": "PASS"
+    }
+  },
+  "policy": {
+    "external_share": "DENY",
+    "synthetic_actors_in_production_metrics": "DENY",
+    "default_deny_spend": true
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-MUTATION-OUTBOX-002"
+}

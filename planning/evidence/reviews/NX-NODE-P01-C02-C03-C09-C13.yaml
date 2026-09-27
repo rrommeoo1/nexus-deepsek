@@ -1,0 +1,157 @@
+schema_version: 1
+task_id: NX-NODE-P01
+review_id: NX-NODE-P01-C13-20260815-FINAL02
+reviewer_roles: [C13]
+required_control_scope: [C02, C03, C09, C13]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A16
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-NODE-P01-validation.json
+  sha256: bde81c3510c8c695cb3d076d839da1ef89b1afbd7b0447028c370bc5c13d32c4
+  run_id: NX-NODE-P01-OWNER-FINAL02
+  executor_role: A16
+  status: PASS
+  assertions: 151
+  scenario_assertions: 46
+  deterministic_repetitions: 3
+  artifact_count: 21
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: a9a4cb947a7193eeccf127fa8dcfb5c44cd5bd77bb971146a5d4eee8209532b1
+  expected_review_subject_sha256: a9a4cb947a7193eeccf127fa8dcfb5c44cd5bd77bb971146a5d4eee8209532b1
+  subject_recomputed_and_matched: true
+  bound_artifacts:
+    source_sha256: 1b8ca86287e06b33a74528325045cfbd763a860489013d2bc25c934ff07e0534
+    tests_sha256: d576a541b2e3bebcd9d624749760ba634ad4b5d450c4cd91459199d2ee46db8b
+    validator_sha256: 8c6a28d45f52b2640e8fdb28a435d453a10a5e5112b2edef9fb0418d0f8e4f03
+    checkpoint_sha256: ea0953acfaf557eb143bcd40a0c154137260026944190a473c948b644a70e7b6
+
+independent_verifier:
+  script: planning/validate-node-network.ps1
+  run_id: NX-NODE-P01-C13-20260815-FINAL02
+  executor_role: C13
+  process_execution_policy: Bypass
+  status: PASS
+  assertions: 151
+  scenario_assertions: 46
+  deterministic_repetitions: 3
+  review_subject_sha256: a9a4cb947a7193eeccf127fa8dcfb5c44cd5bd77bb971146a5d4eee8209532b1
+  output_sha256: 3688dd626f7e330bf3103d32aae997496c700f7368af53a33672f290f4193f77
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_in_memory_typescript_probes_plus_static_source_review
+  results:
+    async_checkpoint_hash_mutation: IGNORED
+    async_state_root_mutation: IGNORED
+    async_nested_event_mutation: IGNORED
+    attacker_selected_backup_key: ABSENT
+    canonical_source_snapshot: PASS
+    root_proxy_property_max_reads: 1
+    nested_event_proxy_property_max_reads: 1
+    getter_or_proxy_repeated_representation: NOT_OBSERVED
+    stored_bytes_restore: PASS
+    stored_projection_matches_receipt: PASS
+    receipt_byte_length_matches_stored_canonical_bytes: PASS
+    append_export_dispose_linearization: PASS
+    export_cut_at_queued_operation_boundary: PASS
+    disposed_lifecycle_operations: DENIED
+    fresh_restore_replay: DENIED
+    checkpoint_previous_head_binding: PASS
+    stale_checkpoint_without_expected_previous_head: DENIED
+    identity_and_authority_binding: PASS
+    restore_reorder_fabrication_root_and_index_regressions: PASS
+    exact_shape_regression: PASS
+    network_provider_economic_real_fund_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: All twenty-one current artifact hashes match owner evidence, evidence SHA matches the assigned receipt, and the expected review subject was independently recomputed exactly.
+  independent_validation:
+    status: PASS
+    evidence: The C13 validator passed 151 controls and 46 scenario assertions in each of three deterministic repetitions on the bound FINAL02 subject.
+  c09_atomic_backup_closure:
+    status: PASS
+    evidence: GenesisBackupStore.commit captures one canonical JSON representation before its first await, validates that captured plain object, and uses only the captured checkpoint and serialized bytes for key selection, conflict comparison, storage and receipt construction.
+  caller_mutation_isolation:
+    status: PASS
+    evidence: Independent reproduction changed checkpointHash, stateRoot and a nested event immediately after commit returned its pending promise; the receipt and stored snapshot retained the original verified values, the attacker-selected hash was absent, and the stored snapshot restored successfully.
+  getter_proxy_and_repeated_read_isolation:
+    status: PASS
+    evidence: An exact-shaped root proxy with a nested event proxy returned corrupt alternatives on any repeated read; every own root and nested event property was read exactly once, the commit succeeded for the original representation, and its stored bytes restored to the original state root.
+  stored_bytes_and_receipt_binding:
+    status: PASS
+    evidence: The stored checkpoint restored successfully and its hash, state root, event head and event count matched the receipt; receipt byteLength equaled the UTF-8 length of the stored canonical representation.
+  append_export_dispose_concurrency:
+    status: PASS
+    evidence: Independent regression queued four appends, export, four appends and dispose; ordinals were exactly 1 through 8, export ended at ordinal 4, dispose cleared 8, and the subsequent projection failed GENESIS_NODE_DISPOSED.
+  restore_replay_identity_and_chaining:
+    status: PASS
+    evidence: Fresh restore preserved state and history, historical event replay failed GENESIS_EVENT_REPLAY, checkpoint two required checkpoint one's hash, and stale restore without that expected predecessor failed GENESIS_CHECKPOINT_STALE; validator negative cases reconfirmed lineage, identity and authority denials.
+  exact_shape_and_zero_effects:
+    status: PASS
+    evidence: Exact-shape regressions pass, source contains no detected network or process capability, credential matches are zero, and validator execution recorded zero network, provider, economic, real-fund and incremental-cost effects.
+
+findings:
+  - id: C09-NODE-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Backup commit stored mutable bytes that were not the checkpoint it validated
+    original_location:
+      - packages/node-network/api/index.ts:84
+      - packages/node-network/api/index.ts:85
+    closure_location:
+      - packages/node-network/api/index.ts:48
+      - packages/node-network/api/index.ts:85
+      - packages/node-network/api/index.ts:86
+      - packages/node-network/api/index.test.ts:57
+      - packages/node-network/api/index.test.ts:63
+    closure_evidence:
+      - canonicalSnapshot captures and parses one representation before the first asynchronous suspension.
+      - commit validates, keys, compares, stores and receipt-binds only the captured representation and never rereads caller-owned input.
+      - Deterministic owner tests cover concurrent mutation of checkpointHash, stateRoot and a nested event, confirm the attacker-selected key is absent, and restore the stored bytes.
+      - Getter-backed owner coverage proves checkpointHash is captured once; the independent C13 proxy probe additionally proves every root and nested event property is read once.
+      - The independent probe proves stored canonical byte length and restored projection match the successful receipt.
+      - Validator FINAL02 asserts stable_source_snapshot, stored_restore_verified, receipt_matches_stored_bytes, getter_read_once, backup_concurrent_mutation and backup_getter_snapshot.
+
+findings_summary:
+  total: 1
+  open: 0
+  closed: 1
+  high: 1
+  critical: 0
+
+accepted_controls:
+  - Owner evidence, all twenty-one artifact hashes and the expected FINAL02 subject are cryptographically bound.
+  - C09-NODE-P01-001 is closed by a single pre-await canonical snapshot and deterministic mutation, getter and restore proof.
+  - Append, export and dispose remain serialized into one deterministic operation lineage.
+  - Restore continues to reject replay, stale chaining, wrong identity or authority, reordering, fabrication, root substitution and replay-index substitution.
+  - Exact-shape denial and zero external, economic, real-fund and incremental-cost effects hold for the reviewed subject.
+
+acceptance_blockers: []
+
+claims_excluded:
+  - p2p_network
+  - public_ports
+  - production_disk_durability
+  - n_2_to_8_replication
+  - mainnet_anchor
+  - real_data
+
+residual_scope_notes:
+  - PASS covers only the bound local D0 Genesis fixture, in-memory backup model and declared acceptance slice.
+  - Production disk durability, real P2P, public ports, N equals 2 through 8, mainnet anchoring and real data remain explicit later gates.
+  - No finding remains open on the reviewed FINAL02 subject.

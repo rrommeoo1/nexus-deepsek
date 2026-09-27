@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-ECON-P01",
+  "status": "PASS",
+  "evidence_class": "implementation_smoke_not_owner_validation",
+  "assertions": 37,
+  "support_split_core_tip_micros": {
+    "net": "100000000",
+    "creator": "90000000",
+    "platform": "5000000",
+    "safety_reserve": "3000000",
+    "infrastructure": "2000000"
+  },
+  "stress": {
+    "zero_revenue_creator_pool": "0",
+    "zero_revenue_node_pool": "0",
+    "gas_spike": "PENDING_SPONSORSHIP",
+    "fraud_creator_claims": 0,
+    "fraud_node_claims": 0,
+    "concentrated_cluster_claim_cap_micros": 150000,
+    "negative_treasury_denied": true
+  },
+  "ranking": {
+    "paid_to_organic_weight": 0,
+    "promoted_to_organic_weight": 0,
+    "system_test_weight": 0
+  },
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" },
+  "claims_excluded": ["owner_validation", "independent_review", "production_economics", "xmoney_sandbox", "mainnet", "real_funds"]
+}

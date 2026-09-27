@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A42",
+  "mode": "LOCAL_DETERMINISTIC_SYSTEM_TEST",
+  "surfaces": ["SOCIAL", "PULSE", "WATCH", "LIVE", "WORK", "DATING", "MARKET", "TRAVEL", "BUSINESS", "MUSIC", "LEARNING", "WELLNESS", "KIDS"],
+  "actions": ["PUBLISH", "EDIT", "WITHDRAW", "LIKE", "EXPRESSIVE_REACTION", "NEGATIVE_PREFERENCE", "UNDO_REACTION", "MODERATION_TOMBSTONE"],
+  "expressivePalettes": {
+    "SOCIAL_PULSE_WATCH_LIVE": ["LOVE", "HAHA", "WOW", "SAD", "ANGRY", "FAKE_OPINION"],
+    "WORK_CONTENT": ["CELEBRATE", "SUPPORT", "INSIGHTFUL", "CURIOUS"],
+    "DATING": [],
+    "MARKET_TRAVEL_BUSINESS": ["LOVE", "WOW"],
+    "MUSIC": ["LOVE", "HAHA", "WOW", "SAD"],
+    "LEARNING": ["INSIGHTFUL", "CURIOUS", "SUPPORT"],
+    "WELLNESS": ["LOVE", "SUPPORT", "INSIGHTFUL"],
+    "KIDS": ["LOVE", "HAHA", "WOW"]
+  },
+  "fakeOpinionPolicy": {
+    "uiLabel": "Fake",
+    "isUserOpinion": true,
+    "countsAsQualifiedSentiment": true,
+    "isTruthVerdict": false,
+    "directUnqualifiedDownrankAllowed": false,
+    "directTakedownAllowed": false,
+    "routesToTrustLensAggregate": true,
+    "publicCount": false
+  },
+  "negativeSemantics": {
+    "SOCIAL": "NOT_FOR_ME",
+    "PULSE": "NOT_FOR_ME",
+    "WATCH": "NOT_FOR_ME",
+    "LIVE": "NOT_FOR_ME",
+    "WORK": "NOT_RELEVANT",
+    "DATING": "PASS",
+    "MARKET": "NOT_INTERESTED",
+    "TRAVEL": "NOT_INTERESTED",
+    "BUSINESS": "NOT_INTERESTED",
+    "MUSIC": "LESS_LIKE_THIS",
+    "LEARNING": "NOT_USEFUL_FOR_ME",
+    "WELLNESS": "NOT_USEFUL_FOR_ME",
+    "KIDS": "SHOW_ME_LESS"
+  },
+  "integrity": {
+    "appendOnly": true,
+    "oneActiveReactionPerActorObjectGeneration": true,
+    "creatorMayEraseForeignContent": false,
+    "authorWithdrawalCreatesTombstone": true,
+    "materialEditCreatesGeneration": true,
+    "moderationRequiresSeparateAuthority": true,
+    "signedOneTimeReceipts": true,
+    "orderedSha256Lineage": true,
+    "restoreReplaysStateMachine": true,
+    "surfaceObjectMatrixRequired": true,
+    "actorAndOwnerProfileTypeBindingRequired": true
+  },
+  "privacy": {
+    "publicNegativeCount": false,
+    "datingPersonNegativeScore": false,
+    "workPersonNegativeScore": false,
+    "kidsCompetitiveNegativeCount": false,
+    "rawReactionGraphOnChain": false,
+    "batchCommitmentOnly": true,
+    "crossProfileSignalSharingDefault": false
+  },
+  "rankingPolicy": {
+    "minEffectiveImpressions": 50,
+    "minIndependentClusters": 10,
+    "maxClusterContributionBps": 1000,
+    "negativeConfidenceThresholdBps": 3000,
+    "globalNegativePenaltyCapBps": 2000,
+    "explorationFloorBps": 1000,
+    "explorationAllocationPerCohortRequired": true,
+    "rankingOrderInvariantRequired": true,
+    "conflictingDuplicateActorExcluded": true,
+    "dislikeAloneMayRemove": false,
+    "excludedTraffic": ["PAID", "AGENT", "SYSTEM_TEST", "INCENTIVIZED", "QUARANTINED"]
+  },
+  "effects": {
+    "networkOperationsMax": 0,
+    "providerOperationsMax": 0,
+    "economicOperationsMax": 0,
+    "organicMetricOperationsMax": 0,
+    "realFundOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  },
+  "claimsExcluded": ["production_ranker", "real_user_metrics", "production_storage", "public_chain_anchor", "mainnet_transaction", "external_moderation", "legal_opinion", "formal_security_audit"]
+}

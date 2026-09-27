@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexus.invalid/schemas/evidence-pack-v1.json",
+  "title": "Nexus Evidence Pack v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "pack_id", "task_id", "risk_class", "gate", "gate_decision", "created_at", "created_by", "author", "review_subject", "applicable_control_ids", "control_results", "approvals", "exceptions", "provenance", "immutability", "spend"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "pack_id": {"type": "string", "pattern": "^NX-[A-Z0-9-]+-EVID-[A-Za-z0-9-]+$"},
+    "task_id": {"type": "string", "pattern": "^NX-[A-Z0-9-]+$"},
+    "risk_class": {"enum": ["T0", "T1", "T2"]},
+    "gate": {"enum": ["G0", "G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8"]},
+    "gate_decision": {"enum": ["START", "REFINE", "REJECT", "APPROVE", "REWORK", "MERGE", "BLOCK", "PROMOTE", "FIX", "PASS", "CONDITIONAL", "FAIL", "ENABLE", "GEO_BLOCK", "EXPAND", "ROLLBACK", "RELEASE", "HOLD", "RETAIN", "CHANGE", "RETIRE"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "created_by": {"type": "string", "minLength": 2},
+    "author": {"type": "string", "minLength": 2},
+    "review_subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "digest", "artifacts"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "digest": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "sha256", "classification"],
+            "properties": {
+              "path": {"type": "string", "pattern": "^[A-Za-z0-9._/-]+$"},
+              "sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "classification": {"enum": ["PUBLIC", "INTERNAL", "CONFIDENTIAL_METADATA_ONLY"]}
+            }
+          }
+        }
+      }
+    },
+    "applicable_control_ids": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "pattern": "^NX-C(0[1-9]|1[0-3])-[0-9]{3}$"}
+    },
+    "control_results": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["control_id", "owner", "operator", "tier", "population_count", "tested_count", "coverage_percent", "result", "run_id", "evidence_sha256"],
+        "properties": {
+          "control_id": {"type": "string", "pattern": "^NX-C(0[1-9]|1[0-3])-[0-9]{3}$"},
+          "owner": {"type": "string"},
+          "operator": {"type": "string"},
+          "tier": {"enum": ["T0", "T1", "T2"]},
+          "population_count": {"type": "integer", "minimum": 0},
+          "tested_count": {"type": "integer", "minimum": 0},
+          "coverage_percent": {"type": "number", "minimum": 0, "maximum": 100},
+          "result": {"enum": ["PASS", "FAIL", "BLOCKED", "NOT_APPLICABLE"]},
+          "run_id": {"type": "string", "minLength": 8},
+          "evidence_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+          "not_applicable_reason": {"type": "string"}
+        },
+        "allOf": [
+          {"if": {"properties": {"tier": {"const": "T0"}}}, "then": {"properties": {"coverage_percent": {"const": 100}, "result": {"enum": ["PASS", "FAIL", "BLOCKED"]}}}},
+          {"if": {"properties": {"result": {"const": "NOT_APPLICABLE"}}}, "then": {"required": ["not_applicable_reason"]}}
+        ]
+      }
+    },
+    "approvals": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["role", "actor", "decision", "observed_at", "subject_sha256"],
+        "properties": {
+          "role": {"enum": ["OWNER", "AUTHOR", "PEER", "CONTROL", "CHECKER", "EXTERNAL"]},
+          "actor": {"type": "string"},
+          "decision": {"enum": ["PASS", "FAIL", "CONDITIONAL"]},
+          "observed_at": {"type": "string", "format": "date-time"},
+          "subject_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"}
+        }
+      },
+      "allOf": [
+        {"contains": {"properties": {"role": {"const": "OWNER"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "PEER"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "CONTROL"}}, "required": ["role"]}, "minContains": 1},
+        {"contains": {"properties": {"role": {"const": "CHECKER"}}, "required": ["role"]}, "minContains": 1}
+      ]
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["exception_id", "control_id", "owner", "reason", "compensating_control", "expires_at", "status"],
+        "properties": {
+          "exception_id": {"type": "string"},
+          "control_id": {"type": "string"},
+          "owner": {"type": "string"},
+          "reason": {"type": "string"},
+          "compensating_control": {"type": "string"},
+          "expires_at": {"type": "string", "format": "date-time"},
+          "status": {"enum": ["ACTIVE", "EXPIRED", "CLOSED"]}
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_snapshot_sha256", "commit_or_snapshot_id", "validator_run_id"],
+      "properties": {
+        "source_snapshot_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "commit_or_snapshot_id": {"type": "string", "minLength": 1},
+        "validator_run_id": {"type": "string", "minLength": 8},
+        "artifact_digest": {"type": ["string", "null"]},
+        "sbom_sha256": {"type": ["string", "null"]}
+      }
+    },
+    "immutability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "sealed_at", "sealed_by", "pack_sha256", "mutation_policy", "canonicalization", "digest_scope"],
+      "properties": {
+        "state": {"const": "SEALED"},
+        "sealed_at": {"type": "string", "format": "date-time"},
+        "sealed_by": {"type": "string"},
+        "pack_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "mutation_policy": {"const": "APPEND_ONLY_SUPERSEDING_PACK"},
+        "canonicalization": {"const": "nexus_canonical_json_v1_sorted_keys_utf8_no_bom"},
+        "digest_scope": {"const": "entire_pack_excluding_immutability.pack_sha256"},
+        "supersedes_pack_id": {"type": ["string", "null"]}
+      }
+    },
+    "spend": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "incremental_amount", "currency", "approval_id"],
+      "properties": {
+        "policy": {"const": "default_deny_spend"},
+        "incremental_amount": {"type": "number", "minimum": 0},
+        "currency": {"type": "string", "minLength": 3, "maxLength": 3},
+        "approval_id": {"type": ["string", "null"]}
+      }
+    }
+  }
+}

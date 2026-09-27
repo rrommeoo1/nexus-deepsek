@@ -1,0 +1,39 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-REACTION-MUTATION-RESULT-INTEGRITY-083",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "controls": {
+    "exact_post_target": "PASS",
+    "exact_comment_target": "PASS",
+    "authenticated_actor_and_persona": "PASS",
+    "normalized_reaction_and_result_state": "PASS",
+    "stable_retry_key": "PASS",
+    "single_flight_per_post": "PASS",
+    "malformed_or_stale_result_fail_closed": "PASS",
+    "private_dislike_not_public": "PASS",
+    "fake_is_opinion_not_fact_check": "PASS",
+    "external_share": "DENIED"
+  },
+  "verification": {
+    "syntax": "PASS",
+    "focused_tests": { "passed": 6, "failed": 0 },
+    "product_full_tests": { "passed": 242, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "cd097ebee9a18a90853a5411b614f346f41a22bce9fea3e629fcf4ee2dbad760",
+    "apps/nexus-web/public/app.js": "37b70cb656464f2ec157dd44a701a32c2361385e3150df72420a01d4a8b9e398",
+    "apps/nexus-web/public/index.html": "1b772500d23c356a9c6280167488274abce3004ced1bd0eda53846df9f79648a",
+    "apps/nexus-web/test/audit.test.js": "f9956d015c91fd55c88634f1cf0edcd287f4f4fb45350fa44a7e06f8fceb1d9d",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "61338bb75391b7d01e6a5ff986cc81bb917a8f14aeae7ec5e48484192fe7e991",
+    "planning/NX-WEB-SOCIAL-reaction-mutation-integrity-v1.md": "fad5f49bbace2a7fb086b214f3130cf531f4d1fe13414a079674ce9980cf826a",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "248aaf847fde1569469676cb7f51b281df74805c23cc1ac60dc191283b7a674f",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "12f0f4489087b96c15e3f0c4760b3d4a2f0dcd652afc0dab23335ccd984abdc8"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-COMMENT-MUTATION-RESULT-INTEGRITY-084"
+}

@@ -1,0 +1,83 @@
+{
+  "packet_range": "NX-WEB-SOCIAL-130-140",
+  "date": "2026-09-08",
+  "gate": "PASS_LOCAL",
+  "closed_cycles": [130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140],
+  "controls": {
+    "story_publish": "Durable retry-safe publish intents with seven-day TTL, hash-only persistence and exact result binding.",
+    "story_archive_highlights": "Owner/profile-bound archive and highlight records; Privacy Matrix is reapplied to every highlighted-media read.",
+    "draft_quota": "Twenty drafts and 100 MB per profile with deterministic eviction and localized quota state.",
+    "upload_quota": "Atomic 100 MB and twenty active-session quota; cancellation restores capacity and orphan cleanup is dry-run by default.",
+    "media_delivery": "Exact hash, MIME, extension, purpose and scan checks; E2EE ciphertext is forced to an opaque attachment.",
+    "inbox_pagination_search": "Signed HMAC cursor pagination and server search restricted to authorized local plaintext conversations.",
+    "e2ee_attachment_lifecycle": "Abortable decrypt, stale-context denial, object-URL revocation and safe navigation reset.",
+    "call_leases": "Twenty-five-second exact-participant leases with persona-bound heartbeat and local-media shutdown after heartbeat loss.",
+    "group_concurrency": "Optimistic title/key-epoch checks and transactional member changes prevent stale group administration.",
+    "notification_realtime": "Recipient/profile-bound invalidations, exact unread counters, dedupe identifiers and no events for no-op mutations.",
+    "accessibility": "Explicit Escape close targets, focus-visible and forced-color states, reduced motion and corrected landmark structure."
+  },
+  "findings_resolved": [
+    {
+      "severity": "HIGH",
+      "problem": "Synthetic actors could attempt engagement against private content without the paid entitlement required by the Privacy Matrix.",
+      "resolution": "The local actor lab never forges settlement; private-content interactions use the owner path while entitlement cases remain in the dedicated privacy suite."
+    },
+    {
+      "severity": "HIGH",
+      "problem": "Navigation could leave decrypted attachment URLs and pending decryption alive in a newer messaging context.",
+      "resolution": "Abort signals, context generations and deterministic URL revocation now close every stale decryption path."
+    },
+    {
+      "severity": "MEDIUM",
+      "problem": "Account-deletion security notices bypassed realtime invalidation and already-read mutations emitted phantom changes.",
+      "resolution": "Account lifecycle notifications use the common invalidation adapter and no-op reads return a null change identifier without publishing."
+    },
+    {
+      "severity": "MEDIUM",
+      "problem": "Group title and membership changes could overwrite a concurrent administrative decision.",
+      "resolution": "Expected title and key epoch are validated transactionally before any group mutation."
+    }
+  ],
+  "verification": {
+    "full": "284/284",
+    "test_files": 32,
+    "social_inventory": "44/44",
+    "e2ee_inventory": "40/40",
+    "synthetic_actors": 1000,
+    "synthetic_issues": 0,
+    "release_check": "PASS_LOCAL"
+  },
+  "constraints": {
+    "external_network": false,
+    "real_funds": false,
+    "incremental_cost": 0,
+    "production_ready_claim": false,
+    "remaining_external_gates": [
+      "trusted HTTPS edge",
+      "real WalletConnect attestation",
+      "independent T0/T1 review",
+      "real-device validation",
+      "Live SFU and moderation infrastructure",
+      "formal legal and provider approvals"
+    ]
+  },
+  "sha256": {
+    "apps/nexus-web/lib/api.js": "782e79e7e4902453bf2baf23ad2c701225e8d0a061b9ad785aef07ed886bf94e",
+    "apps/nexus-web/lib/repo.js": "c2361b0bff29db0fc02887d6f76ee0fcb046c13d9b5877ed317b052e5f27baa0",
+    "apps/nexus-web/lib/db.js": "2823008ce81957a19fbaf62218150c1e04d6f7df2347ee6bcafa88cd84431636",
+    "apps/nexus-web/lib/account-lifecycle.js": "2839afd371b84ca7a7427100289e8e9f336d0c10bf756fa0e203bdf691079c2e",
+    "apps/nexus-web/lib/media.js": "114c11d38c92455b9563a67179018ed5a780d58538a55d573bd72f450e26eb1d",
+    "apps/nexus-web/public/app.js": "dfe706487f74f2c06b8577a9a2f60d53d5f7626f0a398b3cd2479882d3e5a368",
+    "apps/nexus-web/public/chat-crypto.js": "04eb0c52942752780e212274b88b4cbb73f6593de5f0cce0f4bd7307abbf519c",
+    "apps/nexus-web/public/call-client.js": "37e5ee2111de037d3edc7ba8be0e3a282b4274ee16bbc4f11e18f7096bc4cd6a",
+    "apps/nexus-web/public/modal-accessibility.js": "c98c7fb77bb98ceef3f0d3d8c15e8822ad83e121b6a7c0c2732e577cfa421108",
+    "apps/nexus-web/public/index.html": "db598f814d365d39c508d2715b0a8716430fee1e9691ed0b2b13b07066b32da9",
+    "apps/nexus-web/public/p3-visual-foundation.css": "2816c8d22d5773990041c84bed5e120e493dd8d95f38e002ebaf061e809376e7",
+    "apps/nexus-web/scripts/actors.js": "11dd5cd3c0d891999ea56058f37a40bd6680b4b4f163184260e6bb240782d432",
+    "apps/nexus-web/scripts/social-integrity-inventory.mjs": "c134bafb4e951aa79c60cededbc96df2358e45176f7c4f5c4efebc04a4b4826a",
+    "apps/nexus-web/test/p1-notifications.test.js": "11adb860e6b19e703b0cdb307b60b0c64c1cf1da4b71b604c8f328dcb7087825",
+    "apps/nexus-web/test/p2-message-pagination.test.js": "faa0d14f26c7ba41e55654176caadf591c508c5f71967643015c09cbe664cd81",
+    "apps/nexus-web/test/p3-accessibility-modal.test.js": "0ae211e5a78b659006576bc5e229aa1d15090ac0b87f60b0a87ffe76e9ae058a"
+  },
+  "next": "NX-WEB-SOCIAL-P03-MOBILE-LAYOUT-INTEGRITY-141"
+}

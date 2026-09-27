@@ -1,0 +1,39 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+reviewer_role: C03
+reviewed_at: '2026-08-03T06:10:36Z'
+verdict: PASS_FINAL_C03_NX_CHAIN_001
+backlog_transition: in_progress_to_done
+open_findings: []
+acceptance:
+  replay_escalation_batching_relayer_rejection: PASS
+  ordered_vs_executed_separation: PASS
+  privacy_payload_commitment_only: PASS
+  rustvm_govm_differential: PASS_8_OF_8
+  deterministic_fuzz: PASS_4096_OF_4096
+  actual_govm_gas: PASS
+  devnet_terminal_record_action: PASS
+devnet:
+  contract: erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t
+  r3_transactions: 3
+  all_terminal_success: true
+  all_hyperblock_final: true
+  action_recorded_event_count: 1
+  new_capability_used_actions: 1
+  new_capability_last_action_nonce: 1
+  prior_capability_active: false
+  real_value: 0
+integrated_validation:
+  run_id: NX-CHAIN-001-RUST-20260803T060411125Z-94988264
+  assertions: 125
+  status: PASS
+evidence:
+  - planning/evidence/NX-CHAIN-001-devnet-validation.json
+  - planning/evidence/NX-CHAIN-001-rust-validation.json
+  - planning/evidence/NX-CHAIN-001-fuzz-validation.json
+  - planning/evidence/NX-CHAIN-001-rustvm-scenarios.json
+  - planning/evidence/NX-CHAIN-001-govm-validation.json
+excluded_gates:
+  - mainnet_readiness
+  - production_security_audit
+  - material_real_funds

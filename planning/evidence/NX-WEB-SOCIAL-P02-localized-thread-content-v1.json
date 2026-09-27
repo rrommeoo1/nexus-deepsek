@@ -1,0 +1,101 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-THREAD-CONTENT-051",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["request_decisions", "message_content", "e2ee_safety", "plain_attachments", "encrypted_attachment_decryption", "direct_call_capability"],
+    "catalog_parity_enforced": true,
+    "request_decisions": {
+      "stable_idempotency_key_per_visible_action": true,
+      "explicit_idempotency_header": true,
+      "both_controls_single_flight": true,
+      "detached_completion_ignored": true,
+      "raw_backend_error_rendered": false
+    },
+    "attachments": {
+      "plain_url_allowlist": "/media/<sha256>.<extension>",
+      "absolute_or_external_url_rendered": false,
+      "encrypted_open_requires_explicit_local_action": true,
+      "decrypted_object_urls_revoked_on_reload_or_close": true,
+      "server_malware_scan_claim_for_ciphertext": false
+    },
+    "e2ee_safety": {
+      "verification_single_flight": true,
+      "invalid_material_fails_closed": true,
+      "missing_device_collection_guarded": true,
+      "protocol_changed": false
+    },
+    "external_share_enabled": false,
+    "cache_generation": {
+      "app_and_locale": "20260905-p1locale15",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_messaging_e2ee_audit": { "passed": 13, "failed": 0 },
+    "product_full_tests": { "passed": 214, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "native_rtl_ltr_visual_claim": "NONE",
+      "real_device_e2ee_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "A backend-provided attachment URL could reach a media or download element without an internal-path allowlist.",
+      "resolution": "Rendering is restricted to exact content-addressed Nexus media paths."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Accept and decline could be submitted concurrently without a stable client mutation identity.",
+      "resolution": "Both controls are single-flight and each visible action keeps one replay-safe key."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Thread request, safety, attachment and call states mixed hard-coded copy with raw runtime details.",
+      "resolution": "All bounded states use parity-checked controlled locale copy."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Temporary decrypted attachment URLs were not explicitly released.",
+      "resolution": "Object URLs are tracked and revoked on thread reload or close."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Malformed missing-device data could break E2EE readiness rendering.",
+      "resolution": "The collection is guarded and fails closed."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "4c5f01705fece6fcce19244613e2cc8397b329082c244053568de751efb3510e",
+    "apps/nexus-web/public/app.js": "244e421b5fe948a5bb5fee7e3bc798e192a5d1b09cf2dcc921992ed945960198",
+    "apps/nexus-web/public/index.html": "8bb9a0cc2cc82ebd9342789faa6a6e6877f2a2be9971fa976acf7e60b4837300",
+    "apps/nexus-web/test/audit.test.js": "114a198216c1ffe98fdd6d485ee27f0d67a7bc4b09f6238cace9c36ab1cc35d5",
+    "apps/nexus-web/public/latest-request.js": "8437610408d4fee4f875266bfcf4226750537d1b1a5f10954d751304cc4f4260",
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-localized-thread-content-v1.md": "910fc6e0eb9939ec7fbf051023d4c45b689b1ffec7078a4300cbe5ccc111cd26"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_TRUSTED_HTTPS_REAL_DEVICE_CRYPTO_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-MEETING-GROUP-ADMIN-052"
+}

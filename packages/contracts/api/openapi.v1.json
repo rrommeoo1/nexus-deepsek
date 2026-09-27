@@ -1,0 +1,122 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Nexus Action API",
+    "version": "1.0.0",
+    "description": "Versioned action-intent vertical slice. HTTP 202 is relay acceptance, never chain finality."
+  },
+  "jsonSchemaDialect": "https://json-schema.org/draft/2020-12/schema",
+  "paths": {
+    "/v1/actions": {
+      "post": {
+        "operationId": "createActionIntentV1",
+        "x-owner": "A13",
+        "x-idempotent": true,
+        "parameters": [
+          {"$ref": "#/components/parameters/NexusProfile"},
+          {"$ref": "#/components/parameters/IdempotencyKey"},
+          {"$ref": "#/components/parameters/ClientVersion"},
+          {"$ref": "#/components/parameters/RequestId"}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {"application/json": {"schema": {"$ref": "#/components/schemas/CreateActionRequest"}}}
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted into relay queue; not finalized on chain.",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ActionAccepted"}}}
+          },
+          "409": {"$ref": "#/components/responses/Conflict"}
+        },
+        "security": [{"walletSession": []}]
+      }
+    },
+    "/v1/actions/{actionId}": {
+      "get": {
+        "operationId": "getActionIntentV1",
+        "x-owner": "A13",
+        "parameters": [
+          {"name": "actionId", "in": "path", "required": true, "schema": {"$ref": "#/components/schemas/UuidV7"}},
+          {"$ref": "#/components/parameters/NexusProfile"},
+          {"$ref": "#/components/parameters/RequestId"}
+        ],
+        "responses": {
+          "200": {"description": "Current reconciled intent state.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ActionIntent"}}}},
+          "404": {"$ref": "#/components/responses/NotFound"}
+        },
+        "security": [{"walletSession": []}]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "walletSession": {"type": "http", "scheme": "bearer", "bearerFormat": "NEXUS_WALLET_SESSION"}
+    },
+    "parameters": {
+      "NexusProfile": {"name": "X-Nexus-Profile", "in": "header", "required": true, "x-catalog-id": "api.header.x-nexus-profile", "schema": {"$ref": "#/components/schemas/UuidV7"}},
+      "IdempotencyKey": {"name": "Idempotency-Key", "in": "header", "required": true, "x-catalog-id": "api.header.idempotency-key", "schema": {"type": "string", "minLength": 16, "maxLength": 128, "pattern": "^[A-Za-z0-9._:-]+$"}},
+      "ClientVersion": {"name": "X-Client-Version", "in": "header", "required": true, "schema": {"type": "string", "minLength": 1, "maxLength": 32}},
+      "RequestId": {"name": "X-Request-Id", "in": "header", "required": true, "schema": {"$ref": "#/components/schemas/UuidV7"}}
+    },
+    "schemas": {
+      "UuidV7": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+      "Hash32Hex": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+      "ActionType": {"type": "string", "enum": ["POST_CREATE", "LIKE", "UNLIKE", "COMMENT_CREATE", "FOLLOW", "UNFOLLOW", "LISTING_CREATE", "REVIEW", "PRIVATE_ACTION"]},
+      "VisibilityClass": {"type": "string", "enum": ["PUBLIC", "CONNECTIONS", "PRIVATE_COMMITMENT"]},
+      "ActionState": {"type": "string", "enum": ["CREATED", "RELAY_QUEUED", "SUBMITTED", "ORDERED_FINAL", "EXECUTION_PENDING", "EXECUTED_SUCCESS", "REVERTED", "EXPIRED"]},
+      "CreateActionRequest": {
+        "type": "object",
+        "x-data-policy": {"owner": "A13", "purpose": "create_pseudonymous_action_intent", "legal_basis": "contract_and_security", "retention": "request_audit_30d", "default_classification": "INTERNAL"},
+        "additionalProperties": false,
+        "required": ["actionType", "objectCommitment", "payloadHash", "visibilityClass", "actionNonce", "expiresAt"],
+        "properties": {
+          "actionType": {"$ref": "#/components/schemas/ActionType"},
+          "objectCommitment": {"$ref": "#/components/schemas/Hash32Hex", "x-catalog-id": "api.action.object-commitment"},
+          "payloadHash": {"$ref": "#/components/schemas/Hash32Hex", "x-catalog-id": "api.action.payload-hash"},
+          "visibilityClass": {"$ref": "#/components/schemas/VisibilityClass"},
+          "actionNonce": {"type": "string", "pattern": "^[1-9][0-9]{0,19}$"},
+          "expiresAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ActionIntent": {
+        "type": "object",
+        "x-data-policy": {"owner": "chain_integration", "purpose": "report_reconciled_action_state", "legal_basis": "contract_and_security", "retention": "action_lifecycle_plus_400d", "default_classification": "INTERNAL"},
+        "additionalProperties": false,
+        "required": ["id", "state", "optimistic", "aggregateVersion", "createdAt", "updatedAt"],
+        "properties": {
+          "id": {"$ref": "#/components/schemas/UuidV7"},
+          "state": {"$ref": "#/components/schemas/ActionState"},
+          "txHash": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+          "optimistic": {"type": "boolean"},
+          "aggregateVersion": {"type": "integer", "minimum": 1},
+          "createdAt": {"type": "string", "format": "date-time"},
+          "updatedAt": {"type": "string", "format": "date-time"}
+        }
+      },
+      "ActionAccepted": {
+        "type": "object",
+        "x-data-policy": {"owner": "A13", "purpose": "return_relay_acceptance_without_finality_claim", "legal_basis": "contract", "retention": "request_audit_30d", "default_classification": "INTERNAL"},
+        "additionalProperties": false,
+        "required": ["data", "action"],
+        "properties": {"data": {"type": "object", "additionalProperties": false, "x-data-policy": {"owner": "A13", "purpose": "reserved_non_sensitive_response_extension", "legal_basis": "contract", "retention": "request_audit_30d", "default_classification": "INTERNAL"}}, "action": {"$ref": "#/components/schemas/ActionIntent"}}
+      },
+      "ApiError": {
+        "type": "object",
+        "x-data-policy": {"owner": "core_api_shell", "purpose": "return_stable_machine_error", "legal_basis": "contract_and_security", "retention": "request_audit_30d", "default_classification": "INTERNAL"},
+        "additionalProperties": false,
+        "required": ["code", "message", "requestId"],
+        "properties": {
+          "code": {"type": "string", "enum": ["AUTH_INVALID", "PROFILE_FORBIDDEN", "CONTEXT_STALE", "IDEMPOTENCY_CONFLICT", "CHAIN_PENDING", "CHAIN_REVERTED"]},
+          "message": {"type": "string"},
+          "requestId": {"$ref": "#/components/schemas/UuidV7"},
+          "details": {"type": "object", "additionalProperties": false, "x-data-policy": {"owner": "core_api_shell", "purpose": "bounded_machine_error_details", "legal_basis": "contract_and_security", "retention": "request_audit_30d", "default_classification": "INTERNAL"}}
+        }
+      }
+    },
+    "responses": {
+      "Conflict": {"description": "Idempotency or state conflict.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ApiError"}}}},
+      "NotFound": {"description": "Action not found or not visible.", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ApiError"}}}}
+    }
+  }
+}

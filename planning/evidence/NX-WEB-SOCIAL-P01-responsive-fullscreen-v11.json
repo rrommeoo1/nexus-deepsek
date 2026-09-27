@@ -1,0 +1,25 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "double_tap_responsive_fullscreen",
+  "date": "2026-08-27",
+  "cache_bust": "20260827-neural53",
+  "behaviour": {
+    "single_tap": "delayed Play/Pause toggle",
+    "double_tap": "fullscreen without triggering the single-tap action",
+    "orientation": "landscape for horizontal clips, portrait for vertical or square clips, unlocked on exit",
+    "fit": "contain at native aspect ratio without crop or distortion",
+    "fallback": "Nexus media viewer when the browser Fullscreen API is unavailable"
+  },
+  "verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural53 assets"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "AAEED26CFF5E82D16FAF7291A1B5AA832F7033DB9E1BE9048691B1B806B419D4",
+    "apps/nexus-web/public/styles.css": "787C71B4FF6AE16CBDFDDD9E5EE3284B350905942393BB1575B550802DF062B6",
+    "apps/nexus-web/public/index.html": "669A05E3908DCB47F1AF87DC2E2B0C261F6966C1AA97ABC36155DDA26B86E8F3"
+  },
+  "cost": "0"
+}

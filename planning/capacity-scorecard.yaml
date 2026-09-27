@@ -1,0 +1,129 @@
+schema_version: 1
+program: Nexus
+profile: chatgpt_plus
+period:
+  type: bootstrap_snapshot
+  observed_at: 2026-08-02
+
+capacity:
+  usage_band: UNOBSERVED
+  usage_evidence: Previous 1% warning belonged to the prior run; no current remaining-usage indicator is observable, so effective operating mode is YELLOW.
+  max_active_packets: 1
+  active_packets: 1
+  active_task_id: NX-WEB-SOCIAL-P01
+  next_ready_task_id: null
+  spawned_agents: 0
+  completed_independent_review_decisions: 47
+  paid_credits_authorized: false
+  auto_recharge_authorized: false
+  paid_api_authorized: false
+
+test_budget:
+  target_percent:
+    deterministic_local: 90
+    generative_targeted: 9
+    independent_release_review: 1
+  measurement:
+    run_id: NX-CAP-001-VAL-003
+    window: NX-CAP-001_owner_validation_plus_A10_and_C10_final_decisions
+    source: planning/validate-capacity.ps1_and_independent_review_decisions
+    denominator: scenario_action_equivalent
+    normalization:
+      deterministic_scenario_action: 1
+      generative_targeted_turn: 1
+      independent_review_turn: 1
+    logical_actor_actions: 100
+    deterministic_scenario_actions: 100
+    generative_targeted_turns: 0
+    independent_review_turns: 2
+    total_scenario_action_equivalents: 102
+    computed_percent:
+      deterministic_local: 98.0392
+      generative_targeted: 0
+      independent_release_review: 1.9608
+    deterministic_wall_seconds_last_observed: 0.6951
+    deterministic_cpu_seconds_last_observed: 0.4062
+  synthetic_actor_policy: SYSTEM_TEST
+  production_metric_effect_allowed: false
+  economic_effect_allowed: false
+
+spend:
+  policy_path: planning/spend-control.yaml
+  mode: default_deny_spend
+  max_incremental_amount_without_approval: 0
+  reporting_currency: EUR
+  active_approvals: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+    source: Local validation and already-included agent capacity; no metered provider invocation.
+  cost_per_accepted_packet:
+    value: 0
+    currency: EUR
+    reason: Thirty-one accepted P0 and P1 packets, including NX-UX-P01, were completed with zero incremental cost.
+  blocked_negative_test_attempts:
+    invalid_or_unregistered_approvals: 6
+    economic_effect: 1
+    unallowlisted_egress: 1
+  production_or_billing_credential_matches: 0
+  runtime_enforcement:
+    fixed_allowlisted_child_processes: 1
+    arbitrary_child_commands_allowed: false
+    child_network_capability_detected: false
+    child_cpu_seconds_last_observed: 0.2969
+    child_disk_bytes_last_observed: 0
+
+delivery:
+  accepted_packets: 32
+  packets_in_review: 0
+  blocked_packets: 0
+  current_packet_status: in_progress
+  checkpoint_path: planning/checkpoints/NX-WEB-SOCIAL-P01.md
+  next_ready_task: null
+  timeline_recalibration_after_weeks: 4
+
+controls:
+  continuity_checkpoint_present: true
+  explicit_spend_approval_required: true
+  full_conversation_required_to_resume: false
+  independent_review_pending: false
+  runtime_zero_cost_guard_passed: true
+  reviewer_decisions:
+    A10: PASS
+    C10: PASS
+    A01: PASS
+    A02: PASS
+    C12: PASS
+    C11: PASS
+    C09_OBS: PASS
+    C10_OBS: PASS
+    C11_OBS: PASS
+    C03_CHAIN_002: PASS
+    C01_MEDIA: PASS
+    C11_QA: PASS
+    C12_QA: PASS
+    C03_C05_C08_C10_ECON: PASS
+    C01_C02_C04_PROFILE: PASS
+    C01_C04_C06_MOD: PASS
+    C02_C03_C05_C10_PAY: PASS
+    C01_C02_C04_C06_CHAT: PASS
+    C01_C04_C06_C08_SOCIAL: PASS
+    C03_C05_C06_C10_MARKET: PASS
+    C03_C05_C10_BIZ: PASS
+    C02_C04_C06_C08_DATING: PASS
+    C06_C09_C10_LIVE: PASS
+    C01_C02_C08_C10_SYNTH: PASS
+    C02_C03_C09_C13_NODE_P01: PASS
+    C02_C03_C09_C10_C13_NODE_P02: PASS
+    C01_C02_C04_C05_C06_C10_TRUST: PASS
+    C02_C04_C06_C08_C10_ENGAGE: PASS
+    C02_C04_C06_C08_C10_EXPERIENCE: PASS
+    C02_C04_C05_C06_C08_ADULT: PASS
+    C01_C02_C04_C10_UX_P01_RETEST: PASS
+    C01_C02_C04_C10_C12_WEB_AUTH: PASS
+
+decision:
+  mode: root_only
+  open_new_packet: false
+  next_task_id: NX-WEB-SOCIAL-P01
+  reason: NX-WEB-AUTH-P01 received independent PASS; Social/Profile/Messages is now the sole active zero-cost productization packet under WIP=1.

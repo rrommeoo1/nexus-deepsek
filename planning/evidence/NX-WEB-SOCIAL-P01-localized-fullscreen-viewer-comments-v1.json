@@ -1,0 +1,85 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-LOCALIZE-FULLSCREEN-VIEWER-AND-COMMENTS-041",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_interface_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["continuous_fullscreen_media_viewer", "comment_threads", "viewer_internal_overflow_menu"],
+    "catalog_parity_enforced": true,
+    "rtl_identity_isolated": true,
+    "comment_failure_distinct_from_empty": true,
+    "comment_reply_cancel_supported": true,
+    "raw_backend_error_in_comment_ui": false,
+    "viewer_overflow_truthful": true,
+    "external_share_enabled": false,
+    "cache_generation": "20260904-p1locale5"
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_tests_including_modal_accessibility": { "passed": 116, "failed": 0 },
+    "product_full_tests": { "passed": 209, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_SAVED_LOCAL_PERMISSION_DENIED_127_0_0_1",
+      "visual_rtl_or_device_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Failed or malformed comments responses were rendered as an empty conversation.",
+      "resolution": "Render localized failure with Retry and no raw backend detail; empty is used only for a valid empty array."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Reply mode had no local cancellation path and could leave the next comment bound to a parent.",
+      "resolution": "A localized cancel control clears parent_id, restores the normal placeholder and remains reusable."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The viewer ellipsis advertised more options but invoked Report directly.",
+      "resolution": "It now opens a colocated internal menu with Not interested and Report and deterministic close paths."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Comment mutations leaked backend strings or failed silently.",
+      "resolution": "Reaction, edit, withdraw and create use stable localized error and success messages."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Full-screen controls and comment threads mixed Romanian literals into EN, PL and AR.",
+      "resolution": "Viewer and comment conversation copy is catalogued across all four supported locales with bidi isolation."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Dynamic viewer aria-label markup broke the modal accessible-name audit.",
+      "resolution": "The dialog now references a stable localized hidden label through aria-labelledby."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "bd92da5035dd55a30a5cc3a40cd8e18578f78fb33aa638666e43c08d32973499",
+    "apps/nexus-web/public/app.js": "493677276798b6524b1dbfc70ca0d916df6cdb608deccd7c96b6f593de3d5d9d",
+    "apps/nexus-web/public/styles.css": "4fd4d321a66d9a6bd719fc8c8ffec60d9280bfdb91eca46f02caaaffa3b5c4e6",
+    "apps/nexus-web/public/index.html": "40fec686e7e9593b4afd78c402c76fe3ac7d047f660f667090d347bc2ce71ad9",
+    "apps/nexus-web/test/core.test.js": "fb4c82829e62d69f64625742ba39aa7df61d9b50b67db2fcf9f80f597cc28aca",
+    "apps/nexus-web/test/audit.test.js": "64a9477bffcb3992657d8a8ae9de5b3156b1de074bfcf053105bc203980772ae",
+    "planning/NX-WEB-SOCIAL-localized-fullscreen-viewer-comments-v1.md": "55c272c658877d572fe52966844f2423518d7cd6b692a5f1daff48185d6912e6"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "Capacity indicator is not programmatically observable in this run; the separate worker remains usage-limited.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_NATIVE_LANGUAGE_REAL_DEVICE_RTL_LTR_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-LOCALIZE-TRUST-MODERATION-SHEETS-042"
+}

@@ -1,0 +1,140 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P1-COMMENTS-PROFILES-008",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "controls": {
+    "profiles": {
+      "persona_isolation": true,
+      "avatar_purpose_grant": "profile_avatar",
+      "cover_purpose_grant": "profile_cover",
+      "privacy_matrix_on_read": true,
+      "private_and_cross_persona_denied": true,
+      "visible_fields": ["avatar", "cover", "bio", "posts", "followers", "following", "stories"]
+    },
+    "comments": {
+      "public_visibility_subject_to_post_and_actor_privacy": true,
+      "relevant_newest_oldest_sorting": true,
+      "threaded_replies": true,
+      "author_only_edit": true,
+      "author_only_withdrawal": true,
+      "creator_cannot_delete_criticism": true,
+      "immutable_version_history": true,
+      "withdrawal_mode": "tombstone",
+      "report_does_not_auto_remove": true,
+      "blocked_author_body_and_count_leak": false
+    },
+    "realtime": {
+      "raw_comment_broadcast": false,
+      "event": "comment-changed",
+      "payload": "post_id_only",
+      "consumer_action": "privacy_authorized_refetch"
+    }
+  },
+  "verification": {
+    "full_tests": { "passed": 120, "failed": 0 },
+    "focused_p1_tests": { "passed": 3, "failed": 0 },
+    "migration_tests": { "passed": 2, "failed": 0 },
+    "synthetic_actor_lab": {
+      "seed": 2026082809,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1200,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "saves": 500,
+      "reposts": 167,
+      "conversations": 100,
+      "messages": 100,
+      "stories": 125,
+      "story_views": 125,
+      "blocks": 100,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "self_follows": 0,
+      "bad_threads": 0,
+      "gate": "PASS"
+    },
+    "database": {
+      "comments_columns": ["withdrawn_at", "version", "pinned_at"],
+      "persona_cover_column": true,
+      "comment_versions_rows": 20,
+      "legacy_comments_migration_restart_safe": true,
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "runtime": {
+      "pid": 3128,
+      "listen_address": "0.0.0.0",
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "stderr_empty": true
+    },
+    "browser_qa_mobile": {
+      "viewport": "390x844",
+      "own_profile_visible": true,
+      "avatar_cover_bio_and_counts_visible": true,
+      "comment_panel_open_close": true,
+      "bottom_navigation_hidden_while_comments_open": true,
+      "bottom_navigation_restored_after_close": true,
+      "javascript_errors": 0,
+      "demo_creator_without_persistent_profile": "truthful_unavailable_state"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Raw comment content was eligible for broad realtime publication.",
+      "resolution": "Replaced with post-id-only invalidation; every client refetches through the Privacy Matrix."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Blocked comment authors could affect visible bodies and aggregate counts.",
+      "resolution": "Applied viewer-specific blocked-author filtering to comment reads and feed counters."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "The first legacy migration placed two comment columns in the wrong migration block and failed before listen.",
+      "resolution": "Moved the columns to the comments migration, added a legacy fixture test, and verified fail-closed startup, restart and integrity."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Creator profile navigation fell back to search instead of a dedicated profile surface.",
+      "resolution": "Added a privacy-aware profile sheet with cover, avatar, bio, counts, posts and scoped actions."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Profile covers had no purpose-bound upload grant.",
+      "resolution": "Added profile_cover grants and owner/persona validation before persistence."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "94f2026f2a42d7480ca98929e68b1104d4bfbaa435f298c73f8ae15ab8460389",
+    "apps/nexus-web/lib/repo.js": "6f712908b88389bcc96f048dd35895d5fde3458bd33f080af3aceb4a5f030a27",
+    "apps/nexus-web/lib/api.js": "efe4efd31dfa06cf3b57336435cde332fba2c5d6ba845c1f8bc80c7f1718cf22",
+    "apps/nexus-web/lib/resumable-upload.js": "140df478b17027d94f1eea56af94290e92a7008cda7be80eb9cac961b875a6d3",
+    "apps/nexus-web/public/app.js": "44809f03deed8141806bd792c0dbc40c25845c3e8be6e0d98810695710074eb6",
+    "apps/nexus-web/public/styles.css": "6bf66b50cdb440598c4e774029dae05a171a49bd24e92c121053afaf8714c5f5",
+    "apps/nexus-web/public/index.html": "623096c61f648610024583d18eaa20b897a16c1f0c8491a7a7dcc5a752502762",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "67c85ad20ade687d9d74d3d1cfe92cd9ea031497d4e8312e395f30c57373c203",
+    "apps/nexus-web/test/db-migrations.test.js": "a5fc80398d60f3847bad2862632cbbe700dba6392f8e630cb7e66b3758fd02b5",
+    "apps/nexus-web/test/audit.test.js": "3ef1a08b7b31706acb6034ddf546e3e6b0499cd6410e56bd906e96e4219d839c"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "implementation": "main_agent_only",
+    "independent_t0_t1_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "p1_comments_profiles_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-P1-SOCIAL-PRIVACY-REALTIME-009"
+}

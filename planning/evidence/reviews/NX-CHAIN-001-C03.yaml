@@ -1,0 +1,149 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+review_id: NX-CHAIN-001-C03-20260802T205700Z
+reviewer_role: C03
+risk_class: T0
+status: FAIL
+gate_recommendation: REJECT_PACKET_ACCEPTANCE
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+subject:
+  rust_subject_sha256: 3cfc1d8d83cb09539fee4ad02cf547e3778e5a210965e8313996396be1521456
+  wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+  mxsc_sha256: e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d
+  abi_v1_sha256: 9bd6f44e083a7b35ed9dde9d5fa61a4beaa118138566003d68fb457ded97934b
+  abi_v2_alpha_sha256: 5ec4c699480ebd3421c68d77b429eb80da78a5a67e597928f2798bbf30d35a63
+  canonical_rust_evidence_sha256: b259d09a2ddc89cc43bba8e1145376e9b7ac62cd6795535e30c9b9bd824de55d
+
+independent_runs:
+  sandbox:
+    run_id: NX-CHAIN-001-20260802T205615350Z-45c8261c
+    status: PASS
+    controls: 118
+    scenario_assertions: 52
+    subject_sha256: 8239c1e58d279dfe9be073d02b92e0ea294caf4a742fcd01f08616cae0adc7a8
+  rust_integrated:
+    run_id: NX-CHAIN-001-RUST-20260802T205328524Z-5de90daf
+    status: PASS
+    controls: 87
+    rustvm_tests: 9
+    differential_subjects: 4
+    receipt_sha256: 4ae283bad44c5ccf30179900ecfe96f86ce7be87ff4a6c6385491391e808ee14
+  govm:
+    run_id: NX-CHAIN-001-GOVM-20260802T205543721Z-5eeca7c4
+    status: PASS
+    runner_version: 5.1.0
+    vm_version: "1.5"
+    scenarios: 4
+    scenario_passes: 4
+    rust_evidence_sha256: b259d09a2ddc89cc43bba8e1145376e9b7ac62cd6795535e30c9b9bd824de55d
+    receipt_sha256: 1b23b2c8d4baa1c29bb236db86f92e0c341c0c7fd3a6442ccd175fb2b024a30e
+  gas:
+    run_id: NX-CHAIN-001-GOVM-20260802T205543721Z-5eeca7c4-GAS
+    status: PASS
+    receipt_sha256: 8dc9da84bcb59835be22b156aace769db4fbd3e92727b8729b8a4e60a02b78df
+    expected_rejections_excluded: true
+    record_action_success_gas: 5106811
+    record_action_recommended_limit: 6384000
+    record_private_action_success_gas: 5119346
+    record_private_action_recommended_limit: 6400000
+
+hash_freshness:
+  current_artifacts_match_canonical_rust_pack: true
+  independent_govm_bound_to_current_rust_pack: true
+  identical_rustvm_govm_scenario_hashes: true
+
+coverage:
+  nonce_replay:
+    status: PASS
+    evidence: RustVM_and_GoVM_signed_action_replay
+  capability_scope_escalation:
+    status: PARTIAL
+    evidence: RustVM_unit_only_not_in_GoVM_differential_set
+  batching_rejection:
+    status: PARTIAL
+    evidence: TypeScript_sandbox_and_single_envelope_ABI_only_not_in_VM_differential_set
+  relayer_mutation_and_pause:
+    status: PARTIAL
+    evidence: TypeScript_sandbox_plus_RustVM_controls;_pauser_scenario_only_in_GoVM_set
+  revoke_rotate_pause_rollback:
+    status: PARTIAL
+    evidence: revoke_and_rotate_RustVM_only;_pause_RustVM_and_GoVM
+  ordered_vs_executed:
+    status: PASS
+    evidence: sandbox_terminal_event_schema_and_state_transition_tests
+  privacy_and_pii:
+    status: PASS
+    evidence: serialized_payload_scanner_source_boundary_scan_and_commitment_only_VM_scenarios
+    limitation: salt_entropy_is_a_client_side_guarantee
+  one_action_per_call:
+    status: PASS
+    evidence: non_batch_ABI_fixed_envelope_endpoints_and_sandbox_batch_rejection
+  nonpayable:
+    status: PASS
+    evidence: generated_ABI_and_source_contain_no_payable_endpoint_or_financial_primitive
+  abi_compatibility:
+    status: PASS
+    evidence: v1_preserved_and_v2_staged_as_2.0.0-alpha.1
+  rustvm_govm_differential:
+    status: PARTIAL
+    evidence: four_of_four_staged_scenarios_agree_but_not_all_mandatory_abuse_cases_are_in_the_shared_set
+  gas_snapshot:
+    status: PASS
+    evidence: actual_GoVM_1.5_success_samples_with_25_percent_headroom
+  fuzz_corpus:
+    status: MISSING
+    evidence: no_packet_owned_property_or_fuzz_corpus_receipt_found
+  devnet_record_proof:
+    status: MISSING
+    evidence: explicitly_excluded_by_owner_evidence
+
+findings:
+  - id: C03-CHAIN-001-001
+    severity: HIGH
+    status: OPEN
+    title: Mandatory fuzz corpus is absent
+    requirement: planning/backlog-p0.yaml evidence_required.fuzz_corpus and docs/02-smart-contracts.md property/fuzz requirement
+    evidence: Repository search found deterministic example tests but no NX-CHAIN-001 property/fuzz corpus, seed, run receipt, or replayable failures.
+    impact: Boundary combinations for nonce, TTL, expiry, rotation limits, scopes, and relayer state are not demonstrated for this T0 gate.
+    remediation: Add a bounded deterministic property/fuzz corpus with fixed seeds, replay artifacts, mutation oracles, and an Evidence Pack tied to the current source and WASM hashes.
+  - id: C03-CHAIN-001-002
+    severity: HIGH
+    status: OPEN
+    title: Shared RustVM-GoVM differential set does not cover all mandatory abuse cases
+    requirement: backlog acceptance requires nonce replay, capability escalation, batching, and relayer mutation failures plus critical VM agreement
+    evidence: The four shared scenarios cover replay, private scope denial, private success, and pause; capability escalation, batching, revoke/rotate, and relayer mutation are not all executed by both VMs.
+    impact: VM-specific decoding or state-transition differences in mandatory T0 rejection paths remain untested.
+    remediation: Add portable shared scenarios for capability escalation, relayer mutation, revoke/rotate, and malformed or batch-shaped invocation where representable, then require identical RustVM and GoVM outcomes.
+  - id: C03-CHAIN-001-003
+    severity: HIGH
+    status: OPEN
+    title: Devnet record proof and terminal network execution evidence are missing
+    requirement: NX-CHAIN-001 title and objective require an action transaction and terminal execution proof on devnet
+    evidence: All current runs are local; canonical packs explicitly exclude devnet_transaction.
+    impact: Relayer broadcast, network transaction encoding, shard inclusion, finality, and executed-success reconciliation are not proven end to end.
+    remediation: Run a zero-real-funds devnet action through the intended relayer and capture tx hash, ordered/included/finalized/executed states, event, and reconciliation receipt without expanding claims to mainnet.
+
+accepted_controls:
+  - Rust 1.88.0 and multiversx-sc 0.66.2 locked build is reproducible.
+  - Real VM Ed25519 verification is imported and exercised.
+  - Current WASM, MXSC, v1 ABI, and staged v2 ABI hashes are fresh.
+  - Four shared scenarios pass identically in RustVM and GoVM 1.5.
+  - Actual GoVM gas snapshots exclude expected rejections from success budgets.
+  - PII/private plaintext scans found no prohibited payload content in the tested fixtures.
+  - Endpoints are nonpayable and encode one action envelope per call.
+
+claims_excluded:
+  - production_security_audit
+  - mainnet_readiness
+  - mainnet_transaction
+  - material_funds_safety
+  - legal_or_regulatory_approval
+
+closure_conditions:
+  - Close C03-CHAIN-001-001 with hash-bound deterministic fuzz evidence.
+  - Close C03-CHAIN-001-002 with expanded RustVM-GoVM differential scenarios.
+  - Close C03-CHAIN-001-003 with a devnet terminal execution and reconciliation receipt.
+  - Re-run C03 against the remediated immutable subject before changing packet status to done.

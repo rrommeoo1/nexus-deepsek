@@ -1,0 +1,64 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-THREAD-AUXILIARY-MUTATION-INTEGRITY-077",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "typing_conversation_actor_persona_binding": true,
+    "typing_stable_bounded_retry_key": true,
+    "group_admin_cross_persona_denied": true,
+    "group_admin_exact_intent_and_resource_binding": true,
+    "meeting_cross_persona_denied": true,
+    "meeting_exact_intent_and_resource_binding": true,
+    "call_start_decision_end_explicit_replay_keys": true,
+    "call_identity_participant_persona_state_validation": true,
+    "call_signal_nonce_sender_type_result_binding": true,
+    "call_signal_payload_persisted": false,
+    "call_signal_hash_replay_guard": "durable_hash_only",
+    "delivered_signal_replay_truthful": true,
+    "cache_generation": "20260906-p1threadaux1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_auxiliary_inbox_call": "PASS",
+    "product_full_tests": { "passed": 235, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Typing, group administration and meeting routes authorized membership but did not require the session's active persona to match the conversation persona.",
+      "resolution": "Every route now resolves the visible conversation and denies cross-persona mutations before repository mutation or realtime delivery."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Auxiliary messaging and direct-call UI accepted generic ok responses without binding the result to the actor, persona, conversation and requested operation.",
+      "resolution": "Normalized server intents and strict client call/resource validators gate all visible success transitions."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A lost response after successful ephemeral signal delivery could replay as delivered false and surface a false failure to the caller.",
+      "resolution": "The durable replay guard reports prior delivery state while continuing to store only the signal hash, never SDP or ICE."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "1d8276aa61cac4a3788bde287569ed55ef9ef9faf352443412df2290212643f7",
+    "apps/nexus-web/lib/repo.js": "c281e87bd64517afa9aff3fa9147c946fac20ed11ee7e132bcf0cc2f2bb96ab3",
+    "apps/nexus-web/public/app.js": "d6d1f1b83c430ca633297df1b9a4f5f9c871f0227b0c40fcc5f9d83a65d4fba6",
+    "apps/nexus-web/public/call-client.js": "d336b9e9686f11211977dd0682be3f77cbd62ed61f879845325a28fbd0c3aea0",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "24e56d6a4ee13a0f5e4ede716a9d42d664dcac55ea4605234d4bdf03f656c927",
+    "apps/nexus-web/public/index.html": "8fd51ce1a88bee24abf12eb84537bbc59bb1f17baf42860dc1255aedd2044420",
+    "apps/nexus-web/test/audit.test.js": "fe7a0f81b71867c84d18ce7eb180043cb3d5d0d330218a6691a1ed47db8ae07c",
+    "apps/nexus-web/test/core.test.js": "689e1d46ccf228a28ed8a0f25390f22f7375f8339b26e4123d1d9177f2864efa",
+    "planning/NX-WEB-SOCIAL-thread-auxiliary-mutation-integrity-v1.md": "fe73c0c4443aee25da05d053dc26c22bfe97495d8c8ba3f8ecfa77dcd25bde24",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "a585e60263fa01cc2cd04b7fe79779e107aa477fc57face70332bf8e44c593a3",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "9d762b68458979a6070bd392ed43843d8352c79096da8254718b9f24555f8e53"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_WEBRTC_E2EE_CAPACITY_HTTPS_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-E2EE-INBOUND-EVENT-VALIDATION-078"
+}

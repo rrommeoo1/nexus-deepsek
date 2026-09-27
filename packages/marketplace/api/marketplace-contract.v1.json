@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "owner": "A34",
+  "surface": "MARKETPLACE_OLX",
+  "listing": {
+    "modes": ["CLASSIFIED_ONLY", "ESCROW_CHECKOUT"],
+    "activeAfterModerationAndExecutedAction": true,
+    "marketProfileRequired": true,
+    "countryCategoryPolicyRequired": true,
+    "prohibitedGoodsFailClosed": true,
+    "signedExactBinding": ["listing", "manifest", "seller", "profileGeneration", "category", "mode", "condition", "territory", "token", "price", "traderStatus", "policyVersion"],
+    "classifiedOnlyHasEscrowOrFee": false
+  },
+  "escrow": {
+    "environment": "LOCAL_SYNTHETIC_DEVNET_MODEL",
+    "realValueAtomic": "0",
+    "maxTestTotalAtomic": "1000000",
+    "maxPlatformFeeBps": 500,
+    "states": ["FUNDED", "ACCEPTED", "FULFILLED", "DISPUTED", "RELEASED", "REFUNDED", "RESOLVED"],
+    "terminalConservationRequired": true,
+    "pullPaymentProductionRequirement": true,
+    "refundAvailableWhileNewOrdersPaused": true,
+    "acceptAndFulfilDeadlinesEnforced": true,
+    "resolverMustBeIndependentFromParties": true,
+    "durableSignedEventReplayRequired": true,
+    "signedCheckpointRequired": true,
+    "checkpointFreshnessAndExpectedIdRequired": true,
+    "checkpointBindsResolver": true,
+    "authoritativeRuntimeDeadlinesRequired": true,
+    "restoreReappliesStateMachine": true
+  },
+  "privacy": {
+    "onChain": "commitments_only",
+    "plaintextProductManifest": "off_chain_or_ipfs_optional",
+    "preciseLocationOnChain": false
+  },
+  "exclusions": ["real_goods", "real_funds", "mainnet", "external_kyc", "tax_opinion", "formal_legal_opinion"]
+}

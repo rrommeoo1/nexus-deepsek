@@ -1,0 +1,23 @@
+schema_version: 1
+task_id: NX-AREA-0000
+title: Short outcome title
+objective: Observable result, not an activity list
+owner_agent: A00
+peer_reviewers: []
+control_reviewers: []
+status: blocked
+risk_class: T2
+timebox_agent_days: 1
+normative_refs: []
+in_scope: []
+out_of_scope: []
+depends_on: []
+contracts_changed: []
+data_classes: []
+threats_and_failure_modes: []
+acceptance_tests: []
+observability: []
+rollback_or_kill_switch: null
+evidence_required: []
+external_gates: []
+handoff_to: []

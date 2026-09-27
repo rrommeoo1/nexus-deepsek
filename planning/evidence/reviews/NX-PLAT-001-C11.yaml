@@ -1,0 +1,26 @@
+schema_version: 1
+task_id: NX-PLAT-001
+reviewer_role: C11
+independence: sole_independent_checker
+mode: YELLOW_read_only
+decision: PASS
+gate_effect: APPROVE_REVIEW_TO_DONE
+run_id: NX-PLAT-001-VALIDATE-20260802T122253050Z-0080c15d
+validator_status: PASS
+assertions: 98
+failures: 0
+review_subject_sha256: 01e64ede94a4d59f9d98f01692609c43be44dd43ecddbefc15e96d98caef0f4c
+owner_evidence_hashes: 5/5
+blocking_findings: []
+closed_findings:
+  - C11-PLAT-001
+  - C11-PLAT-002
+  - C11-PLAT-003
+  - C11-PLAT-004
+open_findings: []
+verified_runs:
+  - NX-PLAT-001-20260802T122104908Z-810a02eb
+  - NX-PLAT-001-20260802T122104921Z-2c292391
+artifact_sha256: de8d7af00059c90d146dba6d986bc6898da344f50823675ce973f75c96bbd9a2
+incremental_cost: {amount: 0, currency: EUR}
+files_modified: []

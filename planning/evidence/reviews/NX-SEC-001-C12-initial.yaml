@@ -1,0 +1,178 @@
+schema_version: 1
+task_id: NX-SEC-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only
+decision: CHANGES_REQUIRED
+gate_effect: BLOCK_REVIEW_TO_DONE
+run_id: NX-SEC-001-20260802T142532670Z-27622123
+validator_status: PASS
+assertions: 926
+failures: 0
+negative_fixtures: 16/16
+positive_fixtures: 7/7
+review_subject_sha256: b66e1d2df4fb7cab3335ed90c346fb0c08f754abcc484af06150bc6c1d4df563
+expected_review_subject_sha256: b66e1d2df4fb7cab3335ed90c346fb0c08f754abcc484af06150bc6c1d4df563
+subject_digest_matches_expected: true
+
+findings:
+  - id: C12-SEC-001
+    severity: CRITICAL
+    classification: child_safety_and_special_category_privacy
+    title: Caller-controlled classification bypasses Kids and Dating isolation.
+    finding: >-
+      Test-FlowPolicy authorizes only the declared data_class and does not classify or
+      validate the payload object. A caller can label sensitive fields PUBLIC and bypass
+      both the data-class rules and the explicit Kids/Dating guards.
+    adversarial_evidence:
+      dating_payload: "core_api_shell -> recommendations, PUBLIC -> analytics, payload sexual_orientation: ALLOW"
+      kids_payload: "mobile_shell -> social, PUBLIC -> public_event, payload child_profile_id: ALLOW"
+      correctly_classified_dating_control: "DATING_SENSITIVE -> analytics: DENY"
+      correctly_classified_kids_control: "CHILD_DATA -> chain: DENY"
+    required_change: >-
+      Derive classification from registered object/schema types or validate payload fields
+      against an authoritative classification catalog before flow authorization. Unknown,
+      conflicting, missing, or caller-overridden classifications must fail closed. Add the
+      two mislabeled-object cases as mandatory negative tests.
+
+  - id: C12-SEC-002
+    severity: HIGH
+    classification: secret_and_pii_detection
+    title: Repository secret and PII enforcement is bypassable by common encodings and syntax.
+    finding: >-
+      Test-TextPolicy is regex-only and requires quoted assignment values. It allowed an
+      unquoted api_key, an unquoted email, and a JSON key encoded as api\u005fkey. The scan
+      extension allowlist also omits .env-style files, a common credential location.
+    adversarial_evidence:
+      unquoted_api_key: ALLOW
+      unicode_escaped_secret_key_json: ALLOW
+      unquoted_email: ALLOW
+      env_extension_in_scan_allowlist: false
+    required_change: >-
+      Parse supported structured formats, decode escaped keys, cover environment/config
+      files, and combine entropy/provider-aware credential detection with verified
+      synthetic-fixture exemptions. Add bypass fixtures and fail closed on parser errors.
+
+  - id: C12-SEC-003
+    severity: HIGH
+    classification: architecture_boundary_enforcement
+    title: Forbidden imports and direct foreign-table reads are not checked in repository code.
+    finding: >-
+      The negative fixtures call Test-FlowPolicy with hand-authored flow objects, but the
+      repository scan invokes only Test-TextPolicy. Source containing a forbidden TypeScript
+      import or direct foreign-table SQL was therefore accepted.
+    adversarial_evidence:
+      forbidden_typescript_import_source: ALLOW
+      direct_foreign_table_sql_source: ALLOW
+      repository_findings_reported_by_nominal_run: 0
+    required_change: >-
+      Connect the bounded-context import graph to AST/module-resolution checks and connect
+      database ownership to schema-aware SQL/ORM checks over the actual scanned repository.
+      Fixtures must exercise source artifacts, not only caller-supplied metadata.
+
+  - id: C12-SEC-004
+    severity: HIGH
+    classification: threat_model_completeness_and_trust_boundaries
+    title: Completeness, owner validity, and trust-boundary semantics are shape checks only.
+    finding: >-
+      The validator has no required asset/threat census or bidirectional coverage baseline,
+      accepts any owner matching Axx/Cxx, and accepts any non-empty authentication or
+      authorization text. An in-memory removal of A-MEDIA and T-MALWARE with their references
+      scrubbed still passed the implemented completeness shapes. Boundary validation also
+      disables import enforcement; the actual TB-PROFILE identity-to-profile_core flow is
+      allowed with EnforceImport=false and denied with EnforceImport=true.
+    adversarial_evidence:
+      removed_asset: A-MEDIA
+      removed_threat: T-MALWARE
+      remaining_critical_assets: 10
+      remaining_threats: 15
+      completeness_shapes_pass: true
+      bogus_asset_owner_A99_passes: true
+      bogus_threat_owner_C99_passes: true
+      meaningless_authentication_none_passes: true
+      TB_PROFILE_with_import_enforcement_disabled: ALLOW
+      TB_PROFILE_with_import_enforcement_enabled: DENY
+    required_change: >-
+      Define an explicit required asset/threat/boundary census, validate owners against the
+      authoritative role registry, require typed authentication/authorization/protection
+      decisions, and validate every internal boundary against declared contract, import, or
+      consumed-event edges.
+
+  - id: C12-SEC-005
+    severity: HIGH
+    classification: evidence_integrity
+    title: Owner evidence omits most artifacts covered by its review-subject digest.
+    finding: >-
+      The digest recomputes correctly from the current repository, but the owner evidence
+      records hashes for only 6 artifacts while the digest covers 19. Thirteen scanned
+      subject artifacts are absent, so the evidence file cannot independently reconstruct
+      or enumerate the subject it claims to seal.
+    adversarial_evidence:
+      recomputed_digest_matches: true
+      subject_artifact_count: 19
+      evidence_artifact_hash_count: 6
+      evidence_hashes_current: 6/6
+      missing_subject_artifact_hashes: 13
+    required_change: >-
+      Persist the complete sorted subject manifest used by the validator, bind it to the
+      digest with canonical unambiguous serialization, and reject evidence whose manifest
+      cannot reconstruct review_subject_sha256.
+
+  - id: C12-SEC-006
+    severity: MEDIUM
+    classification: zero_cost_and_network_attestation
+    title: Zero-cost and no-network results are asserted constants rather than measured controls.
+    finding: >-
+      The local replay itself made no requested network calls and incurred no incremental
+      spend, but validate-security.ps1 emits amount=0, network_used=false, and
+      production_data_used=false as constants. It has no runtime egress guard or measured
+      provenance supporting those fields.
+    adversarial_evidence:
+      replay_observed_local_only: true
+      reported_incremental_cost_eur: 0
+      reported_network_used: false
+      output_fields_hardcoded: true
+    required_change: >-
+      Bind these claims to the platform zero-cost/egress guard evidence or remove them from
+      the validator result. A missing guard receipt must fail closed rather than emit false.
+
+passed_checks:
+  - Nominal C12 validator replay completed locally with PASS, 926 assertions, and no failures.
+  - All 16 supplied negative fixtures and all 7 positive fixtures returned their expected decisions.
+  - Current model contains 10 critical assets, 16 threats, and 10 named trust boundaries with non-empty mappings.
+  - All 73 registry T0 controls resolve to fail_closed=true, coverage=100, census_100_percent, and no_waiver.
+  - Supplied author-waiver, author-self-check, and missing-evidence fixtures are denied.
+  - Explicitly classified CHILD_DATA and DATING_SENSITIVE forbidden flows are denied.
+  - Review-subject digest independently recomputes to the expected value; all 6 hashes recorded by owner evidence match current files.
+  - C12 replay was local, read-only, used no production data, requested no network, and incurred zero incremental cost.
+
+review_subject_evidence:
+  owner_run_id: NX-SEC-001-20260802T142350790Z-1b70a357
+  owner_status: PASS
+  owner_executor_role: C02
+  owner_recorded_hashes_current: 6/6
+  subject_artifact_count: 19
+  owner_manifest_artifact_count: 6
+  omitted_subject_artifact_count: 13
+  omitted_subject_artifacts:
+    - packages/contracts/abi/nexus-actions.abi.json
+    - packages/contracts/api/openapi.v1.json
+    - packages/contracts/compatibility-baseline.v1.json
+    - packages/contracts/data/action-model.prisma
+    - packages/contracts/data/catalog.v1.json
+    - packages/contracts/events/action.chain.executed.v1.schema.json
+    - packages/contracts/generated/consumer-fixture.ts
+    - packages/contracts/generated/index.ts
+    - packages/contracts/package.json
+    - packages/contracts/package-lock.json
+    - packages/contracts/tsconfig.generated.json
+    - platform/sample-module/health.json
+    - platform/sample-module/module.json
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-SEC-001-C12.yaml

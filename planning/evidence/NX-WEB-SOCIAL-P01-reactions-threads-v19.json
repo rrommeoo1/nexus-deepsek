@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-REACTIONS-THREADS-V19",
+  "status": "PASS",
+  "release": "20260827-neural65",
+  "scope": "transparent_overlays_dominant_reaction_and_threaded_comments",
+  "implemented": {
+    "creator_background_removed": true,
+    "engagement_button_background_removed": true,
+    "dominant_reaction_glyph": true,
+    "dominant_reaction_updates_after_vote": true,
+    "threaded_comment_tree": true,
+    "reply_parent_binding": true,
+    "reply_context_visible": true,
+    "fullscreen_threaded_replies": true
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "lan_http": 200,
+    "lan_assets_include_release": true
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "17921c175fb9d398cf5a250f32c1cda3cebebb420fbf7ab3bf85b02abb9dd8b7",
+    "apps/nexus-web/public/styles.css": "22b439c34c67a54c175b614bbea02f0710e782177133bc1c5ce83a04bebc4911",
+    "apps/nexus-web/public/index.html": "360a1b4a77b21d884525cda7f3b5cc016c8673a69b7946fbbe9352e4aabd4dd8",
+    "apps/nexus-web/test/audit.test.js": "babe603003c53be69e3ed96bb8471948a1c8a90cd53fdf6eca662b185c8f8e2a"
+  },
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

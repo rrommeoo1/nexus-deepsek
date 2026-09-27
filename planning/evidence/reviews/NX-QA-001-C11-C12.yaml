@@ -1,0 +1,145 @@
+schema_version: 1
+task_id: NX-QA-001
+review_id: NX-QA-001-C11-C12-20260809-REMEDIATIONRETEST01
+reviewer_roles: [C11, C12]
+risk_class: T1
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_C01
+decision: PASS
+gate_effect: APPROVE_T1_LOCAL_SKELETON
+task_status_recommendation: eligible_for_done_after_owner_checkpoint_update
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+review_history:
+  prior_review_sha256: dced091262d2acb8eb44bef183f983ec8e854157a1540eaab5980603a11b4cf2
+  prior_decision: CHANGES_REQUIRED
+  retest_scope: [C11-QA-001-001, C12-QA-001-002, C11-QA-001-003]
+
+owner_evidence:
+  path: planning/evidence/NX-QA-001-validation.json
+  sha256: 1aeb3d96f667ea451f8e56ea919262f6f4e643ee004cba9b38f7d85202adcd9a
+  run_id: NX-QA-001-OWNER-FINAL-REMEDIATED-20260809-04
+  executor_role: C01
+  status: PASS
+  assertions: 110
+  scenario_assertions: 61
+  deterministic_repetitions: 3
+  review_subject_sha256: 592206eec79572c1f582ca249dadeffc2a908ac24472db82b658a9e399587e7d
+  artifact_count: 15
+  current_artifact_hash_mismatches: 0
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  executor_role: C11
+  run_id: NX-QA-001-C11-20260809-REMEDIATIONRETEST01
+  status: PASS
+  assertions: 110
+  scenario_assertions: 61
+  deterministic_repetitions: 3
+  review_subject_sha256: 592206eec79572c1f582ca249dadeffc2a908ac24472db82b658a9e399587e7d
+  output_sha256: e0884260632362462112a2da501d9e76dfe894b863fc2f2954a43cdda91ceda3
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  duration_seconds: 3.3198
+
+adversarial_probe:
+  status: PASS
+  subject_code_modified: false
+  requirement_binding:
+    nonexistent_path: REQUIREMENT_ARTIFACT_NOT_FOUND
+    stale_hash: REQUIREMENT_ARTIFACT_HASH_MISMATCH
+    missing_requirement: REQUIREMENT_ID_NOT_FOUND
+    substituted_owner: REQUIREMENT_ARTIFACT_OWNER_MISMATCH
+    artifact_hash_emitted: true
+    explicit_outcome: FAIL
+  quarantine:
+    active_before_expiry: 1
+    active_at_expiry: 0
+    active_after_expiry: 0
+  idempotency:
+    fresh_instance_replay: REQUEST_REPLAY
+    crash_before_commit: SIMULATED_CRASH_BEFORE_WORKER_COMMIT
+    resumed_worker_executions: 1
+    crash_after_commit: SIMULATED_CRASH_AFTER_WORKER_COMMIT
+    replay_after_committed_crash: REQUEST_REPLAY
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all fifteen current hashes match owner evidence and independently recompute the requested subject
+  requirement_owner_trace_and_artifact_linkage:
+    status: PASS_LOCAL_SKELETON
+    evidence: the resolver denies missing paths stale hashes missing requirement IDs and owner substitution while failure evidence emits artifactHash outcome owner requirement and trace
+    boundary_note: the resolver consumes a trusted local artifact catalog; production provenance and signing remain outside this packet
+  flake_and_quarantine_policy:
+    status: PASS
+    evidence: release-critical failure or flake blocks promotion critical quarantine is forbidden and normal quarantine is inactive exactly at and after expiry
+  replay_and_exactly_once:
+    status: PASS_LOCAL_DURABLE_FIXTURE
+    evidence: exported idempotency state denies fresh-instance replay resumes a pending pre-commit request to one committed execution and denies replay after an after-commit crash
+    boundary_note: distributed production exactly-once remains explicitly excluded
+  synthetic_isolation:
+    status: PASS
+    evidence: SYSTEM_TEST FIXTURE_ONLY actors cannot create payout organic metric reputation or review effects
+  deterministic_execution:
+    status: PASS
+    evidence: 61 scenarios produce identical receipts in all three validator repetitions
+  zero_effect_boundary:
+    status: PASS
+    evidence: source and credential checks are clean with zero network provider economic and incremental-cost operations
+
+findings:
+  - id: C11-QA-001-001
+    severity: HIGH
+    status: CLOSED
+    title: Failure evidence proves its normative artifact linkage within the local catalog boundary
+    closure_evidence:
+      implementation: RequirementResolver verifies path hash requirement ID and owner before test or evidence acceptance
+      receipt: FailureEvidence now includes artifactHash and explicit FAIL outcome alongside requirement owner and trace
+      adversarial: nonexistent path stale hash missing requirement and substituted owner are independently denied
+
+  - id: C12-QA-001-002
+    severity: MEDIUM
+    status: CLOSED
+    title: Normal quarantine expires deterministically
+    closure_evidence:
+      implementation: promotionDecision requires evaluation time and includes only quarantines whose expiry is strictly later
+      boundary_tests: quarantine is active before expiry and inactive at and after expiry while invalid evaluation time fails closed
+
+  - id: C11-QA-001-003
+    severity: MEDIUM
+    status: CLOSED
+    title: Local durable idempotency survives harness recreation and simulated crashes
+    closure_evidence:
+      implementation: DurableIdempotencyFixture exports validated PENDING or COMPLETED records and recreated harnesses consume the restored snapshot
+      fresh_instance: a completed request is denied after harness recreation
+      crash_before_commit: pending state is restored and resumes to one committed worker receipt
+      crash_after_commit: completed state is restored and replay is denied
+
+blocking_findings: []
+
+accepted_controls:
+  - Release-critical failures and flakes block promotion and cannot be quarantined.
+  - Requirement artifact hash owner ID and path binding fail closed against the requested adversarial substitutions.
+  - The local CLIENT API OUTBOX WORKER journey preserves trace request requirement and SYSTEM_TEST classification.
+  - The local durable fixture covers fresh-instance replay plus before-commit and after-commit crash boundaries.
+  - SYSTEM_TEST actors cannot affect payout organic metrics reputation or reviews.
+  - The bounded packet has zero network provider economic and incremental-cost effects.
+
+claims_excluded:
+  - production_load
+  - device_farm
+  - managed_provider_integration
+  - production_data
+  - production_distributed_exactly_once
+  - production_artifact_catalog_provenance
+
+closure_conditions:
+  - All findings from the prior review are closed for subject 592206eec79572c1f582ca249dadeffc2a908ac24472db82b658a9e399587e7d.
+  - Owner may update backlog checkpoint and scorecards without changing reviewed subject artifacts.
+  - Any material change to a reviewed artifact invalidates this PASS and requires regenerated evidence plus a fresh independent T1 review.

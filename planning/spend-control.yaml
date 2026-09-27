@@ -1,0 +1,59 @@
+schema_version: 1
+policy_id: NX-SPEND-ZERO-DEFAULT
+mode: default_deny_spend
+
+default:
+  incremental_cost_allowed: false
+  max_incremental_amount: 0
+  reporting_currency: EUR
+  approval_required_above_amount: 0
+  assume_free_tier: false
+
+metered_categories:
+  - openai_credits_or_api
+  - cloud_compute_ci_or_device_farm
+  - storage_egress_cdn_or_media_transcoding
+  - sms_push_maps_or_geolocation
+  - identity_kyc_liveness_or_fraud
+  - matrix_ipfs_pinning_or_realtime_provider
+  - package_license_domain_or_app_store
+  - blockchain_mainnet_gas_or_funds
+  - any_other_metered_provider_or_resource
+
+approval_schema:
+  required_fields:
+    - approval_id
+    - provider_or_category
+    - max_amount
+    - currency
+    - environment
+    - expires_at
+    - owner
+  active_approvals: []
+  missing_or_expired_result: DENY
+
+runtime:
+  default_mode: local_mock_only
+  allowed_environments: [local, devnet]
+  network_egress_allowlist: []
+  production_credentials_allowed: false
+  billing_credentials_allowed: false
+  paid_provider_call_blocker_required: true
+  limits_per_run:
+    max_cpu_seconds: 300
+    max_wall_seconds: 600
+    max_disk_mb: 1024
+    max_processes: 8
+
+synthetic_actors:
+  actor_kind: SYSTEM_TEST
+  economic_effect_allowed: false
+  production_metrics_effect_allowed: false
+  real_user_contact_allowed: false
+  real_funds_allowed: false
+
+exceptions:
+  implicit_exceptions_allowed: false
+  production_or_mainnet_requires_owner_confirmation: true
+  destructive_or_external_commitment_requires_owner_confirmation: true
+

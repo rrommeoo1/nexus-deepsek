@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "run_id": "NX-ARCH-001-20260802T093626225Z-3fd0c0e5",
+  "observed_at": "2026-08-02T09:36:26.2465610+00:00",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\planning\\validate-architecture.ps1 -RunId NX-ARCH-001-20260802T093626225Z-3fd0c0e5 -ObservedAt 2026-08-02T09:36:26.2465610+00:00 -ExecutorRole A00",
+  "task_id": "NX-ARCH-001",
+  "executor_role": "A00",
+  "status": "PASS",
+  "assertions": 1180,
+  "failures": [],
+  "inventory": {
+    "zones": 4,
+    "bounded_contexts": 27,
+    "artifacts": 45,
+    "applications": 4,
+    "services": 12,
+    "packages": 22,
+    "contracts": 7,
+    "public_api_surfaces": 21,
+    "p1_task_ownership_mappings": 20,
+    "published_events": 30,
+    "import_cycles": 0
+  },
+  "negative_fixtures": {
+    "social_to_dating_internals_denied": true,
+    "core_to_kids_data_denied": true,
+    "alias_guess_denied": true,
+    "missing_surface_denied": true,
+    "unknown_context_denied": true,
+    "mobile_to_moderation_internals_denied": true,
+    "core_api_to_dating_data_denied": true,
+    "core_api_to_financial_data_denied": true,
+    "public_web_to_safety_evidence_denied": true,
+    "public_web_direct_account_private_denied": true,
+    "mobile_direct_account_private_denied": true,
+    "cross_profile_unauthorized_projection_denied": true,
+    "account_private_event_payload_denied": true,
+    "account_projection_event_payload_denied": true
+  },
+  "positive_fixtures": {
+    "mobile_to_dating_public_api_allowed": true,
+    "mobile_to_profile_alias_allowed": true,
+    "mobile_to_moderation_public_api_allowed": true,
+    "admin_to_safety_evidence_allowed": true,
+    "profile_core_owns_account_private": true,
+    "mobile_self_projection_allowed": true,
+    "public_web_self_projection_allowed": true,
+    "admin_policy_projection_allowed": true,
+    "dating_owns_dating_sensitive": true,
+    "kids_owns_child_data": true
+  },
+  "duration_seconds": 0.633,
+  "artifact_sha256": {
+    "architecture/bounded-contexts.yaml": "a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277",
+    "architecture/ADR-0001-monorepo-boundaries.md": "2d576dc7f4ed0a6658b7af9ba90aa0acc3aac7a895116d7b4c44a09ce63d81cf",
+    "planning/backlog-p1.yaml": "9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab",
+    "planning/validate-architecture.ps1": "e2a26b563f8b60b575cf0aea7340ae0c1a8345d61170b1563b6c5490576bbced"
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-MEETING-GROUP-ADMIN-052",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["group_rename", "group_invite", "group_member_removal", "meeting_creation"],
+    "catalog_parity_enforced": true,
+    "accessible_dialogs_replace_prompts": true,
+    "group_authorization": {
+      "control_enabled_only_for_loaded_owner_or_admin": true,
+      "backend_remains_authoritative": true,
+      "removal_targets_require_active_positive_id_non_owner": true,
+      "invited_username_validated_before_network": true
+    },
+    "meeting": {
+      "local_datetime_converted_to_epoch": true,
+      "minimum_future_minutes": 5,
+      "maximum_future_days": 366,
+      "allowed_duration_minutes": [15, 30, 45, 60, 90, 120],
+      "external_calendar_or_share": false
+    },
+    "mutation_recovery": {
+      "stable_idempotency_key_for_unchanged_form": true,
+      "key_rotates_after_edit": true,
+      "simultaneous_duplicate_submission_blocked": true,
+      "detached_or_stale_completion_ignored": true,
+      "raw_backend_error_rendered": false
+    },
+    "cache_generation": {
+      "app_and_locale": "20260905-p1locale16",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_audit": { "passed": 5, "failed": 0 },
+    "product_full_tests": { "passed": 215, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "native_locale_accessibility_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The group-admin control remained disabled for a proven owner or admin.",
+      "resolution": "The control state now follows the loaded authorization result."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Group and meeting mutations had implicit one-shot keys and allowed rapid duplicate dispatch.",
+      "resolution": "Both forms use stable edit-bound keys and single-flight submission."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Free-text prompts accepted ambiguous actions, targets, and dates.",
+      "resolution": "Structured dialogs validate action-specific data before network access."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Raw backend errors and Romanian-only prompts appeared in the shared thread.",
+      "resolution": "The bounded surfaces use controlled parity-checked localized copy."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Async completion could update a closed dialog or another active thread.",
+      "resolution": "Detached and stale completions are ignored."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "b0de57dd839de2ad6800077c7aad500316b49856970a7f044e79a476f6a98a27",
+    "apps/nexus-web/public/app.js": "efd0ca8b356d363c8ac9a8495167d008ad4160f8973d29f5bd1ee6be8c0cfb09",
+    "apps/nexus-web/public/index.html": "45cd46def980bd7e108a78bc8f9e11d0347bf6db123e8ad2e8a4ea2b4752c7f7",
+    "apps/nexus-web/test/audit.test.js": "c05294864b4ffae078f862e12cfb9b2ed27d388548771da3f555762a5394014e",
+    "apps/nexus-web/public/latest-request.js": "8437610408d4fee4f875266bfcf4226750537d1b1a5f10954d751304cc4f4260",
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-localized-meeting-group-admin-v1.md": "cc2c4c1bdb2e1078cf5570241bbe31ba1818dfbca424c9e39d1daa63985b634b"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_TRUSTED_HTTPS_REAL_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-ACTIVITY-CENTER-053"
+}

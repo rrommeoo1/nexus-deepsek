@@ -1,0 +1,125 @@
+schema_version: 1
+task_id: NX-MOD-P01
+review_id: NX-MOD-P01-C01-C04-C06-20260809-REREVIEW01
+reviewer_roles: [C01, C04, C06]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A32
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-MOD-P01-validation.json
+  sha256: 051793b880182fdca0b10db47f93c44a664ab15c98509330ed199da0fa09cf79
+  run_id: NX-MOD-P01-OWNER-REMEDIATION01
+  executor_role: A32
+  status: PASS
+  assertions: 101
+  scenario_assertions: 42
+  deterministic_repetitions: 3
+  artifact_count: 17
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: ccf5ae655ab2e8af74c92208c4c3fb8030496c7b10c6087aaee290f0ea14bf32
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  run_id: NX-MOD-P01-C01-REREVIEW-20260809-01
+  executor_role: C01
+  status: PASS
+  assertions: 101
+  scenario_assertions: 42
+  deterministic_repetitions: 3
+  review_subject_sha256: ccf5ae655ab2e8af74c92208c4c3fb8030496c7b10c6087aaee290f0ea14bf32
+  output_sha256: 72842ea5c3d4b804ecd2b2abbc9687dcce006bfb35de6717ab53205ca52b21be
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_retest:
+  status: PASS
+  subject_code_modified: false
+  results:
+    containment_acted_1905_expiry_1930_evaluated_2000: CONTAINMENT_EXPIRED
+    containment_valid_at_1905: CONTAINED
+    p0_action_1940_after_expiry_1930: CONTAINMENT_EXPIRED
+    valid_historical_snapshot_restored_at_later_now: ACTIONED
+    exact_getter: REPORT_INVALID
+    moderator_equals_subject: REVIEWER_SEPARATION_DENIED
+    p0_final_without_containment: TRANSITION_DENIED
+    containment_without_expiry: CONTAINMENT_EXPIRY_INVALID
+    appeal_reviewer_collisions: REVIEWER_SEPARATION_DENIED
+    case_and_block_lineage_tampering: DENIED
+    replay_after_fresh_restore: DENIED
+    false_checkpoints: DENIED
+    raw_evidence_or_content: DENIED
+    social_marketplace_parity: PASS
+    account_block_cross_surface: PASS
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all seventeen current hashes match owner evidence and independently recompute the declared subject
+  exact_shape_and_runtime_types:
+    status: PASS
+    evidence: exact own-key schemas deny extra fields accessors proxies ambiguous booleans unknown roles enums invalid commitments and non-synthetic actors
+  signatures_and_role_separation:
+    status: PASS
+    evidence: report action block and restored events require verifiers while reporter subject moderator and appeal-reviewer collisions fail closed
+  p0_containment:
+    status: PASS
+    evidence: runtime containment must be unexpired at evaluation and P0 action or dismissal requires containment active at the signed final-action time
+  historical_replay_semantics:
+    status: PASS
+    evidence: restore replays signed event times so a case validly contained and actioned before expiry reconstructs at a later current time without reopening runtime authorization
+  case_and_block_restore:
+    status: PASS
+    evidence: canonical ordinals fingerprints signatures derived state checkpoints and replay sets reject missing reordered forged or tampered histories after restart
+  privacy_and_surface_boundary:
+    status: PASS
+    evidence: commitments replace raw evidence and content while Social and Marketplace share the same state machine and account blocks
+  effect_boundary:
+    status: PASS
+    evidence: no network provider economic or incremental-cost operation occurred
+
+findings:
+  - id: C04-MOD-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: P0 final action accepts containment that expired before evaluation
+    closure_evidence:
+      - Runtime CONTAIN compares containmentExpiresAt with evaluation now and returns CONTAINMENT_EXPIRED when already expired.
+      - P0 ACTION or DISMISS compares persisted containment expiry with the signed final action time and rejects a decision after expiry.
+      - The exact 19:05 containment 19:30 expiry evaluated at 20:00 is denied.
+      - A containment accepted at 19:05 followed by ACTION at 19:40 is denied after the 19:30 expiry.
+      - A case validly contained at 19:05 and actioned at 19:20 restores as ACTIONED at a later now using signed historical event times.
+
+accepted_controls:
+  - Exact-shape runtime validation and signature verification fail closed for reports actions blocks and snapshots.
+  - P0 containment existence expiry and active-time requirements are enforced.
+  - Moderator reporter subject and appeal reviewer separation is enforced.
+  - Missing reordered forged and tampered case or block lineage plus false checkpoints are denied.
+  - Replay remains denied after fresh restore.
+  - Account blocks survive restart and apply across Social and Marketplace.
+  - Audit traces and stored envelopes exclude raw content and evidence.
+
+claims_excluded:
+  - production_moderation
+  - real_user_reports
+  - automated_content_classifier
+  - evidence_vault_provider
+  - production_persistence_adapter
+  - legal_notice_or_authority_reporting
+  - formal_trust_and_safety_audit
+
+residual_scope_notes:
+  - This PASS covers the local deterministic synthetic moderation boundary only.
+  - Production classifiers evidence vault persistence providers legal reporting real user data and formal Trust and Safety audit remain external gates.

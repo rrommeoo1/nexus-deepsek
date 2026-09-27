@@ -1,0 +1,108 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-EMAIL-AUTH-IDEMPOTENCY-007",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "controls": {
+    "signup_init": {
+      "idempotency_key_required": true,
+      "durable_challenge": true,
+      "nonce_storage": "aes_256_gcm_ciphertext_and_sha256",
+      "email_storage": "sha256_only",
+      "exact_retry_same_nonce": true,
+      "cross_request_key_reuse": "fail_closed"
+    },
+    "signup": {
+      "account_challenge_session_response_single_transaction": true,
+      "crash_before_commit_rolls_back": true,
+      "challenge_remains_retryable_after_rollback": true,
+      "exact_retry_same_session_cookie": true,
+      "password_request_binding": "hmac_sha256_with_server_secret",
+      "plaintext_password_persisted": false
+    },
+    "login_and_verify": {
+      "one_key_one_session": true,
+      "exact_retry_same_session_cookie": true,
+      "request_conflict": "fail_closed",
+      "response_storage": "aes_256_gcm_ciphertext"
+    },
+    "logout": {
+      "idempotency_key_required": true,
+      "cookie_and_distinct_bearer_revoked_atomically": true,
+      "credential_binding": "sorted_session_token_sha256_set",
+      "exact_retry": true,
+      "cross_credential_key_reuse": "fail_closed"
+    },
+    "oauth": {
+      "google_active": false,
+      "facebook_active": false,
+      "reason": "external provider and embedded-wallet production gate remains fail-closed",
+      "active_callback_session_boundary_required_before_enablement": true
+    }
+  },
+  "verification": {
+    "full_tests": { "passed": 117, "failed": 0 },
+    "email_auth_tests": { "passed": 5, "failed": 0 },
+    "login_load": {
+      "commands": 101,
+      "unique_session_token_hashes": 101
+    },
+    "synthetic_actor_lab": {
+      "seed": 2026082808,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1206,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "saves": 500,
+      "reposts": 167,
+      "conversations": 100,
+      "messages": 100,
+      "stories": 125,
+      "story_views": 125,
+      "blocks": 100,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "self_follows": 0,
+      "bad_threads": 0,
+      "gate": "PASS"
+    },
+    "database": {
+      "email_signup_challenges_present": true,
+      "email_auth_commands_present": true,
+      "auth_logout_commands_present": true,
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "runtime": {
+      "pid": 9116,
+      "listen_address": "0.0.0.0",
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_https": 200,
+      "phone_url": "https://192.168.1.153:3443/"
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "3c35ea3205098fc4579731bf1e58bb7bfbe8d869883e364184840906e73f803e",
+    "apps/nexus-web/lib/api.js": "baca558221b496c749060abe4ce1e9d2987d833c1c169526e5bb555657a4e46d",
+    "apps/nexus-web/lib/email-auth-session.js": "1ccc9cfc9b47490f6b4df590be1521605bcced1e169bed6c91c1b7d2c42441fc",
+    "apps/nexus-web/server.js": "a580244b6892f86031a0d11114540b10c6c4a8e33c0ee822fd53b8283762f5c2",
+    "apps/nexus-web/test/email-auth-session.test.js": "44e3116c1aa5e7cf8ac09c1c0845156662b77e3b3b8b24ab521431c82a965a62"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "implementation": "main_agent_only",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "p0_implementation_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-P1-COMMENTS-PROFILES-008"
+}

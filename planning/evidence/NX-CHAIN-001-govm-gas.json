@@ -1,0 +1,636 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5-GAS",
+    "executor_role":  "A20",
+    "status":  "PASS",
+    "scope":  "govm_v1_5_total_gas_trace_parser",
+    "parser_contract":  "mx-chain-scenario-go: In txID ... total gas used",
+    "records":  [
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "record signed like",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5106811
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getCapability",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2586492
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\signed-action-replay.scen.json.log",
+                        "tx_id":  "reject replay",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-scope-denied.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-scope-denied.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-scope-denied.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-scope-denied.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-scope-denied.scen.json.log",
+                        "tx_id":  "reject missing private scope",
+                        "step_type":  "ScCall",
+                        "function":  "recordPrivateAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "record private commitment",
+                        "step_type":  "ScCall",
+                        "function":  "recordPrivateAction",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5119346
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\private-action-success.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getCapability",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2586492
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "pause like",
+                        "step_type":  "ScCall",
+                        "function":  "pauseActionType",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2292036
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\pauser-stop.scen.json.log",
+                        "tx_id":  "reject paused like",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "revoke capability",
+                        "step_type":  "ScCall",
+                        "function":  "revokeCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2533157
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-revoked.scen.json.log",
+                        "tx_id":  "reject revoked capability",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-rotation-escalation.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-rotation-escalation.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-rotation-escalation.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-rotation-escalation.scen.json.log",
+                        "tx_id":  "reject rotation scope escalation",
+                        "step_type":  "ScCall",
+                        "function":  "rotateCapability",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\capability-rotation-escalation.scen.json.log",
+                        "tx_id":  "reject zero replacement key",
+                        "step_type":  "ScCall",
+                        "function":  "rotateCapability",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "reject unallowlisted caller",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\relayer-and-nonce-denied.scen.json.log",
+                        "tx_id":  "reject nonce gap",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\batch-shaped-extra-argument.scen.json.log",
+                        "tx_id":  "deploy",
+                        "step_type":  "Deploy",
+                        "function":  "__deploy__",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  5661580
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\batch-shaped-extra-argument.scen.json.log",
+                        "tx_id":  "allow relayer",
+                        "step_type":  "ScCall",
+                        "function":  "setRelayerAllowed",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  2275275
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\batch-shaped-extra-argument.scen.json.log",
+                        "tx_id":  "register capability",
+                        "step_type":  "ScCall",
+                        "function":  "registerCapability",
+                        "outcome_class":  "SUCCESS",
+                        "budget_eligible":  true,
+                        "gas_used":  3737491
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\batch-shaped-extra-argument.scen.json.log",
+                        "tx_id":  "",
+                        "step_type":  "ScCall",
+                        "function":  "getSigningMessage",
+                        "outcome_class":  "QUERY",
+                        "budget_eligible":  false,
+                        "gas_used":  2666437
+                    },
+                    {
+                        "source_log":  "C:\\Users\\Romeo\\Documents\\Codex\\2026-08-01\\vreau-s-creezi-specifica-iile-complete\\planning\\evidence\\govm-logs\\NX-CHAIN-001-GOVM-20260802T211335142Z-3e5637c5\\batch-shaped-extra-argument.scen.json.log",
+                        "tx_id":  "reject batch-shaped extra argument",
+                        "step_type":  "ScCall",
+                        "function":  "recordAction",
+                        "outcome_class":  "EXPECTED_REJECTION",
+                        "budget_eligible":  false,
+                        "gas_used":  20000000
+                    }
+                ],
+    "summaries":  [
+                      {
+                          "function":  "__deploy__",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  8,
+                          "min_gas":  5661580,
+                          "median_gas":  5661580,
+                          "max_gas":  5661580,
+                          "mean_gas":  5661580,
+                          "recommended_gas_limit":  7077000
+                      },
+                      {
+                          "function":  "getCapability",
+                          "outcome_class":  "QUERY",
+                          "samples":  2,
+                          "min_gas":  2586492,
+                          "median_gas":  2586492,
+                          "max_gas":  2586492,
+                          "mean_gas":  2586492,
+                          "recommended_gas_limit":  null
+                      },
+                      {
+                          "function":  "getSigningMessage",
+                          "outcome_class":  "QUERY",
+                          "samples":  8,
+                          "min_gas":  2666437,
+                          "median_gas":  2666437,
+                          "max_gas":  2666437,
+                          "mean_gas":  2666437,
+                          "recommended_gas_limit":  null
+                      },
+                      {
+                          "function":  "pauseActionType",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  1,
+                          "min_gas":  2292036,
+                          "median_gas":  2292036,
+                          "max_gas":  2292036,
+                          "mean_gas":  2292036,
+                          "recommended_gas_limit":  2866000
+                      },
+                      {
+                          "function":  "recordAction",
+                          "outcome_class":  "EXPECTED_REJECTION",
+                          "samples":  6,
+                          "min_gas":  20000000,
+                          "median_gas":  20000000,
+                          "max_gas":  20000000,
+                          "mean_gas":  20000000,
+                          "recommended_gas_limit":  null
+                      },
+                      {
+                          "function":  "recordAction",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  1,
+                          "min_gas":  5106811,
+                          "median_gas":  5106811,
+                          "max_gas":  5106811,
+                          "mean_gas":  5106811,
+                          "recommended_gas_limit":  6384000
+                      },
+                      {
+                          "function":  "recordPrivateAction",
+                          "outcome_class":  "EXPECTED_REJECTION",
+                          "samples":  1,
+                          "min_gas":  20000000,
+                          "median_gas":  20000000,
+                          "max_gas":  20000000,
+                          "mean_gas":  20000000,
+                          "recommended_gas_limit":  null
+                      },
+                      {
+                          "function":  "recordPrivateAction",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  1,
+                          "min_gas":  5119346,
+                          "median_gas":  5119346,
+                          "max_gas":  5119346,
+                          "mean_gas":  5119346,
+                          "recommended_gas_limit":  6400000
+                      },
+                      {
+                          "function":  "registerCapability",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  8,
+                          "min_gas":  3737491,
+                          "median_gas":  3737491,
+                          "max_gas":  3737491,
+                          "mean_gas":  3737491,
+                          "recommended_gas_limit":  4672000
+                      },
+                      {
+                          "function":  "revokeCapability",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  1,
+                          "min_gas":  2533157,
+                          "median_gas":  2533157,
+                          "max_gas":  2533157,
+                          "mean_gas":  2533157,
+                          "recommended_gas_limit":  3167000
+                      },
+                      {
+                          "function":  "rotateCapability",
+                          "outcome_class":  "EXPECTED_REJECTION",
+                          "samples":  2,
+                          "min_gas":  20000000,
+                          "median_gas":  20000000,
+                          "max_gas":  20000000,
+                          "mean_gas":  20000000,
+                          "recommended_gas_limit":  null
+                      },
+                      {
+                          "function":  "setRelayerAllowed",
+                          "outcome_class":  "SUCCESS",
+                          "samples":  8,
+                          "min_gas":  2275275,
+                          "median_gas":  2275275,
+                          "max_gas":  2275275,
+                          "mean_gas":  2275275,
+                          "recommended_gas_limit":  2845000
+                      }
+                  ],
+    "budget_summaries":  [
+                             {
+                                 "function":  "__deploy__",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  8,
+                                 "min_gas":  5661580,
+                                 "median_gas":  5661580,
+                                 "max_gas":  5661580,
+                                 "mean_gas":  5661580,
+                                 "recommended_gas_limit":  7077000
+                             },
+                             {
+                                 "function":  "pauseActionType",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  1,
+                                 "min_gas":  2292036,
+                                 "median_gas":  2292036,
+                                 "max_gas":  2292036,
+                                 "mean_gas":  2292036,
+                                 "recommended_gas_limit":  2866000
+                             },
+                             {
+                                 "function":  "recordAction",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  1,
+                                 "min_gas":  5106811,
+                                 "median_gas":  5106811,
+                                 "max_gas":  5106811,
+                                 "mean_gas":  5106811,
+                                 "recommended_gas_limit":  6384000
+                             },
+                             {
+                                 "function":  "recordPrivateAction",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  1,
+                                 "min_gas":  5119346,
+                                 "median_gas":  5119346,
+                                 "max_gas":  5119346,
+                                 "mean_gas":  5119346,
+                                 "recommended_gas_limit":  6400000
+                             },
+                             {
+                                 "function":  "registerCapability",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  8,
+                                 "min_gas":  3737491,
+                                 "median_gas":  3737491,
+                                 "max_gas":  3737491,
+                                 "mean_gas":  3737491,
+                                 "recommended_gas_limit":  4672000
+                             },
+                             {
+                                 "function":  "revokeCapability",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  1,
+                                 "min_gas":  2533157,
+                                 "median_gas":  2533157,
+                                 "max_gas":  2533157,
+                                 "mean_gas":  2533157,
+                                 "recommended_gas_limit":  3167000
+                             },
+                             {
+                                 "function":  "setRelayerAllowed",
+                                 "outcome_class":  "SUCCESS",
+                                 "samples":  8,
+                                 "min_gas":  2275275,
+                                 "median_gas":  2275275,
+                                 "max_gas":  2275275,
+                                 "mean_gas":  2275275,
+                                 "recommended_gas_limit":  2845000
+                             }
+                         ],
+    "record_count":  47,
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "duration_seconds":  0.1362
+}

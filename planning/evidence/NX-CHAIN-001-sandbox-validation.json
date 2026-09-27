@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAIN-001",
+  "run_id": "NX-CHAIN-001-20260802T172242942Z-8183ac37",
+  "executor_role": "A20",
+  "status": "PASS",
+  "scope": "local_synthetic_action_capability_and_lifecycle_sandbox",
+  "assertions": 118,
+  "scenario_assertions": 52,
+  "failures": [],
+  "acceptance": {
+    "nonce_replay_and_concurrency": "PASS",
+    "capability_relayer_batch_abuse": "PASS",
+    "ordered_vs_executed": "PASS",
+    "privacy_payload_scan": "PASS",
+    "runtime_quorum_fallback": "PASS",
+    "gas_regression_model": "SYNTHETIC_ONLY"
+  },
+  "packet_completion": {
+    "ready": false,
+    "reason": "ACTUAL_RUST_VM_GO_VM_DIFFERENTIAL_AND_VM_GAS_PENDING"
+  },
+  "toolchain": { "rustc_available": false, "go_available": false, "typescript": "5.9.3" },
+  "claims_excluded": [
+    "actual_multiversx_vm_execution",
+    "rust_vm_go_vm_differential",
+    "actual_vm_gas",
+    "devnet_transaction",
+    "production_cryptographic_audit"
+  ],
+  "external_gates": {
+    "rust_vm": "PENDING",
+    "go_vm_differential": "PENDING",
+    "actual_vm_gas": "PENDING",
+    "independent_audit_before_material_mainnet_funds": "OPEN",
+    "production_enablement": "BLOCKED"
+  },
+  "source_boundary_findings": 0,
+  "credential_name_matches": 0,
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" },
+  "subject_sha256": "8239c1e58d279dfe9be073d02b92e0ea294caf4a742fcd01f08616cae0adc7a8",
+  "artifact_sha256": {
+    "packages/chain-actions-api/index.ts": "ecfd7b0a679ef554cf279ba50f3c054f46d2a8d3ef54b40926e67259dfbce37c",
+    "packages/chain-actions-api/index.test.ts": "324fb905b50cd3bc6af0bc8e576842d8b4f205685c21b9a8717749a1a0828736",
+    "planning/validate-chain-actions.ps1": "a9ae4c6a8c2770d82461a79d60fa8aba4ef39e5f3c2ebfaa20c5f0b71063b92b",
+    "packages/contracts/abi/nexus-actions.abi.json": "9bd6f44e083a7b35ed9dde9d5fa61a4beaa118138566003d68fb457ded97934b",
+    "packages/contracts/events/action.chain.executed.v1.schema.json": "3f82e426d3afb3a0c7e446dee2a7e27f4e1d5ff76179173cd5d47875df3973bf",
+    "packages/contracts/generated/index.ts": "542fbbd4adf4e2fcf769b0fc549848d71045c7d3bed9b530c9e8cfc21be6d5ba",
+    "architecture/bounded-contexts.yaml": "a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277",
+    "security/source-boundary-check.js": "b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b",
+    "security/threat-model.v1.json": "74fa58660793ecd6e9fe992afd1818519e1636468fc4b38097516b712d78d72c",
+    "security/baseline-policy.v1.json": "1bc4401e3d7c06bf4ae76749492c8d40c2da3bfff8d383c569e7b1d513dbd043",
+    "planning/spend-control.yaml": "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+    "planning/zero-cost-child-test.ps1": "120bde7b80036b46030897c61b29a6825917885aa1b7fb1009e42bd87de43e91",
+    "planning/evidence/NX-CAP-001-validation.json": "c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a",
+    "docs/02-smart-contracts.md": "b4ac0223ed360a2d361427c3228052a30bafa641ac5e883035f44dc688e197eb",
+    "docs/09-action-ledger-classifieds.md": "543b173b170175eaaf5c0edae78a26e95109047b4a317b5d823801811ec6a5b6",
+    "docs/10-supernova-economics-compliance.md": "ccc171a6f6bd79d82badb0c4384a26565b05231bfbd230533726fcebb2f0fccd",
+    "packages/contracts/package-lock.json": "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b"
+  },
+  "duration_seconds": 2.5799
+}

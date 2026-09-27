@@ -1,0 +1,101 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-EMERGENCY-BACKUP-RESTORE-022",
+  "checkpoint_date": "2026-08-30",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "real_demo_containment_executed": false,
+  "real_demo_restore_executed": false,
+  "scope": "Fail-closed operational controls, maker-checker reactivation, incident runbook and deterministic synthetic backup/restore drill",
+  "controls": {
+    "containment": {
+      "control_keys": ["all_mutations", "ugc_publish", "media_upload", "live_start", "public_discovery"],
+      "reads_remain_available": true,
+      "reports_appeals_blocks_remain_available": true,
+      "account_safety_actions_remain_available": true,
+      "mutation_denial_idempotent": true,
+      "reason_not_public": true,
+      "health_degraded_without_detail": true
+    },
+    "governance": {
+      "pause_requires_scoped_approval": true,
+      "resume_requires_distinct_checker": true,
+      "raw_operator_identity_stored": false,
+      "tamper_evident_event_chain": true
+    },
+    "recovery": {
+      "sqlite_online_backup": true,
+      "fresh_restore_target_only": true,
+      "state_hash_comparison": true,
+      "integrity_check": "ok",
+      "foreign_key_violations": 0,
+      "tampered_backup_denied": true,
+      "synthetic_temporary_database_only": true
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "operational_control_tests": { "passed": 3, "failed": 0 },
+    "backup_restore_tests": { "passed": 2, "failed": 0 },
+    "static_tests": { "passed": 28, "failed": 0 },
+    "full_tests": { "passed": 151, "failed": 0 },
+    "recovery_drill": {
+      "gate": "PASS",
+      "source_backup_restore_hash_identical": true,
+      "integrity": "ok",
+      "foreign_key_violations": 0,
+      "demo_database_opened": false
+    },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 18,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "runtime": {
+      "pid": 6396,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS_READY",
+      "phone_lan_health": "PASS_READY",
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Social had no deterministic containment boundary for an auth, UGC, upload or Live incident.",
+      "resolution": "Added request-mapped, DB-backed controls that deny affected mutations while retaining read, report, appeal, block and account-safety paths."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A single operator could otherwise reactivate a paused surface without independent verification.",
+      "resolution": "Reactivation requires a distinct checker and appends a hash-linked control event without storing raw operator identity."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Backup/restore was documented but had no executable state-equivalence proof.",
+      "resolution": "Added online backup to a fresh path, integrity/FK validation, canonical state hashing, tamper refusal and a synthetic-only restore drill."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "24e77145c1f4a675c43485debc706b85a26c61ea709af39d657e5b1b7201377c",
+    "apps/nexus-web/lib/operational-controls.js": "31c392d501bd1c5ebbbdd317282312013926ff7daa8cadbaee2b662d706aff8b",
+    "apps/nexus-web/lib/backup-restore.js": "51fc2f31b11495d2ef31c756399f27ba3c2386f9f1c6f9ffaba70e1f9dc5b81a",
+    "apps/nexus-web/lib/api.js": "e3dc819bab5faac948548c00fb7996c2d9bffe36d954749ebdfbed2ce104d42e",
+    "apps/nexus-web/scripts/incident-control.mjs": "dfa136c0ac3659398d8b1a0eeed75308601f2f8b2ad522e4c1115811fe3ad4e8",
+    "apps/nexus-web/scripts/backup-restore-drill.mjs": "68e0925405362cbb775ad6759a62a89ffef47f5f8afd10daf0cfc945f059cf2f",
+    "apps/nexus-web/test/p1-operational-controls.test.js": "fcfa37887415249cca4caeb137ab9b4107aabdcc1dbfa1e180434042f273adc5",
+    "apps/nexus-web/test/p1-backup-restore.test.js": "b0fcf074ccd1a2daabdb0c82d42c1e377d9b27ab587f4af877500b30d89ab2bc",
+    "apps/nexus-web/test/audit.test.js": "6bc26784876ab43028504dbc082ff1cd12eb5a7ff56199c9544838f4b27d73ea",
+    "apps/nexus-web/docs/incident-and-recovery-runbook.md": "dd4a58d523ce1e92cc74d6e65b429570e3a659db591362de2b3c8b00083939ec"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved" },
+  "p1_emergency_recovery_gate": "PASS_LOCAL",
+  "release_gate": "PENDING_ACTION_LEDGER_RECONCILIATION_AND_EXTERNAL_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P01-ACTION-LEDGER-RECONCILIATION-023"
+}

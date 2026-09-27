@@ -1,0 +1,152 @@
+schema_version: 1
+task_id: NX-SEC-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only_retest
+decision: CHANGES_REQUIRED
+gate_effect: BLOCK_REVIEW_TO_DONE
+run_id: NX-SEC-001-20260802T145620557Z-6b9482a6
+validator_status: PASS
+assertions: 1134
+failures: 0
+negative_fixtures: 31/31
+positive_fixtures: 8/8
+review_subject_sha256: 39ffa0117954f0dd83bdd08135f5c6466b781f7865984a0475542a2dbc348b61
+expected_review_subject_sha256: 39ffa0117954f0dd83bdd08135f5c6466b781f7865984a0475542a2dbc348b61
+subject_digest_matches_expected: true
+
+finding_disposition:
+  - id: C12-SEC-001
+    prior_severity: CRITICAL
+    status: CLOSED
+    evidence: >-
+      Independent PUBLIC plus sexual_orientation and PUBLIC plus child_profile_id
+      payload tests are denied with payload_schema_classification_conflict and
+      caller_classification_conflict. Registered schema and payload-field classification
+      are evaluated before sink authorization.
+  - id: C12-SEC-002
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      Independent unquoted api_key, Unicode-escaped JSON api_key, and malformed JSON
+      cases are denied. .env and .env.* are selected by the repository file-name policy.
+  - id: C12-SEC-003
+    prior_severity: HIGH
+    status: OPEN
+    evidence: >-
+      The actual TypeScript AST checker denies a side-effect import of @nexus/dating,
+      a literal dynamic import of @nexus/kids, foreign-schema SQL, and foreign-schema
+      SQL in a template expression. It emits no finding for the executable computed
+      dynamic import import("@nexus/" + "dating") from Work, which resolves at runtime
+      to the same forbidden module.
+    required_change: >-
+      Fail closed on non-literal import() and require() specifiers, or statically fold
+      safe constant expressions and authorize the resolved @nexus target. Add computed
+      and variable-backed dynamic imports as source-checker negative fixtures.
+  - id: C12-SEC-004
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      Required asset, threat, and boundary censuses match exactly; removal cases deny.
+      All current owners resolve through normative_roles, A99/C99 deny, NONE authentication
+      denies, and TB-PROFILE validates as TARGET_IMPORTS_SOURCE while the reverse edge denies.
+  - id: C12-SEC-005
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      The owner evidence contains a sorted 24-entry manifest. All 24 paths are unique,
+      all 24 hashes match current files, and independent canonical reconstruction yields
+      exactly 39ffa0117954f0dd83bdd08135f5c6466b781f7865984a0475542a2dbc348b61.
+  - id: C12-SEC-006
+    prior_severity: MEDIUM
+    status: CLOSED
+    evidence: >-
+      Runtime receipt hash and run ID match accepted NX-CAP-001 evidence; both guarded
+      artifact hashes are current. CAP records blocked egress=1, blocked economic=1,
+      credentials=0. Spend policy has zero maximum, empty egress allowlist, and no active
+      approvals. Neither validator nor owner evidence emits a network_used claim.
+
+blocking_findings:
+  - id: C12-SEC-003
+    severity: HIGH
+    classification: architecture_boundary_enforcement
+    title: Computed dynamic imports bypass the actual source boundary checker.
+    proof_source_context: work
+    proof_source: 'async function x(){ return import("@nexus/" + "dating"); }'
+    checker_findings: []
+    expected_decision: DENY
+    observed_decision: ALLOW
+
+closed_findings:
+  - C12-SEC-001
+  - C12-SEC-002
+  - C12-SEC-004
+  - C12-SEC-005
+  - C12-SEC-006
+open_findings:
+  - C12-SEC-003
+new_findings: []
+
+adversarial_retest:
+  classification:
+    public_plus_sexual_orientation: DENY
+    public_plus_child_profile_id: DENY
+  secret_pii:
+    unquoted_secret: DENY
+    unicode_escaped_json_secret: DENY
+    env_file_selected: true
+    malformed_json: DENY
+  source_checker:
+    side_effect_forbidden_import: DENY
+    literal_dynamic_forbidden_import: DENY
+    computed_dynamic_forbidden_import: ALLOW
+    foreign_schema_sql: DENY
+    foreign_schema_template_sql: DENY
+  census_and_boundaries:
+    removed_asset: DENY
+    removed_threat: DENY
+    bogus_A99: DENY
+    bogus_C99: DENY
+    meaningless_authentication_NONE: DENY
+    wrong_TB_PROFILE_reverse_edge: DENY
+    current_TB_PROFILE_target_imports_source: PASS
+  t0:
+    population: 73
+    fail_closed: 73/73
+    census_coverage: 73/73
+    no_waiver: 73/73
+    author_self_check: DENY
+
+review_subject_evidence:
+  owner_run_id: NX-SEC-001-20260802T145429942Z-c8355f7c
+  owner_status: PASS
+  canonicalization: canonical_json_sorted_object_keys_ordered_array_utf8_no_bom
+  manifest_entries: 24
+  unique_paths: 24/24
+  current_hashes: 24/24
+  sorted_paths: true
+  reconstructed_digest: 39ffa0117954f0dd83bdd08135f5c6466b781f7865984a0475542a2dbc348b61
+
+runtime_guard_evidence:
+  cap_run_id: NX-CAP-001-20260802T065209103Z-0a61b5d4
+  cap_evidence_sha256: c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a
+  receipt_hash_matches: true
+  receipt_run_matches: true
+  guard_artifact_hashes_current: 2/2
+  blocked_unallowlisted_egress_actions: 1
+  blocked_economic_actions: 1
+  credential_name_matches: 0
+  max_incremental_amount: 0
+  network_egress_allowlist_empty: true
+  active_spend_approvals: 0
+  validator_network_used_claim_count: 0
+  owner_evidence_network_used_claim_count: 0
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-SEC-001-C12-initial.yaml
+  - planning/evidence/reviews/NX-SEC-001-C12.yaml

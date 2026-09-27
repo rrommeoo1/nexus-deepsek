@@ -1,0 +1,159 @@
+schema_version: 1
+task_id: NX-DATING-P01
+review_id: NX-DATING-P01-C02-C04-C06-C08-20260809-FINALREREVIEW02
+reviewer_roles: [C02, C04, C06, C08]
+risk_class: T0
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A33
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-DATING-P01-validation.json
+  sha256: 9629a332907c68b69098c3ef9b3938121ff83a7f42d17905ddbc70dcda5b427d
+  run_id: NX-DATING-P01-OWNER-REMEDIATION01
+  executor_role: A33
+  status: PASS
+  assertions: 120
+  scenario_assertions: 26
+  deterministic_repetitions: 3
+  artifact_count: 25
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: aabec228ec3eebb1ce3ab0d1ee0cbccbdb969559039aa8b670264576f6b30de8
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-dating.ps1
+  run_id: NX-DATING-P01-C02-FINALREREVIEW02
+  executor_role: C02
+  status: PASS
+  assertions: 120
+  scenario_assertions: 26
+  deterministic_repetitions: 3
+  review_subject_sha256: aabec228ec3eebb1ce3ab0d1ee0cbccbdb969559039aa8b670264576f6b30de8
+  output_sha256: 4e593642deef7ce417e63a535a9d1bc8f6feb3a37544b3380ad2bd2ddd700981
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_static_deterministic_source_review
+  results:
+    adult_photo_liveness_current_trust_and_raw_kyc_absence: PASS
+    trust_revoke_replacement_expiry_generation_during_prepare: DENIED_AND_ABORTED
+    policy_and_profile_mutation_during_prepare: DENIED_AND_ABORTED
+    retained_prepared_token: DENIED
+    exact_chain_event_identifier_actor_object_nonce_class_before_emission: PASS
+    injected_commit_failure_orphan_event: NONE
+    same_authorization_concurrency: ONE_WINNER
+    same_nonce_different_authorization_live: DENIED
+    same_nonce_after_fresh_restore: DENIED
+    authorization_conflict_nonconsumption: PASS
+    signed_authorization_per_receipt: PASS
+    sha256_ordered_previous_and_head_lineage: PASS
+    durable_checkpoint_head_count_trust_policy_binding: PASS
+    permissive_snapshot_verifier_fabrication_prefix_reorder_removal_substitution: DENIED
+    duplicate_authorization_and_nonce_on_restore: DENIED
+    stale_policy_profile_and_trust_on_restore: DENIED
+    exact_shape_getter_proxy_boolean_string: DENIED
+    target_preference_orientation_location_pii_leakage: 0
+    synthetic_global_and_organic_eligibility: FALSE
+    chain_actions_commit_prepared_exact_regressions: PASS
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-five hashes match owner evidence and independently recompute the declared subject
+  independent_validation:
+    status: PASS
+    evidence: C02 validation passed 120 controls and 26 scenarios in each of three deterministic repetitions
+  trust_and_profile_cas:
+    status: PASS
+    evidence: authorization binds trust claim and version; exact current trust state, profile generation and policy are checked before and after prepare, with revoke, replacement, expiry or generation conflict aborting the prepared token before event and receipt mutation
+  chain_event_commit:
+    status: PASS
+    evidence: DatingRegistry supplies the exact expected identifier, actor, object, nonce and private class to commitPreparedActionExact; NexusActionsSandbox verifies all fields before capability mutation or event emission, and injected commit failure creates no orphan event
+  replay_and_concurrency:
+    status: PASS
+    evidence: authorization IDs and domain-bound nonce keys are checked before prepare, rechecked at CAS, atomically promoted after exact commit and reconstructed before restored state is exposed
+  durable_restore:
+    status: PASS
+    evidence: every exact-shaped receipt embeds a verified signed authorization and an ordinal previous-hash SHA-256 chain; durable checkpoint binds id, count, head, trust and policy, and restore recomputes lineage and replay indexes before exposure
+  privacy_and_synthetic_isolation:
+    status: PASS
+    evidence: only generic private commitments cross action boundaries, clear target/preference/orientation/location/PII scans are empty, raw KYC is absent and SYSTEM_TEST profiles remain ineligible for global search and organic metrics
+  effects:
+    status: PASS
+    evidence: all runs remain local with zero network provider economic real-fund and incremental-cost effects
+
+findings:
+  - id: C02-DATING-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Current trust state was not revalidated across asynchronous execution
+    closure_evidence:
+      - DatingTrustBoundary exposes exact current claim, trust version, profile generation, adult, photo, liveness, expiry, revocation and observed time state.
+      - Private authorization binds trustClaimId and trustVersion.
+      - Trust is exact-validated before and after prepare together with profile and policy CAS.
+      - Revoke, replacement, expiry and generation mutation paths abort and leave no event, receipt, authorization or nonce mutation.
+
+  - id: C04-DATING-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Committed private chain receipt was not fully bound or atomically promoted
+    closure_evidence:
+      - Expected event binds identifier, actorCommitment, objectCommitment, actionNonce and PRIVATE_ACTION class.
+      - commitPreparedActionExact compares the complete expected event to the prepared projection before calling commitPreparedAction.
+      - Actor substitution fails PREPARED_ACTION_BINDING_MISMATCH with zero event emission.
+      - Injected commit failure creates no event and leaves authorization and nonce safely reusable; receipt/replay promotion occurs only after successful exact commit.
+
+  - id: C04-DATING-P01-003
+    severity: HIGH
+    status: CLOSED
+    title: Private action nonce uniqueness was delegated and lost on restore
+    closure_evidence:
+      - DatingRegistry persists a nonce key bound to actor profile, generation, session, chain, contract and nonce.
+      - Authorization and nonce are checked before prepare and rechecked with head and ordinal during post-prepare CAS.
+      - Same authorization concurrency has exactly one winner and a distinct authorization with the same nonce is denied.
+      - Restore rebuilds authorization and nonce indexes; fresh-recorder historical nonce reuse is denied before prepare.
+
+  - id: C06-DATING-P01-004
+    severity: HIGH
+    status: CLOSED
+    title: Snapshot restore lacked authenticated receipt lineage independent of checkpoint verifier behavior
+    closure_evidence:
+      - Each receipt embeds and verifies its exact signed PrivateInteractionAuthorization.
+      - Receipt canonicalization binds ordinal, previous hash, authorization, action, actor, commitment, nonce, profile, policy, trust and recorded time under SHA-256.
+      - Snapshot head must equal the ordered terminal receipt hash and a durable checkpoint independently binds id, receipt count/head, trust claim/version and policy version.
+      - Restore exact-parses and recomputes every receipt and all replay indexes; permissive snapshot-verifier fabrication, prefix, reorder, removal and field substitution fail internal lineage or durable-checkpoint controls.
+
+accepted_controls:
+  - All twenty-five artifacts and the subject are cryptographically bound to owner evidence.
+  - All four former HIGH findings are closed by deterministic tests, independent validation and source-level confirmation.
+  - Adult/trust, privacy, exact-shape, signature, authorization, TOCTOU, prepared-action, exact chain commit, replay, concurrency, durable restore and synthetic-isolation controls pass.
+  - Existing NexusActionsSandbox CAS and commitPreparedActionExact regressions remain passing.
+  - Zero network, provider, economic, real-fund or incremental-cost effects occurred.
+
+claims_excluded:
+  - real_users
+  - real_kyc
+  - external_liveness
+  - production_matching
+  - mainnet
+  - legal_opinion
+  - formal_security_audit
+  - meet_safe_e2e
+
+residual_scope_notes:
+  - PASS covers only the bound local synthetic adult-dating private-commitment and durable-restore boundary.
+  - Real users/KYC/liveness, production matching, mainnet, legal opinion, formal security audit and Meet Safe E2E remain excluded gates.
+  - No finding remains open in this independent T0 review.

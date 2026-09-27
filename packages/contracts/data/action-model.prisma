@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ActionIntentState {
+  CREATED
+  RELAY_QUEUED
+  SUBMITTED
+  ORDERED_FINAL
+  EXECUTION_PENDING
+  EXECUTED_SUCCESS
+  REVERTED
+  EXPIRED
+}
+
+model ActionIntent {
+  id                String            @id @db.Uuid
+  actorKind         String            @map("actor_kind") @db.VarChar(16)
+  /// @catalog-id db.action-intent.actor-commitment
+  actorCommitment   String            @map("actor_commitment") @db.Char(64)
+  actionType        String            @map("action_type") @db.VarChar(48)
+  /// @catalog-id db.action-intent.object-commitment
+  objectCommitment  String            @map("object_commitment") @db.Char(64)
+  /// @catalog-id db.action-intent.payload-hash
+  payloadHash       String            @map("payload_hash") @db.Char(64)
+  idempotencyKey    String            @unique @map("idempotency_key") @db.VarChar(128)
+  txHash            String?           @unique @map("tx_hash") @db.Char(64)
+  state             ActionIntentState
+  aggregateVersion  Int               @default(1) @map("aggregate_version")
+  expiresAt         DateTime          @map("expires_at") @db.Timestamptz(3)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("action_intents")
+  @@schema("chain_integration")
+}
+
+model OutboxEvent {
+  id               String   @id @db.Uuid
+  aggregateId      String   @map("aggregate_id") @db.Uuid
+  aggregateVersion Int      @map("aggregate_version")
+  eventType        String   @map("event_type") @db.VarChar(128)
+  /// @catalog-id db.outbox.payload
+  payload          Json
+  occurredAt       DateTime @map("occurred_at") @db.Timestamptz(3)
+  publishedAt      DateTime? @map("published_at") @db.Timestamptz(3)
+
+  @@unique([aggregateId, aggregateVersion, eventType])
+  @@map("outbox_events")
+  @@schema("chain_integration")
+}
+
+/// Finalized-only reducer: pre-finalized observations are ignored; canonical conflicts
+/// rebuild from hyperblock-final chain data using the composite primary key below.
+model ActionChainEvent {
+  network         String   @db.VarChar(16)
+  originalTxHash  String   @map("original_tx_hash") @db.Char(64)
+  sourceTxHash    String   @map("source_tx_hash") @db.Char(64)
+  eventIndex      Int      @map("event_index")
+  blockNonce      BigInt   @map("block_nonce")
+  blockHash       String   @map("block_hash") @db.Char(64)
+  hyperblockNonce BigInt   @map("hyperblock_nonce")
+  hyperblockHash  String   @map("hyperblock_hash") @db.Char(64)
+  shard           Int
+  identifier      String   @db.VarChar(96)
+  /// @catalog-id db.chain-event.payload
+  payload         Json
+  canonicality    String   @default("FINALIZED_CANONICAL") @db.VarChar(24)
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  @@id([network, originalTxHash, sourceTxHash, eventIndex])
+  @@map("action_chain_events")
+  @@schema("chain_integration")
+}

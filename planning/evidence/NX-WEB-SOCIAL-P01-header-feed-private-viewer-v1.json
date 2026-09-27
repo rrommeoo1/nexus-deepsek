@@ -1,0 +1,67 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "header-feed-private-viewer-v1",
+  "created_at": "2026-08-24T00:00:00+02:00",
+  "cost_incremental": 0,
+  "environment": "local_demo_only",
+  "changed_files": {
+    "apps/nexus-web/public/app.js": "55235F382E3E57B09B0616DF2252ADE4099D0CCC632369D4C50B71A17250B5ED",
+    "apps/nexus-web/public/styles.css": "65B495E4D0F577ACD060783A9A58F08BAEFA873AD8F26AE8686E199A3BF41AFB",
+    "apps/nexus-web/public/index.html": "0A9E42C17EDB97BA629BACF32F8CC4E6E255C8A63E72E9B3AD4450016BD7D7E3",
+    "apps/nexus-web/lib/api.js": "BE1E6C9C6945732810E277FB6A34DF757C220C04F17819B5019682FB5530B858",
+    "apps/nexus-web/lib/repo.js": "F8D262AD4F8AF21B618F66278181D563A379E8A4A9246FFAA263B07B881BC172",
+    "apps/nexus-web/lib/db.js": "7343156F1AA4E9D683DFC320C9C75BF0C48962E40DDBE600C01CF5F795BCB877",
+    "apps/nexus-web/test/audit.test.js": "EACEB51AE59ADEF0BD6E31248EF6FA051270DDED640E36506612D59CFDF01B7E"
+  },
+  "implemented": [
+    "Social header now uses three prismatic switchers: Nexus mode, feed source, and friends relations.",
+    "Feed switcher includes For You, Local Trends, Global Trends, Friends, Following, Private Content, and Breaking.",
+    "Friends switcher exposes Followers, Following, and Favorite, with device-local star favorites for the demo.",
+    "Feed photos and clips open a full-screen media viewer with reaction tray, comments panel, save, share, support, report, arrows, and swipe gestures.",
+    "Opening media records a local Social impression; images are marked completed on open, while explicit reactions remain separate actions.",
+    "Private profile paywall settings were added to persona schema/API/UI: enabled, price, currency, duration days, default 15 USD for 30 days.",
+    "Private Content feed screen shows anonymous timed access, 90 percent creator / 10 percent Nexus split, and no real payment execution in demo."
+  ],
+  "verification": {
+    "node_path": "node.exe and npm.cmd were not available in the PowerShell PATH for direct node --test execution.",
+    "node_repl_source_text_module": {
+      "app": "ok",
+      "api": "ok",
+      "repo": "ok",
+      "db": "ok"
+    },
+    "static_contracts": {
+      "asset_cache_version_social34": true,
+      "header_three_switchers": true,
+      "private_content_feed": true,
+      "friends_relations_switcher": true,
+      "media_viewer_actions": true,
+      "private_paywall_90_10": true,
+      "audit_contracts_updated": true
+    },
+    "browser_smoke": {
+      "url": "http://192.168.1.153:3000/?v=social34",
+      "source": "/app.js?v=20260824-social34",
+      "header_switch_count": 3,
+      "has_feed_badge": true,
+      "has_friends_badge": true,
+      "old_social_top_nav_present": false,
+      "stories_present": true,
+      "feed_switcher_opened": true,
+      "private_content_option_present": true,
+      "private_content_screen_opened": true,
+      "friends_switcher_opened": true,
+      "friends_tabs": ["followers", "following", "favorites"],
+      "media_viewer_opened": true,
+      "media_viewer_action_rail_present": true,
+      "media_viewer_reaction_tray_present": true
+    }
+  },
+  "limitations": [
+    "The running server process may need a safe restart before newly added backend routes and schema migrations are loaded by that process.",
+    "No real payment, stablecoin settlement, xMoney execution, production escrow, or mainnet transaction was performed.",
+    "Favorite friends are demo-local on the current device until a cross-device private graph model is approved and implemented.",
+    "The private unlock receipt model is represented in UI/API settings only; privacy-preserving settlement remains a later bounded packet."
+  ],
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS"
+}

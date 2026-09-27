@@ -1,0 +1,87 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-MUTATION-OUTBOX-002",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "implemented": [
+    "authenticated mutation Idempotency-Key enforcement",
+    "account and active-persona scoped mutation registry",
+    "encrypted-at-rest replay responses",
+    "conflicting and concurrent retry rejection",
+    "legacy base64 media endpoint retirement",
+    "outbox lease, retry, recovery and dead-letter worker",
+    "minimal upload outbox payload",
+    "message replay side-effect suppression"
+  ],
+  "verification": {
+    "syntax": "PASS",
+    "tests": { "passed": 101, "failed": 0 },
+    "mutation_replay_storm": {
+      "traffic_class": "SYSTEM_TEST",
+      "actors": 100,
+      "requests": 1000,
+      "completed_registry_rows": 100,
+      "cross_persona_replay": 0,
+      "plaintext_response_at_rest": false,
+      "gate": "PASS"
+    },
+    "outbox": {
+      "single_claim": "PASS",
+      "expired_lease_recovery": "IMPLEMENTED",
+      "bounded_retry": "PASS",
+      "dead_letter": "PASS"
+    },
+    "social_actor_lab": {
+      "version": "NEXUS_SYNTHETIC_ACTOR_LAB_V2",
+      "seed": 1314415955,
+      "actors": 1000,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "gate": "PASS"
+    }
+  },
+  "independent_audit": {
+    "fixed_before_release": [
+      "invalid outbox ALTER TABLE definitions",
+      "mutation replay key missing actor_persona",
+      "plaintext mutation replay response storage",
+      "message nonce replay repeated notifications and SSE"
+    ]
+  },
+  "known_limits": [
+    {
+      "severity": "High",
+      "id": "MUTATION-ATOMICITY-003",
+      "finding": "generic registry completion is not in the same transaction as each domain mutation",
+      "control": "lease plus domain uniqueness; route-by-route transactional command migration remains"
+    },
+    {
+      "severity": "High",
+      "id": "PRIVACY-MATRIX-002",
+      "finding": "read authorization remains distributed and must be centralized before P1"
+    },
+    {
+      "severity": "Medium",
+      "id": "GET-SIDE-EFFECTS-001",
+      "finding": "some GET journeys update presence, delivery, expiry or ensure profile state"
+    },
+    {
+      "severity": "Medium",
+      "id": "SPECIALIZED-IDEMPOTENCY-001",
+      "finding": "auth issuance, presence, typing and WebRTC signaling require specialized bounded semantics"
+    }
+  ],
+  "policy": {
+    "external_share": "DENY",
+    "legacy_media_base64": "RETIRED_410",
+    "default_deny_spend": true
+  },
+  "runtime_expected": {
+    "http": "0.0.0.0:3000",
+    "https": "0.0.0.0:3443",
+    "asset_key": "20260828-p0mutation2"
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-PRIVACY-MATRIX-003"
+}

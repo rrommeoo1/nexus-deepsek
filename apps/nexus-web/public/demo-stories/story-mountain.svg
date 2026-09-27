@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520" role="img" aria-label="Mountain lake at dusk">
+  <defs>
+    <linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a2350"/><stop offset=".55" stop-color="#8c5aa8"/><stop offset="1" stop-color="#ffb27a"/></linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4a4f9c"/><stop offset="1" stop-color="#141a3a"/></linearGradient>
+  </defs>
+  <rect width="400" height="520" fill="url(#dusk)"/>
+  <circle cx="128" cy="238" r="40" fill="#ffe6b8" opacity=".8"/>
+  <path d="M0 300l96-118 60 74 52-56 74 100 118-72v142z" fill="#3b3a6b"/>
+  <path d="M96 182l34 42 26-24 34 44-40 12-22-18-32 22z" fill="#6f6f9c" opacity=".75"/>
+  <path d="M282 224l34 42 30-18 54 52v-96z" fill="#4c4a7d" opacity=".85"/>
+  <rect y="300" width="400" height="220" fill="url(#water)"/>
+  <path d="M0 322c60 10 120-10 200-4s140 12 200-6v14c-70 16-140 2-210 6S70 356 0 340z" fill="#8f7fd6" opacity=".35"/>
+  <path d="M0 380c74 12 130-8 208-2s132 14 190-4v10c-64 18-138 6-206 6S72 410 0 400z" fill="#ffe6b8" opacity=".18"/>
+  <path d="M0 470c70-16 140-2 210 6s120 0 190-14v58H0z" fill="#0f1730"/>
+</svg>

@@ -1,0 +1,98 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-CLIP-CONTINUITY-013",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Fullscreen clip continuity, comment ownership, exposure signals and mobile exit paths",
+  "controls": {
+    "viewer": {
+      "single_tap_from_feed_opens_fullscreen": true,
+      "vertical_pointer_navigation": true,
+      "keyboard_navigation": true,
+      "mute_preference_persistent": true,
+      "neighbor_metadata_preload": true,
+      "preload_cleanup_on_close": true,
+      "feed_scroll_and_focus_restored": true
+    },
+    "comments": {
+      "fullscreen_button_uses_fullscreen_panel": true,
+      "feed_drawer_not_opened_behind_viewer": true,
+      "panel_closes_before_clip_change": true,
+      "explicit_close": true,
+      "viewer_remains_open_after_comment_close": true
+    },
+    "ranking_signals": {
+      "real_dwell_time": true,
+      "video_max_progress": true,
+      "image_completion_after_one_second": true,
+      "maximum_dwell_ms": 300000,
+      "synthetic_one_ms_impression_removed": true
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "static_audit_tests": { "passed": 20, "failed": 0 },
+    "full_tests": { "passed": 127, "failed": 0 },
+    "mobile_browser_qa": {
+      "viewport": "390x844",
+      "fullscreen_opened_from_explicit_control": true,
+      "creator_profile_not_opened_by_overlap": true,
+      "viewer_comment_panel_visible": true,
+      "viewer_comment_input_visible": true,
+      "feed_comment_drawer_remained_closed": true,
+      "comment_panel_closed": true,
+      "viewer_closed_to_feed": true,
+      "dock_restored": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 11036,
+      "listen_address": "0.0.0.0",
+      "local_http": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p2clip2"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The fullscreen comment action reused the feed drawer handler and opened comments behind the inert viewer.",
+      "resolution": "Separated the fullscreen action namespace and bound it only to the active viewer comment panel."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Changing clips outside an open comment panel could leave comments associated with the previous clip.",
+      "resolution": "Every clip step now removes the old panel before changing the active item."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Fullscreen impressions emitted an artificial one-millisecond dwell signal and never measured video completion.",
+      "resolution": "Exposure is flushed on step/close with real bounded dwell and maximum observed video progress."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The explicit fullscreen control overlapped the creator identity on narrow phones and could open the profile instead.",
+      "resolution": "Moved it to a non-overlapping high-z position with an explicit left reset and phone breakpoint."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "47f950582825235b074ee329a4a22f71fd685573ac4502c00ba4ee926b4ea8b0",
+    "apps/nexus-web/public/p2-clips.css": "49a965ae3676259083324cddd039762c3d16f42ed9e73d02ac37317a01a58aab",
+    "apps/nexus-web/public/index.html": "977d73abb61729828c9a340c5350dc30fd580908afce69716cd2776c706f743d",
+    "apps/nexus-web/test/audit.test.js": "dda42b8960cac962dc0c184ccdb09966fced2eec72f523ed29a64388ca1fbe66"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p2_clip_continuity_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-MESSAGING-JOURNEY-014"
+}

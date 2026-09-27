@@ -1,0 +1,94 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-DEVICE-BROWSER-NETWORK-MATRIX-024",
+  "checkpoint_date": "2026-08-30",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Offline failure semantics, responsive/capability contracts and localhost/LAN/HTTPS delivery probes",
+  "implemented": {
+    "offline_mutation_policy": "DENY_BEFORE_FETCH",
+    "offline_user_state": "VISIBLE_NON_SUCCESS_BANNER",
+    "get_retry_policy": "initial attempt plus maximum two bounded retries",
+    "event_stream_offline": "CLOSED",
+    "event_stream_reconnect": "REOPEN_ON_ONLINE",
+    "camera_call_secure_context": "DENY_HTTP_LAN_WITH_TRUTHFUL_REASON",
+    "unsupported_webrtc": "DENY_WITH_TRUTHFUL_REASON",
+    "external_share": "DENY"
+  },
+  "responsive_contract_matrix": [
+    { "target": "desktop", "reference_viewport": "1440x900", "status": "PASS_SOURCE_CONTRACT" },
+    { "target": "phone", "reference_viewport": "390x844", "status": "PASS_SOURCE_CONTRACT" },
+    { "target": "narrow_phone", "reference_viewport": "360x800", "status": "PASS_SOURCE_CONTRACT" },
+    { "target": "phone_landscape", "reference_viewport": "844x390", "status": "PASS_SOURCE_CONTRACT" }
+  ],
+  "responsive_controls": {
+    "viewport_fit_cover": true,
+    "safe_area_insets": true,
+    "narrow_phone_breakpoint": true,
+    "landscape_full_viewport": true,
+    "reduced_motion": true,
+    "network_status_live_region": true
+  },
+  "network_probes": [
+    { "origin": "http://127.0.0.1:3000", "health": 200, "root": 200, "app_asset": 200 },
+    { "origin": "http://192.168.1.153:3000", "health": 200, "root": 200, "visual_css_asset": 200 },
+    { "origin": "https://127.0.0.1:3443", "health": 200, "certificate_validation": "SKIPPED_FOR_LOCAL_SELF_SIGNED_PROBE_ONLY" }
+  ],
+  "verification": {
+    "matrix_tests": { "passed": 3, "failed": 0 },
+    "static_plus_matrix_tests": { "passed": 32, "failed": 0 },
+    "full_tests": { "passed": 160, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 20,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "runtime": {
+      "pid": 7816,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS_READY",
+      "phone_lan_health": "PASS_READY",
+      "phone_url": "http://192.168.1.153:3000/",
+      "secure_phone_candidate": "https://192.168.1.153:3443/"
+    }
+  },
+  "browser_visual_validation": {
+    "status": "BLOCKED_NOT_EXECUTED",
+    "reason": "Saved Browser permission blocked local 127.0.0.1 access",
+    "workaround_attempted": false,
+    "pass_claimed": false,
+    "required_next_gate": "Real phone and desktop interaction pass on trusted HTTPS origin"
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Network fetch failures could reject as uncaught exceptions and offline mutations had no explicit non-success contract.",
+      "resolution": "Mutations now fail before fetch when offline; network failures return OFFLINE/retryable and GET retries are bounded to two."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "The shell had no persistent, accessible indication that server-confirmed actions were unavailable.",
+      "resolution": "Added an aria-live offline banner, closed SSE while offline and reconnects only after the online event."
+    },
+    {
+      "severity": "GATE",
+      "finding": "Automated visual interaction against the local origin was denied by saved Browser policy.",
+      "resolution": "No circumvention was attempted; source/network/capability evidence is recorded separately and real-device visual QA remains open."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/public/app.js": "b0deb4667077f49cacd2dd39ee8f62651248d09f0f6a5e040a15a280d963f27a",
+    "apps/nexus-web/public/index.html": "aa375ea66e6eb8069f7f2e094a695038cb4ac2741eb67936788cfa8b0c371fd3",
+    "apps/nexus-web/public/p3-visual-foundation.css": "4a689080d70219139a66facd8798896a072c67a3788c777e47d90ac8dd47866e",
+    "apps/nexus-web/test/p1-device-network-matrix.test.js": "c2072182cb908f67c66ad366405b9ce2ee09c4925a9c919f1351592320b51620",
+    "apps/nexus-web/test/audit.test.js": "ee03b55439819c5d1155bb7ef64f9ba9b64427c6a7fe74bb53f90e425cdd3fc7"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved/goal usage-limited; single main agent" },
+  "local_matrix_gate": "PASS_WITH_VISUAL_DEVICE_GATE_OPEN",
+  "public_release_gate": "BLOCKED_EXTERNAL_T0_T1_AND_REAL_DEVICE_VALIDATION",
+  "next_packet": "NX-WEB-SOCIAL-P01-MESSAGING-E2EE-DEVICE-LIFECYCLE-025"
+}

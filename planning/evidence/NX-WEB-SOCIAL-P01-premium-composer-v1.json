@@ -1,0 +1,107 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "premium-composer-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "scope": [
+    "Social Create Hub to Composer flow",
+    "Tweet-first composer mode",
+    "Media-first composer mode entry points",
+    "Composer intent rail",
+    "Caption character counter",
+    "Static and browser smoke verification"
+  ],
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "native_camera_or_gallery_prompted_by_automation": false
+  },
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Composer now receives source metadata from Create Hub: camera, gallery, clip, story or tweet. Tweet / postare opens a text-first Tweet composer instead of a generic post form."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Added composerIntent rail with Tweet, Media and Story options, source-specific guidance, tweet-only 500 character limit, caption counter and premium/text-first/media-first classes."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Removed old in-composer createKinds toggle so the user sees one clear creation architecture instead of duplicated controls."
+    },
+    {
+      "file": "apps/nexus-web/public/styles.css",
+      "summary": "Added premium composer styling, prismatic intent buttons, text-first tweet textarea, media-first preview sizing and sticky composer actions."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Static assets bumped to 20260825-social38."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Static audits updated for social38, composerIntent, tweet source, 500 character counter, removed createKinds markup and composer CSS."
+    }
+  ],
+  "verification": {
+    "npm_test": {
+      "status": "not_run",
+      "reason": "npm is not available in the current PowerShell PATH"
+    },
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social38_index": true,
+        "premium_composer_class": true,
+        "composer_intent": true,
+        "tweet_mode": true,
+        "tweet_limit": true,
+        "caption_counter": true,
+        "no_old_createKinds_markup": true,
+        "media_first_hint": true,
+        "css_composer_intent": true,
+        "css_tweet_textarea": true,
+        "test_updated": true,
+        "tweets_still_present": true
+      },
+      "syntax": {
+        "app.js": true,
+        "api.js": true,
+        "repo.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social38",
+      "observed": {
+        "app_script": "http://192.168.1.153:3000/app.js?v=20260825-social38",
+        "composer_source": "tweet",
+        "has_composer": true,
+        "has_intent": true,
+        "intent_text": "Tweet / Media / Story",
+        "tweet_hint": "Tweet Nexus",
+        "textarea_maxlength": "500",
+        "placeholder": "Scrie un tweet Nexus…",
+        "counter_after_typing": "38/500",
+        "has_old_createKinds": false,
+        "has_upload_progress": true
+      }
+    },
+    "native_picker_safety": {
+      "status": "not_clicked_by_automation",
+      "reason": "Camera/Gallery native pickers can block the test browser on OS permission/file dialogs; routes were verified statically and Create Hub was verified visually."
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "1D4665685880E5FF2A10608B544F2DB44B811BFB31583C2CF1B428FD1EF74B65",
+    "apps/nexus-web/public/styles.css": "4A96031F4B82FFBF93016E6EA937DB71F0B8D1A09F8683F1EFB3C46C412B50F5",
+    "apps/nexus-web/public/index.html": "D4EEF3EE19308B40CEAC1A483349B59E32462CF5C57E34C38FD303027B6EF6C3",
+    "apps/nexus-web/lib/api.js": "57F7395728A2840C497A0E05467148624433FA4082C1CBED86C8C1EA955F1B1B",
+    "apps/nexus-web/lib/repo.js": "AC048DE5C1ABFF8092CB9DD86B4D262972576764261029E90AA6E53C91B1D918",
+    "apps/nexus-web/test/audit.test.js": "EF35476DE35C26034B0004FEF353057BB09BF96F822A9C4952AA5D09B86DE049"
+  },
+  "next": [
+    "Improve actual publishing feedback: publish should insert the new text post into the visible Tweets feed immediately after success.",
+    "Add media-first preview polish for selected gallery video/photo once manual picker interaction is tested by the owner.",
+    "Continue toward WhatsApp-grade Messages UI after Social composer is acceptable."
+  ]
+}

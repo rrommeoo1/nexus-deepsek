@@ -1,0 +1,155 @@
+schema_version: 1
+task_id: NX-BIZ-P01
+review_id: NX-BIZ-P01-C03-C05-C10-20260809-FINALREREVIEW02
+reviewer_roles: [C03, C05, C10]
+risk_class: T1
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A34
+decision: PASS
+gate_effect: T1_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-BIZ-P01-validation.json
+  sha256: 3daea91cee3d0f9f65e8d95b2df86d8ebc919bed1e4d2c63f562dbc539c96fdf
+  run_id: NX-BIZ-P01-A34-REMEDIATION01
+  executor_role: A34
+  status: PASS
+  assertions: 104
+  scenario_assertions: 23
+  deterministic_repetitions: 3
+  artifact_count: 23
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: aad863ef37012212e429119aabe70a0ce54e0c5523e79ba752c0de29fc8197c2
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-business.ps1
+  run_id: NX-BIZ-P01-C03-FINALREREVIEW02
+  executor_role: C03
+  status: PASS
+  assertions: 104
+  scenario_assertions: 23
+  deterministic_repetitions: 3
+  review_subject_sha256: aad863ef37012212e429119aabe70a0ce54e0c5523e79ba752c0de29fc8197c2
+  output_sha256: c772b4527144a193f6e4aa860afda20aa24012a8d15d7d55e60cc6bda23ad59c
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_static_deterministic_source_review
+  results:
+    command_snapshot_event_exact_shape_getter_proxy_boolean_string: DENIED
+    command_and_decision_signature_substitution: DENIED
+    coordinated_service_terms_substitution_under_old_decision: DENIED
+    active_business_controller_and_generation_boundary: PASS
+    complete_service_decision_binding: PASS
+    slot_staff_time_duration_version_capacity_binding: PASS
+    quote_expiry_authoritative_now_and_active_client: PASS
+    quote_id_collision_live_and_after_restore: DENIED
+    action_and_appointment_collision: DENIED
+    one_winner_one_full_refund_conservation: PASS
+    signed_checkpoint_subject_and_directory_binding: PASS
+    fresh_directory_available_to_reserved_reconstruction: PASS
+    subsequent_fund_after_restore: REFUNDED_SLOT_CONFLICT
+    prefix_fabricated_two_winners_and_extra_fields: DENIED
+    prior_marketplace_style_regressions: PASS
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-three hashes match and independently recompute the declared subject
+  independent_validation:
+    status: PASS
+    evidence: C03 validation passed 104 controls and 23 scenarios in each of three deterministic repetitions
+  business_identity:
+    status: PASS
+    evidence: publishBusiness requires an active BusinessOwnerBoundary controller at the exact owner generation after signature and shape validation and before directory mutation
+  service_policy_binding:
+    status: PASS
+    evidence: the signed eligibility decision exact-parses and binds business, service, territory, location, staff, category, duration, price, deposit, token, both policies, manifest, age, medical clearance, credential result and policy version
+  slot_and_funding:
+    status: PASS
+    evidence: slot staff/time/duration/version/capacity, authoritative quote expiry, adult client, exact service/slot/token/deposit/policy binding, fee cap and conservation all pass
+  quote_replay:
+    status: PASS
+    evidence: quoteId is projected, consumed atomically with action and appointment, restored into the replay index and rejected on collision before slot or finance mutation
+  concurrency_and_reentrancy:
+    status: PASS_FOR_LOCAL_SYNCHRONOUS_BOUNDARY
+    evidence: shared reservation yields exactly one confirmed appointment and one terminal full refund with funded equal liability plus refund
+  durable_restore:
+    status: PASS
+    evidence: snapshot and events exact-parse; signed checkpoint binds business, service, slot and slot version; restore validates event uniqueness and conservation, rebuilds action appointment and quote indexes, reconstructs RESERVED on a fresh matching directory and prevents a second winner
+  effects:
+    status: PASS
+    evidence: all executions are SYSTEM_TEST local mocks with zero network provider economic real-fund and incremental-cost effects
+
+findings:
+  - id: C05-BIZ-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Business activation trusted self-declared organization and owner status
+    closure_evidence:
+      - BusinessDirectory now requires BusinessOwnerBoundary.
+      - Publication fails unless ownerProfileCommitment and ownerProfileGeneration identify an active business controller.
+      - The boundary check occurs before projection mutation; exact-shape and signature controls remain intact.
+
+  - id: C05-BIZ-P01-002
+    severity: HIGH
+    status: CLOSED
+    title: Service eligibility decision omitted material service and safety terms
+    closure_evidence:
+      - ServiceEligibilityDecision now carries every material service field plus the prior safety, credential, territory and policy fields.
+      - publishService compares the complete immutable binding list before creating the offering.
+      - A coordinated signed staff and deposit substitution under the original decision is denied.
+
+  - id: C03-BIZ-P01-003
+    severity: HIGH
+    status: CLOSED
+    title: Appointment quote identity was neither unique nor preserved
+    closure_evidence:
+      - AppointmentProjection now persists quoteId.
+      - Live funding rejects action, appointment or quote collision before reservation.
+      - Restore exact-parses quoteId, rejects duplicate quotes and rebuilds the quote replay set before exposure.
+      - Same-quote/different-appointment regression is denied.
+
+  - id: C03-BIZ-P01-004
+    severity: HIGH
+    status: CLOSED
+    title: Appointment restore was not bound to exact directory state or deterministic slot reconstruction
+    closure_evidence:
+      - Snapshot and event schemas reject unknown fields, getters, proxies and malformed values.
+      - Checkpoint binds business, service, slot and slotVersion and must match the supplied directory.
+      - Restore enforces unique action, appointment and quote identities, exact event subject binding, one winner, full loser refund and conservation.
+      - A fresh AVAILABLE matching directory becomes RESERVED; a subsequent fund produces REFUNDED_SLOT_CONFLICT rather than a second winner.
+      - Signed prefix, fabricated two winners and snapshot extra-field probes are denied.
+
+accepted_controls:
+  - All twenty-three artifacts and the subject are cryptographically bound to owner evidence.
+  - All four former HIGH findings are closed with deterministic tests and independent source confirmation.
+  - Exact-shape, signatures, owner identity, service safety, slot, funding, replay, concurrency, restore and conservation controls pass.
+  - Zero network, provider, economic, real-fund or incremental-cost effects occurred.
+
+claims_excluded:
+  - real_service
+  - real_funds
+  - mainnet
+  - external_calendar
+  - external_kyc
+  - tax_advice_or_opinion
+  - formal_legal_opinion
+  - production_persistence
+
+residual_scope_notes:
+  - PASS covers only the bound local deterministic synthetic business directory, single-slot appointment, deposit, concurrency and restore boundary.
+  - Real services, funds, mainnet, external calendar/KYC, tax/legal opinions and production persistence remain excluded external gates.
+  - No finding remains open in this independent T1 review.

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "name": "NexusActions",
+  "x-data-policy": {"owner": "chain_integration", "purpose": "record_one_signed_action_without_private_plaintext", "legal_basis": "contract_and_security", "retention": "chain_lifetime", "default_classification": "CHAIN_COMMITMENT"},
+  "constructor": {"inputs": [], "outputs": []},
+  "endpoints": [
+    {
+      "name": "recordAction",
+      "mutability": "mutable",
+      "payableInTokens": [],
+      "inputs": [
+        {"name": "envelope", "type": "ActionEnvelope"},
+        {"name": "session_signature", "type": "bytes"}
+      ],
+      "outputs": []
+    },
+    {
+      "name": "recordPrivateAction",
+      "mutability": "mutable",
+      "payableInTokens": [],
+      "inputs": [
+        {"name": "generic_commitment", "type": "bytes32"},
+        {"name": "envelope", "type": "ActionEnvelope"},
+        {"name": "session_signature", "type": "bytes"}
+      ],
+      "outputs": []
+    }
+  ],
+  "events": [
+    {
+      "identifier": "ActionRecorded",
+      "inputs": [
+        {"name": "actor_commitment", "type": "bytes32", "indexed": true},
+        {"name": "object_commitment", "type": "bytes32", "indexed": true},
+        {"name": "action_nonce", "type": "u64", "indexed": false}
+      ]
+    }
+  ],
+  "types": {
+    "ActionEnvelope": {
+      "type": "struct",
+      "fields": [
+        {"name": "version", "type": "u16"},
+        {"name": "actor_kind", "type": "u8"},
+        {"name": "actor_commitment", "type": "bytes32"},
+        {"name": "action_type", "type": "u16"},
+        {"name": "object_commitment", "type": "bytes32"},
+        {"name": "payload_hash_or_cid", "type": "bytes32"},
+        {"name": "visibility_class", "type": "u8"},
+        {"name": "action_nonce", "type": "u64"},
+        {"name": "issued_at", "type": "u64"},
+        {"name": "expires_at", "type": "u64"},
+        {"name": "session_public_key", "type": "bytes32"}
+      ]
+    }
+  },
+  "x-invariants": {
+    "oneActionPerCall": true,
+    "batchEndpoints": [],
+    "privateTargetsInClear": false,
+    "childActorAllowed": false
+  }
+}

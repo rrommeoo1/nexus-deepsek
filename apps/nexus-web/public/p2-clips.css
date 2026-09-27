@@ -1,0 +1,5 @@
+/* Clip continuity overrides loaded after the established Nexus theme. */
+/* Wave 14i: the rules that pinned the full-screen mark over a clip are gone. Wave 14h took that mark off the
+   clip card, so the overrides described a button no markup carries any more - and this sheet is one of the
+   seven counted by p1-performance-budget, so the bytes go back to the allowance. */
+

@@ -1,0 +1,483 @@
+.phoneScreen:has(.accountScreen) #phoneHeader{display:none!important}.accountScreen{position:relative}.accountScreen:before{content:'Pull to refresh';position:absolute;z-index:20;top:8px;left:50%;padding:7px 12px;border-radius:18px;background:#11323a;color:#75eee5;font-size:11px;opacity:0;transform:translate(-50%,-20px);transition:.18s}.accountScreen.profilePullReady:before{opacity:1;transform:translate(-50%,0)}#profile-preview{padding:0!important}.nexusOwnerProfile{min-height:100%;color:#eef8fb;background:#060b11}.ownerCover{height:116px;overflow:hidden;background:radial-gradient(circle at 30% 30%,#0f4c58,transparent 40%),linear-gradient(120deg,#091724,#101029)}.ownerCover img{width:100%;height:100%;object-fit:cover}.ownerIdentity{position:relative;display:grid;grid-template-columns:108px minmax(0,1fr) 44px;gap:12px;align-items:end;padding:0 18px;margin-top:-48px}.ownerAvatar{position:relative;width:108px;height:108px;padding:3px;border:2px solid #21eadc;border-radius:50%;background:#09131c;color:#dff;font-size:28px;overflow:hidden}.ownerAvatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}.ownerAvatar>b{position:absolute;inset:-1px;border:3px solid #3affef;border-radius:50%;box-shadow:0 0 19px #19dbd880}.ownerIdentity h1{margin:0 0 3px;font-size:24px;line-height:1.1}.ownerIdentity p{margin:0;color:#9eacb5;font-size:13px}.ownerIdentity em{display:flex;align-items:center;gap:5px;margin-top:6px;color:#65e5b4;font-size:12px;font-style:normal}.ownerIdentity em i{width:8px;height:8px;border-radius:50%;background:#39e58e;box-shadow:0 0 9px #39e58e}.ownerSettings{width:44px;height:44px;border:0;background:transparent;color:#b8c7d0;font-size:20px}.ownerBio{margin:14px 20px 8px;color:#c5d0d5;font-size:15px;line-height:1.42}.ownerStats{display:grid;grid-template-columns:repeat(3,1fr);margin:10px 20px}.ownerStats button{min-height:58px;border:0;border-right:1px solid #25313a;background:transparent;color:#eef8fb}.ownerStats button:last-child{border:0}.ownerStats b,.ownerStats small{display:block}.ownerStats b{font-size:20px}.ownerStats small{margin-top:3px;color:#9aa9b1;font-size:12px}.ownerActions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:13px 20px}.ownerActions button{min-height:46px;border:1px solid #34434c;border-radius:13px;background:#10171f;color:#eef8fb;font-size:15px;font-weight:700}.ownerActions button:last-child{border-color:#167d7b;color:#5af2e8}.profileMoments{padding:4px 0 10px}.profileMoments header{padding:0 20px 9px}.profileMoments>div{display:flex;gap:16px;padding:0 20px;overflow-x:auto;scrollbar-width:none}.profileMoments button{flex:0 0 72px;border:0;background:none;color:#aebac1}.profileMoments button i{display:grid;width:66px;height:66px;place-items:center;overflow:hidden;border:2px solid #27ded2;border-radius:50%;background:#0b1720;color:#2ce8dc;font-size:26px;font-style:normal}.profileMoments button img{width:100%;height:100%;object-fit:cover}.profileMoments button small{display:block;margin-top:5px;overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}.ownerContentTabs{position:sticky;z-index:7;top:0;display:grid;grid-template-columns:repeat(4,1fr);background:#060b11;border-bottom:1px solid #202d35}.ownerContentTabs button{min-height:48px;border:0;border-bottom:2px solid transparent;background:none;color:#8e9ca5;font-size:13px}.ownerContentTabs button[aria-selected=true]{border-color:#32e8dd;color:#67f5ed}.ownerPostGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;min-height:210px}.ownerPostGrid>button{position:relative;aspect-ratio:1;border:0;padding:0;overflow:hidden;background:#101923;color:#dce8ec}.ownerPostGrid img,.ownerPostGrid video{width:100%;height:100%;object-fit:cover}.ownerPostGrid em{position:absolute;top:7px;right:7px;font-style:normal}.ownerPostGrid .textTile{padding:8px;text-align:left;font-size:12px}.ownerPostGrid>p{grid-column:1/-1;padding:50px 20px;text-align:center;color:#87959d}.profileSettingsArea{padding:12px 16px 30px!important}.profileLogoutDialog{max-width:360px;width:calc(100% - 32px);padding:22px;border:1px solid #35505e;border-radius:22px;background:#0a131c;color:#eff}.profileLogoutDialog::backdrop{background:#000a;backdrop-filter:blur(6px)}.profileLogoutDialog h2{margin:0 0 8px}.profileLogoutDialog p{color:#9fb0ba}.profileLogoutDialog menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0;margin:18px 0 0}.profileLogoutDialog button{min-height:46px;border:1px solid #324651;border-radius:13px;background:#111e27;color:#dbe8ed}.profileLogoutDialog [value=logout]{border-color:#e35469;color:#ff9baa}.profileLogoutDialog button:disabled{opacity:.5}@media(max-width:380px){.ownerIdentity{grid-template-columns:88px minmax(0,1fr) 44px}.ownerAvatar{width:88px;height:88px}.ownerIdentity h1{font-size:21px}}
+
+/* Creator navigation reuses the profile, not the retired summary-card layout. */
+.publicProfileBackdrop:has(.canonicalProfileSheet){padding:0;align-items:stretch}
+.publicProfileSheet.canonicalProfileSheet{width:100%;max-width:none;max-height:100%;height:100%;padding:0;border:0;border-radius:0;overflow-y:auto;background:#060b11}
+.canonicalProfileSheet>.sheet-close{position:sticky;top:8px;float:right;z-index:12;margin:8px 12px -52px 0}
+.creatorProfileRestricted{padding:24px 20px;text-align:center;color:#b8c7d0}
+.creatorProfileRestricted p{font-size:15px;line-height:1.45}
+.creatorProfileActions:has(>button:only-child){grid-template-columns:1fr}
+
+/* Nexus owner profile — compact identity bar, underline tab bar, media grid, single-column
+   Whispers timeline and per-tab empty states (design 2026-09-18b). These rules supersede the
+   older hero block above: the avatar, bio and stats must not own three quarters of the screen. */
+.nexusOwnerProfile{padding-bottom:18px}
+.ownerCover{height:72px;overflow:hidden;background:radial-gradient(circle at 30% 30%,#0f4c58,transparent 40%),linear-gradient(120deg,#091724,#101029)}
+.ownerHero{display:grid;gap:6px;padding:12px 14px 0;text-align:left;background:radial-gradient(circle at 50% 2%,rgba(22,124,128,.34),transparent 68%)}
+.ownerIdentity{position:relative;display:grid;grid-template-columns:78px minmax(0,1fr) 40px;gap:10px;align-items:center;width:100%;padding:0;margin-top:0}
+/* The identity row only pulls up over the cover when the profile actually has one. */
+.nexusOwnerProfile[data-profile-cover="1"] .ownerHero{padding-top:0}
+.nexusOwnerProfile[data-profile-cover="1"] .ownerIdentity{margin-top:-36px}
+.ownerAvatar{width:78px;height:78px;flex:0 0 auto;margin:0;padding:2px;border:2px solid #21eadc;border-radius:50%;box-shadow:0 0 22px rgba(25,219,216,.34)}
+.ownerAvatar>b{inset:-3px;border-width:2px;box-shadow:0 0 16px rgba(25,219,216,.5)}
+.ownerIdentityText{display:grid;gap:2px;min-width:0;align-content:center}
+.ownerIdentityText h1{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0;font-size:17px;line-height:1.15;overflow-wrap:anywhere}
+/* The name line holds the name, the lock and the pencil, so the pencil sits as close to the name as
+   the lock does, and a long name pushes it to the next line rather than off the screen. */
+.ownerIdentityText h1 .heroIconButton{position:relative;width:24px;height:24px;margin:0;border-color:transparent;background:none;font-size:13px;color:#8fc9c6}
+/* The glyph stays small and in its place; the thing a finger has to hit does not. The pressable area grows
+to the 44px this app asks of every control, because a check nobody can hit is a save that silently does
+not happen. */
+.ownerIdentityText h1 .heroIconButton::before{content:'';position:absolute;inset:-10px}
+.ownerIdentityText h1 .heroIconButton:hover,.ownerIdentityText h1 .heroIconButton:focus-visible{border-color:#2fbdb3;background:#0d1a22;color:#dff9f6}
+.ownerIdentityText h1 em{color:#e8fbff;font-style:italic;font-weight:600}
+.ownerIdentityText p{margin:0;color:#9eacb5;font-size:12px;line-height:1.3}
+.ownerIdentityText .ownerPresence{display:inline-flex;align-items:center;gap:4px;margin:0 0 0 6px;color:#65e5b4;font-size:11px;font-style:normal;white-space:nowrap}
+.ownerIdentityText .ownerPresence i{width:6px;height:6px;border-radius:50%;background:#39e58e;box-shadow:0 0 8px #39e58e}
+/* A restricted profile says so with a lock beside the name, the way the label reads, plus the
+   translated wording in the tooltip. The raw word "friends" used to be printed here and read like a
+   relationship instead of a setting. The element is a span and the display is stated, because an older
+   identity rule turns every em in the hero into a flex block. */
+.ownerHandle{white-space:nowrap}
+.ownerVisibility{display:inline-flex;align-items:center;font-style:normal;font-size:11px;margin-left:4px;cursor:help}
+/* Three lines, each line a link if the owner wants it: the newlines are part of the description. */
+.ownerBio{display:-webkit-box;margin:0;overflow:hidden;white-space:pre-line;overflow-wrap:anywhere;color:#c5d0d5;font-size:13px;line-height:1.4;text-align:left;-webkit-box-orient:vertical;-webkit-line-clamp:3}
+/* The handle, the location and the three counters are the band's content, so the hero does not print
+   them again. They stay in the document as one screen-reader-only line: the band is aria-hidden, and
+   the facts have to exist somewhere a screen reader can read them. */
+.ownerFacts{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;white-space:nowrap;border:0;clip-path:inset(50%)}
+/* The description is one column now: its control moved to the name line, so nothing competes with
+   the text and the three lines keep the full width. */
+/* The description is the band's content and the editor's field. Printing it in the hero as well was the
+same words twice on one screen, so the hero keeps it out of the visual flow and only the panel shows the
+field. It stays in the document as one paragraph for whoever reads this page with a screen reader, because a
+fact that only lives inside a moving band is a fact lost - and it stays there while editing too, because the
+field that writes it is a row of the panel now. */
+.ownerBioBlock{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;white-space:nowrap;border:0;clip-path:inset(50%)}
+
+/* The location row is the editor for a fact the band displays, so it exists only while the identity
+   is being edited - it is never a second copy of the band on the profile. */
+.ownerLocationRow{position:relative;display:none;flex-wrap:wrap;gap:6px}
+.nexusOwnerProfile.heroEditing .ownerLocationRow{display:flex}
+.ownerLocation{display:inline-flex;align-items:center;gap:5px;min-height:26px;padding:0 9px;border:1px solid #23343d;border-radius:999px;background:#0d1a22;color:#9fb2bb;font:inherit;font-size:12px}
+.ownerLocation i{font-size:12px;font-style:normal}
+.ownerLocation[data-owner-location]:hover,.ownerLocation[data-owner-location][aria-expanded="true"]{border-color:#2fbdb3;color:#dff9f6}
+/* The shelf of saved stories is a tab of the archive now: same circles, same captions, inside the tab
+   the reader chose instead of between the identity and the band. */
+.ownerMomentsPanel{padding:6px 0 10px}
+.ownerMomentsPanel header{padding:0 14px 6px}
+.ownerMomentsPanel header b{font-size:13px}
+.ownerMomentsPanel>div{display:flex;gap:12px;padding:2px 14px;overflow-x:auto;scrollbar-width:none}
+.ownerMomentsPanel button{flex:0 0 54px;min-width:0;overflow:hidden;border:0;background:none;color:#aebac1}
+.ownerMomentsPanel button i{display:grid;width:50px;height:50px;place-items:center;overflow:hidden;border:2px solid #27ded2;border-radius:50%;background:#0b1720;color:#2ce8dc;font-size:20px;font-style:normal}
+.ownerMomentsPanel button img{width:100%;height:100%;object-fit:cover}
+.ownerMomentsPanel button small{display:block;margin-top:4px;overflow:hidden;font-size:10px;text-overflow:ellipsis;white-space:nowrap}
+.ownerMomentsPanel[hidden]{display:none!important}
+.ownerContentTabs button{min-height:46px;font-size:13px;font-weight:600}
+.ownerPostGrid[hidden],.ownerWhisperList[hidden]{display:none!important}
+.ownerEmptyStates{display:grid;place-items:center;min-height:208px;padding:24px 24px 34px}
+.ownerEmptyState{display:grid;justify-items:center;gap:6px;text-align:center;color:#93a6b0}
+.ownerEmptyState svg{color:#4fd9d0;opacity:.8}
+.ownerEmptyState b{color:#e7f2f6;font-size:15px;font-weight:600}
+.ownerEmptyState span{font-size:14px;line-height:1.4}
+.ownerEmptyState[hidden]{display:none!important}
+/* Whispers — one card after another, read top to bottom like the feed. */
+.ownerWhisperList{display:grid;gap:10px;padding:12px 12px 0;background:#060b11}
+.ownerWhisperCard{position:relative;display:grid;gap:8px;padding:12px;border:1px solid #22323b;border-left:2px solid rgba(33,234,220,.42);border-radius:16px;background:linear-gradient(160deg,#0b141c,#081019);color:#eef8fb}
+.ownerWhisperHead{display:flex;align-items:center;gap:10px}
+.ownerWhisperAvatar{display:grid;flex:0 0 auto;width:38px;height:38px;place-items:center;overflow:hidden;border:1px solid rgba(33,234,220,.5);border-radius:50%;background:#09131c;color:#dff;font-size:13px;font-weight:700}
+.ownerWhisperAvatar img{width:100%;height:100%;object-fit:cover}
+.ownerWhisperWho{display:grid;gap:2px;min-width:0}
+.ownerWhisperWho b{font-size:14px;line-height:1.2}
+.ownerWhisperWho b em{color:#67f5ed;font-size:11px;font-style:normal;font-weight:600}
+.ownerWhisperWho small{overflow:hidden;color:#93a5ae;font-size:11.5px;text-overflow:ellipsis;white-space:nowrap}
+.ownerWhisperBody{margin:0;color:#dbe7ec;font-size:15px;line-height:1.45;overflow-wrap:anywhere;white-space:pre-line}
+.ownerWhisperActions{display:flex;align-items:center;gap:6px}
+.ownerWhisperAction{display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 10px;border:1px solid transparent;border-radius:11px;background:rgba(15,30,49,.5);color:#9fb2bc;font-size:12px;font-weight:700}
+.ownerWhisperAction i{display:inline-flex;align-items:center;font-size:14px;font-style:normal}
+/* The feed renders a reaction summary as a glyph above its count (a clip overlay rule).
+   On a whisper the summary is one compact chip instead. */
+.ownerWhisperAction .reactionSummaryGlyphs{width:auto!important;display:inline-flex!important;align-items:baseline!important;gap:5px!important}
+.ownerWhisperAction .reactionSummaryGlyphs .reactionMetric{width:auto!important;min-height:0!important;display:inline-flex!important;align-items:baseline!important;gap:3px!important;place-items:baseline!important;color:inherit!important}
+.ownerWhisperAction .reactionSummaryGlyphs .reactionMetric b{font-size:15px!important;font-weight:600!important;line-height:1.1!important;filter:none!important}
+.ownerWhisperAction .reactionSummaryGlyphs .reactionMetric em{color:inherit!important;font-size:12px!important;font-weight:700!important;line-height:1.1!important;text-shadow:none!important}
+.ownerWhisperAction small{font-size:12px;color:#c7d5dc}
+.ownerWhisperAction.on{border-color:#27dccc;color:#6eecdf}
+.ownerWhisperAction.on small{color:#6eecdf}
+/* A whisper timeline is short, so the reaction palette and the conversation open in place
+   instead of floating over the whisper below. */
+/* The reaction palette is a popover now: it floats above its own button and leaves on its
+   own, so a whisper no longer has to force it back into the card flow. */
+.ownerWhisperCard .reactionBar button{min-width:0}
+.ownerWhisperCard .reactionBar button span{font-size:18px}
+.ownerWhisperCard .reactionBar button small{font-size:9.5px}
+.ownerWhisperCard>.commentsScrim{display:none!important}
+.ownerWhisperCard>.comments{position:relative;z-index:1;margin:0;max-height:min(46dvh,360px);overflow:auto;border-radius:16px!important;padding:10px}
+.ownerWhisperCard>.clipCommentsDrawer{height:min(46dvh,360px)!important;border-radius:16px!important}
+.ownerWhisperCard.commentsExpanded{min-height:min(58dvh,460px)}
+/* Wave 6e: the settings tab bar is gone. The drawer is the only index of the panels, and the bar
+   that sits above them is what carries the way back and the bars themselves. */
+.accountMenuBar{position:sticky;z-index:9;top:-15px;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin:-8px -2px 12px;padding:8px 2px;background:linear-gradient(180deg,rgba(2,5,11,.98),rgba(2,5,11,.92));backdrop-filter:blur(16px)}
+.accountMenuBar .accountMenuBack{display:flex;align-items:center;gap:7px;min-height:42px;padding:6px 12px;border:1px solid #24343d;border-radius:14px;background:#0b141c;color:#9fe9e3;font:inherit;font-size:13px}
+.accountMenuBar .accountMenuBack i{font-size:17px;font-style:normal;line-height:1}
+.accountMenuBar>b{min-width:0;overflow:hidden;font-size:13.5px;text-overflow:ellipsis;white-space:nowrap}
+.profileDeviceSettings .settingsRows{display:grid;gap:8px;margin-top:6px}
+.profileDeviceSettings .settingsRow{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0;padding:12px 14px;border:1px solid #22323b;border-radius:14px;background:#0b141c;color:#eef8fb;text-align:left}
+.profileDeviceSettings .settingsRow span{display:grid;gap:3px}
+.profileDeviceSettings .settingsRow b{font-size:14px}
+.profileDeviceSettings .settingsRow small{color:#93a5ae;font-size:12px;line-height:1.35}
+.profileDeviceSettings .settingsRow strong{min-width:104px;text-align:right;color:#67f5ed;font-size:13px}
+.profileDeviceSettings .settingsRow.static{border-style:dashed}
+.profileDeviceSettings .settingsNote{margin:10px 2px 0;color:#8b9ca6;font-size:12px;line-height:1.4}
+/* The sign-out is a settings row, so it looks like
+   the device rows next to them instead of inventing a second button language. */
+.accountLogoutRow{display:grid;gap:6px;margin:0 0 12px}
+.accountLogoutRow button{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin:0;padding:14px;border:1px solid #22323b;border-radius:14px;background:#0b141c;color:#eef8fb;font:inherit;text-align:left}
+.accountLogoutRow button span{display:grid;gap:3px}
+.accountLogoutRow button b{font-size:14px}
+.accountLogoutRow button small{color:#93a5ae;font-size:12px;line-height:1.35}
+.accountLogoutRow button{border-color:#3a2b33}
+.accountLogoutRow button strong{color:#ff8fa3;font-size:18px}
+.accountLogoutRow button:hover{border-color:#2fbdb3;background:#0e1a22}
+@media (max-width:400px){
+.ownerHero{padding:8px 12px 0}
+.ownerIdentity{grid-template-columns:72px minmax(0,1fr) 36px;gap:8px;margin-top:0}
+.nexusOwnerProfile[data-profile-cover="1"] .ownerIdentity{margin-top:-32px}
+.ownerAvatar{width:72px;height:72px}
+.ownerIdentityText h1{font-size:16px}
+.ownerIdentityText p{font-size:11.5px}
+.ownerBio{margin:0;font-size:12.5px}
+.ownerWhisperList{padding:10px 10px 0}
+.ownerWhisperBody{font-size:14.5px}
+.profileDeviceSettings .settingsRow{font-size:12.5px}
+.profileDeviceSettings .settingsRow{flex-direction:column;align-items:flex-start;gap:6px}
+.profileDeviceSettings .settingsRow strong{min-width:0;text-align:left}
+}
+
+/* Wave 6d: the pencil edits the whole identity, so the hero carries the two photo affordances and the
+   description reads its links. The affordances exist in the markup only for the owner, and CSS keeps
+   them out of the way until the profile is in edit mode - the heroEditing class the hero editor
+   module switches on and off. */
+.ownerAvatarSlot{position:relative;width:78px;height:78px}
+.ownerAvatarSlot .ownerAvatar{width:100%;height:100%}
+.ownerAvatarEdit{position:absolute;right:-3px;bottom:-3px;z-index:3;display:none;width:28px;height:28px;border:1px solid #2fbdb3;border-radius:50%;background:#0b141c;color:#67f5ed;font-size:15px;line-height:1;place-items:center}
+.nexusOwnerProfile.heroEditing .ownerAvatarEdit{display:grid}
+/* The badge is a small circle on the photo, but the press it accepts is 44px wide, and only while the
+profile is being edited, so a tap meant for the portrait is still a tap on the portrait. */
+.nexusOwnerProfile.heroEditing .ownerAvatarEdit::before{content:'';position:absolute;inset:-9px}
+.ownerCover{position:relative}
+.ownerCoverEdit{position:absolute;inset:0;z-index:2;display:none;width:100%;height:100%;border:0;background:rgba(6,11,17,.55);color:#67f5ed;font-size:12.5px;font-weight:600;place-items:center;gap:6px;grid-auto-flow:column}
+.nexusOwnerProfile.heroEditing .ownerCoverEdit{display:grid}
+.nexusOwnerProfile[data-profile-cover="0"] .ownerCover{display:none}
+.nexusOwnerProfile.heroEditing[data-profile-cover="0"] .ownerCover{display:block}
+/* A description is text with links in it: the lines are kept by the rule above, and an address inside
+   a line keeps reading as the same address while it behaves like a link. */
+.ownerBio a,.ownerBio a:visited{color:#67f5ed;text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}
+.nexusOwnerProfile.heroEditing .ownerLocation{border-color:#2fbdb3;color:#67f5ed}
+.heroConfirm.heroConfirmBusy{opacity:.55}
+.heroFileInput{display:none}
+@media (max-width:400px){
+.ownerAvatarSlot{width:72px;height:72px}
+.ownerAvatarEdit{width:26px;height:26px}
+}
+
+/* Wave 6e: the band above the tabs is read-only and it moves by itself. Its pace is one CSS variable
+   - the seconds of a full loop - so a device setting changes the pace without re-rendering, and the
+   two identical runs make the loop close without a jump. */
+.ownerTicker{position:relative;overflow:hidden;border-top:1px solid rgba(32,45,53,.85);border-bottom:1px solid rgba(32,45,53,.85);background:rgba(8,16,23,.72);color:#cfe0e4;pointer-events:none;user-select:none;-webkit-user-select:none;-webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.ownerTickerTrack{display:flex;width:max-content;animation:ownerTickerRoll var(--tickerSpan,48s) linear infinite;will-change:transform}
+.ownerTickerRun{display:flex;align-items:center;white-space:nowrap}
+.ownerTickerItem{display:inline-flex;align-items:center;padding:9px 14px 9px 0;font-size:12.5px;line-height:1.3}
+.ownerTickerItem b{color:#eef8fb;font-size:12.5px;font-variant-numeric:tabular-nums}
+.ownerTickerItem small{color:#93a5ae;font-size:11.5px}
+.ownerTickerCount{display:inline-flex;align-items:baseline;gap:4px}
+.ownerTickerSep{display:inline-block;width:3px;height:3px;margin-right:11px;border-radius:50%;background:#2fbdb3;opacity:.75}
+.ownerTickerIcon{margin-right:6px;font-size:11px;font-style:normal}
+@keyframes ownerTickerRoll{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}
+@media (prefers-reduced-motion:reduce){.ownerTickerTrack{animation:none}}
+/* The three bars live in the identity grid's own third column, next to the name, and they step aside
+   while the identity is being edited: leaving a page in the middle of an edit is not something a menu
+   should offer. */
+.ownerMenuSlot{align-self:center;justify-self:end}
+.ownerMenuButton{display:grid;width:44px;height:40px;padding:0;border:1px solid transparent;border-radius:12px;background:transparent;color:#cfe6ea;place-items:center}
+.ownerMenuButton:hover,.ownerMenuButton[aria-expanded=true]{border-color:#274b52;background:#0d1c24;color:#75eee5}
+.ownerMenuBars{display:grid;width:20px;gap:4px}
+.ownerMenuBars b{display:block;height:2px;border-radius:2px;background:currentColor}
+.nexusOwnerProfile.heroEditing .ownerMenuSlot{display:none}
+/* The drawer: a right-hand sheet on the dark surface, one row per door, with the spacing a phone
+   needs to read them. */
+.profileMenuLayer{position:fixed;inset:0;z-index:70;display:flex;justify-content:flex-end}
+.profileMenuLayer[hidden]{display:none!important}
+.profileMenuBackdrop{position:absolute;inset:0;background:rgba(2,6,10,.62);backdrop-filter:blur(3px)}
+.profileMenuDrawer{position:relative;display:flex;flex-direction:column;width:min(320px,86vw);height:100%;padding:16px 0 24px;overflow-y:auto;border-left:1px solid #1d3a42;background:linear-gradient(200deg,#0b1a22,#060b11);box-shadow:-18px 0 44px rgba(0,0,0,.55);animation:profileMenuIn .22s ease-out both}
+.profileMenuDrawer:focus{outline:none}
+.profileMenuDrawer>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:0 16px 8px}
+.profileMenuDrawer>header small{color:#5fd9d0;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase}
+.profileMenuDrawer>header b{display:block;margin-top:2px;font-size:18px;color:#eef8fb}
+.profileMenuClose{width:40px;height:40px;border:1px solid #24343d;border-radius:12px;background:#0b141c;color:#dff;font-size:20px;line-height:1}
+.profileMenuHint{margin:0 16px 14px;color:#8b9ca6;font-size:12px;line-height:1.5}
+.profileMenuItems{display:grid;gap:6px;padding:0 12px}
+.profileMenuItems button{display:grid;grid-template-columns:30px minmax(0,1fr) 12px;align-items:center;gap:10px;min-height:56px;padding:10px 12px;border:1px solid #1f2f38;border-radius:16px;background:#0a141c;color:#eef8fb;text-align:left}
+.profileMenuItems button i{display:grid;width:30px;height:30px;border-radius:10px;background:#0f2530;color:#32e8dd;font-size:14px;font-style:normal;place-items:center}
+.profileMenuItems button b{display:block;font-size:14px}
+.profileMenuItems button small{display:block;margin-top:2px;color:#93a5ae;font-size:11.5px;line-height:1.35}
+.profileMenuItems button em{color:#4c6b75;font-size:16px;font-style:normal}
+.profileMenuItems button.on,.profileMenuItems button:hover{border-color:#2fbdb3;background:#0e1f26}
+@keyframes profileMenuIn{from{opacity:.4;transform:translateX(16px)}to{opacity:1;transform:none}}
+/* The two panels that share one Save: the button follows them instead of living inside one of them. */
+.profileSaveRow{display:grid;gap:8px;margin:0 0 12px}
+.privacyPanel .field{margin:0 0 12px}
+.profileNotificationSettings #profile-notification-prefs{display:grid;gap:8px}
+/* Wave 6t — the cover is a photo, not a strip. The band is tall enough to read a picture, the crop is
+   the owner's own (data-cover-focus + object-position), the shelf of saved stories moved into the tabs
+   so this height costs nothing else on the page, and the pencil waits at the right end of the band
+   where the check takes its place: the control that opens the editor never moves. */
+.ownerCover{height:168px}
+.nexusOwnerProfile[data-profile-cover="1"] .ownerIdentity{margin-top:-46px}
+.ownerIdentity{grid-template-columns:92px minmax(0,1fr) 40px}
+.ownerAvatar{width:92px;height:92px}
+.ownerContentTabs{grid-template-columns:repeat(5,1fr)}
+.ownerContentTabs button{font-size:11.5px}
+.ownerVisibility{display:inline-flex;align-items:center;gap:4px;padding:1px 8px;border:1px solid #2a4a52;border-radius:999px;background:#0d1a22;color:#8fd6cf;font-size:11px;font-weight:600}
+.ownerVisibility i{font-size:11px;font-style:normal}
+.ownerTickerRow{display:flex;align-items:center;gap:6px;padding-left:14px}
+.ownerTickerRow .ownerTicker{flex:1;min-width:0}
+.ownerHeroActions{display:flex;flex:0 0 auto;align-items:center;gap:2px;padding-right:10px}
+.ownerHeroActions .heroIconButton{position:relative;width:44px;height:44px;border:1px solid transparent;border-radius:13px;background:none;color:#8fc9c6;font-size:17px;line-height:1}
+.ownerHeroActions .heroIconButton:hover,.ownerHeroActions .heroIconButton:focus-visible{border-color:#2fbdb3;background:#0d1a22;color:#dff9f6}
+.ownerHeroActions .heroConfirm{color:#5df0a8}
+.ownerHeroActions .heroConfirmBusy{opacity:.6}
+/* The crop screen: one photo, one frame, one button. It is a screen of its own because a 168px band is
+   not enough to decide where a picture should sit. */
+.coverSheetBackdrop{position:fixed;inset:0;z-index:60;display:grid;place-items:end center;background:rgba(2,6,10,.74)}
+.coverSheet{display:grid;gap:10px;width:min(540px,100%);max-height:92vh;padding:14px 16px 18px;border:1px solid #23414c;border-radius:22px 22px 0 0;background:#08131c;color:#eef8fb}
+.coverSheet header{display:flex;align-items:center;justify-content:space-between}
+.coverSheetClose{width:44px;height:44px;border:1px solid #23343d;border-radius:13px;background:#0b141c;color:#dff;font-size:22px;line-height:1}
+.coverSheetFrame{position:relative;height:230px;overflow:hidden;border:1px solid #24404a;border-radius:16px;background:#0b1219;touch-action:none;cursor:grab}
+.coverSheetFrame.isDragging{cursor:grabbing}
+.coverSheetFrame img{width:100%;height:100%;object-fit:cover;-webkit-user-drag:none}
+.coverSheetRange{display:grid;gap:6px;color:#9fb2bb;font-size:12px}
+.coverSheetRange input{width:100%;height:34px;accent-color:#2fbdb3}
+.coverSheetHint{margin:0;color:#8b9ca6;font-size:12px;line-height:1.45}
+.coverSheet menu{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0;margin:0}
+.coverSheet menu button{min-height:48px;border:1px solid #34434c;border-radius:14px;background:#101a23;color:#eef8fb;font-size:14px;font-weight:700}
+.coverSheet menu [data-cover-save]{grid-column:1/-1;border-color:#167d7b;color:#5af2e8}
+.coverSheet menu [data-cover-another]{grid-column:1/-1;border-style:dashed;color:#9fb2bb}
+@media(max-width:380px){.ownerCover{height:132px}}
+
+/* Wave 6u — the crop screen says which file it is working on and what happened to it. On a phone this is
+   the difference between "it did not save" and a sentence the owner can report. */
+.coverSheetFile{margin:0;color:#7f929c;font-size:11.5px;overflow-wrap:anywhere}
+.coverSheetStatus{margin:0;color:#8fd6cf;font-size:12px;font-weight:600}
+.coverSheetStatus.isError{color:#ff9baa}
+
+
+/* Wave 9v — the name is read on the profile's own surface, never across the photo.
+   Wave 6t pulled the identity row up over the cover so the portrait overlaps the band, and the words
+   travelled with it: the name, the lock and the presence line landed on the picture, where a bright cover
+   made them faint. The row still overlaps — the portrait keeps the cover's bottom edge — and everything
+   that is words starts under it, on the dark surface the profile is read on. One variable carries the
+   overlap, so the band, the portrait and the words can never disagree about it. */
+.nexusOwnerProfile{--heroOverlap:46px}
+.ownerIdentity{align-items:start}
+.ownerIdentityText{align-content:start}
+.nexusOwnerProfile[data-profile-cover="1"] .ownerIdentity{margin-top:calc(-1 * var(--heroOverlap))}
+.nexusOwnerProfile[data-profile-cover="1"] .ownerIdentityText{padding-top:calc(var(--heroOverlap) + 6px)}
+.ownerIdentityText h1{font-size:19px;color:#f4fbfd;text-shadow:0 1px 2px rgba(2,7,11,.55)}
+.ownerIdentityText h1 .heroEditable{color:inherit}
+.ownerMenuSlot{align-self:start;margin-top:calc(var(--heroOverlap) + 8px)}
+/* A narrow phone pulls the row up by less, and the words follow that same number instead of a second one. */
+@media(max-width:400px){.nexusOwnerProfile{--heroOverlap:32px}}
+/* The lock is the profile's own setting, and the chip is the lock: the word that used to sit beside it read
+   like a relationship, so it lives in the tooltip and the accessible name instead. For the owner the chip is
+   a control — the way into the panel that edits it — so it is as big as a finger and says where it goes. */
+.ownerVisibility{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:0;margin-left:6px;padding:0;border:0;border-radius:9px;background:none;color:#8fd6cf;font-size:12px;font-weight:600;line-height:1;cursor:help}
+.ownerVisibility i{display:block;font-size:13px;font-style:normal}
+button.ownerVisibility{width:26px;height:26px;cursor:pointer}
+button.ownerVisibility::before{content:'';position:absolute;inset:-9px}
+button.ownerVisibility:hover,button.ownerVisibility:focus-visible{background:#0d1a22;color:#dff9f6}
+/* The cover affordance is a labelled control in the corner of the band, not a scrim across the photo. It is
+   one button sized to its own content, so the glyph and the words can never drift apart into two halves of a
+   stretched row — which is what a full-bleed overlay with a centred grid cell did. */
+.ownerCoverEdit{position:absolute;inset:10px 10px auto auto;z-index:2;display:none;width:auto;height:44px;max-width:calc(100% - 20px);padding:0 14px;border:1px solid #2fbdb3;border-radius:14px;background:rgba(6,11,17,.82);color:#8ff6ef;font-size:12.5px;font-weight:600;line-height:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;align-items:center;justify-content:center;gap:6px}
+.nexusOwnerProfile.heroEditing .ownerCoverEdit{display:inline-flex}
+.ownerCoverEdit i{font-size:15px;font-style:normal}
+/* The city the owner chose is the same row in the hero and in the settings panel. In a panel the row is the
+   field itself rather than a second copy of the band, so it is shown whenever the panel is. */
+.account-card .ownerLocationRow{position:relative;display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.profileIdentityCard .field>label{display:block;margin:0 0 6px;color:#9fb2bb;font-size:12px}
+.profileIdentityCard .field>small{display:block;margin-top:6px;color:#8b9ca6;font-size:11.5px;line-height:1.4}
+.profileIdentityCard input[name="birth_date"]{width:100%;min-width:0;height:48px!important;min-height:48px!important;box-sizing:border-box;padding:0 12px;border:1px solid #26343d;border-radius:12px;background:#08121a;color:#eef8fb;font-size:16px}
+/* The city is a field of this card too, and the card has one field height: the sheet that owns the settings
+   screen makes every input 48px tall, so the city takes that same height and padding instead of sitting in a
+   smaller frame than the date next to it. */
+.profileIdentityCard .ownerLocation{flex:1 1 auto;width:100%;height:48px!important;min-height:48px!important;box-sizing:border-box;padding:0 12px;justify-content:flex-start;border-radius:12px}
+.profileIdentityCard input[name="age"]:focus{outline:0;border-color:#2fbdb3}
+
+/* Wave 10 — the name reads on one line, the portrait fills its own row, and the pencil opens a page
+   instead of turning the hero into a form. The band above the identity is either the cover photo or the
+   shelf of saved stories, and the moving band of facts stays with the owner on a profile that is not
+   public. One variable carries the portrait's size and one carries where the words start under the
+   cover, so the band, the portrait and the words can never disagree about the row they share. */
+.nexusOwnerProfile{--portraitSize:104px;--heroWordTop:calc(var(--heroOverlap) + 4px)}
+/* Without a cover there is nothing to overlap and nothing for the words to clear, and a profile that
+   never had a cover must not pay for a band it does not show. */
+.nexusOwnerProfile[data-profile-cover="0"]{--heroOverlap:0px}
+/* Two columns: the portrait and the one row that carries the sign, the name and the bars. */
+.ownerIdentity{grid-template-columns:var(--portraitSize) minmax(0,1fr);gap:12px;align-items:stretch}
+/* The portrait is the row: it is as tall as the row the words need, so nothing is left empty beside it,
+   and the badge that replaces the photo stays on the photo. */
+.ownerAvatarSlot{align-self:center;width:var(--portraitSize);height:var(--portraitSize)}
+/* One row, and everything that belongs to it lives inside it: the sign, the name and the bars. The words
+   start below the cover - a name read across a bright photo is a name nobody can read - and the rest of the
+   row is shared above and below them, so the line sits level with the lower half of the portrait. */
+.ownerIdentityText{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;align-content:center;padding-top:var(--heroWordTop)}
+.ownerIdentityText h1{flex:1 1 auto;min-width:0}
+.ownerMenuSlot{flex:0 0 auto;align-self:center;margin:0 0 0 auto;padding-top:0}
+/* One line, and the name gives way before the lock does: a name has an end, a lock has a meaning. */
+.ownerIdentityText h1{flex-wrap:nowrap;font-size:19px;line-height:1.2}
+.ownerIdentityText h1 .heroEditable{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* A visitor's name is a plain bdi on the same line, and a long name gives way there too instead of
+   wrapping the row the portrait is sized against. */
+.ownerIdentityText h1>bdi{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ownerIdentityText h1 .ownerVisibility{flex:0 0 auto}
+/* The two states of the sign after the name: an open padlock while the profile is public and a closed one
+   while it is not. The sign is the whole chip, so the state is read at a glance and not spelled out. */
+.ownerVisibility.isOpen{color:#7f929c}
+button.ownerVisibility.isOpen:hover,button.ownerVisibility.isOpen:focus-visible{color:#dff9f6}
+.ownerVisibility.isLocked{color:#8fd6cf}
+
+/* Presence is a dot: green while the person is there, yellow while their presence is visible to this
+   reader but they are not online. The words live in the tooltip and the accessible name. */
+.ownerIdentityText h1 .ownerPresence{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;margin:0 2px 0 0}
+.ownerIdentityText h1 .ownerPresence i{width:9px;height:9px;border-radius:50%;background:#39e58e;box-shadow:0 0 8px #39e58e}
+.ownerIdentityText h1 .ownerPresence.isAway i{background:#ffd166;box-shadow:0 0 9px rgba(255,209,102,.75)}
+@media(max-width:400px){.nexusOwnerProfile{--portraitSize:96px}.ownerIdentityText h1{font-size:16.5px}}
+
+/* The other half of the same choice: a profile that shows the shelf of saved stories instead of a cover. The
+   rail is in the markup either way and the section says which of the two is on screen, so switching is one
+   attribute; with no cover over it there is nothing to overlap, which is what --heroOverlap:0 says to every
+   rule that reads it. It sits on its own row now: the name line, then the shelf, then the band. */
+.nexusOwnerProfile[data-cover-mode="stories"]{--heroOverlap:0px}
+.ownerStoryRail{display:none;padding:12px 16px 14px;border-top:1px solid rgba(32,45,53,.85);border-bottom:1px solid rgba(32,45,53,.85);background:rgba(8,16,23,.72)}
+.nexusOwnerProfile[data-cover-mode="stories"] .ownerStoryRail{display:grid;align-content:start;gap:9px}
+.nexusOwnerProfile[data-cover-mode="stories"] .ownerCover{display:none}
+.ownerStoryRail header{display:grid;gap:2px}
+.ownerStoryRail header b{font-size:13px;color:#dff9f6}
+.ownerStoryRail header small{color:#7f929c;font-size:11.5px}
+.ownerStoryRail p{margin:0;color:#8b9ca6;font-size:12.5px;line-height:1.45}
+.ownerStoryTiles{display:grid;grid-auto-flow:column;grid-auto-columns:78px;gap:10px;overflow-x:auto;padding-bottom:4px}
+.ownerStoryTiles button{display:grid;gap:5px;min-width:0;padding:0;border:0;background:none;color:#cfe0e4;font:inherit;text-align:left}
+.ownerStoryTiles button i{display:grid;place-items:center;width:78px;height:78px;overflow:hidden;border:2px solid #21eadc;border-radius:50%;background:#09131c;font-size:20px;font-style:normal}
+.ownerStoryTiles button img{width:100%;height:100%;object-fit:cover}
+.ownerStoryTiles button small{overflow:hidden;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+
+/* The date of birth is the second fact the band prints and the owner declares, chosen from a calendar. It is
+   a field of the panel like every other field: one frame, one height, its own name above it. */
+.ownerBirthField{display:grid;gap:5px;min-width:0}
+.ownerBirthField>span{color:#9fb2bb;font-size:11.5px}
+.heroBirthInput{width:100%}
+
+/* The edit page is a panel, and the panel is a form: one card, every field with its name above it, every
+   field the same height and the same width, and the two short facts on one row under the two long ones.
+   Before this, the pencil dropped boxes into the text of the profile - a small frame for the city, a
+   different one for the date, loose text around them - and editing was a form only by accident. */
+.heroEditorPanel{display:none}
+.nexusOwnerProfile.heroEditing .heroEditorPanel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 12px;margin:12px 0 2px;padding:12px;border:1px solid #1e2d36;border-radius:16px;background:rgba(7,17,24,.72)}
+.heroEditorPanel .heroField{position:relative;display:grid;gap:5px;min-width:0}
+.heroEditorPanel .heroField>span{color:#9fb2bb;font-size:11.5px;line-height:1.2}
+.heroEditorPanel .heroField.isWide{grid-column:1/-1}
+.heroEditorPanel .heroEditorInput,.heroEditorPanel .ownerLocation{width:100%;min-height:42px;margin:0;padding:9px 11px;border:1px solid #263a44;border-radius:12px;background:#0b1720;color:#eef8fb;font:inherit;font-size:14px;box-shadow:none}
+.heroEditorPanel textarea.heroEditorInput{min-height:76px;line-height:1.45;resize:vertical}
+.heroEditorPanel .ownerLocation{flex:1 1 auto;display:inline-flex;align-items:center;gap:7px;min-width:0;justify-content:flex-start;border-color:#2fbdb3;color:#dff9f6;text-align:left}
+.heroEditorPanel .ownerLocation span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.heroEditorPanel .ownerLocationRow{position:relative;display:flex;min-width:0}
+.heroEditorPanel input:focus,.heroEditorPanel textarea:focus,.heroEditorPanel .ownerLocation:focus-visible{outline:0;border-color:#67f5ed}
+/* The city's list opens under its own field and as wide as it, so the panel does not jump to the side. */
+.heroEditorPanel .ownerLocationPanel{left:0;width:100%}
+
+/* A tile is a wrapper around a button: the button opens the post and the pin is a control of its own, because
+   a button inside a button is not a button. The wrapper is what the stream and the filters move around. */
+.profileTile{position:relative;aspect-ratio:1;overflow:hidden;background:#101923}
+.profileTileOpen{position:relative;display:block;width:100%;height:100%;border:0;padding:0;background:none;color:#dce8ec}
+.profileTileOpen img,.profileTileOpen video{display:block;width:100%;height:100%;object-fit:cover}
+/* The two facts that turn a clip into a choice, in the corner a thumb already looks for: what it is and how
+   many people watched it. Both sit in the same dark chip so they read as one sign, not two stickers. */
+.profileTilePlay,.profileTileViews{position:absolute;bottom:7px;display:inline-flex;align-items:center;font-style:normal;line-height:1;background:rgba(6,11,17,.74);color:#eafeff}
+.profileTilePlay{left:7px;justify-content:center;width:26px;height:24px;border-radius:9px;font-size:10px}
+.profileTileViews{left:37px;gap:4px;height:24px;padding:0 7px;border-radius:9px;font-size:11.5px}
+.profileTilePinned{position:absolute;top:7px;left:7px;font-size:12px;line-height:1;filter:drop-shadow(0 1px 2px #000)}
+.profileTilePin{position:absolute;top:6px;right:6px;width:30px;height:30px;border:1px solid rgba(120,150,170,.35);border-radius:10px;background:rgba(6,11,17,.74);color:#9fb2bb;font-size:12px;line-height:1}
+.profileTilePin[aria-pressed="true"]{border-color:#2fbdb3;background:#0d2a2c;color:#67f5ed}
+.profileTilePin:hover,.profileTilePin:focus-visible{border-color:#2fbdb3;color:#dff9f6}
+.profileTilePin:disabled{opacity:.5}
+.profileTile.isPinnedFirst{outline:1px solid #2fbdb3;outline-offset:-1px}
+
+/* The bar of five tabs is five icons now: the word for each one lives in its label and its tooltip, because
+   five words spent the row on facts the icons already say. */
+.ownerContentTabs button i{font-style:normal;font-size:17px;line-height:1}
+.ownerContentTabs button:focus-visible{outline:2px solid #2fbdb3;outline-offset:-2px}
+.ownerContentTabs.isArrangable button{cursor:grab}
+.ownerContentTabs.isArrangable button:active{cursor:grabbing}
+
+/* The bar and the arrow are one region: the bar holds the icons, and the arrow at its right end opens the
+   readings of the tab the reader is on - nothing about the readings is visible until it is asked for. */
+.ownerTabsRegion{position:relative;display:flex;align-items:center}
+.ownerContentTabs{flex:1 1 auto;min-width:0}
+/* One arrow, and it says which reading is on in words for whoever cannot see the mark: the name of the control
+   plus the reading. A reading that is not the default turns the arrow teal. */
+.ownerFiltersToggle{flex:0 0 44px;display:grid;place-items:center;min-height:46px;border:0;background:transparent;color:#9fb2bb;font-size:13px;line-height:1}
+.ownerFiltersToggle[aria-expanded="true"],.ownerFiltersToggle[data-reading="popular"],.ownerFiltersToggle[data-reading="relevant"]{color:#67f5ed}
+.ownerFiltersToggle[hidden]{display:none}
+.ownerFiltersToggle:focus-visible{outline:2px solid #2fbdb3;outline-offset:-2px;border-radius:10px}
+/* Three ways to read the same archive, opened by the arrow and anchored under it: the list stays within the
+   screen whichever tab the arrow belongs to. */
+.ownerContentFilters{position:absolute;z-index:6;top:100%;left:var(--filters-left,8px);display:flex;flex-direction:column;gap:6px;min-width:190px;max-width:calc(100% - 8px);padding:8px;border:1px solid #26343d;border-radius:16px;background:#0b151d;box-shadow:0 14px 34px #000b}
+.ownerContentFilters[hidden]{display:none}
+.ownerContentFilters button{flex:0 0 auto;min-height:38px;padding:0 12px;border:1px solid #26343d;border-radius:14px;background:#0f1a23;color:#9fb2bb;font:inherit;font-size:12.5px;text-align:left;white-space:nowrap}
+.ownerContentFilters button[aria-pressed="true"]{border-color:#2fbdb3;background:#0d2a2c;color:#dff9f6}
+.ownerContentFilters button:focus-visible{outline:2px solid #2fbdb3;outline-offset:1px}
+/* A tab that is not on the default reading says so on the icon: a small mark, so the owner sees which surface
+   is being read some other way without opening anything. */
+.ownerContentTabs button{position:relative}
+.ownerContentTabs button[data-reading="popular"]::after,.ownerContentTabs button[data-reading="relevant"]::after{content:'';position:absolute;top:7px;right:calc(50% - 15px);width:5px;height:5px;border-radius:50%;background:#39e58e;box-shadow:0 0 6px #39e58e}
+/* The tab that has been held is picked up: it lifts out of the row and follows the finger, and the bar says
+   that this is now a move and no longer a page. */
+.ownerContentTabs button.isLifted{z-index:7;transform:scale(1.18);border-radius:12px;background:#12222c;box-shadow:0 10px 24px #000c;color:#dff9f6}
+.ownerContentTabs.isArranging{user-select:none;touch-action:none}
+.ownerContentTabs.isArranging button{cursor:grabbing}
+
+/* The Flow is one timeline: the media reads in rows of three, a whisper takes the whole width, and the two
+   follow each other by the time they were written - the mix, instead of two lists one under the other. */
+.ownerFlowStream{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#060b11}
+.ownerFlowStream[hidden]{display:none}
+.ownerFlowStream>.ownerWhisperCard{grid-column:1/-1;margin:6px 10px}
+
+/* The edit page itself: one dialog on top of the profile, every way in as a row, and the two choices that
+   have no text to type as two buttons each. It behaves like the crop screen, so Escape and a press
+   outside leave it; the two choices inside it were already written when they were pressed. */
+.heroEditBackdrop{position:fixed;inset:0;z-index:64;display:grid;place-items:end center;background:rgba(2,6,10,.72)}
+.heroEditSheet{display:grid;gap:12px;width:min(540px,100%);max-height:92vh;overflow:auto;padding:14px 16px 20px;border:1px solid #23414c;border-radius:22px 22px 0 0;background:#08131c;color:#eef8fb}
+.heroEditSheet>header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.heroEditSheet>header b{font-size:16px}
+.heroEditClose{width:44px;height:44px;border:1px solid #23343d;border-radius:13px;background:#0b141c;color:#dff;font-size:22px;line-height:1}
+.heroEditHint{margin:0;color:#8b9ca6;font-size:12px;line-height:1.45}
+.heroEditRows{display:grid;gap:8px}
+.heroEditRow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;min-height:56px;padding:10px 12px;border:1px solid #22323b;border-radius:14px;background:#0b141c;color:#eef8fb;font:inherit;text-align:left}
+.heroEditRow:hover,.heroEditRow:focus-visible{border-color:#2fbdb3;background:#0e1a22}
+.heroEditRow>i{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#0d1a22;font-size:15px;font-style:normal}
+.heroEditRow>span{display:grid;gap:3px;min-width:0}
+.heroEditRow b{font-size:14px}
+.heroEditRow small{color:#93a5ae;font-size:11.5px;line-height:1.35}
+.heroEditRow>em{color:#5f7178;font-size:18px;font-style:normal}
+.heroEditGroup{display:grid;gap:8px;padding:10px 12px 12px;border:1px solid #1d2b33;border-radius:16px;background:#070f16}
+.heroEditGroup>header{display:grid;gap:3px}
+.heroEditGroup>header b{font-size:13.5px}
+.heroEditGroup>header small{color:#8b9ca6;font-size:11.5px;line-height:1.4}
+.heroEditChoices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.heroEditChoices button{min-height:44px;padding:8px 10px;border:1px solid #26343d;border-radius:13px;background:#0b141c;color:#cfe0e4;font:inherit;font-size:13px;font-weight:600;line-height:1.25}
+.heroEditChoices button[aria-pressed="true"]{border-color:#2fbdb3;background:#0d262a;color:#8ff6ef}
+.heroEditPolicy{margin:0;color:#8b9ca6;font-size:12px}
+.heroEditStatus{margin:0;color:#8fd6cf;font-size:12.5px;font-weight:600}
+.heroEditStatus.isError{color:#ff9baa}
+@media(max-width:400px){.heroEditChoices{grid-template-columns:1fr}}

@@ -1,0 +1,69 @@
+schema_version: 1
+review_id: NX-ARCH-001-C11-20260802T094454549Z-a243be37
+task_id: NX-ARCH-001
+reviewer_role: C11
+review_type: final_release_configuration_provenance_gate
+decision: PASS
+observed_at: 2026-08-02T09:44:54.5681639+00:00
+
+replay:
+  run_id: NX-ARCH-001-20260802T094454549Z-a243be37
+  executor_role: C11
+  exit_code: 0
+  assertions: 1180
+  failures: 0
+  import_cycles: 0
+  negative_regression_fixtures: 14/14
+  positive_regression_fixtures: 10/10
+
+acceptance:
+  acceptance_tests: 2/2
+  owner_evidence_hashes: 4/4
+  final_signoffs: 6/6
+  final_signoff_artifact_hashes: 24/24
+  blocking_findings: 0
+
+maker_checker:
+  owner: A02
+  peer_reviewers: [A10, A12, A20]
+  control_reviewers: [C01, C02, C04]
+  final_checker: C11
+  owner_separated_from_reviewers_and_checker: true
+
+spend_control:
+  mode: default_deny_spend
+  incremental_cost: 0
+  currency: EUR
+  paid_approval_used: false
+
+provenance:
+  algorithm: sha256
+  manifest_canonicalization: sorted_path_pipe_sha256_lf_utf8_no_bom
+  review_subject_artifact_count: 4
+  full_source_artifact_count: 11
+  review_subject_sha256: 773bb1331afcf93c44802a6c9be63863017d3b650ac18f2e63d974fc488a5414
+  full_source_snapshot_sha256: c436a4493f99e9a1e93772fe8aa6b7355aba4638b51fa49f9f88b21e992afe10
+  artifact_sha256:
+    architecture/bounded-contexts.yaml: a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277
+    architecture/ADR-0001-monorepo-boundaries.md: 2d576dc7f4ed0a6658b7af9ba90aa0acc3aac7a895116d7b4c44a09ce63d81cf
+    planning/backlog-p1.yaml: 9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab
+    planning/validate-architecture.ps1: e2a26b563f8b60b575cf0aea7340ae0c1a8345d61170b1563b6c5490576bbced
+    planning/evidence/NX-ARCH-001-validation.json: 9dd21f32ccb4897dfd7639bb7f5c7eaf964457b5a368c46195cc25e1e29345d7
+    planning/evidence/reviews/NX-ARCH-001-A10.yaml: 4481849572780a8883011cc6d826df541c8465e8e877d8dcd229d461bd820c22
+    planning/evidence/reviews/NX-ARCH-001-A12.yaml: 9025ee546d8c572a4d4ac0ad6b6b3c78663c93359ae30d8628fb7548a8f9a80c
+    planning/evidence/reviews/NX-ARCH-001-A20.yaml: 9fe44038d175d5b0e2dbbad30472fbd8eed766a89ed29cd29ceb635e0cf8938c
+    planning/evidence/reviews/NX-ARCH-001-C01.yaml: 409b4c70869b9d3d055119ea7f1cf9c269c15dfd29f008c2070c55387d891687
+    planning/evidence/reviews/NX-ARCH-001-C02.yaml: c60721b5715cbdb3ae6cb678cbf2ac9bb5067eb317b48795b47366aebb26733b
+    planning/evidence/reviews/NX-ARCH-001-C04.yaml: facc7867d2f4f2a4ef0e47dfd24200329e6c4106f0e291f6ea2cec128a5faedd
+
+state_transition:
+  NX-ARCH-001: review_to_done
+  NX-CTRL-001: blocked_to_ready
+  next_packet_started: false
+
+open_gate_blockers: 0
+files_modified:
+  - planning/evidence/reviews/NX-ARCH-001-C11.yaml
+  - planning/backlog-p0.yaml
+  - planning/capacity-scorecard.yaml
+  - planning/checkpoints/NX-ARCH-001.md

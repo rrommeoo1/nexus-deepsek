@@ -1,0 +1,32 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "date": "2026-08-26",
+  "scope": "content-first reels and safe comment exits",
+  "cache_bust": "20260826-neural46",
+  "changes": [
+    "removed persistent central play control",
+    "removed direct support button from the reel action rail",
+    "single-tap Like plus long-press reaction palette",
+    "comments open only on demand in a dismissible bottom drawer",
+    "comment exits: close button, repeated comment action, backdrop, swipe-down and Escape",
+    "creator chrome auto-hides after inactivity",
+    "fullscreen request on double click and landscape content-first layout",
+    "three distinct local demo clips",
+    "new Nexus N mark and redesigned mode profile sheet",
+    "bottom navigation raised for mobile safe reach"
+  ],
+  "verification": {
+    "node_check": "pass",
+    "audit_tests": "20/20 pass",
+    "http_root": "200 and neural46 assets served",
+    "full_local_test_suite": "92/92 pass",
+    "browser_visual_check": "blocked by saved user permission for 127.0.0.1; no workaround attempted"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "6059C5C812AD7190C517DE1C4DFE1E800098C03CF9A6CD2E1A5F0E41F3E96AC1",
+    "apps/nexus-web/public/styles.css": "BEDC0FE2027624D441BBFF57F38132493812D5DD04DC37C1E524FD4827A85434",
+    "apps/nexus-web/public/index.html": "CD78AD4408149A16A76534C0630CF180F9B20A6FFC9D1D0F0B672DE4B7BA4C56",
+    "apps/nexus-web/test/audit.test.js": "9E460077B449DC1B6841B32FB19F8B628C05AC998DDD908B1EB05C96D861B3C2",
+    "apps/nexus-web/lib/repo.js": "559C396AC7F5097A1EBFBA8C50C3619F073D081158A05B7CDEEED0942C048FD0"
+  }
+}

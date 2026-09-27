@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0",
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-NAVIGATION-LIVE-20260824-01",
+  "recorded_at": "2026-08-24T23:21:48+02:00",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "scope": [
+    "automatic earned Sigil visibility",
+    "four Social top contexts",
+    "four bottom destinations plus central Create action",
+    "privacy-filtered Social Search",
+    "Live discovery, Battle and Championship drafts"
+  ],
+  "requirements": {
+    "unearned_sigil_hidden": "PASS",
+    "top_mix_friends_discover_search": "PASS",
+    "bottom_home_messages_live_profile_plus_create": "PASS",
+    "live_tabs_now_following_battle_championship": "PASS",
+    "viewer_count_unique_active_human_organic_45s": "PASS",
+    "synthetic_traffic_excluded": "PASS",
+    "public_live_fail_closed_without_sfu": "PASS",
+    "paid_votes_excluded": "PASS",
+    "competition_prize_not_promised_without_escrow": "PASS",
+    "active_live_not_mutated_by_preview_endpoint": "PASS"
+  },
+  "focused_runtime_evidence": {
+    "client_syntax": "PASS",
+    "preview_http_status": 201,
+    "preview_public_broadcast": false,
+    "preview_transport": "GATED_NO_SFU",
+    "live_discovery_http_status": 200,
+    "viewer_count_policy": "UNIQUE_ACTIVE_HUMAN_ORGANIC_45S",
+    "search_http_status": 200,
+    "search_synthetic_traffic_eligible": false,
+    "competition_http_status": 201,
+    "competition_published": false,
+    "competition_prize_escrow_configured": false,
+    "invalid_one_character_search_http_status": 400,
+    "active_live_overwrite_blocked": true,
+    "sqlite_integrity_check": "ok"
+  },
+  "organic_actor_evidence": {
+    "scenario": "one HUMAN_ORGANIC attendee and one SYSTEM_TEST attendee on the same internally activated fixture",
+    "reported_organic_viewers": 1,
+    "qualified_followers": 1,
+    "synthetic_search_profile_excluded": true
+  },
+  "browser_evidence": {
+    "url": "http://192.168.1.153:3000/?v=social32",
+    "http_loopback": 200,
+    "http_lan": 200,
+    "asset_version": "20260824-social32",
+    "top_controls": ["Mix", "Prieteni", "Descopera", "Cauta"],
+    "bottom_controls": ["Acasa", "Mesaje", "Creeaza", "Live", "Profil"],
+    "unearned_sigil_dom_count": 0,
+    "prior_live_route_dom_check_on_social31": {
+      "live_screen_present": true,
+      "tabs_present": true,
+      "old_backend_fallback_truthful": true,
+      "console_warnings_or_errors": 0
+    }
+  },
+  "limitations": [
+    "The already-running PID 4956 serves updated static assets but has the previous backend modules loaded; Search and Live API/schema changes require a safe restart.",
+    "The external Node executable is visible but execution from this sandbox is access-denied, so the full node:test suite was not rerun in this slice.",
+    "Public Live remains correctly unavailable without production HTTPS, SFU/TURN where required, moderation and heartbeat integrity.",
+    "Competitions are private drafts; participant eligibility, public rules, jurisdiction and prize escrow are not configured.",
+    "No provider, paid service, production deployment, mainnet transaction or real-funds action was used."
+  ],
+  "effects": {
+    "incremental_cost": 0,
+    "currency": "EGLD",
+    "external_provider_calls": 0,
+    "real_value_transactions": 0,
+    "production_mutations": 0
+  },
+  "artifacts": {
+    "apps/nexus-web/public/app.js": "34f0b4020309c6fdd640022a20818588ba1b6fd708f5f822b8f4561d43d629a3",
+    "apps/nexus-web/public/styles.css": "1a47510a783d822f7e11540b72bbd4d807e5004b5f7a793a8f2d29c17c48300f",
+    "apps/nexus-web/public/index.html": "070de26b7bdaa478f58bb9701d9ba22980417020fbcf3f36d248c968a0b7ee71",
+    "apps/nexus-web/lib/api.js": "453cdaff0b998ffa43fc9373a5a6449fd91f640e2b4fad081994b78b163837e6",
+    "apps/nexus-web/lib/repo.js": "489387a70cd93681dff567237ba2703c108ce2b5616516e686ccdd9993d72bd6",
+    "apps/nexus-web/lib/db.js": "f5f0745b95151e29077d33b9d984c50d6eaa1950d232fd50d3fe3a428cdce190",
+    "apps/nexus-web/test/core.test.js": "5a0e5da94621e0f24312553002355608ad05c866be8d63d589e1fa8af00d463f",
+    "apps/nexus-web/test/audit.test.js": "1b7a1ba670033d0872366cb54d6e71ef309601df6e8b5c45cf52622a769a2013",
+    "docs/17-ui-action-blueprint.md": "769c52bb888fe0d2f7b397f52cc0bfcc3090923331b51061bad7d366629f5f20",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "21a20bd88fd1fd04f37c245ae7e4a4cb16ff6ff2d22da82e8c47618c494fca06"
+  }
+}

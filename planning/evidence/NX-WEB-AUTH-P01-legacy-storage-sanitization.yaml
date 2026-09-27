@@ -1,0 +1,88 @@
+schema_version: 1
+task_id: NX-WEB-AUTH-P01
+run_id: NX-WEB-AUTH-P01-LEGACY-STORAGE-SANITIZE-20260823
+observed_at: 2026-08-23T14:47:44+02:00
+classification: OWNER_APPROVED_LOCAL_STORAGE_SANITIZATION
+approval_id: NX-WEB-AUTH-P01-LEGACY-PURGE-20260823
+owner_instruction: delete_the_six_rows_and_close_the_packet
+
+scope:
+  database: apps/nexus-web/data/nexus.sqlite
+  historical_table: wallets
+  historical_target_count: 6
+  current_logical_count: 0
+  wal: apps/nexus-web/data/nexus.sqlite-wal
+  shm: apps/nexus-web/data/nexus.sqlite-shm
+  secret_or_address_columns_read: false
+  external_backups_modified: false
+
+quiesced_execution:
+  prior_server_pid: 21640
+  listener_stopped_before_database_write: true
+  execution_tool_sha256: e45339895995d6098310767ae69d9779dade46e1a274090a8461eb5154872a74
+  operations:
+    - wal_checkpoint_truncate
+    - journal_mode_delete_during_rebuild
+    - secure_delete_on
+    - vacuum_live_rows_only
+    - exact_wal_and_shm_sidecar_removal
+  aggregate_result:
+    wallets_before: 0
+    wallets_after: 0
+    integrity_before: ok
+    integrity_after: ok
+    secure_delete_during_rebuild: 1
+    journal_mode_during_rebuild: delete
+    wal_and_shm_absent_at_completion: true
+  remnant_scan_at_quiesced_boundary:
+    nexus_sqlite_named_files: 1
+    only_file: apps/nexus-web/data/nexus.sqlite
+
+durable_receipt:
+  operation_id: NX-WEB-AUTH-P01-LEGACY-STORAGE-SANITIZE-20260823
+  target: wallets:all-legacy-server-keystores:v1
+  historical_target_count: 6
+  observed_remaining: 0
+  execution_tool_sha256: e45339895995d6098310767ae69d9779dade46e1a274090a8461eb5154872a74
+  verified_after_restart: true
+
+retirement:
+  destructive_row_purge_api: RETIRED_FAIL_CLOSED
+  destructive_row_purge_cli: RETIRED_FAIL_CLOSED
+  destructive_storage_sanitizer: RETIRED_FAIL_CLOSED
+  arbitrary_expected_count_argument: REMOVED
+  five_six_or_seven_row_reuse: DENIED_BY_RETIRED_EXECUTION_PATH
+  final_verifier_sha256: f4a493e51046fafdf48bb2d5856b9855e8b85d71c5f263e7bbceef01bf23e915
+
+runtime_after_restart:
+  pid: 24868
+  listener: 0.0.0.0:3000
+  http_status: 200
+  sqlite_runtime_secure_delete_policy: ON
+  sqlite_runtime_journal_mode: WAL
+  runtime_wal_generation_is_after_sanitization_receipt: true
+  wallets: 0
+  users: 13
+  posts: 8
+  messages: 0
+  media: 6
+
+secret_retirement:
+  nexus_wallet_secret_configured: false
+  legacy_seed_import_route: RETIRED_410
+  legacy_seed_export_route: RETIRED_410
+  server_wallet_creation_path: absent
+
+truthful_limit: >-
+  This proves removal from the current Nexus-managed SQLite database generation,
+  its pre-sanitization WAL/SHM sidecars and obvious workspace database remnants.
+  It does not claim forensic erasure from SSD firmware, operating-system restore
+  points, or external backups outside the Nexus workspace.
+
+effects:
+  network_operations: 0
+  provider_operations: 0
+  broadcast_transactions: 0
+  real_funds: 0
+  incremental_cost_eur: 0
+

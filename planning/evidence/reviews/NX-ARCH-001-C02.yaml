@@ -1,0 +1,39 @@
+schema_version: 1
+task_id: NX-ARCH-001
+reviewer_role: C02
+review_type: final_security_boundary_control
+independence: independent_of_owner_A02
+mode: read_only
+decision: PASS
+gate_effect: APPROVE_C02_CONTROL
+run_id: NX-ARCH-001-20260802T094215609Z-26b0c46b
+validator_status: PASS
+assertions: 1180
+failures: 0
+coverage:
+  default_deny: PASS
+  public_contract_or_event_only: PASS
+  direct_foreign_table_reads: PASS
+  backend_composition_without_domain_data: PASS
+  public_admin_separation: PASS
+  chain_adapter_isolation: PASS
+  rollback_and_change_rules: PASS
+  import_cycles: 0
+  negative_regression_fixtures: 14/14
+  positive_regression_fixtures: 10/10
+blocking_findings: []
+deferred_findings:
+  - id: C02-ARCH-001
+    severity: LOW
+    blocking: false
+    target_tasks: [NX-PLAT-001, NX-SEC-001]
+  - id: C02-ARCH-002
+    severity: MEDIUM
+    blocking: false
+    target_tasks: [NX-CONTRACT-001, NX-CHAIN-002]
+evaluated_artifact_sha256:
+  architecture/bounded-contexts.yaml: a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277
+  architecture/ADR-0001-monorepo-boundaries.md: 2d576dc7f4ed0a6658b7af9ba90aa0acc3aac7a895116d7b4c44a09ce63d81cf
+  planning/backlog-p1.yaml: 9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab
+  planning/validate-architecture.ps1: e2a26b563f8b60b575cf0aea7340ae0c1a8345d61170b1563b6c5490576bbced
+files_modified: []

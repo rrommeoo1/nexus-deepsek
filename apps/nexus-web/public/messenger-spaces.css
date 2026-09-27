@@ -1,0 +1,38 @@
+/* Selected concept 03: compact module navigation; content before controls. */
+.messengerScreen .iconBtn{display:grid;place-items:center;width:44px;height:44px;border:0;background:none;box-shadow:none}
+.messengerTopbar{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(0,1fr) 44px;align-items:center;gap:6px;min-height:66px;position:relative;z-index:5}
+.messengerHome{border:0;background:none;padding:0;color:white;min-height:44px;width:100%;box-shadow:none}
+.messengerHome svg{display:block;width:100%;height:auto}
+.messengerHome small{display:block;font-size:10px;letter-spacing:3px;color:#80dcd9;text-align:start;padding-inline-start:2px}
+.messengerTopbar details{position:relative;min-width:0}.messengerTopbar summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:3px;min-height:44px;padding:0 9px;border:1px solid #295052;border-radius:16px;background:#11252d;color:#d7f7f4;font-size:14px;cursor:pointer}.messengerTopbar summary::-webkit-details-marker{display:none}.messengerTopbar summary span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.messengerScreen .messengerTopbar details>div{position:absolute;inset-inline-end:0;top:50px;z-index:8;width:210px;max-width:calc(100vw - 32px);padding:6px;border:1px solid #35505c;border-radius:18px;background:#101f2a;box-shadow:0 12px 32px #0009}
+.messengerScreen .messengerTopbar details button{display:block;width:100%;min-height:44px;border:0;background:none;box-shadow:none;color:#efffff;font-size:16px;text-align:start;padding:10px 12px;border-radius:12px}.messengerTopbar details button[aria-pressed=true]{background:#17433f!important;color:#86fff0!important}.messengerTopbar details button[aria-pressed=true]:after{content:'✓';float:inline-end}
+.messengerScreen .inboxSearch{display:flex;align-items:center;gap:0;min-width:0;margin:0 0 6px;border:1px solid #263b47;border-radius:18px;background:#13212a}
+.messengerScreen .inboxSearch input{min-width:0;width:0;flex:1;margin:0;border:0;background:none;padding:8px;font-size:16px;min-height:44px}
+.inboxSearch button{width:44px;height:44px;flex:none;background:none;color:#70e8e1;border:0}
+.messengerScreen #conversation-list:empty{display:none}.inboxDemoList{margin:0;padding:0;border:0}.messengerScreen .emptyInbox:not(.inboxError){min-height:0;padding:16px 0;gap:8px}.messengerScreen .emptyInbox>i{display:none}
+.messengerScreen .inboxTools .inboxBoxes{display:block!important;margin:0}
+.messengerScreen .conversationRow{display:flex;align-items:center;gap:10px;min-height:80px;border-bottom:1px solid #233240}
+.messengerScreen .conversationRow[hidden]{display:none!important}
+.conversationRow>button{border:0;background:transparent;color:#eef6fa;padding:0;box-shadow:none;text-align:start}
+.conversationRow .contactAvatar{width:52px;height:52px;flex:none;border-radius:50%;overflow:hidden;background:#203c49}
+.contactAvatar i{display:grid;place-items:center;width:100%;height:100%;font-style:normal}
+.contactAvatar img{width:100%;height:100%;object-fit:cover}
+.conversationRow .conversationOpen{display:flex;align-items:center;gap:6px;flex:1;min-width:0;min-height:76px}
+.conversationOpen>span{flex:1;min-width:0;display:grid;gap:5px}
+.conversationOpen b{font-size:17px;line-height:1.4;overflow-wrap:anywhere}
+.conversationOpen small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;color:#afc2cf}
+.conversationOpen em{display:grid;gap:6px;flex:none;font-style:normal}.conversationOpen em small{font-size:12px}.conversationOpen strong{justify-self:end;min-width:24px;padding:3px;border-radius:14px;background:#68ebdf;color:#071a20;text-align:center;font-size:13px}
+.messengerContact{box-sizing:border-box;width:min(360px,calc(100vw - 24px));padding:20px;border:1px solid #375775;border-radius:20px;background:#0e1a27;color:#eef7fc;max-height:85dvh;overflow:auto}
+.messengerContact::backdrop{background:#0009}.messengerContact>[data-contact-close]{position:absolute;inset-inline-end:8px;top:8px;width:44px;height:44px;border:0;border-radius:50%;background:#13283b;color:white;font-size:28px}
+.contactPhoto{width:132px;height:132px;border-radius:16px;overflow:hidden;background:#244154;display:grid;place-items:center;font-size:32px}.contactPhoto img{width:100%;height:100%;object-fit:cover}.messengerContact h2{font-size:22px;margin:12px 0 6px}
+.contactQuickActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:20px}.contactQuickActions button{display:grid;justify-items:center;align-content:center;gap:8px;min-height:76px;padding:6px 2px;border:0;border-radius:12px;background:#14293c;color:#e4f7ff;font-size:13px;overflow-wrap:anywhere}.contactQuickActions button:focus-visible{outline:2px solid #5ae9e9}
+.messengerScreen #inbox-message-results{font-size:14px;color:#afc2cf}.messengerScreen #inbox-message-results button{min-height:44px}
+.contactPhoto{position:relative}.contactStory{position:absolute;inset-inline:0;bottom:0;min-height:44px;border:0;background:#071b28e8;color:#73fff0;font-size:15px}
+.threadWindowReturn{flex:none;min-height:44px;border:0;background:#142d3d;color:#87f4ec;font-size:15px}.msg.searchMessageTarget{outline:2px solid #65e9df;outline-offset:2px}
+@media(max-width:360px){.conversationRow .contactAvatar{width:44px;height:44px}.conversationOpen b{font-size:16px}.messengerTopbar{grid-template-columns:86px minmax(0,1fr) minmax(0,1fr) 44px;gap:4px}.messengerTopbar summary{padding:0 6px;font-size:13px}}
+.threadExtras .closeThreadPreferences{display:block;margin-inline-start:auto;width:44px;height:44px;border:0;background:transparent;color:#edffff;font-size:28px}
+.conversationPreference{font-size:16px;line-height:1.4}.conversationPreference p{margin:8px 0;color:#afc2cf;font-size:14px}.conversationPreference output{display:block;font-size:14px;color:#87efdf}
+.conversationPreference button,.conversationPreference select{min-height:44px;padding:8px 12px;margin:6px 6px 0 0;border:1px solid #49666d;border-radius:12px;background:#142e35;color:#edfafa;font-size:16px}.conversationPreference button[aria-pressed=true]{background:#275e59;border-color:#72eadd}
+[data-chat-theme=midnight] .msgs{background:#10101e;padding-inline:8px}[data-chat-theme=midnight] .msg.me{background:#3d3260}[data-chat-theme=midnight] .msg.other{background:#222236}
+[data-chat-theme=forest] .msgs{background:#0c1b15;padding-inline:8px}[data-chat-theme=forest] .msg.me{background:#26503d}[data-chat-theme=forest] .msg.other{background:#1b3028}

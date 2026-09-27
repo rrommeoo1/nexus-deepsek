@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "C01",
+  "executionMode": "local_mock_only",
+  "taxonomy": ["UNIT", "CONTRACT", "INTEGRATION", "E2E"],
+  "e2ePath": ["CLIENT", "API", "OUTBOX", "WORKER"],
+  "limits": {
+    "testTimeoutMsMax": 30000,
+    "networkOperationsMax": 0,
+    "externalProcessOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  },
+  "evidenceRequired": ["testCaseId", "requirementId", "artifactPath", "owner", "traceId", "artifactHash", "outcome"],
+  "requirementBinding": {
+    "artifactMustResolve": true,
+    "artifactHashMustMatch": true,
+    "requirementIdMustExist": true,
+    "ownerMustMatch": true
+  },
+  "flakePolicy": {
+    "definition": "mixed outcomes for identical testCaseId, inputHash and artifactHash",
+    "releaseCriticalQuarantineAllowed": false,
+    "normalQuarantineMaxDays": 7,
+    "promotionOnCriticalFailure": "deny"
+  },
+  "syntheticActorPolicy": {
+    "requiredTrafficClass": "SYSTEM_TEST",
+    "requiredWalletMode": "FIXTURE_ONLY",
+    "payoutAllowed": false,
+    "organicMetricsAllowed": false,
+    "reputationAllowed": false,
+    "reviewsAllowed": false
+  },
+  "idempotencyPolicy": {
+    "boundary": "transactional_fixture",
+    "requestIdUnique": true,
+    "workerOutcomeCoupledToCompletion": true,
+    "freshInstanceReplayDenied": true,
+    "crashBeforeCommitResumable": true,
+    "crashAfterCommitReplayDenied": true
+  }
+}

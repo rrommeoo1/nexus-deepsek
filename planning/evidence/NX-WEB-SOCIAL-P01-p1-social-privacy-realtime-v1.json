@@ -1,0 +1,128 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P1-SOCIAL-PRIVACY-REALTIME-009",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "controls": {
+    "realtime": {
+      "post_reaction_event": "post-reaction-changed",
+      "post_reaction_payload": "post_id_only",
+      "post_reaction_channels": "owner_and_actor_only",
+      "story_event": "story-changed",
+      "story_payload": "story_id_only",
+      "story_channels": "owner_only",
+      "comment_event_uses_broadcast_signature": true,
+      "broad_persona_private_data": false,
+      "authorized_refetch_required": true
+    },
+    "relationships": {
+      "active_persona_required": true,
+      "blocked_pair_follow": "not_found",
+      "block_removes_bidirectional_follows": true,
+      "block_cancels_pending_requests": true,
+      "private_profile_direct_follow": false,
+      "private_profile_follow_request": true,
+      "owner_accept_or_decline": true,
+      "wrong_owner_decision": "not_found",
+      "request_cancel_supported": true
+    },
+    "viewer_specific_aggregates": {
+      "post_reactions_exclude_blocked_actors": true,
+      "comment_reactions_exclude_blocked_actors": true,
+      "reposts_exclude_blocked_actors": true,
+      "dislikes_remain_private_signal": true
+    }
+  },
+  "verification": {
+    "full_tests": { "passed": 125, "failed": 0 },
+    "focused_p1_tests": { "passed": 5, "failed": 0 },
+    "synthetic_actor_lab": {
+      "seed": 2026082901,
+      "actors": 1000,
+      "posts": 1000,
+      "follows": 1215,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "saves": 500,
+      "reposts": 167,
+      "conversations": 100,
+      "messages": 100,
+      "stories": 125,
+      "story_views": 125,
+      "blocks": 100,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "self_follows": 0,
+      "bad_threads": 0,
+      "gate": "PASS"
+    },
+    "database": {
+      "follow_requests_table": true,
+      "target_index": true,
+      "requester_index": true,
+      "foreign_key_check": [],
+      "integrity_check": "ok"
+    },
+    "runtime": {
+      "pid": 5628,
+      "listen_address": "0.0.0.0",
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "/app.js?v=20260828-p1privacy1",
+      "browser_javascript_errors": 0
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Reaction events broadcast post id and aggregate counts to the full persona channel.",
+      "resolution": "Changed to id-only invalidation for owner and actor user channels."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Story creation broadcast the complete Story object to every Social subscriber regardless of audience.",
+      "resolution": "Changed to owner-only id invalidation; eligible viewers refetch through the Privacy Matrix."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Comment invalidation called the single-channel SSE publish primitive with broadcast-shaped arguments.",
+      "resolution": "Uses the broadcast primitive with deduplicated owner/actor channels and no comment body."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Follow could cross active personas and ignored the block graph.",
+      "resolution": "Bound follow to the authenticated persona and fail closed for blocked or missing profiles."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Private profiles had no owner-approved follow-request state machine.",
+      "resolution": "Added durable pending/accepted/declined/cancelled requests and owner-only decisions."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "9760d0acc8fb1f36ccc4dd6af19fa4e2e0ba7a3d7fda45136e28db995b18aac1",
+    "apps/nexus-web/lib/repo.js": "397f1a179e015d84bc4b4eac54d9d32632e4c750db748e2c2c9c77685e3bff66",
+    "apps/nexus-web/lib/api.js": "a8eb53d787d82455ec39dc305e76fef04d84c84aa2891207ef24d3cad55d6167",
+    "apps/nexus-web/public/app.js": "a999c17dc3279653b11183473ae291629a5f07d763a738986c44df9a47de0c06",
+    "apps/nexus-web/public/index.html": "1cd50e086323498d13dcbe74cc227d5196e5b0b242e001c7bceded2c05b77c5f",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "677913fe69bc65d37037dff39e816fa9cdceaec0702993345ad129f9855edee5",
+    "apps/nexus-web/test/audit.test.js": "f92d0c45194a55bde09242ddffae02b8b22d1064270c035b2ffe140966e247af"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_p1_recheck": "PENDING_PLUS_RESET",
+    "note": "The available checker found and escalated a separate P0 replay defect before reaching this packet."
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "p1_social_privacy_realtime_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P01-P1-FOLLOW-REQUESTS-UI-MODERATION-011"
+}

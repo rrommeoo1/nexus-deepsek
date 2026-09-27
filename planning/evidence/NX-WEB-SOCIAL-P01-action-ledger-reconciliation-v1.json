@@ -1,0 +1,120 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-ACTION-LEDGER-RECONCILIATION-023",
+  "checkpoint_date": "2026-08-30",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "multiversx_transactions_submitted": 0,
+  "scope": "Atomic mutation-to-ActionIntent registration, hash-only Outbox envelopes, local reconciliation and historical derived-state repair",
+  "controls": {
+    "invariant": "one successful authenticated mutation = one ActionIntent = one action.intent.created Outbox event",
+    "atomic_boundary": "SQLite SAVEPOINT shared by mutation completion, ActionIntent and Outbox insertion",
+    "actual_outcome_separate_from_replay_status": true,
+    "synthetic_chain_status": "EXCLUDED_SYNTHETIC",
+    "ephemeral_chain_status": "EPHEMERAL_EXCLUDED",
+    "local_chain_status": "LOCAL_ACCEPTED_CHAIN_DISABLED",
+    "unknown_route_action_type": "UNCLASSIFIED_MUTATION",
+    "unknown_route_release_gate": "MISMATCH",
+    "outbox_chain_submission": false,
+    "external_share": "DENY",
+    "repair_default": "DENY",
+    "repair_guard": "NEXUS_ACTION_RECONCILE_REPAIR=1"
+  },
+  "privacy": {
+    "outbox_allowed_keys": ["intent_id", "actor_kind", "action_type", "action_class", "payload_hash", "chain_status"],
+    "plaintext_content_in_chain_envelope": false,
+    "wallet_or_email_in_chain_envelope": false,
+    "pii_findings": 0,
+    "commitment_algorithm": "SHA-256 with server-scoped domain separation",
+    "claim_limit": "Local hash-envelope inspection is not an independent end-to-end chain privacy audit"
+  },
+  "historical_reconciliation": {
+    "before_repair": {
+      "status": "MISMATCH",
+      "completed_mutations": 52,
+      "missing_action_intents": 52
+    },
+    "repair_mode": "LOCAL_DERIVED_REPAIR",
+    "after_repair": {
+      "status": "PASS",
+      "completed_mutations": 52,
+      "action_intents": 52,
+      "published_action_outbox_events": 52,
+      "ephemeral_excluded": 48,
+      "local_accepted_chain_disabled": 4,
+      "devnet_action_records_structurally_checked": 17,
+      "missing": 0,
+      "duplicates": 0,
+      "orphaned": 0,
+      "failed_events": 0,
+      "unclassified": 0,
+      "invalid_devnet_records": 0,
+      "duplicate_devnet_tx_hashes": 0,
+      "report_hash": "6ed8d46ca0991cecf2fa5bce173ec3d15fe8fa40be170ff5cd0d802d20b2dcd3",
+      "chain_claim": "LOCAL_ONLY_NOT_CONFIRMED"
+    }
+  },
+  "verification": {
+    "action_ledger_tests": { "passed": 5, "failed": 0 },
+    "static_tests": { "passed": 29, "failed": 0 },
+    "full_tests": { "passed": 157, "failed": 0 },
+    "synthetic_replay_storm": {
+      "actors": 100,
+      "replays": 1000,
+      "action_intents": 100,
+      "synthetic_exclusions": 100
+    },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 19,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "database": { "integrity_check": "ok", "foreign_key_violations": 0 },
+    "runtime": {
+      "pid": 9616,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS_READY",
+      "phone_lan_health": "PASS_READY",
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Mutation completion and ActionIntent creation were sequential and could diverge after a local storage fault.",
+      "resolution": "Bound mutation outcome, intent and Outbox insertion to one nested-safe SQLite savepoint and proved rollback with fault injection."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Historical successful demo mutations had no ActionIntent projection.",
+      "resolution": "Added guarded, hash-only reconciliation repair; 52 of 52 historical mutations now reconcile exactly once."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Oversized successful responses were stored with replay status 409 and could be mistaken for failed product mutations.",
+      "resolution": "Added outcome_status separate from response_status and covered the boundary with a regression test."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A newly added mutation route could otherwise silently inherit an apparently valid classification.",
+      "resolution": "Unknown routes are committed privately as UNCLASSIFIED_MUTATION but force reconciliation MISMATCH until explicitly classified."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "11b8040f9b7cdcc03ac9be5d455438b87438b2ef9afe5ba4090c79e48407dcc6",
+    "apps/nexus-web/lib/mutation-idempotency.js": "816b1094bc6863835e181a90d5802eb6fe56c7915250e8c722b06b577c168e21",
+    "apps/nexus-web/lib/action-ledger.js": "14b1a9850aeedfe1041f138d4257106d884fc6a07afecdaefc01d2f0a8852033",
+    "apps/nexus-web/lib/outbox.js": "66a08b9595510d4cdfb47f79ec52d735f8bb04de55c531c0c1a5b418c66ad793",
+    "apps/nexus-web/scripts/action-ledger-reconcile.mjs": "cc17c95ac9d9367d44253c0f82799a993984525312c6a98807172ffc33e75e0a",
+    "apps/nexus-web/test/p1-action-ledger.test.js": "fc7fa373c4b2c69edeb12f742baad5ab0701c3bad41c41624a562387684731cf",
+    "apps/nexus-web/test/mutation-outbox.test.js": "3ef5b4e432932ac63f71f8d991ada09f0377516e1a5356ab3c2707cb677084bd",
+    "apps/nexus-web/test/audit.test.js": "cddbc0a57b2a34669ee61ecf14b97ac2ecc519342785e93cf69fe36e7e5a8b8a"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved/goal usage-limited; single main agent" },
+  "p1_action_ledger_gate": "PASS_LOCAL",
+  "release_gate": "PENDING_DEVICE_NETWORK_MATRIX_AND_EXTERNAL_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P01-DEVICE-BROWSER-NETWORK-MATRIX-024"
+}

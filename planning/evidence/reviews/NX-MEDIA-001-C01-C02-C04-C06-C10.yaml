@@ -1,0 +1,127 @@
+schema_version: 1
+task_id: NX-MEDIA-001
+review_id: NX-MEDIA-001-C01-C02-C04-C06-C10-20260809-FINAL01
+reviewer_roles: [C01, C02, C04, C06, C10]
+risk_class: T1
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A40
+decision: PASS
+gate_effect: APPROVE_T1_LOCAL_SKELETON
+task_status_recommendation: eligible_for_done_after_owner_checkpoint_update
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-MEDIA-001-validation.json
+  sha256: add4b37f33684cce4e8b5909ea3c50bdd5689700247cae972dabef536145d98d
+  run_id: NX-MEDIA-001-OWNER-FINAL-20260809-02
+  status: PASS
+  assertions: 86
+  scenario_assertions: 44
+  review_subject_sha256: c0dd1f71f62e9875bcea4c97cc6b866d846974cc26d671ec3e45bc1de8e039d7
+  artifact_count: 17
+  current_artifact_hash_mismatches: 0
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  executor_role: C01
+  run_id: NX-MEDIA-001-C01-20260809-FINALREVIEW01
+  status: PASS
+  assertions: 86
+  scenario_assertions: 44
+  review_subject_sha256: c0dd1f71f62e9875bcea4c97cc6b866d846974cc26d671ec3e45bc1de8e039d7
+  output_sha256: 3bc6028ead72ade95b5d0c0aad18e9a99148f0c9e94e9e2d6b84ca599652c9ef
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  duration_seconds: 3.0429
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_review:
+  status: PASS
+  mode: read_only_source_contract_and_deterministic_scenario_review
+  blocking_findings: []
+  checks:
+    - upload intent is exact-shape authenticated expiry-checked adult-surface-only and bound to checksum MIME size audience and territories
+    - completion rejects checksum mismatch oversize invalid MIME container codec corrupt media and malicious or unknown scan verdicts before readiness
+    - readiness requires the exact completion worker attestation approved moderation manifest hash and unique checksummed renditions
+    - playback requires READY state authenticated viewer context verified relation audience policy allowed territory bounded TTL and a token over the complete grant material
+    - purge disables playback immediately and reaches PURGED only after verified receipts for origin renditions index and cache
+    - authorization completion transcode and purge retries are idempotent while conflicting identities attestations and receipts fail closed
+    - exact input shapes and adult-only surface scope exclude Kids fields raw wallet identifiers and the tested PII names
+    - the media core contains no network process economic or provider capability and the environment exposes no billing or production credentials
+
+control_assessment:
+  upload_authorization_and_expiry:
+    status: PASS_LOCAL_SKELETON
+    evidence: validateIntent rejects expired or malformed intents before the injected UploadAuthorizationVerifier and authorization identity conflicts fail closed
+    boundary_note: managed-storage or presigned-URL expiry enforcement is outside this local skeleton and is not claimed
+  upload_checksum_size_and_format:
+    status: PASS
+    evidence: completion requires positive safe-integer bytes within the signed per-asset cap and exact checksum video/mp4 mp4 h264 and aac values
+  corrupt_and_malware:
+    status: PASS
+    evidence: corrupt malicious and unknown-scan completions enter terminal REJECTED state and cannot proceed to READY
+  worker_attestation_moderation_and_renditions:
+    status: PASS
+    evidence: completionId approved moderation manifest attestation and one or more uniquely named checksummed allowlisted renditions are required and the injected verifier binds asset completion and attestation
+  playback_context_and_token_binding:
+    status: PASS
+    evidence: the injected verifier binds owner viewer relation and territory before audience and territory policy; signed material includes asset manifest viewer territory relation issue time and expiry with TTL limited to 1 through 300 seconds
+  purge_completeness_and_retry_safety:
+    status: PASS
+    evidence: requestPurge immediately leaves READY playback eligibility and PURGED requires verified non-conflicting receipts for ORIGIN RENDITIONS INDEX and CACHE; duplicate requests and identical receipts converge
+  kids_and_pii_boundary:
+    status: PASS
+    evidence: contract scope is ADULT_CLIPS and ADULT_WATCH only Kids upload is denied exact-shape checks reject added fields and source scanning found no forbidden plaintext identifiers
+  zero_egress_economic_and_cost:
+    status: PASS
+    evidence: source-boundary and credential scans are clean while owner and independent runs report zero network operations economic operations and incremental cost
+  evidence_binding:
+    status: PASS
+    evidence: all seventeen current artifact hashes match owner evidence and independently recompute the same subject used by the C01 validator
+
+accepted_scenarios:
+  upload_policy:
+    corrupt: DENY
+    malware: DENY
+    unknown_scan: DENY
+    unsupported_codec: DENY
+    checksum_mismatch: DENY
+    kids_surface: DENY
+  playback_policy:
+    audience_bound: true
+    territory_bound: true
+    maximum_ttl_seconds: 300
+  idempotency:
+    authorization: true
+    completion: true
+    transcode: true
+    purge: true
+  purge:
+    origin: true
+    renditions: true
+    index: true
+    cache: true
+    terminal: PURGED
+
+blocking_findings: []
+
+claims_excluded:
+  - managed_transcode
+  - managed_storage_or_upload
+  - public_cdn
+  - production_sla
+  - real_user_media
+  - external_moderation
+  - live_streaming
+  - device_codec_certification
+
+closure_conditions:
+  - The bounded NX-MEDIA-001 T1 local-skeleton review is accepted for subject c0dd1f71f62e9875bcea4c97cc6b866d846974cc26d671ec3e45bc1de8e039d7.
+  - Owner may update backlog checkpoint progress and scorecard without changing reviewed subject artifacts.
+  - Any material change to a reviewed artifact invalidates this PASS and requires regenerated owner evidence plus a new independent T1 review.

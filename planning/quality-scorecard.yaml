@@ -1,0 +1,51 @@
+schema_version: 1
+task_id: NX-QA-001
+observed_at: 2026-08-09
+mode: local_mock_only
+
+taxonomy:
+  levels: [UNIT, CONTRACT, INTEGRATION, E2E]
+  release_critical_quarantine_allowed: false
+  normal_quarantine_max_days: 7
+
+first_cross_layer_e2e:
+  path: [CLIENT, API, OUTBOX, WORKER]
+  trace_ids: 1
+  worker_executions_per_request: 1
+  requirement_linked: true
+  deterministic_repetitions_target: 3
+  observed_flakes: 0
+  requirement_artifact_binding: verified_by_hash
+  fresh_instance_replay_denied: true
+  crash_before_worker_commit_resumable: true
+  crash_after_worker_commit_replay_denied: true
+
+quarantine:
+  time_aware: true
+  inactive_at_expiry: true
+
+synthetic_isolation:
+  actor_class: SYSTEM_TEST
+  wallet_mode: FIXTURE_ONLY
+  economic_effect_micros: 0
+  organic_metric_effect: 0
+  reputation_effect: 0
+  review_effect: 0
+
+resource_boundary:
+  max_test_timeout_ms: 30000
+  network_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+release_gate:
+  status: owner_validation_pass_review_pending
+  independent_review_required: true
+  external_claims_excluded:
+    - production_load
+    - device_farm
+    - managed_provider_integration
+    - production_data
+    - production_distributed_exactly_once

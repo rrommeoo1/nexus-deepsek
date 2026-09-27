@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520" role="img" aria-label="City street at night">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#08122b"/><stop offset="1" stop-color="#1d2e5c"/></linearGradient>
+    <linearGradient id="road" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3350"/><stop offset="1" stop-color="#0b1122"/></linearGradient>
+  </defs>
+  <rect width="400" height="520" fill="url(#night)"/>
+  <g fill="#0d2044">
+    <rect x="0" y="120" width="66" height="300"/><rect x="70" y="72" width="58" height="348"/>
+    <rect x="132" y="146" width="52" height="274"/><rect x="188" y="96" width="64" height="324"/>
+    <rect x="256" y="170" width="54" height="250"/><rect x="314" y="130" width="86" height="290"/>
+  </g>
+  <g fill="#7ef0ff" opacity=".9">
+    <rect x="82" y="96" width="12" height="14"/><rect x="102" y="96" width="12" height="14"/><rect x="82" y="126" width="12" height="14"/>
+    <rect x="200" y="120" width="12" height="14"/><rect x="222" y="120" width="12" height="14"/><rect x="200" y="150" width="12" height="14"/>
+    <rect x="326" y="154" width="12" height="14"/><rect x="348" y="154" width="12" height="14"/><rect x="370" y="182" width="12" height="14"/>
+  </g>
+  <g fill="#ffd166" opacity=".85">
+    <rect x="146" y="170" width="12" height="14"/><rect x="168" y="200" width="12" height="14"/><rect x="270" y="196" width="12" height="14"/>
+  </g>
+  <path d="M0 420h400v100H0z" fill="url(#road)"/>
+  <path d="M186 420h28l26 100h-80z" fill="#2f3a5c"/>
+  <g fill="#fff" opacity=".55"><rect x="196" y="440" width="8" height="20"/><rect x="196" y="476" width="8" height="20"/></g>
+  <circle cx="96" cy="404" r="16" fill="#ff7ba8" opacity=".7"/>
+  <circle cx="308" cy="404" r="16" fill="#7ef0ff" opacity=".7"/>
+</svg>

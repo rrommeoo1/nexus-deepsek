@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-REEL-VIEWER-V14",
+  "status": "PASS",
+  "scope": "one_tap_content_first_fullscreen_reel_viewer",
+  "release": "20260827-neural60",
+  "implemented": {
+    "one_tap_from_feed": true,
+    "full_viewport_media": true,
+    "feed_chrome_hidden": true,
+    "top_back_and_reel_context": true,
+    "right_action_rail": true,
+    "persistent_sound_preference": true,
+    "tap_play_pause": true,
+    "central_play_only_when_paused": true,
+    "bottom_creator_caption_audio_follow": true,
+    "bottom_sheet_comments": true,
+    "reaction_chooser_closes_after_selection": true,
+    "vertical_and_horizontal_swipe": true,
+    "landscape_adaptation": true
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "localhost_http": 200,
+    "lan_http": 200,
+    "lan_assets_include_release": true,
+    "visual_browser": "BLOCKED_BY_SAVED_LOCAL_BROWSER_PERMISSION"
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "0ad60082d3daf8775cb906fb20bb4baeced48cbf778293376caf0f855a49849d",
+    "apps/nexus-web/public/styles.css": "681832cad97958a39211f469046fc1f43dd92cd55ae062c8c7f4e26f09c89791",
+    "apps/nexus-web/public/index.html": "0585966b3b4586f46a7f7bbf4f75395e222661d71e19c8263c4c91995df8ab1f",
+    "apps/nexus-web/test/audit.test.js": "38ae1147789b044fb9ff92ab5d7108b0c1f0a50718a4ab75d8a9615ff1fe0bc0"
+  },
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-OBS-001",
+  "run_id": "NX-OBS-001-20260803T063314132Z-d6b6932d",
+  "executor_role": "A15",
+  "status": "PASS",
+  "scope": "local_synthetic_observability_slo_and_cost_contract",
+  "assertions": 109,
+  "scenario_assertions": 54,
+  "failures": [],
+  "acceptance": {
+    "trace_demo": {
+      "spans": 4,
+      "process_path": [
+        "api.action.accept",
+        "outbox.action.publish",
+        "worker.action.consume",
+        "dependency.chain.submit"
+      ],
+      "one_trace_id": true
+    },
+    "dashboards": ["nexus_reliability_v1", "nexus_unit_cost_v1"],
+    "alert_test": {
+      "slos": 6,
+      "rules": 12,
+      "all_owned_and_runbook_mapped": true
+    },
+    "privacy_log_scan": {
+      "findings": 0,
+      "negative_fixtures_detected": true
+    },
+    "cost_report": [
+      {"domain": "GAS", "quantityMicros": 1000000, "amountMicrosEur": 12, "events": 1},
+      {"domain": "MEDIA", "quantityMicros": 1000000, "amountMicrosEur": 30, "events": 1},
+      {"domain": "PROVIDER", "quantityMicros": 1000000, "amountMicrosEur": 8, "events": 1},
+      {"domain": "HUMAN_AGENT", "quantityMicros": 1000000, "amountMicrosEur": 200, "events": 1},
+      {"domain": "TEST_TRAFFIC", "quantityMicros": 1000000, "amountMicrosEur": 0, "events": 1}
+    ],
+    "rollback_test": {
+      "high_cardinality_dropped": 1,
+      "critical_audit_preserved": true
+    }
+  },
+  "operational_contract": {
+    "version": "1.0.0",
+    "slo_count": 6,
+    "alert_count": 12,
+    "dashboard_count": 2,
+    "cost_domains": ["GAS", "MEDIA", "PROVIDER", "HUMAN_AGENT", "TEST_TRAFFIC"]
+  },
+  "source_boundary_findings": 0,
+  "credential_name_matches": 0,
+  "network_operations": 0,
+  "economic_operations": 0,
+  "external_provider_operations": 0,
+  "incremental_cost": {"amount": 0, "currency": "EUR"},
+  "claims_excluded": [
+    "production_slo_measurement",
+    "external_on_call_activation",
+    "managed_observability_deploy",
+    "paid_provider_validation"
+  ],
+  "review_subject_sha256": "44a75125060f0a5727aed0140039615b2aa8c9ade5c05d8da4b7a16199f49790",
+  "artifact_sha256": {
+    "packages/observability/api/index.ts": "04f8e8695b29f822a9628a53ef5851c1c80515a0a0b314685d1f6003f283a574",
+    "packages/observability/api/index.test.ts": "bee887b2ddcfd9b708f9e07df64a3cc0a84ea1ffbbac1a0b7bf6971cd4a75acc",
+    "packages/observability/api/operational-baseline.v1.json": "15678e4dfa8a8e3bdb34c15a13dc6a05ba7cff4de51e6ddcf6858c2ea5ef86ea",
+    "services/observability/runbooks/slo-response.md": "4bede1b01154cacc7ac0391d1653953bbbdd512a9db5903fa6b3d6963a0ecf8b",
+    "architecture/bounded-contexts.yaml": "a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277",
+    "planning/backlog-p0.yaml": "bf58fc717779f0141f4de62b8eff07b8ef6c4f4cece0f6e834feec11a694acc5",
+    "planning/capacity-scorecard.yaml": "40d4999a83ce2bc63e8a42a3f09822eb258a79bef373dd5595c08987ffcb3639",
+    "planning/checkpoints/NX-OBS-001.md": "badf064a64871fa3ae7dc1f3d464bb69bff5ee7dd83c7c5e3216ee894293353b",
+    "planning/spend-control.yaml": "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+    "planning/zero-cost-child-test.ps1": "120bde7b80036b46030897c61b29a6825917885aa1b7fb1009e42bd87de43e91",
+    "planning/evidence/NX-CAP-001-validation.json": "c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a",
+    "security/source-boundary-check.js": "b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b",
+    "packages/contracts/node_modules/typescript/bin/tsc": "8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0",
+    "packages/contracts/package-lock.json": "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b",
+    "docs/01-technical-architecture.md": "82ab5f665d600cf1ce9da6c80489defc745f02b6fb8f2d906a5c278e5c68655c",
+    "docs/16-agent-delivery-continuous-assurance.md": "dd8ef8bc88cd892fec6bab6d870d83be0f75c87ba4dfd2b94b2843619d39e915",
+    "planning/validate-observability.ps1": "ce4fc3f73e46827d12af5766c73e15be79cf24ba59a02248b0dd0fa19a83bc00"
+  },
+  "duration_seconds": 2.2548
+}

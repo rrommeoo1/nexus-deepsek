@@ -1,0 +1,46 @@
+schema_version: 1
+task_id: NX-ARCH-001
+reviewer_role: C04
+review_type: final_privacy_kids_dating_boundary_control
+independence: independent_of_owner_A02
+mode: read_only
+decision: PASS
+gate_effect: APPROVE_C04_CONTROL
+run_id: NX-ARCH-001-20260802T094220556Z-5ccfc3ad
+validator_status: PASS
+assertions: 1180
+failures: 0
+coverage:
+  account_private_unique_owner: PASS
+  shell_raw_account_private_deny: PASS
+  authorized_projection_contract: PASS
+  projection_encrypted_purpose_bound: PASS
+  projection_audiences_explicit: PASS
+  unauthorized_cross_profile_projection_deny: PASS
+  account_private_event_payload_deny: PASS
+  account_projection_event_payload_deny: PASS
+  dating_sensitive_boundary: PASS
+  child_data_boundary: PASS
+  kyc_raw_boundary: PASS
+  safety_evidence_boundary: PASS
+  negative_regression_fixtures: 14/14
+  positive_regression_fixtures: 10/10
+blocking_findings: []
+closed_findings:
+  - id: C04-ARCH-001
+    disposition: CLOSED
+    reason: Raw ACCOUNT_PRIVATE has profile_core as sole owner; shells receive only an encrypted purpose-bound authorized projection with explicit audiences.
+deferred_findings:
+  - id: C04-ARCH-002
+    severity: MEDIUM
+    blocking: false
+    target_tasks: [NX-PROFILE-P01, NX-SEC-001, NX-CONTRACT-001]
+formal_legal_gate:
+  status: REQUIRED_LATER
+  blocking_for_boundary_decision: false
+evaluated_artifact_sha256:
+  architecture/bounded-contexts.yaml: a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277
+  architecture/ADR-0001-monorepo-boundaries.md: 2d576dc7f4ed0a6658b7af9ba90aa0acc3aac7a895116d7b4c44a09ce63d81cf
+  planning/backlog-p1.yaml: 9351cc82ebe7ffbf94705fcc79d72d2a31b6e7c0bbe92f848a7044609f8a67ab
+  planning/validate-architecture.ps1: e2a26b563f8b60b575cf0aea7340ae0c1a8345d61170b1563b6c5490576bbced
+files_modified: []

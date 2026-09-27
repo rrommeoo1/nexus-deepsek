@@ -1,0 +1,26 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "change": "tap_play_pause_and_persistent_feed_mute",
+  "date": "2026-08-26",
+  "cache_bust": "20260826-neural50",
+  "behaviour": {
+    "video_tap": "toggles play/pause",
+    "central_play": "visible only while paused",
+    "fullscreen": "remains available through the dedicated expand control",
+    "sound": "one feed-wide mute state, persisted in localStorage until the user toggles it",
+    "initial_default": "muted for safe mobile autoplay"
+  },
+  "verification": {
+    "javascript_syntax": "pass",
+    "audit_tests": "20/20 pass",
+    "full_web_tests": "92/92 pass",
+    "lan_http": "200 with neural50 assets",
+    "lan_url": "http://192.168.1.153:3000/"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "33D2D7930B910208BADC2A4CC502C883852427945BCB950B4D13EEC4336F152B",
+    "apps/nexus-web/public/styles.css": "0FC8DC8BA04CFDEF89DCE8AA77667C00737B582FAA2BC154ED192B4934ACEB85",
+    "apps/nexus-web/public/index.html": "445D01CBD9321BCE22DE98B5898C41CA2A44575152B47A3278174B391D59C13F"
+  },
+  "cost": "0"
+}

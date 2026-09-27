@@ -1,0 +1,99 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-GROUP-SENDER-KEY-SCALABILITY-033",
+  "checkpoint_date": "2026-09-03",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Single-payload group E2EE with exact per-device content-key fanout over the existing epoch-bound device channel",
+  "controls": {
+    "protocol": "NEXUS_GROUP_ENVELOPE_V1_SINGLE_PAYLOAD_CONTENT_KEY_FANOUT",
+    "ratcheting_sender_key_claimed": false,
+    "shared_payload_cipher": "AES-256-GCM with a fresh random 256-bit key per message",
+    "device_key_wrap": "P-256 ECDH plus epoch-bound HKDF-SHA-256 and AES-256-GCM",
+    "one_shared_ciphertext_per_message": true,
+    "exact_device_wrapper_coverage": true,
+    "shared_aad_binds_conversation_nonce_sender_device_set_and_epoch": true,
+    "wrapper_aad_binds_recipient_purpose_shared_ciphertext_and_shared_aad": true,
+    "group_legacy_mode_downgrade_denied": true,
+    "direct_group_mode_injection_denied": true,
+    "nonce_replay_binds_mode_shared_ciphertext_all_wrappers_attachment_and_expiry": true,
+    "transactional_epoch_and_device_recheck": true,
+    "history_boundary_preserved": true,
+    "blocked_conversation_returns_ciphertext": false,
+    "api_returns_only_requesting_device_wrapper": true,
+    "expiry_purges_shared_ciphertext_and_wrappers": true,
+    "legacy_direct_e2ee_v1_decrypt": true,
+    "max_group_members": 50,
+    "max_active_devices_per_member": 10,
+    "max_exact_device_wrappers": 500,
+    "corrupt_db_base64_bounded_before_decode": true,
+    "external_share_endpoint": false
+  },
+  "verification": {
+    "new_group_tests": { "passed": 6, "failed": 0 },
+    "full_tests": { "passed": 194, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 24,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_health": "PASS",
+      "insecure_api_denied": true,
+      "isolated_data": true
+    },
+    "standalone_actor_lab": { "seed": 3301, "actors": 1000, "issues": 0, "deployment_gate": "PASS" },
+    "independent_bounded_checker": {
+      "verdict": "PASS_LOCAL",
+      "focused_tests_passed": 49,
+      "full_tests_passed": 194,
+      "tests_failed": 0,
+      "critical": 0,
+      "high": 0,
+      "medium": 0
+    },
+    "large_valid_device_set": { "active_devices": 210, "api_status": 201, "stored_wrappers": 210 }
+  },
+  "resolved_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "Negotiation allowed 50 members with 10 devices each, while the message API rejected more than 200 wrappers.",
+      "resolution": "One shared 500-wrapper bound now derives from the group/member limits; a valid 210-device API send passes."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Corrupted oversized base64 stored in the shared-ciphertext row could allocate before the read path reapplied write limits.",
+      "resolution": "Encoded lengths are bounded before decode; shared and wrapper data must then be canonical and within decoded limits before serialization."
+    }
+  ],
+  "residual_findings": [],
+  "external_release_gates": [
+    "formal independent production cryptography audit",
+    "trusted-HTTPS real iOS Android and desktop interoperability lab",
+    "real-device performance testing near the 500-wrapper boundary",
+    "audited ratcheting sender-key decision if post-compromise security is required",
+    "real WalletConnect attestation"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "a8dde3faf4e2e8229731462e1d9ba6a844d408cc7f7307e97c1dac873f410349",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "apps/nexus-web/lib/api.js": "2164fedabefdea1f1568fd82a08efcafc884fbf4c6a0640232a1af678c749e79",
+    "apps/nexus-web/public/chat-crypto.js": "c1219b73bcca9f673ce6d871b68149b869873f976942148cfd47bf6ff93d1304",
+    "apps/nexus-web/public/app.js": "9fbb6389600715b118ef15df2b2a500dc8e9f4918f4d28a25e951eb12e6f00cb",
+    "apps/nexus-web/public/index.html": "22e90e9b827fb5cf0868c3baafaa0f088da30a9e36bfc97531e183f162cf9375",
+    "apps/nexus-web/test/p1-e2ee-group-scalability.test.js": "1160d28dddcc33268b8d6211c2d317f272bef5f208f6152a6d7e90e921ae9715",
+    "apps/nexus-web/test/p1-e2ee-group-api.test.js": "bfbbcbf353bbd51a652cf3423edd0637032534bd6b5138428e791d331949025b",
+    "apps/nexus-web/test/p1-e2ee-group-epochs.test.js": "09425e78d50149ccf2d5f2a5fcdc74f6c5c64913439e63ef567de46930053cfb",
+    "apps/nexus-web/test/audit.test.js": "4f7c9b5c858bdee9c83316b735eb808fe4cc5c925f0a1e2e07d71331b52a57be",
+    "planning/NX-WEB-SOCIAL-e2ee-group-envelope-v1.md": "07f9016d5708b4e037cc5b61b4a359026c0d5119b4f89449fe70889572203011",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "fa14710d326d68e5e011c49f22377d6fc88b81dd609896ec59a2dba323aaa4c6",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "200180f41e0e699b29285bbc8c155ad7703f88e2e61e3dcfd906294f5935ab5e"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Capacity telemetry is unobserved; one bounded local packet plus one sequential independent checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_AUDIT_TRUSTED_HTTPS_REAL_DEVICE_LAB_AND_WALLETCONNECT_ATTESTATION",
+  "next_packet": "NX-WEB-SOCIAL-P01-GROUP-E2EE-500-DEVICE-PERFORMANCE-034"
+}

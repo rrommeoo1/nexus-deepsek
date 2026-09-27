@@ -1,0 +1,25 @@
+[package]
+name = "nexus-actions"
+version = "2.0.0-alpha.1"
+edition = "2024"
+rust-version = "1.85"
+publish = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies.multiversx-sc]
+version = "=0.66.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "=0.66.2"
+features = ["wasmer-experimental"]
+
+[dev-dependencies.ed25519-dalek]
+version = "=2.2.0"
+default-features = false
+features = ["std"]
+
+[workspace]
+members = [".", "meta"]
+resolver = "2"

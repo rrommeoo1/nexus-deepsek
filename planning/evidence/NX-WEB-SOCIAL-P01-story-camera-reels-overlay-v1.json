@@ -1,0 +1,111 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "story-camera-reels-overlay-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "user_request": [
+    "Story camera should open camera directly.",
+    "For You should be strongly reels/video-first, not photos or tweets.",
+    "Reels should feel TikTok-like, with visible options, like/comment, transparent description and visible comments with small profile pictures."
+  ],
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Story rail add button now calls openComposer('story', { camera: true, source: 'story_camera' }) instead of opening the Create Hub."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Story composer source label now states that the Story camera is opening, and the camera route falls back to native capture=environment on local HTTP/mobile browsers."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "For You remains mapped to socialFormat='clips'. Empty For You/Clips uses the local playable demo MP4 rather than photos/tweets."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Clip cards now render clipCommentPreview() with small commentAvatar thumbnails and demo comment_preview data for empty demo reels."
+    },
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "toggleComments() now renders demo comments locally for negative demo post IDs instead of calling the API."
+    },
+    {
+      "file": "apps/nexus-web/public/styles.css",
+      "summary": "Added transparent/blurred clip comment preview styling and small comment avatar chips."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Static assets bumped to 20260825-social42."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Static audit assertions updated for story camera direct route, clip comment preview, comment avatars and social42 cache bust."
+    }
+  ],
+  "verification": {
+    "static_runtime_audit": {
+      "status": "pass",
+      "checks": {
+        "social42_index": true,
+        "story_camera_direct": true,
+        "story_camera_label": true,
+        "for_you_clip_first": true,
+        "clip_comment_preview_fn": true,
+        "comment_preview_data": true,
+        "render_comment_line": true,
+        "negative_demo_comments_no_api": true,
+        "css_comment_preview": true,
+        "tests_updated": true
+      },
+      "syntax": {
+        "app.js": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social42",
+      "observed_for_you": {
+        "feed": "For You",
+        "videos": 1,
+        "clip_cards": 1,
+        "visible_feed_tabs": false,
+        "quick_actions": [
+          "Reacționează",
+          "Comentarii",
+          "Susține creatorul",
+          "Distribuie",
+          "Salvează",
+          "Activează sunetul"
+        ],
+        "clip_overlay_caption": "Demo clip Nexus — apasă pe butonul central pentru Play/Pause. Feed-ul real va porni direct cu conținut video.",
+        "comment_avatar_count": 2,
+        "clip_comment_preview_visible": true
+      },
+      "observed_story_camera": {
+        "composer_source": "story_camera",
+        "has_story_composer": true,
+        "has_camera_section": true,
+        "story_lifecycle": true,
+        "file_capture": "environment",
+        "composer_head": "Story / Camera pentru Story se deschide acum"
+      }
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "E7C83B8DB9946044220031FA92B12DF581E938F85EC6C0DFA469717E86A20C32",
+    "apps/nexus-web/public/styles.css": "149A67DDB6B2B90E874CBF0B8DEA8461C70CBDA6D5D047359020612FB4DE653A",
+    "apps/nexus-web/public/index.html": "79AC4BF7035129A165618CFCA0448DB7DE01157EE0B89E4436145318BDC1E3BE",
+    "apps/nexus-web/test/audit.test.js": "A955D16E153BE8AE639925BF1EB087552449C37A4D9194B1699BF3E93D2FCACE"
+  },
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "external_services": false,
+    "native_camera_permission_prompted_by_automation": false
+  },
+  "next": [
+    "Add horizontal swipe gestures or explicit next/previous reel affordances for For You navigation.",
+    "Add a true comments bottom sheet with first comments visible, reply input and profile thumbnails for real posts.",
+    "Add a clear exit/minimize affordance from immersive reel mode if the header/dock are later hidden."
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-E2EE-DECRYPTION-CONTEXT-INTEGRITY-081",
+  "checkpoint_date": "2026-09-06",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "message_envelope_exact_binding": true,
+    "conversation_nonce_device_commitment_epoch_binding": true,
+    "canonical_public_jwk_only": true,
+    "canonical_bounded_base64_only": true,
+    "direct_group_material_separation": true,
+    "decrypted_payload_shape_bounds": true,
+    "content_addressed_internal_attachment_only": true,
+    "attachment_ciphertext_stream_cap_bytes": 20971520,
+    "canonical_attachment_metadata": true,
+    "transient_content_key_zeroized": true,
+    "strict_legacy_v1_read_compatibility": true,
+    "new_unbound_writes_denied": true,
+    "plaintext_blob_url_lifecycle_revoke": true,
+    "cache_generation": "20260906-p2decrypt1"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_crypto_ui_audit": { "passed": 148, "failed": 0 },
+    "legacy_compatibility_replay": "PASS",
+    "product_full_tests": { "passed": 240, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The exported decryptors depended on prior UI validation and did not independently bind every message metadata field to its envelope.",
+      "resolution": "The crypto boundary now validates exact message/envelope identity and cryptographic context before key derivation."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Attachment fetch could buffer an unbounded response and accepted any URL passed by a caller outside the validated UI path.",
+      "resolution": "Only hash-matching internal media paths are accepted and response streaming has a 20 MB hard cap."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Initial hardening rejected historical epoch-less E2EE v1 ciphertext.",
+      "resolution": "Read compatibility is retained only for an exact direct-v1 null-epoch pair; all group and new write paths remain epoch-bound."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Decrypted attachment blob URLs remained live after leaving Messages or switching profile.",
+      "resolution": "Navigation, profile switch, thread replacement and pagehide all revoke the local plaintext URLs."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "91614556d43a662c316456a70d9f8811ae2ea3213f5f5059339bba612ba4f604",
+    "apps/nexus-web/public/chat-crypto.js": "0ea096859389d10544a1bd672d55616cda498433fa74f78d2c89194f41cd8914",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "b1d7f3d3fd9cec26cc8e9b836e5370dd87e5fef288ae859d8090e8767ded4bae",
+    "apps/nexus-web/public/index.html": "50f08c02b1c8c471465ce520e4ebc5fd916a6da399b90f078b633f2d82bd245e",
+    "apps/nexus-web/test/audit.test.js": "9104a776d313919ea11056056f4b6a2ea626b374bfd7bbad36ac0bd6031ec972",
+    "apps/nexus-web/test/core.test.js": "a5dc4b5241ae9ccf6643c42e010c308c6c92acdf2d8c0e897c0b4fd81638dbb9",
+    "planning/NX-WEB-SOCIAL-e2ee-decryption-context-integrity-v1.md": "9f3ff9bda19bd45d1c0c50955f54c3199bfe567831f5a9ec940643f7b631a095",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "d85a32e06d46b95292f08d2293011b4b75a0bc91757dbdba3614693116760181",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "63fcfe31118733428e5becfb78069c3ac0529edf40bbad9a9f0700f615b9c482"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_BROWSER_MEMORY_OBSERVATION_AND_INDEPENDENT_CRYPTO_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-MESSAGING-E2EE-LOCAL-CLOSURE-082"
+}

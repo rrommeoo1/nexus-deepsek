@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="520" viewBox="0 0 400 520" role="img" aria-label="Sea cove at noon">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fd7ff"/><stop offset="1" stop-color="#dff3ff"/></linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0e9ec0"/><stop offset="1" stop-color="#0a5f80"/></linearGradient>
+    <linearGradient id="rock" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b6572"/><stop offset="1" stop-color="#2f3743"/></linearGradient>
+  </defs>
+  <rect width="400" height="520" fill="url(#sky)"/>
+  <circle cx="316" cy="86" r="34" fill="#fff7d6" opacity=".85"/>
+  <path d="M0 300h400v220H0z" fill="url(#sea)"/>
+  <path d="M0 300c40-10 70 6 110 2s70-16 110-10 60 12 90 8 60 2 90-2v12H0z" fill="#10b3d4" opacity=".55"/>
+  <path d="M0 330c46-12 84 8 130 4s74-16 122-8 88 12 148 2v-10H0z" fill="#fff" opacity=".18"/>
+  <path d="M0 300l74-96 34 26 40-40 46 52 40-22 34 44 60-30v100z" fill="url(#rock)"/>
+  <path d="M74 204l34 26-16 26-30-14z" fill="#78838f" opacity=".7"/>
+  <path d="M40 420c26-14 58-6 74 10 12 10 30 14 46 8 14-6 26-2 34 6v76H40z" fill="#0b4358"/>
+  <circle cx="196" cy="404" r="26" fill="#f0c9a8"/>
+  <path d="M150 470c0-30 22-50 46-50s46 20 46 50v50H150z" fill="#ff5f8f"/>
+  <circle cx="262" cy="430" r="17" fill="#f6d7ba"/>
+  <path d="M236 480c0-20 12-34 26-34s26 14 26 34v40h-52z" fill="#ffd166"/>
+</svg>

@@ -1,0 +1,11 @@
+{
+  "schemaVersion":1,"owner":"A41","surface":"MANAGED_LIVE_ADAPTER","provider":"FAKE_MANAGED_LOCAL_ONLY",
+  "states":["STARTING","LIVE","ENDING","ENDED","FAILED_CLOSED","CONTAINMENT_PENDING"],
+  "start":{"signedEligibility":true,"completeEligibilityBinding":true,"creatorGenerationAndPolicyBound":true,"postProviderCas":true,"providerReceiptExact":true,"timeoutMsMax":30000},
+  "providerReceipt":{"fullOperationDigest":true,"operationKindBound":true,"manifestBound":true,"audienceBound":true,"fencingTokenBound":true,"providerAuthorityVerified":true,"persistedInEvent":true},
+  "emergency":{"chainIndependent":true,"signedModeratorCapability":true,"chatDisabledBeforeProviderCall":true,"appealEvidenceCommitment":true,"monotonicFencing":true,"postProviderCas":true,"ambiguousResultIsContainmentPending":true,"durableRetry":true,"startFailureCompensation":true,"lateCallbackCannotResurrect":true},
+  "receipts":{"signedCommandPerEvent":true,"sha256OrderedLineage":true,"durableCheckpointHead":true,"exactShapeRestore":true,"rebuildsReplayIndex":true,"compensationAttemptsPersisted":true},
+  "kids":{"childBroadcasterAllowed":false,"freeChatAllowed":false},"replay":{"requiresVodModeration":true},
+  "effects":{"network":0,"provider":0,"economic":0,"incrementalCostEur":0},
+  "exclusions":["real_provider","real_ingest","cdn","real_users","production","provider_sla_certification","formal_legal_opinion"]
+}

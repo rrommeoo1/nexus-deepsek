@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-V1",
+  "observed_at": "2026-08-19",
+  "subject": "Nexus local full-stack product v1 (apps/nexus-web)",
+  "status": "delivered_local",
+  "zero_effects": {
+    "amount": 0,
+    "currency": "EUR",
+    "network_egress": "none",
+    "blockchain": "devnet_only_no_broadcast",
+    "real_funds": 0
+  },
+  "verification": {
+    "unit_and_audit_tests": "13/13 PASS",
+    "actors_harness": "50 SYSTEM_TEST actors, invariants PASS",
+    "http": {
+      "health": 200,
+      "page_local": 200,
+      "page_lan": 200,
+      "signup": 201,
+      "post": 201,
+      "feed": 200,
+      "devnet_ledger": 200
+    },
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "capabilities_delivered": [
+    "SQLite durable store + full schema",
+    "scrypt password auth + HMAC session tokens (httpOnly cookie)",
+    "MultiversX xAlias/xPortal challenge + Ed25519 signature verification (local)",
+    "Google/Facebook OAuth gate (code complete, activation via env keys)",
+    "persona isolation deny-by-default (5 modes)",
+    "posts text/image/video + content-addressed media on disk",
+    "feed + discover + like + comment + follow",
+    "private messaging + SSE real-time + notifications",
+    "market listings with simulated devnet escrow",
+    "devnet action ledger with explorer links"
+  ],
+  "gates_not_auto_completed": [
+    "public hosting / domain (owner approval)",
+    "google/facebook live (owner-provided client credentials)",
+    "mainnet or real funds (requires explicit approval)",
+    "independent audit + legal memo (human gates)"
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "packet": "NX-WEB-SOCIAL-P03-VISUAL-FOUNDATION-016",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Final visual foundation for the shared Nexus shell, Login, Messages and Live",
+  "design_controls": {
+    "shared_shell": {
+      "phone_legible_wordmark": true,
+      "three_compact_context_switches": true,
+      "five_destination_neural_dock": true,
+      "safe_area_aware": true,
+      "comments_hide_dock": true
+    },
+    "login": {
+      "distinct_signin_and_signup_surfaces": true,
+      "empty_fields_preserved": true,
+      "create_account_copy_preserved": true,
+      "xportal_primary_wallet_path": true,
+      "minimum_touch_target_px": 44
+    },
+    "messages": {
+      "unified_inbox_hierarchy": true,
+      "compact_e2ee_state": true,
+      "conversation_request_sent_tabs": true,
+      "persona_filters": true,
+      "neural_empty_state": true
+    },
+    "live": {
+      "arena_hierarchy": true,
+      "warm_live_semantics": true,
+      "four_discovery_tabs": true,
+      "truthful_empty_state": true,
+      "device_check_styles_preserved": true
+    },
+    "accessibility": {
+      "keyboard_focus_visible": true,
+      "reduced_motion_supported": true,
+      "responsive_breakpoint_380px": true
+    }
+  },
+  "verification": {
+    "static_visual_tests": { "passed": 22, "failed": 0 },
+    "full_tests": { "passed": 129, "failed": 0 },
+    "mobile_browser_qa": {
+      "viewport": "390x844",
+      "messages_loaded": true,
+      "new_conversation_opened": true,
+      "escape_restored_inbox": true,
+      "live_arena_loaded": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 12996,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p3visual1"
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/p3-visual-foundation.css": "7ec39a71c03eae3f6b6b12e6de973eed87accea5f19154243d30182b6d954faa",
+    "apps/nexus-web/public/index.html": "ddd7a955e91842aed245c373bcae85badda115eaa46097d08448c74716476dab",
+    "apps/nexus-web/test/audit.test.js": "d4a44f18467fcc6146b50eec5238639ec4b65652cee79a6d59bad0101b91d085"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "independent_t1_recheck": "PENDING_PLUS_RESET"
+  },
+  "p3_visual_foundation_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_VISUAL_REVIEW_AND_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P03-PROFILE-VISUAL-017"
+}

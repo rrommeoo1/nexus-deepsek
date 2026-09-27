@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nexus.invalid/events/chain.action.executed.v1.schema.json",
+  "title": "chain.action.executed.v1",
+  "x-family-alias": "action.chain.*",
+  "x-contract-version": "1.0.0",
+  "x-reducer-policy": {"accepted_observations": ["HYPERBLOCK_FINAL", "FINALIZED_CANONICAL"], "prefinalized_result": "IGNORE", "reconciliation_key": ["network", "originalTxHash", "sourceTxHash", "eventIndex"], "conflict_result": "RECONCILE_FROM_FINALIZED_CHAIN"},
+  "x-data-policy": {"owner": "chain_integration", "purpose": "rebuild_terminal_action_read_model", "legal_basis": "contract_and_security", "retention": "event_replay_400d", "default_classification": "INTERNAL"},
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "eventType", "occurredAt", "producer", "aggregateId", "aggregateVersion", "actorKind", "traceId", "privacyClass", "data"],
+  "properties": {
+    "eventId": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "eventType": {"const": "chain.action.executed.v1"},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "producer": {"const": "chain_integration"},
+    "aggregateId": {"type": "string", "format": "uuid", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "aggregateVersion": {"type": "integer", "minimum": 1},
+    "actorKind": {"type": "string", "enum": ["HUMAN", "AGENT"]},
+    "traceId": {"type": "string", "minLength": 16, "maxLength": 64},
+    "privacyClass": {"const": "INTERNAL"},
+    "data": {
+      "type": "object",
+      "x-data-policy": {"owner": "chain_integration", "purpose": "reconcile_executed_chain_action", "legal_basis": "contract_and_security", "retention": "event_replay_400d", "default_classification": "CHAIN_COMMITMENT"},
+      "additionalProperties": false,
+      "required": ["network", "contractAddress", "originalTxHash", "sourceTxHash", "sourceKind", "eventIndex", "shard", "blockNonce", "blockHash", "hyperblockNonce", "hyperblockHash", "canonicality", "finality", "status", "actionType", "actorCommitment", "objectCommitment"],
+      "properties": {
+        "network": {"type": "string", "enum": ["localnet", "devnet", "testnet", "mainnet"]},
+        "contractAddress": {"type": "string", "minLength": 62, "maxLength": 62},
+        "originalTxHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sourceTxHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "sourceKind": {"type": "string", "enum": ["TRANSACTION", "SMART_CONTRACT_RESULT"]},
+        "eventIndex": {"type": "integer", "minimum": 0},
+        "shard": {"type": "integer", "minimum": 0},
+        "blockNonce": {"type": "integer", "minimum": 0},
+        "blockHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "hyperblockNonce": {"type": "integer", "minimum": 0},
+        "hyperblockHash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "canonicality": {"const": "FINALIZED_CANONICAL"},
+        "finality": {"const": "HYPERBLOCK_FINAL"},
+        "status": {"const": "EXECUTED_SUCCESS"},
+        "actionType": {"type": "string", "enum": ["PUBLIC_ACTION", "PRIVATE_ACTION"]},
+        "actorCommitment": {"type": "string", "pattern": "^[0-9a-f]{64}$", "x-catalog-id": "event.action.actor-commitment"},
+        "objectCommitment": {"type": "string", "pattern": "^[0-9a-f]{64}$", "x-catalog-id": "event.action.object-commitment"}
+      }
+    }
+  }
+}

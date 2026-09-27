@@ -1,0 +1,45 @@
+{
+  "packet": "NX-WEB-AUTH-P02-LOCALIZED-AUTH-SHELL-061",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "locales": ["ro", "en", "pl", "ar"],
+    "locale_resolved_before_login": true,
+    "account_locale_precedence_after_login": true,
+    "rtl_contract_preserved": true,
+    "visible_login_signup_recovery_localized": true,
+    "xportal_states_localized": true,
+    "provider_capability_cached_and_sanitized": true,
+    "raw_walletconnect_errors_rendered": false,
+    "external_provider_invoked": false,
+    "cache_generation": "20260905-p1locale25"
+  },
+  "verification": {
+    "syntax_and_locale_coverage": { "status": "PASS", "missing_keys": 0 },
+    "focused_auth_locale": { "passed": 4, "failed": 0 },
+    "product_full_tests": { "passed": 224, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Unauthenticated users always received Romanian copy before account locale resolution.", "resolution": "Device locale is now applied before the first authentication render and every visible auth state uses the shared catalogue." },
+    { "severity": "MEDIUM", "finding": "Returning from xPortal/recovery lost provider capability and disabled configured providers.", "resolution": "A strict sanitized provider-capability snapshot survives auth-screen navigation." },
+    { "severity": "MEDIUM", "finding": "WalletConnect failures could expose provider exception strings.", "resolution": "Cancellation, timeout and generic failures now map to controlled localized messages." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "be032e68e904c86d1bcf7d4151a7ed982f3ef8c4944c461396b7079fdd3f518a",
+    "apps/nexus-web/public/app.js": "9945ef17d0c73e74b4d996db2061394e9d27d43bcba15fc1a0ede9c772a9a3c1",
+    "apps/nexus-web/public/index.html": "229176ee5660fc6d4fe8c5d5cbeaeddbaa5bde152d5eb91963c25fbf8e297a7d",
+    "apps/nexus-web/test/audit.test.js": "76988451ddd39b93cd30705bfcc1ade66eb0c9cbb7b0a668737d237648537d27",
+    "planning/NX-WEB-SOCIAL-localized-auth-shell-v1.md": "62e78a79ae27c2134291d88c9c854c167ec4709f848c90647c96c000c75519a6",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "713a28614d8c902dbd987ce2a13749fd5d48a7bedccbab32f81d345999c1f3b8",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "45ce6db88150d5d05323336cc8bd93f13f06373e9cf522ae4847b4f85e331189"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_PROVIDERS_TRUSTED_HTTPS_AND_EXTERNAL_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZED-GDPR-SECURITY-SHELL-062"
+}

@@ -1,0 +1,87 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-RECOVERY-PENDING-ACTIVATION-030",
+  "checkpoint_date": "2026-09-02",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Expiring pending-to-active E2EE recovery-device activation with bounded active-device sets",
+  "controls": {
+    "recovery_device_initial_state": "pending_recovery",
+    "pending_receives_message_envelopes": false,
+    "activation_confirmation": "explicit second user action after requesting the local package download",
+    "activation_capability_storage": "server stores SHA-256 only; idempotency registry response is encrypted at rest",
+    "activation_capability_replay": "deterministic HMAC bound to user, device and idempotency key",
+    "pending_ttl_seconds": 600,
+    "expiry_boundary": "expires when current time is greater than or equal to activation_expires_at",
+    "maximum_recovery_devices_per_user": 3,
+    "maximum_active_chat_devices_per_user": 10,
+    "device_limit_transaction": "BEGIN IMMEDIATE",
+    "legacy_recovery_migration": "device:recovery:* rows are idempotently reclassified as recovery",
+    "legacy_over_limit_behavior": "fail closed with empty device set and null commitment",
+    "legacy_over_limit_read_bound": 11,
+    "generic_recovery_activation_bypass": false,
+    "private_keys_on_server": false,
+    "external_share_endpoint": false
+  },
+  "verification": {
+    "targeted_sessions_devices_tests": { "passed": 7, "failed": 0 },
+    "full_tests": { "passed": 176, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_health": "PASS",
+      "insecure_api_denied": true,
+      "isolated_data": true
+    },
+    "independent_bounded_checker": {
+      "verdict": "PASS_LOCAL",
+      "critical": 0,
+      "high": 0,
+      "medium": 0
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Legacy recovery rows inherited the new primary-device default and could no longer be restored.",
+      "resolution": "The restart-safe migration reclassifies device:recovery:* rows and a regression test restores the migrated key."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Generic device registration allowed an unbounded active recipient-device set and unbounded client key derivations.",
+      "resolution": "Generic registration and recovery activation enforce a transactional cap of ten active devices per account."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A legacy database already above the cap was fail-closed for integrity but still read and parsed every active key.",
+      "resolution": "Device-set assembly now reads at most cap plus one; the regression fixture places invalid JSON beyond the bounded read."
+    }
+  ],
+  "residual_findings": [],
+  "external_release_gates": [
+    "formal independent production cryptography review",
+    "trusted HTTPS edge and real-device browser lab",
+    "real WalletConnect attestation"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "af908e983625423a5db169d5742f47912838cb149e0194e9729420fd77e3d515",
+    "apps/nexus-web/lib/repo.js": "81e180246e207437e44093d8e1b2ca33c9c0398d5d0bc817aebd8e192b1a19b0",
+    "apps/nexus-web/lib/api.js": "6e4615eb0d2a63a135dc88de40e192edd308af4543a06a75cd69f3994276e74e",
+    "apps/nexus-web/public/chat-crypto.js": "4f80a49443238ecd7b863925bc80609c7de3a49dff367c8e7331b2db756cebbc",
+    "apps/nexus-web/public/app.js": "a85d4ea3e8ff41b7eec7ae478b196bb97aa3a2ab04f41a0748d6790a2487f73d",
+    "apps/nexus-web/public/index.html": "c26bf8c363567ad787e373239a617759fa4273ea33d2479a09544de33a25fbe3",
+    "apps/nexus-web/test/p1-sessions-devices.test.js": "8219b9edad2c79bd539b167f3abbc80f1bbaab761b285b726169e329adcd7d1f",
+    "apps/nexus-web/test/core.test.js": "fdeff7b1462423329ff918a927565e3df3e931e14ac0c9985683886e1e9d0265",
+    "apps/nexus-web/test/audit.test.js": "d4f9e250439423ff20dad06328c798f73ad924f4d8987691e3a9bf4d64da8021"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; one bounded local packet used one sequential independent checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_TRUSTED_HTTPS",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-RECOVERY-BROWSER-FAULT-INJECTION-031"
+}

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A32",
+  "mode": "LOCAL_DETERMINISTIC_AUTOMATED_TRUST",
+  "surfaces": ["SOCIAL", "WORK", "DATING", "MARKET", "TRAVEL", "LIVE", "KIDS"],
+  "signalAxes": ["PROVENANCE", "AI_LIKELIHOOD", "FACTUAL_EVIDENCE", "SAFETY", "LEGALITY", "POLITICAL_AD"],
+  "outcomes": ["PUBLISH", "PUBLISH_LABEL", "LIMIT_DISTRIBUTION", "TEMPORARY_HOLD", "BLOCK_IMMUTABLE"],
+  "automation": {
+    "publicCorpusCoveragePercent": 100,
+    "ordinaryHumanPreApprovalRequired": false,
+    "singleProbabilisticSignalFinalTakedownAllowed": false,
+    "probabilisticFinalTakedownAllowed": false,
+    "immutableIllegalityMatchMayBlock": true,
+    "immutableEvidenceRequiresIndependentAuthority": true,
+    "immutableEvidenceMustBindContentCategoryAndExpiry": true,
+    "decisionExpiryIncludesEvidence": true,
+    "highRiskHoldRequiresIndependentVotes": 2,
+    "highRiskHoldVoteCount": 3,
+    "humanExceptionScope": ["APPEAL", "AUTHORITY_ORDER", "LEGAL_HIGH_IMPACT_EXCEPTION"]
+  },
+  "presentation": {
+    "universalTruthScoreAllowed": false,
+    "honestyScoreAllowed": false,
+    "ideologyScoreAllowed": false,
+    "attractivenessScoreAllowed": false,
+    "calibratedAiRangeOnly": true,
+    "unknownProvenanceDoesNotMeanFalse": true,
+    "opinionSatirePredictionSeparatedFromFact": true
+  },
+  "politicalIntegrity": {
+    "opinionInferenceAllowed": false,
+    "sensitiveAttributeTargetingAllowed": false,
+    "viewpointSpecificRulesAllowed": false,
+    "paidPoliticalTransparencyRequired": true,
+    "organicPoliticalExpressionAllowed": true
+  },
+  "trustGovernance": {
+    "roles": ["PRIMARY_TRUST", "IMMUTABLE_EVIDENCE", "MODEL_REGISTRY", "GOVERNANCE_ROLLBACK"],
+    "signedTrustRootRegistryRequired": true,
+    "distinctKeyIdsRequired": true,
+    "distinctPublicKeyFingerprintsRequired": true,
+    "distinctAuthorityLineagesRequired": true,
+    "distinctAdministrativeDomainsRequired": true,
+    "activationExpiryAndRevocationChecked": true,
+    "countryPolicyHeadMonotonic": true,
+    "samePolicyVersionEquivocationDenied": true,
+    "signedModelManifestRequired": true,
+    "modelHeadMonotonicPerCountrySurfacePurpose": true,
+    "sameModelVersionEquivocationDenied": true,
+    "rollbackRequiresSeparateSignedAuthorization": true,
+    "rollbackBindsFromToIdsVersionsCommitments": true,
+    "rollbackExpiryNonceAndOneTimeConsumption": true,
+    "headsAndRollbackConsumptionRestored": true
+  },
+  "decisionReceipt": {
+    "exactShape": true,
+    "signed": true,
+    "contentProfileCountryPolicyModelBound": true,
+    "reasonCodesRequired": true,
+    "appealRouteRequired": true,
+    "expiryRequired": true,
+    "orderedSha256Lineage": true,
+    "oneTimeDecision": true,
+    "freshRestoreRevalidation": true,
+    "checkpointSignatureRequired": true,
+    "trustRegistryVersionAndFingerprintsBound": true,
+    "modelManifestIdVersionCommitmentBound": true,
+    "rollbackAuthorizationCommitmentsBound": true
+  },
+  "storage": {
+    "rawContentOnChain": false,
+    "sensitiveEvidenceOnChain": false,
+    "futureAnchor": "RECEIPT_HASH_ONLY",
+    "currentPacketNetworkOperationsMax": 0
+  },
+  "effects": {
+    "networkOperationsMax": 0,
+    "providerOperationsMax": 0,
+    "economicOperationsMax": 0,
+    "organicMetricOperationsMax": 0,
+    "realFundOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  },
+  "claimsExcluded": [
+    "production_moderation",
+    "real_ml_inference",
+    "external_fact_check_feed",
+    "trusted_flagger_endpoint",
+    "legal_opinion",
+    "formal_dsa_audit",
+    "real_user_data",
+    "on_chain_anchor",
+    "human_staffing_sla"
+  ]
+}

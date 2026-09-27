@@ -1,0 +1,100 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-MESSAGING-E2EE-ATTACHMENT-LIFECYCLE-026",
+  "checkpoint_date": "2026-08-31",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Client-side encrypted, resumable and conversation-bound messaging attachments",
+  "controls": {
+    "encryption": {
+      "content_cipher": "AES-256-GCM",
+      "random_content_key_per_object": true,
+      "content_key_inside_per_device_envelope_only": true,
+      "server_receives_plaintext": false,
+      "silent_plaintext_downgrade": false
+    },
+    "upload": {
+      "protocol": "LOCAL_RESUMABLE_V1",
+      "container": "NEXUS-E2EE-ATTACHMENT-V1",
+      "purpose_mime_binding": true,
+      "content_addressed_ciphertext": true,
+      "server_malware_scanned": false,
+      "truthful_state": "ready_client_encrypted"
+    },
+    "authorization": {
+      "sender_upload_grant": true,
+      "persona_bound": true,
+      "conversation_participant_acl": true,
+      "exact_active_device_coverage": true,
+      "new_device_historical_key_access": false,
+      "revoked_device_historical_key_access": false
+    },
+    "recipient_ux": {
+      "automatic_open": false,
+      "explicit_local_decrypt": true,
+      "unscannable_warning": true,
+      "ciphertext_hash_verified": true,
+      "message_media_binding_verified": true,
+      "metadata_and_aad_verified": true
+    },
+    "external_share": "DENY"
+  },
+  "verification": {
+    "full_tests": { "passed": 166, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "synthetic_actor_lab": { "actors": 1000, "issues": 0, "organic_leak": false },
+    "runtime": {
+      "pid": 17096,
+      "listen_address": "0.0.0.0",
+      "local_health": 200,
+      "phone_lan_health": 200,
+      "root": 200,
+      "versioned_app_asset": 200,
+      "crypto_asset": 200,
+      "browser_build": "20260831-p1e2eeattach2",
+      "phone_url": "http://192.168.1.153:3000/"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The secure composer previously disabled attachments, forcing users to choose plaintext transport for files.",
+      "resolution": "Files are now encrypted before a resumable ciphertext upload and their keys are included only in exact per-device envelopes."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Opaque encrypted content cannot truthfully receive server-side malware clearance.",
+      "resolution": "A distinct admission state records that limitation; the client warns the recipient and requires explicit local decryption instead of auto-open."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A completed ciphertext upload can become orphaned if the active device set changes before the message commit.",
+      "resolution": "No plaintext/key is exposed and the object remains owner-scoped; deterministic orphan retention/purge is the next bounded packet."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/media.js": "939da67e2fc98d6aa76e2f8a843fd959416b4c2f0f98b7bc7991ccbbfceac8b6",
+    "apps/nexus-web/lib/resumable-upload.js": "f16ca1ea9abe25b5fa81f743da3f07c324dc8d3d5619a8947cfc3c8cbecf8043",
+    "apps/nexus-web/lib/repo.js": "631ada210fa43161ddd2cdf8742e56beb5ff39ec6ab53cfed271fc86b8f2ce60",
+    "apps/nexus-web/lib/api.js": "8f52e2dab2ddeb16d577eeb8b1c8e67d6317bc47268499ada2302a3fb970722e",
+    "apps/nexus-web/public/chat-crypto.js": "01066421bd4b697c29967c09c11ac1c425d5336de7939e6ed1ed5378a9eaf6fb",
+    "apps/nexus-web/public/app.js": "e47644a04cc6b4cd12c3c86d8822424a24273125ae131f231d611376f53df7d5",
+    "apps/nexus-web/public/p3-visual-foundation.css": "7f22a901d8b95fc99a1b58e62b53c273cff97883406bea19fcf0538d1c129f73",
+    "apps/nexus-web/public/index.html": "29d2dff22b09990a83917f1ee3a10826d002ba8414721d4f1c594d10d8639eed",
+    "apps/nexus-web/test/p1-e2ee-attachments.test.js": "a818143c65d07d8dc6dc195090a81e60592be7df97f64ee1ec48e0cfbbe790b9",
+    "apps/nexus-web/test/resumable-upload.test.js": "ae8ffb4689311a338e80c271101dc0b8fa4626974e198b66918f953e2af289db",
+    "apps/nexus-web/test/core.test.js": "08db5885325c36c3f7303b4c3640567ed3382f2ac456441365c1d784409c32c0",
+    "apps/nexus-web/test/audit.test.js": "3743560ee5c09fe4e94ed013572d485ea1e6b46b9f3946756067c0f29ef42565"
+  },
+  "capacity": { "band": "YELLOW", "reason": "Goal reports usageLimited; one bounded local packet" },
+  "local_attachment_lifecycle_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_AND_RETENTION_RECOVERY_CONTROLS",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-ORPHAN-PURGE-SAFETY-NUMBER-027"
+}

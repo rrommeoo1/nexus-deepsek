@@ -1,0 +1,21 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+reviewer_role: C03
+reviewed_at: '2026-08-03T00:08:37Z'
+verdict: PASS_PREFLIGHT_FOR_REPLACEMENT_OWNER_APPROVAL
+scope: resume_approval_namespace_guard_and_pre_egress_abort
+network_operations: 0
+economic_operations: 0
+findings:
+  - id: C03-CHAIN-001-RESUME-ID-001
+    status: CLOSED
+    statement: Resume accepts only NX-CHAIN-001-DEVNET-RESUME identifiers while Execute remains restricted to NX-CHAIN-001-DEVNET-APPROVAL identifiers.
+  - id: C03-CHAIN-001-RESUME-ID-002
+    status: CLOSED
+    statement: The prior receipt is SUPERSEDED_PRE_EGRESS and cannot satisfy the validator's exact ISSUED requirement.
+  - id: C03-CHAIN-001-RESUME-ID-003
+    status: CLOSED
+    statement: Offline regression passes 35 of 35 and Devnet preflight passes 24 of 24 with zero network or economic operations.
+subject_sha256: 12327c5aa43468a1e59fd6c499cdaee7625bf00cc8893244716327d4bfd5a9f9
+wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+next_gate: NEW_SUBJECT_BOUND_OWNER_APPROVAL_REQUIRED

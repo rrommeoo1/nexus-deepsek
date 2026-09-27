@@ -1,0 +1,37 @@
+model VerifiedChainObservation {
+  network               String @db.VarChar(16)
+  contractAddress       String @map("contract_address") @db.VarChar(62)
+  originalTxHash        String @map("original_tx_hash") @db.Char(64)
+  sourceTxHash          String @map("source_tx_hash") @db.Char(64)
+  sourceKind            String @map("source_kind") @db.VarChar(24)
+  eventIndex            Int    @map("event_index")
+  shard                 Int
+  blockNonce            String @map("block_nonce") @db.VarChar(78)
+  blockHash             String @map("block_hash") @db.Char(64)
+  hyperblockNonce       String @map("hyperblock_nonce") @db.VarChar(78)
+  hyperblockHash        String @map("hyperblock_hash") @db.Char(64)
+  contentHash           String @map("content_hash") @db.Char(64)
+  authenticityProofHash String @map("authenticity_proof_hash") @db.Char(64)
+  canonicality          String @db.VarChar(24)
+  finality              String @db.VarChar(24)
+  payload               Json
+
+  @@id([network, originalTxHash, sourceTxHash, eventIndex])
+  @@index([contentHash, authenticityProofHash])
+  @@map("verified_chain_observations")
+  @@schema("chain_integration")
+}
+
+// The adapter must insert this unique receipt and replace the durable reducer
+// event set in one SERIALIZABLE database transaction before in-memory promotion.
+model ReducerRepairCommit {
+  approvalId          String @id @map("approval_id") @db.Char(64)
+  subjectStateRoot    String @map("subject_state_root") @db.Char(64)
+  authoritativeSetHash String @map("authoritative_set_hash") @db.Char(64)
+  evidenceHash        String @map("evidence_hash") @db.Char(64)
+  committedAtMs       BigInt @map("committed_at_ms")
+  observations        Json
+
+  @@map("reducer_repair_commits")
+  @@schema("chain_integration")
+}

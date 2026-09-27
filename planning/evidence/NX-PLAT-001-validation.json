@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-PLAT-001",
+  "run_id": "NX-PLAT-001-VALIDATE-20260802T122144718Z-bd3cc1d1",
+  "observed_at": "2026-08-02T12:21:44.718Z",
+  "executor_role": "A00",
+  "status": "PASS",
+  "assertions": 98,
+  "failures": [],
+  "reproducible_runs": [
+    "NX-PLAT-001-20260802T122104908Z-810a02eb",
+    "NX-PLAT-001-20260802T122104921Z-2c292391"
+  ],
+  "artifact_sha256": "de8d7af00059c90d146dba6d986bc6898da344f50823675ce973f75c96bbd9a2",
+  "promotion_sha256": "de8d7af00059c90d146dba6d986bc6898da344f50823675ce973f75c96bbd9a2",
+  "source_revision": {
+    "kind": "workspace-content-sha256",
+    "value": "7d1291b90334ca228f86979d560c065a4d37296537a1cc255255928195d3e0a0",
+    "vcs_commit": null,
+    "vcs_state": "REPOSITORY_METADATA_UNAVAILABLE"
+  },
+  "review_subject_sha256": "01e64ede94a4d59f9d98f01692609c43be44dd43ecddbefc15e96d98caef0f4c",
+  "negative_fixtures": {
+    "tamper_denied": true,
+    "secret_failure_denied": true,
+    "critical_dependency_denied": true,
+    "missing_registry_denied": true
+  },
+  "incremental_cost": {
+    "amount": 0,
+    "currency": "EUR"
+  },
+  "artifact_hashes": {
+    "platform/sample-module/module.json": "7766453f1e6fc704f665ca91658738f678cc65c29446a9e269affa0c7824b0c0",
+    "platform/sample-module/health.json": "e9e8495b83a4abbe211d38e04a9741c5bca6e9a1e029ebcdb651ca392f2dd36e",
+    "platform/run-local-ci.ps1": "e375abc209280b045811c5e9f651c030ce606a7af2318b07d8695847c9549c35",
+    ".github/workflows/nexus-local-proof.yml": "ed1ce279619be301fcd6350b92ab4c8623ac9d75af0eada9fa09823c3b132dad",
+    "planning/validate-platform.ps1": "44f3bb29db57cc798e122b097017046e2a41996c5888d0a5423d7beee820f5a0"
+  }
+}

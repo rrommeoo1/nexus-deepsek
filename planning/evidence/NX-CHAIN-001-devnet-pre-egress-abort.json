@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAIN-001",
+  "attempt_run_id": "NX-CHAIN-001-DEVNET-20260802T214653Z-romeo01",
+  "status": "PRE_MUTATION_ABORTED",
+  "reason": "LOCAL_EXECUTOR_TIMEOUT_BEFORE_DEVNET_LOG_DIRECTORY_CREATION",
+  "approval_receipt_status": "CONSUMED",
+  "approval_receipt_canonical_sha256": "cee6e4d57284f5f93a9e638c36b2308881dfe017fb2acb5c8f0ac15461d447d2",
+  "devnet_log_directory_exists": false,
+  "deploy_receipt_exists": false,
+  "transaction_receipts": 0,
+  "public_devnet_transactions": 0,
+  "bytecode_transmissions": 0,
+  "read_only_gateway_checks_possible": true,
+  "real_fund_operations": 0,
+  "retry_policy": "DISTINCT_SUBJECT_BOUND_SINGLE_USE_RECEIPT_REQUIRED"
+}

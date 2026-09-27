@@ -1,0 +1,83 @@
+{
+    "emittedTransaction": {
+        "nonce": 32880,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th",
+        "senderUsername": "",
+        "receiverUsername": "",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "data": "c2V0UmVsYXllckFsbG93ZWRAYjJhMTE1NTVjZTUyMWU0OTQ0ZTA5YWIxNzU0OWQ4NWI0ODdkY2QyNmM4NGI1MDE3YTM5ZTMxYTM2NzA4ODliYUAwMQ==",
+        "chainID": "D",
+        "version": 2,
+        "options": 0,
+        "guardian": "",
+        "signature": "4ab1e98f428b10509d81f4e451bc8e1908923f9dbec6d85cb89dd76f76b0341205ba2002ecbf51dd9ddc97c9a298dc39ff66f5970b646e64ea67d7eea5a20804",
+        "guardianSignature": "",
+        "relayer": "",
+        "relayerSignature": ""
+    },
+    "emittedTransactionData": "setRelayerAllowed@b2a11555ce521e4944e09ab17549d85b487dcd26c84b5017a39e31a3670889ba@01",
+    "emittedTransactionHash": "b064076edc9050319f2d9a5dcd5557e1534b2f62196fe5fb480832c6492e0f6c",
+    "contractAddress": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+    "transactionOnNetwork": {
+        "type": "normal",
+        "processingTypeOnSource": "SCInvoking",
+        "processingTypeOnDestination": "SCInvoking",
+        "hash": "b064076edc9050319f2d9a5dcd5557e1534b2f62196fe5fb480832c6492e0f6c",
+        "nonce": 32880,
+        "round": 15288669,
+        "epoch": 6334,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "gasUsed": 20000000,
+        "data": "c2V0UmVsYXllckFsbG93ZWRAYjJhMTE1NTVjZTUyMWU0OTQ0ZTA5YWIxNzU0OWQ4NWI0ODdkY2QyNmM4NGI1MDE3YTM5ZTMxYTM2NzA4ODliYUAwMQ==",
+        "signature": "4ab1e98f428b10509d81f4e451bc8e1908923f9dbec6d85cb89dd76f76b0341205ba2002ecbf51dd9ddc97c9a298dc39ff66f5970b646e64ea67d7eea5a20804",
+        "sourceShard": 1,
+        "destinationShard": 1,
+        "blockNonce": 15188269,
+        "blockHash": "bd6786ac79d634524c7a467c2de81aabd5a357437ce22ff731037ae02f10583e",
+        "miniblockType": "TxBlock",
+        "miniblockHash": "43648484aba08460e08d75174672dd8184bc9af0e3857e4ea8b35ccbf1e22c2e",
+        "timestamp": 1785732014,
+        "timestampMs": 1785732014000,
+        "logs": {
+            "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+            "events": [
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "writeLog",
+                    "topics": [
+                        "ATlHLv9ohncamC8wg9pdQh8kwpGB5jiIIo3IHKYNaeE=",
+                        "QHRvbyBtdWNoIGdhcyBwcm92aWRlZCBmb3IgcHJvY2Vzc2luZzogZ2FzIHByb3ZpZGVkID0gMTk4MjI1MDAsIGdhcyB1c2VkID0gMjI3MDA3NQ=="
+                    ],
+                    "data": "QDZmNmI=",
+                    "additionalData": [
+                        "QDZmNmI="
+                    ]
+                },
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "completedTxEvent",
+                    "topics": [
+                        "sGQHbtyQUDGfLZpdzVVX4VNLL2IZb+X7SAgyxkkuD2w="
+                    ],
+                    "data": null,
+                    "additionalData": null
+                }
+            ]
+        },
+        "status": "success",
+        "operation": "transfer",
+        "function": "setRelayerAllowed",
+        "initiallyPaidFee": "375725000000000",
+        "fee": "375725000000000",
+        "chainID": "D",
+        "version": 2,
+        "options": 0
+    }
+}

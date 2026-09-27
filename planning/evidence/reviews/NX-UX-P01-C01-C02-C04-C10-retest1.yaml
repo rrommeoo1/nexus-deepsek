@@ -1,0 +1,57 @@
+schema_version: 1
+task_id: NX-UX-P01
+review_id: NX-UX-P01-C02-20260819-T1-RETEST1
+reviewer_role: C02
+independence: independent_of_owner_A31
+mode: YELLOW_sequential_checker
+prior_review: NX-UX-P01-C02-20260816-T1-FINAL01
+prior_decision: CHANGES_REQUIRED
+decision: PASS
+gate_effect: APPROVE_REVIEW_TO_DONE
+task_status_recommendation: done
+finalized: true
+incremental_cost: { amount: 0, currency: EUR }
+
+subject:
+  prior_rejected_sha256: 7966a0994412e06758e77a58317b16d5f1ac9911973679a90bd55eb609fa98e2
+  retest_subject_sha256: e17eb81ad923157013db4459d5fbc4f5b540de4a398d87c05c8cc622bea0d562
+  reviewed_owner_evidence_sha256: 660eaa1bab080cb28372c62c4126e23ffac03822b1cb923dd80f91bbf5538906
+  subject_algo: sha256_of_sorted_path_colon_sha256_lines_utf8_lf
+  recomputed_and_matched: true
+
+findings_reconciliation:
+  C02-UX-P01-001:
+    title: Essential text below readable size and overlays lacking dialog/tab semantics.
+    prior_severity: MEDIUM
+    status: CLOSED
+    verified:
+      - All phone/mobile font-size declarations are >= 12px (regression asserts no sub-12px token).
+      - Composer, launcher, support and send overlays expose role=dialog, aria-modal, labelled, initial focus, focus containment, Escape close and focus return.
+      - Lens/feed/composer/inbox/order/prive tab groups use role=tablist/tab with aria-selected; scope/category/reaction/tip groups use aria-pressed; icon-only actions carry descriptive accessible names.
+  C02-UX-P01-002:
+    title: Production-like trust claims visible without persistent disclosure.
+    prior_severity: MEDIUM
+    status: CLOSED
+    verified:
+      - demoRibbon (LOCAL INTERACTIVE DEMO · SYNTHETIC DATA · NO PROVIDERS · 0 REAL FUNDS) is a fixed top banner visible at mobile width.
+      - phoneDemoLabel (DEMO · SYNTHETIC · 0 FUNDS) persists inside the phone surface.
+      - Simulated on-chain, Trust Lens, identity, seller verification, escrow, balance, earning and audience-metric labels are prefixed Demo/Synthetic.
+      - Residual Dating Connections "Identity verified" replaced with "Demo identity status"; regression asserts /Identity\s+verified/ is absent.
+
+independent_local_validation:
+  build: PASS_DIST_SERVER_INDEX_GENERATED
+  lint: PASS_ZERO_ERRORS_ZERO_WARNINGS
+  tests: PASS_3_TESTS
+  regression_negative_claim: PASS_DENY_IDENTITY_VERIFIED_ABSENT
+  external_network_operations: 0
+  provider_operations: 0
+  uploads: 0
+  publishes_or_deploys: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: { amount: 0, currency: EUR }
+
+files_modified_by_reviewer: []
+residual_scope_notes: >-
+  Retest applies only to subject e17eb81ad923157013db4459d5fbc4f5b540de4a398d87c05c8cc622bea0d562.
+  No production/provider/network exposure was introduced; validation remained local and zero-cost.

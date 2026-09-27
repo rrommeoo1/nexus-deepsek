@@ -1,0 +1,25 @@
+schema_version: 1
+task_id: NX-CONTRACT-001
+reviewer_role: A20
+independence: sole_independent_checker
+mode: YELLOW_read_only
+decision: PASS
+gate_effect: APPROVE_REVIEW_TO_DONE
+run_id: NX-CONTRACT-001-20260802T131116519Z-3e78f93c
+validator_status: PASS
+assertions: 262
+failures: 0
+review_subject_sha256: e58aa3ce27092ab5b8d234ca48a5a4b915df7316df388bca2c11909fe4739542
+review_digest: b43599868dcc4a50a06a397827887221b393ce083803c1c2cc15a677185fda8c
+owner_evidence_hashes: 13/13
+blocking_findings: []
+closed_findings:
+  - A20-CONTRACT-001
+  - A20-CONTRACT-002
+  - A20-CONTRACT-003
+  - A20-CONTRACT-004
+  - A20-CONTRACT-005
+  - A20-CONTRACT-006
+open_findings: []
+incremental_cost: {amount: 0, currency: EUR}
+files_modified: []

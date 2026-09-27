@@ -1,0 +1,181 @@
+schema_version: 1
+task_id: NX-UX-P01
+review_id: NX-UX-P01-C02-20260816-T1-FINAL01
+reviewer_roles: [C01, C02, C04, C10]
+risk_class: T1
+review_mode: independent_adversarial_read_only_review
+independence: independent_of_owner_A31
+decision: CHANGES_REQUIRED
+gate_effect: BLOCK_REVIEW_TO_DONE
+task_status_recommendation: remain_in_review
+finalized: true
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-UX-P01-validation.json
+  sha256: 0dd0d4fed361605dbfd36866bb58c21394a700aba1a4fecf9f0c50346d7aa120
+  run_id: NX-UX-P01-20260816-OWNER-FINAL01
+  executor_role: OWNER_A31
+  status: PASS
+  owner_decision: READY_FOR_T1_REVIEW
+  unique_controls: 73
+  scenario_runs: 11
+  deterministic_repetitions: 3
+  artifact_count: 13
+  current_artifact_hash_mismatches: 0
+  subject_sha256: 7966a0994412e06758e77a58317b16d5f1ac9911973679a90bd55eb609fa98e2
+  expected_subject_sha256: 7966a0994412e06758e77a58317b16d5f1ac9911973679a90bd55eb609fa98e2
+  subject_algorithm: sha256_of_sorted_path_colon_sha256_lines_utf8_lf
+  subject_recomputed_and_matched: true
+
+artifact_binding:
+  status: PASS
+  artifact_count: 13
+  mismatches: 0
+  artifact_sha256:
+    apps/nexus-demo/app/page.tsx: 7feb92f2ae5f22bbc0865e1d5d5ca00ac272aed0ea57e0d07497b27ebd2380e3
+    apps/nexus-demo/app/globals.css: 2a1bc894565d88009671b2f34939424f576f25fb58e0dde4cee47df0b5c4a1ad
+    apps/nexus-demo/app/layout.tsx: c793f83232539910c051c5a91817a0aa3d5c9d5dd4ad0a2d53ae0506b5156812
+    apps/nexus-demo/tests/rendered-html.test.mjs: b22f4da9323dd2dd95bf56391beae8dc818410f5bd46443cfda691855ac8cd12
+    apps/nexus-demo/package.json: cb0b372a64102b06859528e0b03fbe57d7bce429cc9514bbe60faf7a60a46aca
+    apps/nexus-demo/.openai/hosting.json: d2841f8a91a91bab4f4a1e27671e7d3fe8f02261eb41996f43ac61e6970a9d74
+    planning/backlog-p1.yaml: eb721caa27b649194ef2a61bd5cb69c0213c1853c6401863831dbcdc4ac36911
+    planning/checkpoints/NX-UX-P01.md: f8f7430e1da3accbb4740b85a68b3c5fc895c89d31c45d471c5a3b83f690959e
+    architecture/bounded-contexts.yaml: 5884c9014a10791e2a5276a0686af013fc981d969c81740c293eedbbaa261eb7
+    planning/evidence/screenshots/NX-UX-P01-social-desktop.png: d9dabae1f68f6d1b528e735a648259d6d17de09d0bd0509108eec3531d784d1e
+    planning/evidence/screenshots/NX-UX-P01-work-desktop.png: 8707bf3f3227320f7b73759f82345c8d88c7abe26479187fac383cc5a7ebfc2d
+    planning/evidence/screenshots/NX-UX-P01-dating-desktop.png: eb4ab039b21b77b9d469bc60015a3435de92b26e67eeb9d5ee084087c65c21e7
+    planning/evidence/screenshots/NX-UX-P01-market-desktop.png: 15aef3377849ca5ac16a96ce27e59e1e197cf0a73857b727568687a9250c260c
+
+independent_local_validation:
+  build:
+    command: bundled_node node_modules/vinext/dist/cli.js build
+    status: PASS
+    environments: 5
+  lint:
+    command: bundled_node node_modules/eslint/bin/eslint.js
+    status: PASS
+    errors: 0
+    warnings: 0
+  tests:
+    command: bundled_node --test tests/rendered-html.test.mjs
+    status: PASS
+    passed: 2
+    failed: 0
+  local_service:
+    listen: 0.0.0.0:3000
+    netstat_status: LISTENING
+    localhost_url: http://127.0.0.1:3000/
+    localhost_status: 200
+    localhost_contains_nexus: true
+    owner_lan_receipt_url: http://192.168.1.153:3000/
+    owner_phone_connection_observed: 192.168.1.184
+    external_network_operations: 0
+
+control_assessment:
+  adaptive_navigation:
+    status: PASS
+    evidence:
+      - Social, Work, Dating, Travel and Market each have mode-specific primary, create and utility actions.
+      - Messages is exactly second and Switch exactly last in all five nav arrays.
+      - Primary and utility routing preserves the active profile mode.
+  composer:
+    status: PASS
+    evidence:
+      - Open camera and Choose media are visible file inputs with mode-correct media acceptance.
+      - Social, Work, Dating, Travel and Market expose distinct content kinds and fields.
+      - Media remains a device-local object URL; the terminal action creates a preview draft and states that nothing is uploaded, published or charged.
+  profile_privacy_and_inbox_isolation:
+    status: PASS
+    evidence:
+      - Five profile policies provide distinct visibility, contacts, connection lists and activity state.
+      - Profile identity copy states avatar, name, bio and audience belong only to the active mode.
+      - Unified inbox filters All modes, Social, Work, Dating, Travel and Market and preserves a visible mode badge.
+  competitor_labels_in_ui:
+    status: PASS
+    findings: 0
+  pulse_market_dating_prive_interactions:
+    status: PASS_WITH_TRUTH_LABEL_BLOCKER
+    evidence:
+      - Pulse lens, reaction, save, support and create controls have local state or explicit demo receipts.
+      - Market scope and listing composer, Dating decisions and Connections, and Privé safe synthetic preview are locally interactive.
+  responsive_and_semantic_accessibility:
+    status: FAIL
+  truthful_demo_labels:
+    status: FAIL
+  zero_effects_and_lan:
+    status: PASS
+
+findings:
+  - id: C02-UX-P01-001
+    severity: MEDIUM
+    risk_gate: T1
+    status: OPEN
+    classification: readability_and_semantic_accessibility
+    title: Essential text is rendered below a practical readable size and interactive overlays lack dialog/tab semantics.
+    finding: >-
+      Static inspection finds 127 font-size declarations below 10px, with a minimum of 6px.
+      This includes profile/privacy details, inbox mode badges, Market verification text,
+      Dating safety text and other decision-relevant labels. The composer, launcher, support
+      modal and payment sheet are visual overlays but expose no role=dialog or aria-modal;
+      tab and toggle groups expose no aria-selected or aria-pressed state. Several icon-only
+      close/back controls rely on symbols such as × rather than a descriptive accessible name.
+      ESLint passing does not establish keyboard focus containment, Escape handling, focus
+      restoration or announced selected state.
+    closure_conditions:
+      - Establish readable type tokens and remove essential text below 12px on the 430px phone/mobile layout; preserve 200% text zoom without clipping, overlap or loss of controls.
+      - Give composer, launcher, support and send overlays labelled dialog semantics, initial focus, focus containment, Escape close and focus restoration.
+      - Add tablist/tab or pressed-state semantics to lenses, content tabs, inbox filters, scopes, categories and reaction choices; give every icon-only action a descriptive accessible name.
+      - Add deterministic keyboard and rendered-accessibility regressions for all five profile modes at mobile and desktop widths.
+
+  - id: C02-UX-P01-002
+    severity: MEDIUM
+    risk_gate: T1
+    status: OPEN
+    classification: simulated_claims_not_persistently_disclosed
+    title: Production-like trust claims remain visible when the general demo disclosure is hidden on mobile.
+    finding: >-
+      The UI renders ON-CHAIN CONFIRMED, Action proof, Trust Lens source/AI claims, Identity
+      checked and Verified/Escrow labels, plus production-like balances and earnings. The only
+      general statement that providers are not connected is inside infoPanel, which the mobile
+      media query hides. Composer, support/payment and Privé actions are truthfully labelled,
+      but primary Social, Dating and Market surfaces can therefore look like real verification,
+      chain confirmation or escrow state despite the Evidence Pack proving zero provider,
+      upload, chain and economic effects.
+    closure_conditions:
+      - Add a persistent, readable mobile and desktop disclosure stating Local interactive demo, synthetic data, no provider connection and zero real funds.
+      - Prefix or visually mark every simulated chain proof, Trust Lens result/source count, identity check, seller verification, escrow state, balance, earnings and audience metric as Demo or Synthetic.
+      - Replace ON-CHAIN CONFIRMED with a truthful simulated-state label unless an actual bound local/devnet receipt is present and visibly identified by environment.
+      - Add rendered regressions for Social, Market, Dating, Creator, Pay and Privé proving the disclosure remains visible at mobile width and that no unqualified production-state claim is emitted.
+
+findings_summary:
+  total: 2
+  open: 2
+  critical: 0
+  high: 0
+  medium: 2
+acceptance_blockers:
+  - C02-UX-P01-001
+  - C02-UX-P01-002
+
+zero_effects:
+  local_mock_only: true
+  real_data_used: false
+  external_network_operations: 0
+  provider_operations: 0
+  uploads: 0
+  publishes_or_deploys: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+claims_excluded:
+  - production backend and provider connectivity
+  - real wallet identity media payments or personal data
+  - public deployment and app-store certification
+  - formal accessibility certification and external security audit
+
+residual_scope_notes:
+  - CHANGES_REQUIRED applies only to subject 7966a0994412e06758e77a58317b16d5f1ac9911973679a90bd55eb609fa98e2.
+  - The current LAN receipt is locally reachable, but this review did not create public exposure or contact an external network.
+  - No implementation, owner Evidence Pack, backlog, checkpoint or other repository file was modified by the reviewer.

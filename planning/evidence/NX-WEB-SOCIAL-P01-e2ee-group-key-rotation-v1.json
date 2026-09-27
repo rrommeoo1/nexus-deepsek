@@ -1,0 +1,113 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-GROUP-KEY-ROTATION-032",
+  "checkpoint_date": "2026-09-02",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Epoch-bound E2EE authorization for membership, device and block changes, with one shared fail-closed conversation privacy gate",
+  "controls": {
+    "new_write_protocol": "NEXUS_E2EE_V2_EPOCH_BOUND_ECDH_P256_HKDF_SHA256_AES_256_GCM",
+    "wire_storage_mode": "e2ee_v1 retained for backward-compatible message classification",
+    "device_set_commitment": true,
+    "conversation_membership_epoch": true,
+    "account_device_security_epoch": true,
+    "key_epoch_commitment_in_aad_and_hkdf": true,
+    "member_accept_remove_leave_atomic": true,
+    "device_add_recovery_activate_revoke_rotation": true,
+    "pending_group_invitation_gets_keys": false,
+    "block_rotation_scope": "shared conversations in the affected profile only",
+    "block_policy": "shared fail-closed gate across E2EE/plaintext send and replay, read, delivery, media, typing, meetings and calls",
+    "group_block_behavior": "freeze the conversation until the relationship or membership is resolved",
+    "encrypted_nonce_binding": "canonical commitment covers sender device, expiry, attachment and every ordered ciphertext envelope",
+    "transactional_recheck": "BEGIN IMMEDIATE rechecks block, nonce, key epoch and device set before insert",
+    "legacy_v1_decrypt": true,
+    "new_v1_downgrade_write": false,
+    "unified_inbox_read_across_profiles": true,
+    "reply_requires_conversation_profile": true,
+    "external_share_endpoint": false
+  },
+  "verification": {
+    "targeted_group_migration_api_attachment_tests": { "passed": 82, "failed": 0 },
+    "full_tests": { "passed": 188, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 22,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_health": "PASS",
+      "insecure_api_denied": true,
+      "isolated_data": true
+    },
+    "standalone_actor_lab": { "actors": 1000, "issues": 0, "deployment_gate": "PASS" },
+    "independent_bounded_checker": {
+      "verdict": "PASS_LOCAL",
+      "tests_passed": 188,
+      "tests_failed": 0,
+      "critical": 0,
+      "high": 0,
+      "medium": 0
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Profile block initially stopped E2EE only; plaintext send/read and known attachment URLs could bypass it.",
+      "resolution": "One conversation block policy now gates all message, media and realtime/call surfaces, including transaction-time send rechecks."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A pending direct request omitted its pending recipient from block evaluation and could still be read or accepted.",
+      "resolution": "Pending direct participants are included in block policy; direct and group invitation acceptance recheck blocks atomically."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "A real block/unblock incremented a global victim epoch and could churn unrelated conversations.",
+      "resolution": "Block rotation is scoped to shared conversations in the affected profile; an unrelated-conversation regression test is required."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Encrypted nonce replay was not bound to sender device, expiry or ciphertext envelopes.",
+      "resolution": "A stored canonical encrypted request commitment and locked replay check reject any changed replay as nonce_conflict."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Legacy over-limit device rows were parsed before the sentinel count check and malformed JWK JSON could throw a 500.",
+      "resolution": "Cardinality is checked before parsing; in-limit invalid stored keys return a bounded ready:false device_set_invalid response."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Legacy E2EE decrypt compatibility was claimed only by static inspection.",
+      "resolution": "A real V1 ECDH/HKDF/AES-GCM/AAD ciphertext now roundtrips after epoch migration, while new unbound encryption is rejected."
+    }
+  ],
+  "residual_findings": [],
+  "external_release_gates": [
+    "formal independent production cryptography review",
+    "trusted-HTTPS real device and browser lifecycle lab",
+    "scalable group sender-key protocol review",
+    "real WalletConnect attestation"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "b8c6f6404084e62cabb630b98118be1ff7058f0c1fc1eea7109023aa7c91914e",
+    "apps/nexus-web/lib/repo.js": "20d8cbbab524161ac5822173f22dcba270fdd068f837f3191c22f0a87bf35773",
+    "apps/nexus-web/lib/api.js": "a16095edfc9c228157b3a55b1cbd0314c860192e0eba2a30e4115d813d3e5efd",
+    "apps/nexus-web/public/chat-crypto.js": "88686d706c1180a41ca0a4d29f8eb7a2787f6fb8244318c87b5791c33a1898be",
+    "apps/nexus-web/public/app.js": "5f7f7e38774eb263cbff59592fc9ec8141fd0ca56b10693983bcc9cdc336ca02",
+    "apps/nexus-web/public/index.html": "40e9be16e6bf94bf5f14db2b5f592434f96084eb1515eedf7e666abe3ac677ce",
+    "apps/nexus-web/test/core.test.js": "642634d6712af614c9b45157303b4ba541e75f6c377f92636168efcecd05c551",
+    "apps/nexus-web/test/audit.test.js": "ec2fe248d1ac2b81e860bee886759f462ec2c36e2a5a6a338c36582d6c7484c8",
+    "apps/nexus-web/test/db-migrations.test.js": "d18675553beab89c3116c7c1323a76f15da6b164173d70f82c4aa50e38a234a7",
+    "apps/nexus-web/test/p1-e2ee-attachments.test.js": "41a228df44e065e72a8f90485b41969cee1d423202fd415a9fb72d8dec10da67",
+    "apps/nexus-web/test/p1-e2ee-group-epochs.test.js": "89524b35d44ebb457eea1fd7a3c5900099575a35e2e276c6d21dfcda67f0f113",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "5a3fc031f9391a09e8166c3ab37b1c19d4c8948e38b1976ceec37478719ce174",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "c6fc2e076fbea06990855ff026765938edc5ddf9a7a05ee10f9b87a30a4b18b5"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Capacity telemetry is unobserved; one bounded local packet plus one sequential independent checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_TRUSTED_HTTPS_DEVICE_LAB_AND_SENDER_KEY_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-GROUP-SENDER-KEY-SCALABILITY-033"
+}

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "catalog_version": "1.0.0",
+  "default_decision": "DENY",
+  "fields": [
+    {"catalog_id": "api.header.x-nexus-profile", "owner": "profile_core", "purpose": "authorize_active_profile_context", "legal_basis": "contract_and_security", "retention": "session_audit_30d", "classification": "ACCOUNT_AUTHORIZED_PROJECTION", "protection": "tls_and_encrypted_at_rest"},
+    {"catalog_id": "api.header.idempotency-key", "owner": "core_api_shell", "purpose": "prevent_duplicate_mutation", "legal_basis": "contract_and_security", "retention": "mutation_window_30d", "classification": "INTERNAL", "protection": "tls_and_encrypted_at_rest"},
+    {"catalog_id": "api.action.object-commitment", "owner": "chain_integration", "purpose": "bind_action_to_pseudonymous_object", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "salted_commitment_only"},
+    {"catalog_id": "api.action.payload-hash", "owner": "chain_integration", "purpose": "prove_payload_integrity_without_plaintext", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "hash_or_cid_only"},
+    {"catalog_id": "event.action.actor-commitment", "owner": "chain_integration", "purpose": "reconcile_chain_actor_without_wallet_or_identity", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "salted_commitment_only"},
+    {"catalog_id": "event.action.object-commitment", "owner": "chain_integration", "purpose": "reconcile_chain_object_without_private_target", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "salted_commitment_only"},
+    {"catalog_id": "db.action-intent.actor-commitment", "owner": "chain_integration", "purpose": "authorize_action_without_profile_projection", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "salted_commitment_only"},
+    {"catalog_id": "db.action-intent.object-commitment", "owner": "chain_integration", "purpose": "bind_action_to_pseudonymous_object", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "salted_commitment_only"},
+    {"catalog_id": "db.action-intent.payload-hash", "owner": "chain_integration", "purpose": "prove_payload_integrity_without_plaintext", "legal_basis": "contract_and_security", "retention": "chain_reconciliation_lifetime", "classification": "CHAIN_COMMITMENT", "protection": "hash_or_cid_only"},
+    {"catalog_id": "db.outbox.payload", "owner": "chain_integration", "purpose": "transactional_domain_event_delivery", "legal_basis": "contract_and_security", "retention": "event_replay_400d", "classification": "CHAIN_COMMITMENT", "protection": "commitment_only_and_service_acl"},
+    {"catalog_id": "db.chain-event.payload", "owner": "chain_integration", "purpose": "deterministic_chain_event_reduction", "legal_basis": "contract_and_security", "retention": "event_replay_400d", "classification": "CHAIN_COMMITMENT", "protection": "commitment_only_and_service_acl"}
+  ]
+}

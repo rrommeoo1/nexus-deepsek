@@ -1,0 +1,44 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-FOLLOW-ACTION-REPLAY-SAFETY-068",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "shared_surfaces": ["feed", "fullscreen_viewer", "public_profile"],
+    "single_flight": true,
+    "explicit_stable_idempotency_key": true,
+    "failed_retry_reuses_key": true,
+    "confirmed_intent_rotates_key": true,
+    "active_persona_guard": true,
+    "detached_completion_guard": true,
+    "response_shape_validated": true,
+    "visible_controls_synchronized": true,
+    "devnet_hash_shape_validated": true,
+    "raw_error_rendered": false,
+    "cache_generation": "20260905-p1locale32"
+  },
+  "verification": {
+    "focused_follow_replay_safety": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 230, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Follow retries received a fresh implicit key and rapid taps could submit conflicting intents.", "resolution": "The control now suppresses duplicate taps and reuses an explicit stable key until a valid response confirms the intent." },
+    { "severity": "MEDIUM", "finding": "A late or malformed response could update one stale Follow button while other visible surfaces disagreed.", "resolution": "Persona/attachment/shape guards reject invalid completions and a valid result synchronizes all visible controls for the target." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "7a69467ed9d016cfb02ce74b7a7f95ce42668563fe845741449f073727245c56",
+    "apps/nexus-web/public/index.html": "7203bad26f3676b15f82778336565cd1c7b0c5d72d254837640c1d44d454961c",
+    "apps/nexus-web/test/audit.test.js": "ef2a9fb6dadf8ffa90f6883ea97c875d2ec2e06ae3c09f902d05d32396551bb0",
+    "planning/NX-WEB-SOCIAL-follow-action-replay-safety-v1.md": "579b1e5fb09c24cdf6a23041c263b5360f540309227554d8a0ab9ce622ce2955",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "da40da309b0d42b93e0b9f4420b85c9b3ccad694f8b645d67ae8eb2068b65c36",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "2ac1e3486842b77e6e1b98225c1d8149d7c679716c44019a97f7d76bed7204ca"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_RAPID_TAP_NETWORK_REPLAY_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-FOLLOW-REQUEST-ACTION-REPLAY-SAFETY-069"
+}

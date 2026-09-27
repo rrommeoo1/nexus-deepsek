@@ -1,0 +1,72 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "private-content-demo-unlock-v1",
+  "created_at": "2026-08-25T00:00:00+02:00",
+  "scope": [
+    "Private Content feed source",
+    "Owner-priced private profile access with platform minimum",
+    "Demo paywalled candidates when social following graph is empty",
+    "Browser smoke for unlock sheet and 90/10 quote"
+  ],
+  "policy": {
+    "default_deny_spend": true,
+    "real_payments": false,
+    "mainnet": false,
+    "network_egress": "local_browser_only",
+    "minimum_price_rule": "1 USD equivalent stablecoin per day minimum"
+  },
+  "changes": [
+    {
+      "file": "apps/nexus-web/public/app.js",
+      "summary": "Added privateDemoCandidates() fallback and rendered demo private creators with Math.max(100, owner chosen cents) per-day price display."
+    },
+    {
+      "file": "apps/nexus-web/public/index.html",
+      "summary": "Bumped static asset version to 20260825-social35 for phone/browser cache busting."
+    },
+    {
+      "file": "apps/nexus-web/test/audit.test.js",
+      "summary": "Updated static audit expectations for social35 and demo private candidates with 1 USD minimum / owner chosen prices."
+    }
+  ],
+  "verification": {
+    "npm_test": {
+      "status": "not_run",
+      "reason": "npm is not available in the current PowerShell PATH"
+    },
+    "static_audit_runtime": {
+      "status": "pass",
+      "checks": {
+        "social35_index": true,
+        "private_demo_candidates_fn": true,
+        "min_usd_visible": true,
+        "one_usd_demo": true,
+        "owner_price_demo": true,
+        "unlock_button": true,
+        "audit_updated": true
+      }
+    },
+    "browser_smoke": {
+      "status": "pass",
+      "url": "http://192.168.1.153:3000/?v=social35",
+      "observed": {
+        "app_script": "http://192.168.1.153:3000/app.js?v=20260825-social35",
+        "selected_feed": "Private",
+        "has_private_screen": true,
+        "candidate_count": 3,
+        "min_one_usd_visible": true,
+        "has_unlock_sheet": true,
+        "quote": "15.00 USD for 15 days at 1.00 USD/day; creator 13.50 USD, Nexus 1.50 USD"
+      }
+    }
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/app.js": "7CEA7B9A88F9A0726C9B4DB37C4B0D5794D1741C1638D838D701E9D49B9D262A",
+    "apps/nexus-web/public/index.html": "3DCBBB54F5C3AA0D50E30799FAB1EE03FF6249BDBC48A59B3564BF8135C296BF",
+    "apps/nexus-web/test/audit.test.js": "E71744EC9A008968A92980C0A0DC40F3087E1C876A3E3B9F43534C5FA460A863"
+  },
+  "next": [
+    "Implement local-only subscribed preview fallback for demo candidate receipts, clearly marked unpaid/demo.",
+    "Continue Social module: larger content canvas, richer creator post composer, and WhatsApp-grade Messages UI."
+  ]
+}

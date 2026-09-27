@@ -1,0 +1,47 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-RELATIONS-FAVORITES-INTEGRITY-070",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "relation_kinds": ["followers", "following", "favorites"],
+    "maximum_relation_rows": 80,
+    "response_kind_and_identity_validated": true,
+    "self_rows_rejected": true,
+    "relation_and_follow_state_validated": true,
+    "internal_avatar_urls_only": true,
+    "favorites_scope": "device_local_until_cross_device_privacy_review",
+    "maximum_favorite_ids": 500,
+    "favorite_ids_unique_positive_safe_integers": true,
+    "storage_failure_false_success": false,
+    "locales": ["ro", "en", "pl", "ar"],
+    "cache_generation": "20260905-p1locale34"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_relations_favorites_integrity": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 232, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Relation responses and avatar sources were accepted without a bounded client contract.", "resolution": "Kind, size, identity, relation state and internal media are validated before any row renders." },
+    { "severity": "MEDIUM", "finding": "A localStorage failure could visually select a Favorite that was not persisted.", "resolution": "Bounded persistence reports failure and the visual state remains unchanged with a localized controlled error." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "7eeb7d7953a8e6bf494aa0b7539675bbc9a70d949296393b7052fdf873384d10",
+    "apps/nexus-web/public/app.js": "675dd180f90cd1427a1b09be85a5220bd9cb62d0495e56d03e47dc75ac6d4fd7",
+    "apps/nexus-web/public/index.html": "075a60aee1b93261e09c565f66f5e888f13efbfeda9c6af2ad43acd7ba5bcfc6",
+    "apps/nexus-web/test/audit.test.js": "db3879935f620a98c248b398a84c3c1d91cdf62db0dd8521bc6d2c6a2329233d",
+    "planning/NX-WEB-SOCIAL-relations-favorites-integrity-v1.md": "ec02fa5642fadf8f20d4a0fd71810f29ede49211d4f9831ee987e91988cbf531",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "744ce29dcf8a006acc425ce7a848e7e4056b4dd5f1fc004c8ad188c1452ee839",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "09a8ad3918991c56c2884b4fdef19a7b7e5926a720b65d687ff9c20830ccf3bb"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_CROSS_DEVICE_FAVORITES_PRIVACY_DESIGN_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-SOCIAL-SEARCH-RESULT-INTEGRITY-071"
+}

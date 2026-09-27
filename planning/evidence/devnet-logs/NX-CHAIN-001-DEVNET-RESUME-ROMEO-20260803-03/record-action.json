@@ -1,0 +1,96 @@
+{
+    "emittedTransaction": {
+        "nonce": 9589,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede",
+        "senderUsername": "",
+        "receiverUsername": "",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "data": "cmVjb3JkQWN0aW9uQDAwMDIwMzExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEwMDAzMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMwMTAwMDAwMDAwMDAwMDAwMDEwMDAwMDE5ZmM2MzA1OTYzMDAwMDAxOWZjNjM0ZWQ0MzIyZmMyOTc3OTJmMGI2ZmZjMGJmY2ZkYjdlZGIwYzBhYTE0ZTAyNWEzNjVlYzBlMzQyZTg2ZTM4MjljYjc0YjZAYzlkZmIzZmJlNmJjZGYzN2Q3Y2ZkMTg1MDgyNDMwZWQzNjRmYTQzNDRlZDc4MmJlZGI0YjdkNTAzN2QwMWIyYzgyYjRlODhhY2M0MmYzYTY1ZGFhYWZiZjc5M2UyOTJmNDExMzNkNWUzOTIyZjMwNjBhZWM0NmI5MmY4NGMzMDA=",
+        "chainID": "D",
+        "version": 2,
+        "options": 0,
+        "guardian": "",
+        "signature": "96e50e46bbd1763cb8797e18b9204d403a4e0f95dbd919a3c69aeecae0e0b9fba0c01d926e6eb751db62d646f2350799c48750ee62a8b89fc9b212a2e99ed001",
+        "guardianSignature": "",
+        "relayer": "",
+        "relayerSignature": ""
+    },
+    "emittedTransactionData": "recordAction@00020311111111111111111111111111111111111111111111111111111111111111110003222222222222222222222222222222222222222222222222222222222222222233333333333333333333333333333333333333333333333333333333333333330100000000000000010000019fc63059630000019fc634ed4322fc297792f0b6ffc0bfcfdb7edb0c0aa14e025a365ec0e342e86e3829cb74b6@c9dfb3fbe6bcdf37d7cfd185082430ed364fa4344ed782bedb4b7d5037d01b2c82b4e88acc42f3a65daaafbf793e292f41133d5e3922f3060aec46b92f84c300",
+    "emittedTransactionHash": "b4987f83d572551efe2c749edc87ad6511f68c95ce27952bda0f8a45420dc34b",
+    "contractAddress": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+    "transactionOnNetwork": {
+        "type": "normal",
+        "processingTypeOnSource": "SCInvoking",
+        "processingTypeOnDestination": "SCInvoking",
+        "hash": "b4987f83d572551efe2c749edc87ad6511f68c95ce27952bda0f8a45420dc34b",
+        "nonce": 9589,
+        "round": 15289416,
+        "epoch": 6334,
+        "value": "0",
+        "receiver": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+        "sender": "erd1r69gk66fmedhhcg24g2c5kn2f2a5k4kvpr6jfw67dn2lyydd8cfswy6ede",
+        "gasPrice": 1000000000,
+        "gasLimit": 20000000,
+        "gasUsed": 20000000,
+        "data": "cmVjb3JkQWN0aW9uQDAwMDIwMzExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTEwMDAzMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMwMTAwMDAwMDAwMDAwMDAwMDEwMDAwMDE5ZmM2MzA1OTYzMDAwMDAxOWZjNjM0ZWQ0MzIyZmMyOTc3OTJmMGI2ZmZjMGJmY2ZkYjdlZGIwYzBhYTE0ZTAyNWEzNjVlYzBlMzQyZTg2ZTM4MjljYjc0YjZAYzlkZmIzZmJlNmJjZGYzN2Q3Y2ZkMTg1MDgyNDMwZWQzNjRmYTQzNDRlZDc4MmJlZGI0YjdkNTAzN2QwMWIyYzgyYjRlODhhY2M0MmYzYTY1ZGFhYWZiZjc5M2UyOTJmNDExMzNkNWUzOTIyZjMwNjBhZWM0NmI5MmY4NGMzMDA=",
+        "signature": "96e50e46bbd1763cb8797e18b9204d403a4e0f95dbd919a3c69aeecae0e0b9fba0c01d926e6eb751db62d646f2350799c48750ee62a8b89fc9b212a2e99ed001",
+        "sourceShard": 1,
+        "destinationShard": 1,
+        "blockNonce": 15189016,
+        "blockHash": "05fee87125a39d379c7675818a44aef5b1b504faf36fb62e3798fc69cb067c62",
+        "miniblockType": "TxBlock",
+        "miniblockHash": "5f9b9ed1e4f71aa1cd99d1b550e34991687cbde99beb90cd22837cf58e071aa5",
+        "timestamp": 1785736496,
+        "timestampMs": 1785736496000,
+        "logs": {
+            "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+            "events": [
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "recordAction",
+                    "topics": [
+                        "QWN0aW9uUmVjb3JkZWQ=",
+                        "ERERERERERERERERERERERERERERERERERERERERERE=",
+                        "IiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiI="
+                    ],
+                    "data": "AQ==",
+                    "additionalData": [
+                        "AQ=="
+                    ]
+                },
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "writeLog",
+                    "topics": [
+                        "HoqLa0neW3vhCqoVilpqSrtLVswI9SS7XmzV8hGtPhM=",
+                        "QHRvbyBtdWNoIGdhcyBwcm92aWRlZCBmb3IgcHJvY2Vzc2luZzogZ2FzIHByb3ZpZGVkID0gMTkyNjMwMDAsIGdhcyB1c2VkID0gNDkzMjc0OQ=="
+                    ],
+                    "data": "QDZmNmI=",
+                    "additionalData": [
+                        "QDZmNmI="
+                    ]
+                },
+                {
+                    "address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                    "identifier": "completedTxEvent",
+                    "topics": [
+                        "tJh/g9VyVR7+LHSe3IetZRH2jJXOJ5Ur2g+KRUINw0s="
+                    ],
+                    "data": null,
+                    "additionalData": null
+                }
+            ]
+        },
+        "status": "success",
+        "operation": "transfer",
+        "function": "recordAction",
+        "initiallyPaidFee": "929630000000000",
+        "fee": "929630000000000",
+        "chainID": "D",
+        "version": 2,
+        "options": 0
+    }
+}

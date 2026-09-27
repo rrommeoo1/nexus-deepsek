@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A37",
+  "surface": "LOCAL_SYNTHETIC_TOWN",
+  "executionMode": "local_mock_only",
+  "workload": {
+    "actorCount": 10000,
+    "trafficClass": "SYSTEM_TEST",
+    "walletMode": "FIXTURE_ONLY",
+    "dataMode": "GENERATED_ONLY",
+    "journey": ["PROFILE_SWITCH", "CLIP_VIEW", "CHAT_MESSAGE", "MARKET_BROWSE"],
+    "deterministicSeedRequired": true,
+    "corpusSha256Required": true
+  },
+  "resourceCaps": {
+    "timeoutMsMax": 30000,
+    "actorsMax": 10000,
+    "journeyActionsMax": 40000,
+    "forbiddenAttemptsMax": 50000,
+    "networkOperationsMax": 0,
+    "externalProcessOperationsMax": 0,
+    "incrementalCostEurMax": 0
+  },
+  "isolation": {
+    "payoutAllowed": false,
+    "reviewAllowed": false,
+    "reputationAllowed": false,
+    "organicEventsAllowed": false,
+    "adoptionEventsAllowed": false,
+    "productionSinksFailClosed": true,
+    "syntheticMetricsSeparate": true
+  },
+  "checkpoint": {
+    "authorityVerified": true,
+    "exactShape": true,
+    "completeRequestIndex": true,
+    "corpusRecomputedOnRestore": true,
+    "freshInstanceReplayDenied": true,
+    "prefixTruncationDenied": true
+  },
+  "effects": {
+    "network": 0,
+    "externalProvider": 0,
+    "economic": 0,
+    "realFunds": 0,
+    "incrementalCostEur": 0
+  }
+}

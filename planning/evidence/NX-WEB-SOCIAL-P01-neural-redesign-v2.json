@@ -1,0 +1,29 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "evidence_id": "NX-WEB-SOCIAL-P01-neural-redesign-v2",
+  "created_at": "2026-08-26T00:00:00+02:00",
+  "scope": [
+    "apps/nexus-web/public/styles.css",
+    "apps/nexus-web/public/index.html",
+    "apps/nexus-web/test/audit.test.js"
+  ],
+  "change_summary": [
+    "Added an explicit Neural Glass v2 visual override layer for the attached futuristic Nexus reference direction.",
+    "Expanded the redesign beyond the Social feed to login/landing, app shell, phone frame, header switches, stories, clip viewport, action wells, modal panels, bottom dock, messages/live/profile glass cards and empty states.",
+    "Forced a new static asset cache version: 20260826-neural44."
+  ],
+  "constraints": [
+    "No paid provider, no production deployment, no real funds.",
+    "Browser visual inspection was not performed because browser control for localhost is blocked by saved user preference; local HTTP and deterministic tests were used instead."
+  ],
+  "verification": {
+    "node_check_app_js": "passed",
+    "node_test_audit": "20/20 passed",
+    "local_http_root": "served index.html containing /styles.css?v=20260826-neural44 and /app.js?v=20260826-neural44"
+  },
+  "hashes_sha256": {
+    "apps/nexus-web/public/styles.css": "AB5DE5332D49429CFEB4181B9D006F24D8E6169183AB234B31E036D28FF16692",
+    "apps/nexus-web/public/index.html": "7B2BE9E731E97B5C4E1234E9E78809B35893017E57BDEA32D6DA3BA43D3912AD",
+    "apps/nexus-web/test/audit.test.js": "43C795C24473FF71C21BB2937AEABFE85032D9E4356F72B7373070B69D275AA9"
+  }
+}

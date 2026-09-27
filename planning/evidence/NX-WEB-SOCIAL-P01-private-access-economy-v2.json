@@ -1,0 +1,53 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "slice": "private-access-economy-v2",
+  "created_at": "2026-08-24T00:00:00+02:00",
+  "cost_incremental": 0,
+  "environment": "local_demo_only",
+  "changed_files": {
+    "apps/nexus-web/public/app.js": "A4152D6DB0817F2B1457F5027A63206809068A6FB7494EB0C777E3A9099D0B4F",
+    "apps/nexus-web/public/styles.css": "4CB0143A89A5492653E33CBDE10EFF6B3D947C27069DA075D94B2D1F870E84F7",
+    "apps/nexus-web/lib/api.js": "415CB063EC0882A32FDCDD8B0C6AB580B9D9B7D4A1F39F09EEB5693D0C201780",
+    "apps/nexus-web/lib/repo.js": "1204C3AE4A20864017C4A219EB51FF856F9730D48B9CB14980B0FE4EDFB4681F",
+    "apps/nexus-web/lib/db.js": "C721D7AA4ABED8ACE98237E03F2E1FCA484F50BD011A4326CF8ECB64044F1678",
+    "apps/nexus-web/test/audit.test.js": "5523941981757C7D1DC063BE9751C56A3E75B6B9B7E2C04430CE56AEF7177573"
+  },
+  "implemented": [
+    "Private profile price is now owner-chosen per day with a minimum of 1 USD or stablecoin equivalent.",
+    "Visitor chooses the duration in days; the quote computes price_per_day * days.",
+    "Creator/Nexus split remains 90/10 for private profile access.",
+    "Private Content now has a subscribed-content section that loads posts from active private access receipts.",
+    "A local private_profile_access_receipts table models viewer, owner, persona, duration, expiry, split, privacy mode and receipt hash.",
+    "Curiosity reveal is modeled as VISITOR_REVEAL_RECIPROCAL with a 2x multiplier and reciprocal access policy, not unilateral visitor exposure.",
+    "Demo receipts are status demo_unpaid and never represent real settlement, stablecoin transfer, xMoney payment or on-chain execution."
+  ],
+  "verification": {
+    "node_repl_source_text_module": {
+      "app": "ok",
+      "api": "ok",
+      "repo": "ok",
+      "db": "ok"
+    },
+    "static_contracts": {
+      "owner_chosen_price_per_day": true,
+      "minimum_1_usd_equivalent": true,
+      "private_content_subscribed_feed": true,
+      "curiosity_reveal_reciprocal_double_price": true,
+      "demo_receipt_no_real_payment": true
+    },
+    "browser_smoke": {
+      "url": "http://192.168.1.153:3000/?v=social34",
+      "private_screen_opened": true,
+      "feed_label": "Private",
+      "subscribed_content_section_visible": true,
+      "per_day_copy_visible": true,
+      "minimum_usd_copy_visible": true
+    }
+  },
+  "limitations": [
+    "The currently running backend process may need a safe restart before new API routes and schema migrations are loaded.",
+    "No real payment, settlement, stablecoin transfer, xMoney integration, escrow or mainnet/devnet transaction was executed.",
+    "The visitor reveal mechanism is only modeled as a reciprocal policy and demo quote; production requires legal/safety review, consent wording and abuse controls."
+  ],
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS"
+}

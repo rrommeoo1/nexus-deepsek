@@ -1,0 +1,96 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-RUST-20260802T205328524Z-5de90daf",
+    "executor_role":  "C03",
+    "status":  "PASS",
+    "scope":  "compiled_multiversx_rust_contract_wasm_and_rustvm_scenarios",
+    "assertions":  87,
+    "failures":  [
+
+                 ],
+    "acceptance":  {
+                       "rust_compile":  "PASS",
+                       "sc_meta_abi":  "PASS",
+                       "locked_wasm_build":  "PASS",
+                       "wasm_reproducible":  "PASS",
+                       "rust_vm_tests":  "PASS_9_OF_9",
+                       "rust_vm_differential_scenarios":  "PASS_4_OF_4",
+                       "govm_gas_trace_parser":  "PASS_9_ASSERTIONS",
+                       "go_vm_differential_scenarios":  "PASS_4_OF_4",
+                       "actual_go_vm_gas":  "PASS",
+                       "real_ed25519_vm_verification":  "PASS",
+                       "v1_baseline_preserved_v2_staged":  "PASS"
+                   },
+    "build":  {
+                  "rustc":  "1.88.0",
+                  "framework":  "0.66.2",
+                  "ei_version":  "1.5",
+                  "wasm_bytes":  11476,
+                  "wasm_sha256":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                  "codehash":  "00a65735a13a6fb18193f3dfcfb95a784e52041c062fe87524ecbcc40f59d17e",
+                  "llvm_mingw_release":  "20260616-ucrt-x86_64",
+                  "llvm_mingw_sha256":  "b9b68a4d276e16fa25802aaba458e4638f64b3884c290aaccdc2d87083b6ca35"
+              },
+    "packet_completion":  {
+                              "ready":  false,
+                              "ready_for_independent_t0_review":  true,
+                              "reason":  "INDEPENDENT_T0_REVIEW_PENDING"
+                          },
+    "claims_excluded":  [
+                            "devnet_transaction",
+                            "mainnet_readiness",
+                            "production_security_audit"
+                        ],
+    "external_gates":  {
+                           "go_vm_artifact":  "PASS_VERIFIED_V5_1_0",
+                           "linux_runtime":  "PASS_WSL_2_7_11_UBUNTU_24_04",
+                           "go_vm_differential":  "PASS_4_OF_4",
+                           "actual_vm_gas":  "PASS_GOVM_1_5_SNAPSHOT",
+                           "gas_trace_parser":  "PASS_READY_FOR_ACTUAL_LOGS",
+                           "independent_t0_review":  "PENDING_AFTER_DIFFERENTIAL",
+                           "production_enablement":  "BLOCKED"
+                       },
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "subject_sha256":  "3cfc1d8d83cb09539fee4ad02cf547e3778e5a210965e8313996396be1521456",
+    "artifact_sha256":  {
+                            "contracts/nexus-actions/Cargo.toml":  "eb6896b9c437d13eeb253656aed056871882a4e76ef8ce32c36984e8fae81b1e",
+                            "contracts/nexus-actions/Cargo.lock":  "487106b90a3430efce099aa7a86d5c2e3f428ed8afbc0230119fd275e1e077e8",
+                            "contracts/nexus-actions/src/lib.rs":  "13dd972d0ed9ac03447d9407b64900a00a5c228a2682e30906a7a39aa377da23",
+                            "contracts/nexus-actions/meta/Cargo.toml":  "4aab685bf5eca1045cd2ec8cc84233e9de7786bf2d7ffae6fea9c8a2a54dd824",
+                            "contracts/nexus-actions/meta/src/main.rs":  "ae8331f48e6b24cfb457fcd9c298034e9c531c619aee2801493d9bd19915d6e5",
+                            "contracts/nexus-actions/wasm/Cargo.toml":  "f221eb6ffcbbed84de4675de00e2a9cf15b6b012102b88e5c19a762b21459db1",
+                            "contracts/nexus-actions/wasm/Cargo.lock":  "1a48eb3766cf5935c45d0e347622fcc06b4435d23d38fe893ebff3236c6d775c",
+                            "contracts/nexus-actions/tests/nexus_actions_scenario_rs_test.rs":  "ad7c4c114be83821f2332a2b87e24d7724ebd107d90ad1afd0413b46efeb9d11",
+                            "contracts/nexus-actions/output/nexus-actions.abi.json":  "5ec4c699480ebd3421c68d77b429eb80da78a5a67e597928f2798bbf30d35a63",
+                            "contracts/nexus-actions/output/nexus-actions.wasm":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                            "contracts/nexus-actions/output/nexus-actions.mxsc.json":  "e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d",
+                            "contracts/nexus-actions/output/nexus-actions.imports.json":  "70843caf5f5736097fc3115255d6fa764d6698843b352666c099a8a5607d639e",
+                            "contracts/nexus-actions/output/nexus-actions.codehash.txt":  "519aa1bc25181bc61d99695aa8bd0d82574bf4d511cf0bce064523d892736021",
+                            "contracts/nexus-actions/output/nexus_actions_proxy.rs":  "1a011d894e321c799c8bf5fa27eba98f52f0838bc29a371b491c8fb9402dbfd9",
+                            "contracts/nexus-actions/scenarios/signed-action-replay.scen.json":  "1f34dc815b86e29864bc1a7eaf70b1d8707a5e41f80d840d08eb51cacbf6af0e",
+                            "contracts/nexus-actions/scenarios/private-scope-denied.scen.json":  "aa5c3c6382ada4c0aee8f49dd1185e582d8bb7a1440673801f0b2bfc5371616f",
+                            "contracts/nexus-actions/scenarios/private-action-success.scen.json":  "0dc364ce80c2629d0ec1d43e90b44b49ad49002d06fbd0574a670b0d21c601a2",
+                            "contracts/nexus-actions/scenarios/pauser-stop.scen.json":  "16aeef2ed76d45e34a799bb634b5e6c82949f4339a4da6f05693867e24bca8b0",
+                            "packages/contracts/abi/nexus-actions.abi.json":  "9bd6f44e083a7b35ed9dde9d5fa61a4beaa118138566003d68fb457ded97934b",
+                            "packages/contracts/compatibility-baseline.v1.json":  "49567c5e2bafb79b1257918539f561a6e22486fca6ef3791d78b34b0ee257742",
+                            "planning/checkpoints/NX-CHAIN-001.md":  "c3bcdb17c46e779209d346e2087fbf7cdca48e27d70e9a5aadd95d1d027328c2",
+                            "planning/validate-chain-govm-preflight.ps1":  "77fe727a53506409405094111d93b55ca0d1e84d972a6cefeb268d097539ad64",
+                            "planning/evidence/NX-CHAIN-001-govm-preflight.json":  "4d167a92c9555bf6bb76682b92bb20f4bda17818eeab99625fa3239b4b1ce064",
+                            "planning/parse-govm-gas.ps1":  "7712213736ac30ca896c824b4a2bf50dfc5d19a0fc462c5d877dfb64ada313ad",
+                            "planning/validate-govm-gas-parser.ps1":  "f7154f2df9b60079db20367dbe6add7e9ac2e86b3df3bea8be89b4a687a4b767",
+                            "planning/fixtures/govm-gas-sample.log":  "dd3ef6a334bc5be9ce21e1e151df99be5d1d4ae6e35e0acb2e8f7bba4fccffa5",
+                            "planning/enable-wsl-for-govm.ps1":  "8934110fa9f14632f75833693635a88b6bec351858531d8f61b44d66aa4bab3a",
+                            "planning/evidence/NX-CHAIN-001-wsl-enable.json":  "f030004f63fca9e659e43793c1be91361a4004e6e590d23420ac17c6d020519c",
+                            "planning/run-chain-govm.ps1":  "c209f184a16a49d8b80c0bd03074f8be47eb5a251e906aa047a2dbb06f4adfec",
+                            "planning/evidence/NX-CHAIN-001-govm-validation.json":  "81f43249832d194889a89da8ed91088d75bbed18014e2e7cbacd9d358c921215",
+                            "planning/evidence/NX-CHAIN-001-govm-gas.json":  "dd8403d53d67d9009b9566d8101f31d708aed89bcbe34e8fc8fca64b2527127a",
+                            "planning/validate-chain-rust.ps1":  "e1cac39e3ca54708e88be466eb172d6badc61d533fb4a440226d210cdfa0fd2e"
+                        },
+    "duration_seconds":  7.1718
+}

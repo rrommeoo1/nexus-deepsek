@@ -1,0 +1,253 @@
+schema_version: 1
+task_id: NX-ENGAGE-P01
+review_id: NX-ENGAGE-P01-C02-20260816-FINAL03
+reviewer_roles: [C02]
+required_control_scope: [C02, C04, C06, C08, C10]
+risk_class: T0
+review_mode: independent_adversarial_read_only_retest
+independence: independent_of_owner_A42
+decision: PASS
+gate_effect: T0_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+finalized: true
+incremental_cost: {amount: 0, currency: EUR}
+
+supersession:
+  previous_review_id: NX-ENGAGE-P01-C02-20260816-FINAL02
+  previous_review_sha256: f11185ce64b1ff3d8662837d9f192f639217eef41708e77960ac08b244060b88
+  previous_decision: CHANGES_REQUIRED
+  previous_subject_sha256: 0e7c40fad94a2e898fe7f96aca1a87d099c23d4d8cffab03762982dced1233a1
+  current_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+  current_subject_only: true
+
+owner_evidence:
+  path: planning/evidence/NX-ENGAGE-P01-validation.json
+  sha256: 51b0de90f8ad619a8a1ff9958aa42c0b16233be74c800b1d0cb3e2f4c9771dc9
+  run_id: NX-ENGAGE-P01-20260816-OWNER-FINAL03
+  executor_role: A42
+  status: PASS
+  assertions: 167
+  scenario_assertions: 41
+  deterministic_repetitions: 3
+  artifact_count: 25
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+  expected_review_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-engagement-integrity.ps1
+  executor_role: C02
+  process_execution_policy: Bypass
+  runs:
+    - run_id: NX-ENGAGE-P01-20260816-C02-FINAL03-A
+      status: PASS
+      assertions: 167
+      scenario_assertions: 41
+      deterministic_repetitions: 3
+      failures: 0
+      review_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+    - run_id: NX-ENGAGE-P01-20260816-C02-FINAL03-B
+      status: PASS
+      assertions: 167
+      scenario_assertions: 41
+      deterministic_repetitions: 3
+      failures: 0
+      review_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+    - run_id: NX-ENGAGE-P01-20260816-C02-FINAL03-C
+      status: PASS
+      assertions: 167
+      scenario_assertions: 41
+      deterministic_repetitions: 3
+      failures: 0
+      review_subject_sha256: f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3
+  credential_name_matches: 0
+  network_operations: 0
+  external_provider_operations: 0
+  economic_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+artifact_binding:
+  status: PASS
+  artifact_count: 25
+  mismatches: 0
+  subject_recomputed_from_sorted_path_hash_lines: true
+  artifact_sha256:
+    packages/recommendations/api/index.ts: 42f95eeffd7bc365a90e7c85e5a0e881e67667e89fe574aba8ae8dfbf3516242
+    packages/recommendations/api/index.test.ts: 18b93b8af4b480943b4cfb8abe911b016b1845cf20639341936e39b2bfab95fd
+    packages/recommendations/api/engagement-contract.v1.json: d9d7266f70140718f0cef6b589434dc80e1852f19eb9c7cc15b772494f7dcfed
+    docs/20-engagement-integrity-viral-ranking.md: ee71c409cce557a12687b576b512412b9ecd74f548b1439d1c7ec4dfba7ae5e4
+    docs/09-action-ledger-classifieds.md: 543b173b170175eaaf5c0edae78a26e95109047b4a317b5d823801811ec6a5b6
+    docs/11-business-services-promotion-reviews.md: a0ca6bc6da0b05d4800a343c0e654c285ec35bb8518561e7c098317cc2ba9a95
+    docs/14-dating-pulse-discretion-trust.md: cbc94cd9b2cbf3e8fe78a2263bc8a652a2420f5ef093c71a2b3d207e1d029fb4
+    docs/15-recommendations-clips-watch-live-kids.md: f37e864f7b1bf9edcbd817208afbf91bc3191ebbb45bae8c3794bb632c6d9b0f
+    architecture/bounded-contexts.yaml: 4d67b6e95dd766dd07ccc48c1c4da9dd004a4ad9757393a899b86c20e1d770ed
+    planning/backlog-p0.yaml: 4f0a41e09d6668d0813df2bd85b6bc19e470af83f07e4722e96294866b2bb27c
+    planning/backlog-p1.yaml: 5aaa59291a8d2e000c2d93e8089d5dbb375ccdefd40b90753c7d33a83ac9f477
+    planning/capacity-scorecard.yaml: 8715243e07148359d8e7a40bf65a68be5cdc26ec85141e8a516333919928557b
+    planning/product-progress.yaml: 0344e7a284e9ae14457c6ed8554acbd019f49622c5a37cc35f00999c3fa03fa5
+    planning/checkpoints/NX-ENGAGE-P01.md: ec4192b2c7832df2c012470f49e76e3f2d4feb071f6ded669303a996a48f8dd5
+    planning/spend-control.yaml: b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c
+    planning/evidence/NX-TRUST-P01-validation.json: da7d0cbbb4ab00b50ad07aab78ec68d962e7cc5fd4cc5e357be17e324e0a69c2
+    planning/evidence/NX-SOCIAL-P01-validation.json: 781d140367c763b0eec30897549e980ad188c4c8937660d85ab46895e83b6f81
+    planning/evidence/NX-PROFILE-P01-validation.json: 984dc00697af6c56f85dd63e1342e4b7ed0220ccbe0d82c6e4dd64a3a7a6da3f
+    planning/evidence/NX-DATING-P01-validation.json: 9629a332907c68b69098c3ef9b3938121ff83a7f42d17905ddbc70dcda5b427d
+    planning/evidence/NX-MARKET-P01-validation.json: d6547ca79a842b4e76622f2429bd9d9a9d6ee40742daa84937b3671df44ade30
+    planning/evidence/NX-BIZ-P01-validation.json: 3daea91cee3d0f9f65e8d95b2df86d8ebc919bed1e4d2c63f562dbc539c96fdf
+    security/source-boundary-check.js: b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b
+    packages/contracts/node_modules/typescript/bin/tsc: 8d5fa5bd883fec0979fc2004f1fe1d99aef40570155d550eadc0b03b55513bf0
+    packages/contracts/package-lock.json: 8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b
+    planning/validate-engagement-integrity.ps1: dc130dcc2a3cacec5a73ae38ea94cc0c8468966d29b4473076afe182ccccac22
+
+independent_adversarial_assessment:
+  mode: validator_plus_in_memory_typescript_transpile_probe_plus_static_state_machine_review
+  subject_code_modified: false
+  official_validator_reproduced_three_times: true
+  owner_hashes_and_subject_match: true
+  exact_shape_signature_and_policy_binding: PASS
+  action_vs_moderation_authority_separation: PASS
+  creator_foreign_erasure_denied: PASS
+  author_withdrawal_tombstone: PASS
+  reaction_uniqueness_switch_undo_and_concurrency: PASS
+  signed_actor_and_owner_profile_type_binding: PASS
+  surface_object_matrix_on_publish_transition_and_restore: PASS
+  ordered_sha256_lineage_snapshot_and_durable_restore: PASS
+  public_negative_count_forbidden: PASS
+  fake_opinion_qualified_sentiment_only: PASS
+  fake_opinion_truth_verdict_or_direct_takedown: DENIED
+  paid_agent_system_test_incentivized_quarantined_ranker_input: EXCLUDED
+  ranking_input_permutation_invariance: PASS
+  conflicting_duplicate_actor_records: ALL_EXCLUDED
+  cluster_cap_selection_deterministic: PASS
+  exploration_allocation_per_cohort: PASS
+  exploration_reorder_determinism: PASS
+  exploration_excluded_traffic_and_quarantine: PASS
+  exploration_candidate_shortage: PASS_WITH_EXPLICIT_AVAILABLE_CANDIDATE_DEGRADATION
+  dislike_direct_removal_reputation_payment_path: ABSENT
+  network_provider_economic_organic_real_fund_effects: 0
+
+adversarial_probe_results:
+  execution: in_memory_transpile_and_evaluation_no_subject_write
+  ranking_permutations_tested: 4
+  ranking_distinct_outputs: 1
+  cluster_cap_effective_impressions: 100
+  cluster_cap_independent_clusters: 10
+  cluster_cap_negative_impressions: 50
+  cluster_cap_penalty_bps: 2000
+  conflicting_duplicate_permutations_tested: 3
+  conflicting_duplicate_distinct_outputs: 1
+  conflicting_actor_records_excluded: 2
+  invalid_surface_object_pairs:
+    MARKET_PROFILE: ENGAGEMENT_SURFACE_OBJECT_DENIED
+    KIDS_JOB: ENGAGEMENT_SURFACE_OBJECT_DENIED
+    SOCIAL_LESSON: ENGAGEMENT_SURFACE_OBJECT_DENIED
+  profile_type_substitution:
+    actor_profile_type: ENGAGEMENT_PROFILE_TYPE_BINDING_MISMATCH
+    owner_profile_type: ENGAGEMENT_PROFILE_TYPE_BINDING_MISMATCH
+    signed_snapshot_event_restore: ENGAGEMENT_SIGNATURE_INVALID
+  exploration:
+    inventory_slots: 10
+    reserved_new_slots: 1
+    selected_new_count: 1
+    allocation_bps: 1000
+    floor_satisfied: true
+    reordered_output_equal: true
+    paid_system_test_agent_incentivized_quarantined_selected: false
+    insufficient_three_candidates_selected: 3
+    insufficient_one_new_selected: 1
+    insufficient_all_non_new_floor_satisfied_against_available_new: true
+    no_eligible_selected: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: All twenty-five artifact hashes match OWNER-FINAL03 and the sorted path-hash subject independently recomputes to f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3.
+  ranking_order_and_duplicate_integrity:
+    status: PASS
+    evidence: Inputs are canonicalized before actor grouping; contradictory records for one actor are all excluded, identical duplicates collapse deterministically, cluster groups and actor selection are canonically ordered, and seven independent permutation probes produced one output per multiset.
+  surface_object_and_profile_binding:
+    status: PASS
+    evidence: Actor and owner profile types are exact signed command fields, both must match the policy-derived surface type, an exhaustive surface-object matrix is checked before every transition, and restore replays the same checks. Three formerly accepted invalid pairs and actor, owner and snapshot substitutions now fail closed.
+  exploration_allocation:
+    status: PASS
+    evidence: allocateExploration accepts one exact cohort, excludes ineligible, non-organic and quarantined candidates, deterministically orders eligible candidates, reserves ceil(slots times floor) new-content slots when available and reports satisfaction relative to available fresh inventory under candidate shortage.
+  fake_opinion_and_dislike_safety:
+    status: PASS
+    evidence: FAKE_OPINION remains private user sentiment, reaches penalty only through the same organic, cluster, sample and confidence gates, is separated normatively from AI provenance and never emits a factual verdict, direct takedown, reputation or payment decision. Dislike removal remains NEVER_FROM_DISLIKE.
+  immutable_history_and_erasure:
+    status: PASS
+    evidence: Signed exact-shape one-time commands, serialized nonces, append-only SHA-256 lineage, separate moderation authority, signed snapshots and exact durable checkpoints preserve creator non-erasure, author tombstones, undo history and deterministic restore.
+  zero_effects:
+    status: PASS
+    evidence: Three independent C02 runs and in-memory probes show zero credential, network, provider, economic, organic, real-fund and incremental-cost effects.
+
+findings:
+  - id: C02-ENGAGE-P01-001
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Ranking and duplicate handling are invariant to caller ordering.
+    closure_evidence:
+      - Parsed impressions are canonically ordered by actor commitment and full canonical record.
+      - All contradictory records for one actor are excluded; identical duplicates retain one deterministic record.
+      - Cluster selection sorts clusters and actors before enforcing the cap.
+      - Owner tests and independent probes over four cluster permutations and three conflicting-duplicate permutations produce one identical output per multiset.
+
+  - id: C02-ENGAGE-P01-002
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Signed profile types and an exhaustive surface-object matrix now enforce mode isolation.
+    closure_evidence:
+      - actorProfileType and ownerProfileType are exact signed fields and both must equal the policy-derived type for the surface.
+      - Every action checks the surface-object matrix before state transition, and snapshot restore replays the same command and transition validation.
+      - MARKET/PROFILE, KIDS/JOB and SOCIAL/LESSON are denied.
+      - Actor-type and owner-type substitution are denied even with a newly signed command; snapshot event substitution is denied on restore.
+
+  - id: C02-ENGAGE-P01-003
+    severity: HIGH
+    risk_gate: T0
+    status: CLOSED
+    title: Exploration is now an explicit deterministic per-cohort inventory allocation.
+    closure_evidence:
+      - allocateExploration requires one cohort, unique candidates, exact fields and bounded inventory slots.
+      - A ten-slot cohort with sufficient fresh candidates reserves and selects one fresh slot, yielding 1000 bps allocation.
+      - Reordering candidates does not change the allocation.
+      - Paid, AGENT, SYSTEM_TEST, INCENTIVIZED, quarantined and ineligible candidates cannot be selected.
+      - Insufficient inventory and insufficient fresh candidates degrade against available candidates without fabricating eligibility.
+
+findings_summary:
+  total: 3
+  open: 0
+  closed: 3
+  critical: 0
+  high: 3
+  new_findings: 0
+
+accepted_controls:
+  - OWNER-FINAL03 evidence, all twenty-five artifact hashes and the content-addressed subject match exactly.
+  - Three C02 runs reproduced 167 controls and 41 scenario assertions, each with three deterministic repetitions.
+  - All three FINAL02 findings have implementation, negative regression and independent closure evidence on FINAL03.
+  - Fake opinion, dislike privacy, non-erasure, append-only receipts, restore, anti-brigading, exploration and synthetic isolation regressions remain passing.
+  - No direct dislike-to-removal, reputation or payment path exists in the reviewed subject.
+  - SYSTEM_TEST execution produced zero network, provider, economic, organic, real-fund or incremental-cost effects.
+
+acceptance_blockers: []
+
+claims_excluded:
+  - production_ranker
+  - real_user_metrics
+  - production_storage
+  - public_chain_anchor
+  - mainnet_transaction
+  - external_moderation
+  - runtime_ai_provenance_integration
+  - legal_opinion
+  - formal_security_audit
+
+residual_scope_notes:
+  - PASS applies only to subject f57f7870a8ad7d8e81f0703ee74dbedf62576dd2a5ebe21ad030f5e92e1fb9e3 and the local deterministic SYSTEM_TEST scope.
+  - Profile-type signing is reviewed as a local action-authority attestation; production binding to the Profile registry and production key governance remain future integration controls.
+  - Lexicographic deterministic cluster selection closes caller-order dependence; production sampling-seed governance and sybil-resistance calibration remain production ranker controls.
+  - AI provenance runtime integration, external moderation, real-user metrics, public chain anchoring, legal opinion and formal security audit remain explicitly excluded.

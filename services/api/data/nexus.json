@@ -1,0 +1,29 @@
+{
+  "users": {
+    "u1": {
+      "id": "u1",
+      "handle": "@alice"
+    },
+    "u2": {
+      "id": "u2",
+      "handle": "@bob"
+    }
+  },
+  "profiles": {
+    "u1:social": {
+      "persona": "social",
+      "name": "Alice (social)",
+      "bio": "hello"
+    },
+    "u1:work": {
+      "persona": "work",
+      "name": "Alice (work)",
+      "bio": "cv"
+    },
+    "u2:social": {
+      "persona": "social",
+      "name": "Bob (social)",
+      "bio": "hi"
+    }
+  }
+}

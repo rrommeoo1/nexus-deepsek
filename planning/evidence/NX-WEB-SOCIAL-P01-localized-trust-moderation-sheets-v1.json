@@ -1,0 +1,80 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-LOCALIZE-TRUST-MODERATION-SHEETS-042",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_interface_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["trust_lens", "author_dispute", "content_and_comment_report", "automated_prepublication_reconsideration"],
+    "catalog_parity_enforced": true,
+    "truth_percentage_rendered": false,
+    "community_fake_is_factual_verdict": false,
+    "backend_label_meaning_rendered": false,
+    "raw_backend_error_in_moderation_ui": false,
+    "synthetic_reports_enforced": false,
+    "reconsideration_auto_publishes": false,
+    "external_share_enabled": false,
+    "cache_generation": "20260904-p1locale6"
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_tests_including_modal_accessibility": { "passed": 116, "failed": 0 },
+    "product_full_tests": { "passed": 209, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_SAVED_LOCAL_PERMISSION_DENIED_127_0_0_1",
+      "visual_rtl_or_device_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Trust, appeal, report and reconsideration failures could surface raw backend strings in safety-sensitive UI.",
+      "resolution": "Stable localized errors replace raw detail in every bounded safety mutation and read state."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Backend-provided label meanings were rendered directly and were Romanian-only.",
+      "resolution": "Known machine codes map to controlled localized explanations; unknown codes receive a generic non-verdict message."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Malformed or incomplete Trust assessments could cause fragile or ambiguous UI.",
+      "resolution": "Assessment objects and label arrays are checked and explicit unavailable fallbacks fail closed."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Report categories and reconsideration states mixed Romanian literals into other locales.",
+      "resolution": "RO, EN, PL and AR catalogue parity covers every bounded report and review state."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Dynamic moderation identifiers could reorder under Arabic UI.",
+      "resolution": "Machine codes and status identifiers are escaped and isolated as LTR runs."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "27f57e4fe1a2761f08f1ecb4b22b0bae63e43c88a8b01833309a86977ee2c105",
+    "apps/nexus-web/public/app.js": "11aef225bbc986fa47c3184705e109413a8e17e4b23b60be0094336d02e30aa5",
+    "apps/nexus-web/public/index.html": "63e444e5d26946044efc8a7f908bd666728b8242b7d77eac503b5433ec39d8bd",
+    "apps/nexus-web/test/core.test.js": "5051522586fca1567c107fe290ea139e790ea880aa16eb35933ff72a41184e49",
+    "apps/nexus-web/test/audit.test.js": "9b07c0114c1514da17537fc49ad7df2615ade7a9cf0058460082fb498592989d",
+    "planning/NX-WEB-SOCIAL-localized-trust-moderation-sheets-v1.md": "07ccd5f67688e079fccc311e83a9dfbcfa4c5070b931f643a470309155667280"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "Capacity indicator is not programmatically observable in this run; the separate worker remains usage-limited.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_SAFETY_LEGAL_NATIVE_LANGUAGE_REAL_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-CREATE-CAMERA-AND-DRAFTS-043"
+}

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A43",
+  "currencyUnit": "micros",
+  "transferableNexusToken": false,
+  "runtimeInputMode": "EXACT_SHAPE_FAIL_CLOSED",
+  "configuration": {
+    "canonicalDeepImmutable": true,
+    "hashContentAllowlisted": true,
+    "activeWindowRequiredAtEveryCalculation": true,
+    "allocationBinding": ["configHash", "contractVersion", "effectiveAt", "epochId"]
+  },
+  "creatorPool": {
+    "eligibleNetRevenueBps": 1500,
+    "perCreatorClaimCapBps": 500,
+    "fixedPayoutPerLike": false,
+    "fixedPayoutPerComment": false,
+    "verifiedPrincipalRequired": true,
+    "aggregateCapKeys": ["uniqueHumanPrincipal", "riskCluster"],
+    "qualificationCapsQeu": { "perSupporter": 100, "perDeviceCluster": 250, "perWalletCluster": 200 }
+  },
+  "nodePool": {
+    "eligibleNetRevenueBps": 1000,
+    "proofOfUsefulServiceRequired": true,
+    "signedServiceReceiptRequired": true,
+    "periodicSettlement": true,
+    "rewardPerPacket": false,
+    "ownerClusterCapBpsFromEightNodes": 1500,
+    "aggregateCapKeys": ["verifiedOwnerPrincipal", "verifiedOwnerRiskCluster"]
+  },
+  "gasSponsorship": {
+    "targetNetRevenueBps": 500,
+    "hardCapNetRevenueBps": 800,
+    "budgetSnapshot": "SIGNED_VERSIONED_EPOCH_SNAPSHOT",
+    "deriveLimitsInsidePolicy": true,
+    "unknownPriority": "DENY",
+    "zeroRevenueRequiresExplicitAcquisitionBudget": true,
+    "budgetExhaustedFreeActionState": "PENDING_SPONSORSHIP",
+    "terminalActionTransactionCardinality": 1
+  },
+  "supportSplitsBps": {
+    "CORE_TIP": { "creator": 9000, "platform": 500, "safetyReserve": 300, "infrastructure": 200 },
+    "CORE_SUBSCRIPTION": { "creator": 8500, "platform": 1000, "safetyReserve": 300, "infrastructure": 200 },
+    "PRIVE": { "creator": 8000, "platform": 1200, "safetyReserve": 500, "infrastructure": 300 }
+  },
+  "deductions": {
+    "types": ["TAX", "RAIL", "STORE", "REFUND", "CHARGEBACK"],
+    "statuses": ["CONFIRMED", "FROZEN", "REVERSED"],
+    "receiptRequired": true,
+    "freezeOnlyDisputedAmount": true
+  },
+  "settlementClaims": {
+    "uniqueKey": ["allocationId", "epochId", "principalId"],
+    "persistedConsumptionRequired": true,
+    "atomicConsumeBeforePayout": true,
+    "localReferenceStore": "InMemoryAtomicClaimStore_WITH_SNAPSHOT_RESTORE",
+    "productionAdapterCertification": "REQUIRED_EXTERNAL_GATE",
+    "states": ["RESERVED", "PARTIAL_FROZEN", "PAID", "REVERSED"],
+    "reserveBeforeClaim": true,
+    "replay": "DENY"
+  },
+  "rankingSeparation": { "paidSupportToOrganicWeight": 0, "promotedToOrganicWeight": 0, "systemTestToOrganicWeight": 0 },
+  "conservation": [
+    "support.gross=deductions+support.net",
+    "support.net=creator+platform+safetyReserve+infrastructure",
+    "creatorPool=claims+remainder",
+    "nodePool=claims+remainder",
+    "ledgerFunded=available+outstanding+paid+reversed",
+    "treasuryClosing>=0"
+  ],
+  "adultSurface": {
+    "name": "Nexus Prive",
+    "distribution": "WEB_SEPARATE",
+    "countryDefault": "DENY",
+    "publicIpfsAllowed": false,
+    "signedCapabilityRequiredPerQuoteAndSettlement": true,
+    "requiredGates": ["age", "identity", "consent", "territory", "country", "legalMemo", "provider", "taxReporting", "publication"],
+    "configAndEffectiveDateBound": true,
+    "capabilityBindings": ["profileId", "allocationId", "countryCode", "operation", "configHash", "distributionChannel"]
+  },
+  "externalGates": ["country_legal_memo", "payment_provider_approval", "tax_and_reporting", "independent_financial_and_security_review"]
+}

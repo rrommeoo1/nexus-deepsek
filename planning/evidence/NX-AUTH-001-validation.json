@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "run_id": "NX-AUTH-001-20260802T170258002Z-21cba7a5",
+  "observed_at": "2026-08-02T17:02:58.0182529+00:00",
+  "task_id": "NX-AUTH-001",
+  "status": "PASS",
+  "executor_role": "A11",
+  "scope": "local_synthetic_identity_and_embedded_wallet_boundary_sandbox",
+  "claims_excluded": ["external_provider_conformance", "production_wallet_cryptography", "production_transactional_repository_adapter", "independent_cryptographic_audit", "legal_custody_opinion"],
+  "assertions": 125,
+  "identity_test_assertions": 64,
+  "provider_adapter_calls": 12,
+  "strict_typescript": true,
+  "source_boundary_findings": 0,
+  "credential_name_matches": 0,
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" },
+  "acceptance": {
+    "issuer_subject_no_email_merge": true,
+    "nexus_cannot_reconstruct_key_alone": true,
+    "recovery_export_revoke_provider_outage": true,
+    "local_synthetic_only": true
+  },
+  "external_gates": {
+    "cryptographic_audit_before_production": "OPEN",
+    "custody_legal_memo": "OPEN",
+    "production_transactional_repository_adapter": "OPEN"
+  },
+  "subject_sha256": "1a603850c0b6cae77810a351302b77bc3616207add3135eca2153563a59c127e",
+  "artifact_sha256": {
+    "packages/identity/api/index.ts": "af8fd0029e25220ff49b11c2a3fa6e03286da1f09a392ac5007ec4025fdbdc5b",
+    "packages/identity/api/index.test.ts": "10516f8a1e21e08b03db49bfc9272f8b4226e6358753d498cb64ebf8c40958f6",
+    "planning/validate-auth.ps1": "b94d86c08b95bf8598d4efd3efe13b50623028901ee3016bea90a2ec7230f309",
+    "architecture/bounded-contexts.yaml": "a8473c39092a30fe0c2bb97256be41bcb77e14a18982e014f554329b8a6f3277",
+    "planning/spend-control.yaml": "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+    "planning/zero-cost-child-test.ps1": "120bde7b80036b46030897c61b29a6825917885aa1b7fb1009e42bd87de43e91",
+    "planning/evidence/NX-CAP-001-validation.json": "c48c4a9c4a3f284112db26850824faaacd9712924b6b23e145b26a452d6ecd9a",
+    "security/threat-model.v1.json": "74fa58660793ecd6e9fe992afd1818519e1636468fc4b38097516b712d78d72c",
+    "security/baseline-policy.v1.json": "1bc4401e3d7c06bf4ae76749492c8d40c2da3bfff8d383c569e7b1d513dbd043",
+    "security/source-boundary-check.js": "b81d40e273f9e9ba3d56972e854e764e2f31d763daec66bd4e54040a93b3697b",
+    "packages/contracts/package-lock.json": "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b",
+    "docs/13-global-auth-agent-network.md": "97a410e455346a4340f0e8ce1de6fcdfb0a28d49e01241054c264b818caaf79c",
+    "docs/04-security-compliance.md": "52195c00add418a59066ad8ab5cb8c6f41d60e8c6ae5162728c55afc4e0ca8cc"
+  },
+  "operational_provenance_sha256": {
+    "planning/backlog-p0.yaml": "28f7e352efe05502cc38c729e5b0e9a97207457eae155fff8289bb151a606cd0",
+    "planning/capacity-scorecard.yaml": "ff962f01ddd7f7eecf0e9f49131bbd85b511fe2893720d20216309af6e66dfc3",
+    "planning/checkpoints/NX-AUTH-001.md": "0dc1c073fdbfcc791fb8c988298ed0ab1558f45d9b3e7605d0aabd695f037c1a"
+  },
+  "deterministic_wall_seconds": 2.1645,
+  "failures": []
+}

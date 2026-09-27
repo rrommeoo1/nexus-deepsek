@@ -1,0 +1,107 @@
+schema_version: 1
+task_id: NX-AUTH-001
+reviewer_role: C12
+independence: sole_independent_checker
+mode: YELLOW_read_only_final_retest
+decision: PASS
+gate_effect: APPROVE_REVIEW_TO_DONE
+run_id: NX-AUTH-001-20260802T170402576Z-52469113
+validator_status: PASS
+assertions: 125
+identity_test_assertions: 64
+failures: 0
+review_subject_sha256: 1a603850c0b6cae77810a351302b77bc3616207add3135eca2153563a59c127e
+expected_review_subject_sha256: 1a603850c0b6cae77810a351302b77bc3616207add3135eca2153563a59c127e
+subject_matches_expected: true
+
+artifact_verification:
+  matched: 3/3
+  artifacts:
+    packages/identity/api/index.ts: af8fd0029e25220ff49b11c2a3fa6e03286da1f09a392ac5007ec4025fdbdc5b
+    packages/identity/api/index.test.ts: 10516f8a1e21e08b03db49bfc9272f8b4226e6358753d498cb64ebf8c40958f6
+    planning/validate-auth.ps1: b94d86c08b95bf8598d4efd3efe13b50623028901ee3016bea90a2ec7230f309
+
+finding_disposition:
+  - id: C12-AUTH-001
+    prior_severity: CRITICAL
+    status: CLOSED
+    evidence: Login challenge is synchronously claimed before the first await; the Promise.allSettled race has one success, one STATE_REPLAY, and one provider call.
+  - id: C12-AUTH-002
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: >-
+      Two recovery cases and proof challenges issued for the same wallet keyVersion are
+      completed with Promise.allSettled. Post-await compare-and-swap requires both
+      recovery.state=COOLDOWN and wallet.keyVersion=claimedChallenge.keyVersion.
+      Exactly one completion succeeds; the loser is marked CONFLICTED and returns
+      RECOVERY_COMMIT_CONFLICT. The winner assigns keyVersion=N+1 rather than performing
+      an unconditional increment.
+  - id: C12-AUTH-003
+    prior_severity: HIGH
+    status: CLOSED_FOR_SANDBOX
+    evidence: Repository export/restore preserves consumed challenges, revocation, wallet/recovery state, proof challenges, and entropy; production transactional persistence remains excluded and gated.
+  - id: C12-AUTH-004
+    prior_severity: HIGH
+    status: CLOSED
+    evidence: Owner and C12 runs bind the same stable subject; mutable operational provenance remains separated.
+  - id: C12-AUTH-005
+    prior_severity: MEDIUM
+    status: CLOSED_FOR_SANDBOX
+    evidence: Provider allowlist and positive safe keyVersion are enforced; production cryptography, audit, and legal custody claims remain excluded and gated.
+
+recovery_concurrency_retest:
+  cases: 2
+  proof_challenges: 2
+  initial_key_version: N
+  execution: Promise.allSettled
+  post_await_state_compare: true
+  post_await_key_version_compare: true
+  completion_update: keyVersion=N+1
+  successful_completions: 1
+  conflict_failures: 1
+  loser_error: RECOVERY_COMMIT_CONFLICT
+  conflicting_case_terminal_state: CONFLICTED
+  result: PASS
+
+owner_evidence:
+  run_id: NX-AUTH-001-20260802T170258002Z-21cba7a5
+  run_id_matches_expected: true
+  status: PASS
+  subject_sha256: 1a603850c0b6cae77810a351302b77bc3616207add3135eca2153563a59c127e
+  core_artifact_hashes_current: 3/3
+  claims_excluded:
+    - external_provider_conformance
+    - production_wallet_cryptography
+    - production_transactional_repository_adapter
+    - independent_cryptographic_audit
+    - legal_custody_opinion
+
+external_gates:
+  cryptographic_audit_before_production: OPEN
+  custody_legal_memo: OPEN
+  production_transactional_repository_adapter: OPEN
+  external_provider_conformance: NOT_CLAIMED
+  production_enablement_until_external_gates_close: BLOCKED
+
+closed_findings:
+  - C12-AUTH-001
+  - C12-AUTH-002
+  - C12-AUTH-004
+closed_for_sandbox_only:
+  - C12-AUTH-003
+  - C12-AUTH-005
+open_findings: []
+new_findings: []
+blocking_findings: []
+
+scope_guard:
+  implementation_modified: false
+  backlog_modified: false
+  scorecard_modified: false
+  checkpoint_modified: false
+files_modified:
+  - planning/evidence/reviews/NX-AUTH-001-C12-retest1.yaml
+  - planning/evidence/reviews/NX-AUTH-001-C12.yaml
+preserved_history:
+  - planning/evidence/reviews/NX-AUTH-001-C12-initial.yaml
+  - planning/evidence/reviews/NX-AUTH-001-C12-retest1.yaml

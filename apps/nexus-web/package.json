@@ -1,0 +1,50 @@
+{
+  "name": "@nexus/web",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Nexus all-in-one web3 social app — local full-stack product (Node 24, zero external runtime deps, MultiversX devnet).",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "release:check": "node scripts/release-check.mjs",
+    "account:purge:dry-run": "node scripts/account-purge.mjs",
+    "account:purge:execute": "node scripts/account-purge.mjs --execute",
+    "incident:status": "node scripts/incident-control.mjs",
+    "incident:control": "node scripts/incident-control.mjs --execute",
+    "recovery:drill": "node scripts/backup-restore-drill.mjs",
+    "drill:migration-restore": "node scripts/migration-backup-restore-drill.mjs",
+    "action:reconcile": "node scripts/action-ledger-reconcile.mjs",
+    "action:reconcile:repair": "node scripts/action-ledger-reconcile.mjs --repair",
+    "drill:mutation-outbox": "node scripts/mutation-outbox-drill.mjs",
+    "smoke:auth": "node scripts/smoke-auth.mjs",
+    "build:auth-clients": "node scripts/build-wc.mjs && node scripts/build-device-wallet.mjs",
+    "actors": "node scripts/actors.js",
+    "simulate:abuse": "node scripts/abuse-simulation.mjs",
+    "soak:local": "node scripts/local-soak.mjs",
+    "benchmark:e2ee-group": "node scripts/group-e2ee-benchmark.mjs",
+    "audit:e2ee:inventory": "node scripts/e2ee-audit-inventory.mjs",
+    "audit:social:inventory": "node scripts/social-integrity-inventory.mjs",
+    "audit:reads": "node scripts/read-authorization-inventory.mjs",
+    "audit:supply-chain": "node scripts/supply-chain-inventory.mjs",
+    "audit:deployment": "node scripts/deployment-contract-inventory.mjs",
+    "audit:data": "node scripts/data-index-inventory.mjs",
+    "audit:evidence": "node scripts/release-evidence-inventory.mjs",
+    "audit:m1-m3": "node scripts/m1-m3-acceptance-inventory.mjs",
+    "audit:m4-m5": "node scripts/m4-m5-acceptance-inventory.mjs",
+    "audit:m6-m8": "node scripts/m6-m8-acceptance-inventory.mjs",
+    "audit:m9": "node scripts/m9-acceptance-inventory.mjs",
+    "audit:m10": "node scripts/m10-acceptance-inventory.mjs",
+    "audit:m11": "node scripts/m11-acceptance-inventory.mjs",
+    "release:cycle-100": "node scripts/cycle-100-readiness.mjs"
+  },
+  "dependencies": {
+    "@multiversx/sdk-core": "^15.4.1",
+    "@multiversx/sdk-native-auth-client": "^2.0.1",
+    "@multiversx/sdk-native-auth-server": "^2.1.0"
+  }
+}

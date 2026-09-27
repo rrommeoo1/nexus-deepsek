@@ -1,0 +1,80 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-E2EE-RECOVERY-BROWSER-FAULT-INJECTION-031",
+  "checkpoint_date": "2026-09-02",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "scope": "Refresh-resilient, account-bound pending E2EE recovery activation with browser storage fault handling",
+  "controls": {
+    "indexeddb_version": 3,
+    "store": "recovery-activation",
+    "plaintext_activation_token_at_rest": false,
+    "cipher": "AES-256-GCM",
+    "wrapping_key": "non-extractable Web Crypto CryptoKey stored by IndexedDB structured clone",
+    "authenticated_context": ["Nexus account binding", "recovery device id", "activation expiry"],
+    "refresh_restore": true,
+    "concurrent_reads": "deterministic and non-rotating",
+    "wrong_account": "clear and deny",
+    "ciphertext_tamper": "clear and deny",
+    "expiry_boundary": "clear and deny",
+    "storage_write_failure": "memory-only continuation with explicit do-not-refresh warning",
+    "durability_confirmation": "IndexedDB transaction.oncomplete only",
+    "transaction_error": "reject",
+    "transaction_abort": "reject",
+    "successful_activation_cleanup": true,
+    "external_share_endpoint": false
+  },
+  "threat_model_note": "A non-extractable CryptoKey co-located with ciphertext prevents plaintext/export accidents; it is not represented as protection from compromised same-origin JavaScript or XSS.",
+  "verification": {
+    "targeted_core_audit_tests": { "passed": 105, "failed": 0 },
+    "full_tests": { "passed": 179, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 21,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_health": "PASS",
+      "insecure_api_denied": true,
+      "isolated_data": true
+    },
+    "independent_bounded_checker": {
+      "verdict": "PASS_LOCAL",
+      "critical": 0,
+      "high": 0,
+      "medium": 0
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "IDBRequest.onsuccess can occur before its transaction commits, allowing a false refresh-safe UI claim if the transaction later aborts.",
+      "resolution": "The state store now resolves only at transaction.oncomplete and rejects on transaction.onerror/onabort; a success-then-abort regression test is required."
+    },
+    {
+      "severity": "HIGH_PREVENTED_DURING_IMPLEMENTATION",
+      "finding": "A browser store can survive logout and expose a pending activation to a different Nexus account.",
+      "resolution": "The account commitment is stored and authenticated in AAD; a mismatch clears the state fail-closed."
+    }
+  ],
+  "residual_findings": [],
+  "external_release_gates": [
+    "real-device IndexedDB lifecycle lab under trusted HTTPS",
+    "formal independent production cryptography and XSS review",
+    "real WalletConnect attestation"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/chat-crypto.js": "41aa567b5c2dda39064438d8f7c8fa507a51e303af89820ead5db9f67376d5c4",
+    "apps/nexus-web/public/app.js": "57b562ff30a25eaafc3950edb667bd0ff4c8957aa98b56331033d67c8edde80b",
+    "apps/nexus-web/public/index.html": "5b3e725c6e7955e30689e3127eb91a6009a3b841041a7a0a8d24b24f96f8662a",
+    "apps/nexus-web/test/core.test.js": "126a8306d916757380f46b8d29a0b18f5a08e9fa7b0fd3fa5c5d7a9450482511",
+    "apps/nexus-web/test/audit.test.js": "962337b0903e661576ddd4226881fe19c779e8f4f1fe24311099d80535127be2"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Goal reports usageLimited; bounded local implementation with one sequential independent checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_CRYPTO_T1_TRUSTED_HTTPS_AND_REAL_DEVICE_LAB",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-GROUP-KEY-ROTATION-032"
+}

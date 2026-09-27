@@ -1,0 +1,50 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-CONVERSATION-CREATION-INTEGRITY-074",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "valid_kinds": ["direct", "group"],
+    "maximum_group_members_including_creator": 50,
+    "self_recipient_rejected_client_and_server": true,
+    "missing_persona_created_as_side_effect": false,
+    "normalized_title_bound": true,
+    "server_normalized_intent_returned": true,
+    "active_persona_guard": true,
+    "exact_recipient_set_required": true,
+    "validated_conversation_summary_required": true,
+    "stable_idempotency_key": true,
+    "single_flight_submit": true,
+    "locales": ["ro", "en", "pl", "ar"],
+    "cache_generation": "20260905-p1locale38"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_creator_and_api": { "passed": 2, "failed": 0 },
+    "product_full_tests": { "passed": 234, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Conversation creation could mutate a missing recipient persona and accepted success without binding returned participants to the submitted intent.", "resolution": "Missing personas fail closed; server returns the normalized intent and client requires exact persona/kind/title/recipient and participant equality." },
+    { "severity": "MEDIUM", "finding": "The API resolved arbitrary recipient arrays before the repository eventually refused groups over 50 members.", "resolution": "Client and server reject more than 49 recipients before lookup/creation and reject self-addressing." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "b97eb0ef0d8e197b0f358cbd65eadab6b08f0364651820178998428fca0da5df",
+    "apps/nexus-web/public/interface-locale.js": "552e605b2fad78be5b0d5120a56a448af9d641f76e442de85ec65158eb398cb8",
+    "apps/nexus-web/public/app.js": "7ec678d63fd4729a6c0eda9f66bf00390cdcf4fbb9356835a57feb977d68ddeb",
+    "apps/nexus-web/public/index.html": "463bf6d3ddbf9cb16b7510e2b1ae1f33b00c9952245386e286dd170ec492bf1e",
+    "apps/nexus-web/test/audit.test.js": "78c737789fafe2e2f9a0b5414ce594cb22a0d57bbbd660411cf920efd5578ba1",
+    "apps/nexus-web/test/core.test.js": "6af89e1be52dd083b57ec90f0e7acacaf85390670d5fc40cfd3625c4e7ff0ecf",
+    "planning/NX-WEB-SOCIAL-conversation-creation-integrity-v1.md": "0b87650b9934bba895bd3ebd60a5a79b527ece9f14eaefac0ec33679a8ff4330",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "0c843338b72c8a4463454184be72af81af5bc4c966de8fe8c66ececbb762bff1",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "bdcda118c836bcc868c67b8e99c89f4c1e8d3c3680b2ebf1640e0c938953d331"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_E2EE_CAPACITY_CALIBRATION_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-THREAD-RESPONSE-INTEGRITY-075"
+}

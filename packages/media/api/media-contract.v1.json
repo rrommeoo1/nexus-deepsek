@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "owner": "A40",
+  "surfaceScope": ["ADULT_CLIPS", "ADULT_WATCH"],
+  "upload": {
+    "mime": ["video/mp4"],
+    "container": ["mp4"],
+    "videoCodec": ["h264"],
+    "audioCodec": ["aac"],
+    "maximumBytes": 300000000,
+    "requires": ["authenticated_authorization", "expiry", "checksum", "clean_malware_verdict", "non_corrupt_probe"]
+  },
+  "ready": {
+    "requires": ["completion_binding", "worker_attestation", "moderation_approved", "rendition_checksums", "manifest_hash"],
+    "idempotency": ["assetId", "jobId"]
+  },
+  "playback": {
+    "maximumTtlSeconds": 300,
+    "boundTo": ["assetId", "manifestHash", "authenticated_viewer_commitment", "verified_audience_relation", "territory", "expiry"]
+  },
+  "purge": {
+    "requiredTargets": ["ORIGIN", "RENDITIONS", "INDEX", "CACHE"],
+    "terminalState": "PURGED",
+    "receiptVerificationRequired": true,
+    "conflictingReceipt": "DENY"
+  },
+  "externalEffectsExcluded": ["managed_storage", "managed_transcode", "public_cdn", "external_moderation", "live_streaming"]
+}

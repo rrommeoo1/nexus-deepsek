@@ -1,0 +1,72 @@
+.lockedProfileOffer {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 26px 18px 18px;
+  text-align: center;
+}
+
+.lockedProfileOffer > i {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid #2bd7ce;
+  border-radius: 50%;
+  background: #10262c;
+  color: #70f3ec;
+  font-size: 30px;
+  font-style: normal;
+  box-shadow: 0 0 28px #12cfc633;
+}
+
+.lockedProfileOffer h2,
+.lockedProfileOffer p { margin: 0; }
+
+.lockedProfileOffer > div {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.lockedProfileOffer > div button {
+  display: grid;
+  gap: 3px;
+  min-height: 72px;
+  padding: 10px 6px;
+  border: 1px solid #2c4854;
+  border-radius: 15px;
+  background: #0e1c26;
+  color: #eefcff;
+}
+
+.lockedProfileOffer > div button:active {
+  border-color: #4ce8df;
+  background: #11343a;
+}
+
+.lockedProfileOffer > div small,
+.lockedProfileOffer > small { color: #95a7af; }
+
+.unlockTerms {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 7px;
+  margin: 12px 0;
+}
+
+.unlockTerms button {
+  min-height: 44px;
+  border: 1px solid #2b414d;
+  border-radius: 12px;
+  background: #0c1821;
+  color: #b9c6cc;
+}
+
+.unlockTerms button.active {
+  border-color: #3bddd4;
+  background: #12383d;
+  color: #8ff9f2;
+}

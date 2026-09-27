@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CHAIN-001",
+  "run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-01",
+  "status": "ABORTED_PRE_EGRESS",
+  "occurred_at": "2026-08-03T00:06:56Z",
+  "operation_mode": "Resume",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+  "approval_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803",
+  "approval_receipt_status_before_abort": "ISSUED",
+  "approval_receipt_consumed": false,
+  "network_operations": 0,
+  "public_transactions": 0,
+  "economic_operations": 0,
+  "real_value": 0,
+  "incremental_cost": {
+    "amount": 0,
+    "currency": "EGLD"
+  },
+  "failure": {
+    "component": "planning/run-chain-devnet.ps1 approval-ID namespace guard",
+    "message": "Execute requires -AllowPublicDevnetPayload and an explicit NX-CHAIN-001-DEVNET-APPROVAL-* identifier.",
+    "cause": "The pre-existing guard accepted Execute approval IDs only and rejected the separately approved Resume namespace before receipt validation."
+  },
+  "remediation": {
+    "runner_guard": "Mode-specific: Execute accepts NX-CHAIN-001-DEVNET-APPROVAL-* and Resume accepts NX-CHAIN-001-DEVNET-RESUME-*.",
+    "offline_regression": "PASS 35/35",
+    "new_subject_sha256": "12327c5aa43468a1e59fd6c499cdaee7625bf00cc8893244716327d4bfd5a9f9",
+    "safety_decision": "SUPERSEDE_OLD_RECEIPT_AND_REQUIRE_NEW_SUBJECT_BOUND_OWNER_APPROVAL"
+  }
+}

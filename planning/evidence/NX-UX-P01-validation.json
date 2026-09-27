@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-UX-P01",
+  "run_id": "NX-UX-P01-20260819-OWNER-RETEST1",
+  "observed_at": "2026-08-18T22:49:02.740Z",
+  "executor_role": "OWNER_A31",
+  "status": "PASS",
+  "owner_decision": "READY_FOR_T1_RETEST_REVIEW",
+  "subject_sha256": "e17eb81ad923157013db4459d5fbc4f5b540de4a398d87c05c8cc622bea0d562",
+  "validation": {
+    "unique_controls": 73,
+    "breakdown": {
+      "build_gates": 1,
+      "lint_gates": 1,
+      "node_generated_tests": 3,
+      "source_render_assertions_in_tests": 39,
+      "regression_added_this_retest": 1,
+      "browser_journeys_carried_from_prior_owner_run": 21
+    },
+    "build": "PASS_DIST_SERVER_INDEX_GENERATED",
+    "lint": "PASS_ZERO_ERRORS_ZERO_WARNINGS",
+    "node_tests": "PASS_3_TESTS",
+    "residual_unqualified_claim_scan": "PASS_NONE_REMAINING"
+  },
+  "remediation_applied": {
+    "C02-UX-P01-001_closed": {
+      "readable_fonts": "all font-size >= 12px on phone/mobile surface",
+      "dialog_semantics": "composer, launcher, support, send have role=dialog, aria-modal, labelled, initial focus, focus containment, Escape close, focus return",
+      "tab_and_pressed_semantics": "role=tablist/tab with aria-selected; groups use aria-pressed",
+      "accessible_names": "icon-only actions carry descriptive aria-label"
+    },
+    "C02-UX-P01-002_closed": {
+      "persistent_disclosure": "demoRibbon (LOCAL INTERACTIVE DEMO ...) visible on mobile, plus phoneDemoLabel (DEMO ...)",
+      "qualified_simulated_claims": "on-chain proof, Trust Lens, identity check, seller verification, escrow, balances, earnings, metrics prefixed Demo/Synthetic",
+      "residual_fix": "Dating Connections 'Identity verified' -> 'Demo identity status'; 'appealable and never replace' -> 'appealable, synthetic and never replace'"
+    }
+  },
+  "effects": {
+    "external_network": 0,
+    "provider_calls": 0,
+    "uploads": 0,
+    "publishes_or_deploys": 0,
+    "economic_or_real_fund_effects": 0,
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "artifacts": [
+    { "path": "apps/nexus-demo/app/page.tsx", "sha256": "548ac58e033c57338cdf82b983b3bc4d7df658378cc574d19de3e89675217d6f" },
+    { "path": "apps/nexus-demo/app/globals.css", "sha256": "06e23fd4befdb9eeee24326e4d4d0564aaf34f37fe043b4a865ae6a6889b9c6a" },
+    { "path": "apps/nexus-demo/app/layout.tsx", "sha256": "c793f83232539910c051c5a91817a0aa3d5c9d5dd4ad0a2d53ae0506b5156812" },
+    { "path": "apps/nexus-demo/tests/rendered-html.test.mjs", "sha256": "bba9ea40070cd197eca00acaf0f1a886189d72012d934be54ad6c1f13d5c50e9" },
+    { "path": "apps/nexus-demo/package.json", "sha256": "cb0b372a64102b06859528e0b03fbe57d7bce429cc9514bbe60faf7a60a46aca" },
+    { "path": "apps/nexus-demo/.openai/hosting.json", "sha256": "d2841f8a91a91bab4f4a1e27671e7d3fe8f02261eb41996f43ac61e6970a9d74" },
+    { "path": "planning/backlog-p1.yaml", "sha256": "a0d3ea965a2b4f94956fef8f8e4a0452ec7d8e670f48fca047918cb4e05c0e63" },
+    { "path": "planning/checkpoints/NX-UX-P01.md", "sha256": "2deb873e5e3ffe9f0b6793a79fc1f6eaa853876015a9f3fa2ad3eb86e0bf08ef" },
+    { "path": "architecture/bounded-contexts.yaml", "sha256": "5884c9014a10791e2a5276a0686af013fc981d969c81740c293eedbbaa261eb7" },
+    { "path": "planning/evidence/screenshots/NX-UX-P01-social-desktop.png", "sha256": "d9dabae1f68f6d1b528e735a648259d6d17de09d0bd0509108eec3531d784d1e" },
+    { "path": "planning/evidence/screenshots/NX-UX-P01-work-desktop.png", "sha256": "8707bf3f3227320f7b73759f82345c8d88c7abe26479187fac383cc5a7ebfc2d" },
+    { "path": "planning/evidence/screenshots/NX-UX-P01-dating-desktop.png", "sha256": "eb4ab039b21b77b9d469bc60015a3435de92b26e67eeb9d5ee084087c65c21e7" },
+    { "path": "planning/evidence/screenshots/NX-UX-P01-market-desktop.png", "sha256": "15aef3377849ca5ac16a96ce27e59e1e197cf0a73857b727568687a9250c260c" }
+  ],
+  "limitations_notes": [
+    "The Dating screenshot captures the Discover view only; the remediated 'Demo identity status' text lives in the Connections subview, which is not among the captured screenshots. Screenshots therefore remain valid for the captured views.",
+    "Browser journeys are carried forward from the prior owner run (2026-08-16); the remediation changed only static text/semantics covered deterministically by the strengthened node regression."
+  ],
+  "exclusions": [
+    "production backend and provider connectivity",
+    "real wallet identity media payments or personal data",
+    "public deployment and app-store certification",
+    "formal accessibility certification and external security audit"
+  ]
+}

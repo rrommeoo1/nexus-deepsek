@@ -1,0 +1,61 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-THREAD-RESPONSE-INTEGRITY-075",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "exact_conversation_binding": true,
+    "exact_requesting_device_binding": true,
+    "viewer_persona_binding": true,
+    "server_privacy_marker_required": true,
+    "complete_conversation_summary_required": true,
+    "ordered_unique_message_ids_required": true,
+    "message_sender_membership_required": true,
+    "receipt_membership_and_time_order_required": true,
+    "internal_attachment_urls_only": true,
+    "e2ee_envelope_shape_and_device_binding_required": true,
+    "meeting_call_typing_validation": true,
+    "silent_row_filtering": false,
+    "maximum_messages": 500,
+    "maximum_meetings": 100,
+    "maximum_calls": 50,
+    "cache_generation": "20260905-p1locale39"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_thread_and_api": { "passed": 2, "failed": 0 },
+    "audit_contract": { "passed": 61, "failed": 0 },
+    "product_full_tests": { "passed": 234, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "The active thread accepted an unbound response and silently removed malformed participant/message rows, allowing a partial or mismatched thread to look authoritative.",
+      "resolution": "The server returns exact conversation/device/viewer scope and privacy evidence; the client rejects the complete response unless every bound entity validates."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Meeting history had no repository read bound and calls, meetings and typing rows were weakly filtered before rendering.",
+      "resolution": "Meeting reads are capped at 100 and every auxiliary row is bounded and validated against the active conversation participants."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/api.js": "45a3ee2ba71d8b10a288f5f5ec14d99e84271a6243f1a14e42f42e916f6a63b9",
+    "apps/nexus-web/lib/repo.js": "92ae36050f339004cb9c2165710cd182e15a221fb1bcc5d5d26001fa2ca6f206",
+    "apps/nexus-web/public/app.js": "2c8b5a76a9220bfce8aea46f913af6a5f1aed0c7bc0e87fe38786e4141b24dc8",
+    "apps/nexus-web/public/index.html": "f65c1d1a2b370b994838cddbd7b04aa049b88819bfa92fb15b2e174e3b6243db",
+    "apps/nexus-web/test/audit.test.js": "4bfce929bc90d97820c254a18fe03ff7ec116b9f48c0f1ed9afe2237bdd51196",
+    "apps/nexus-web/test/core.test.js": "5742685dad1d71ab2a617f28b70f65f33ec798a3dd9f83a3cd0dc03226ed188e",
+    "planning/NX-WEB-SOCIAL-thread-response-integrity-v1.md": "6f4c7b8b5b3d3c768c2d2eb30e3842a8b6f84f18f2d2d685f44cca41f3a5c54f",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "cebffdc803e84f4945a584fdd6e2369b1ce19bfd6d814fd2329d03acacc21a01",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "d41c6048cdcb82b3f159699a6f97e4f47cc9145b550e0bbe170f0e44c9ba425b"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_E2EE_CAPACITY_CALIBRATION_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-THREAD-MUTATION-RESULT-INTEGRITY-076"
+}

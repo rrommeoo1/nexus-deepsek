@@ -1,0 +1,48 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-GDPR-LIFECYCLE-UI-059",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "destructive_account_action_executed": false,
+  "implementation": {
+    "lifecycle_latest_request_and_persona_bound": true,
+    "deletion_state_and_timestamp_validation": true,
+    "export_collection_limit": 20,
+    "same_origin_export_path_allowlist": "/api/account/exports/{positive-id}",
+    "future_export_expiry_required": true,
+    "explicit_stable_idempotency_keys": true,
+    "single_flight_mutations": true,
+    "controlled_error_rendering": true,
+    "step_up_preserved": true,
+    "external_share_enabled": false,
+    "cache_generation": "20260905-p1locale23"
+  },
+  "verification": {
+    "syntax_and_focused_lifecycle_audit": { "passed": 2, "failed": 0 },
+    "product_full_tests": { "passed": 222, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Stale lifecycle responses could overwrite another persona or detached screen.", "resolution": "Latest-request and profile/persona guards now reject stale completions." },
+    { "severity": "HIGH", "finding": "Export download destinations were not confined in the UI.", "resolution": "Only exact same-origin export paths with positive identifiers and future expiry are admitted." },
+    { "severity": "HIGH", "finding": "Lifecycle mutations lacked complete replay and concurrent-submit controls.", "resolution": "Stable intent keys, single-flight guards and intent-key rotation were added." },
+    { "severity": "MEDIUM", "finding": "Malformed lifecycle payloads and raw failures could reach rendering.", "resolution": "Strict shape validation and controlled errors now fail closed." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "f699920f94777e71b99d473aeb40e78e3ada0904e009437c7317d7e4878fbe89",
+    "apps/nexus-web/public/app.js": "43f8735cce537de99855805668f8aba2303cffd5de6f139aa43ae598b7d58ab6",
+    "apps/nexus-web/public/index.html": "cef80429a354cbcd22bc24ab1eaea9c2276c878d44c86347d4c4fb7fcb7eef27",
+    "apps/nexus-web/test/audit.test.js": "e531f947ffd83658e944f5498bceb929fab20fd7075056bb2f431364a0972617",
+    "apps/nexus-web/lib/account-lifecycle.js": "66d013b205f49c688accd64684fa8383970ab1024a5633616653915369540517",
+    "planning/NX-WEB-SOCIAL-gdpr-lifecycle-ui-hardening-v1.md": "436cad3c2ffdafb42d9b44cbb1ae5a43c5c2cb1c0a6839b9014d31432a51a759",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "d119691d80b0fff260a7a59034284414ff4cbccbfdfbed24121e1b7f6a8cae65",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "0be9260c4026e5caf49b1a0560ed132b68197d48b255ade188988b9061d166c9"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_LEGAL_RETENTION_NATIVE_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-AUTH-P02-LOCALIZED-AUTH-SHELL-060"
+}

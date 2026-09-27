@@ -1,0 +1,87 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-REAL-DEVICE-LAB-HARNESS-035",
+  "checkpoint_date": "2026-09-03",
+  "environment": "local_desktop_browser_http_loopback_secure_context",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "browser_observation": {
+    "schema": "NEXUS_E2EE_DEVICE_LAB_REPORT_V1",
+    "started_at": "2026-09-03T06:17:17.631Z",
+    "platform_class_manual_label": "android",
+    "real_android_device_claim": false,
+    "secure_context": true,
+    "device_count": 50,
+    "distinct_key_count": 50,
+    "message_text_bytes": 4000,
+    "payload_plaintext_bytes": 4046,
+    "shared_ciphertext_bytes": 4062,
+    "wrapper_ciphertext_bytes_total": 15100,
+    "ciphertext_bytes_total": 19162,
+    "key_generation_elapsed_ms": 75.2,
+    "encrypt_elapsed_ms": 22.2,
+    "decrypt_first_elapsed_ms": 2.5,
+    "decrypt_last_elapsed_ms": 1.5,
+    "exact_sorted_unique_coverage": true,
+    "first_device_decrypt_ok": true,
+    "last_device_decrypt_ok": true,
+    "keys_exported": false,
+    "ciphertext_exported": false,
+    "network_requests_by_harness": 0,
+    "console_warning_or_error_count": 0,
+    "local_gate": "PASS_LOCAL_DEVICE_OBSERVATION"
+  },
+  "cancellation_observation": {
+    "requested_device_count": 500,
+    "result": "CANCELLED_NO_RESULT_RETAINED",
+    "download_enabled": false
+  },
+  "static_route_probes": {
+    "/diagnostics/e2ee-device-lab": 200,
+    "/DIAGNOSTICS/e2ee-device-lab.html": 404,
+    "/diagnostics/x/../e2ee-device-lab.html": 404,
+    "/diagnostics%2fe2ee-device-lab.html": 404,
+    "/diagnostics/other.html": 404
+  },
+  "verification": {
+    "focused_tests": { "passed": 3, "failed": 0 },
+    "product_full_tests": { "passed": 197, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 25, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "verdict": "PASS_LOCAL", "critical": 0, "high": 0, "medium": 0 }
+  },
+  "resolved_findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "Static diagnostics gate ran before canonical path validation and could be bypassed by traversal aliases.",
+      "resolution": "Canonical segment decoding and exact allowlisting now reject raw/encoded traversal, separators, NUL and mixed-case Windows aliases before filesystem resolution."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Cancellation during expensive fanout could continue to a downloadable PASS report.",
+      "resolution": "Cancellation is checked after fanout, after both sampled decryptions and synchronously before publishing the report."
+    }
+  ],
+  "residual_findings": [],
+  "limitations": [
+    "This was a local desktop-browser observation, not a real Android/iOS device test",
+    "The platform class is selected manually and is not device fingerprint evidence",
+    "Trusted-HTTPS representative-device interoperability remains required",
+    "A formal independent cryptographic audit and T0/T1 release review remain required"
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/static-policy.js": "187d81fcf907a250cd0a0e35817f7b6b51cd2faff38aed657761aaa0fc11708f",
+    "apps/nexus-web/server.js": "6d30455184d7e138bcbff05e9b7885491d2bdd696810eea0d8dfc35b42e08227",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.html": "0b91a8ce74584cd355f87a4a47f9cc24776be6460643ed844fe1208577fad9fa",
+    "apps/nexus-web/public/diagnostics/e2ee-device-lab.js": "6963511a8f3d14b7c42a04315bd392b2688bd12b4e65aa2764286865923ef160",
+    "apps/nexus-web/test/p1-e2ee-device-lab.test.js": "4958d5f08539797c0e8b289f7a1a9a3c5e2cc7013dc763f6c9a6a554b5345f44",
+    "apps/nexus-web/.env.example": "b709b7b43eec23d1390ea949d397c5ed7d69be9ecc4c30812b0d01ec506dc8e3",
+    "apps/nexus-web/README.md": "260bfd81641b511c9158afdda744953c2fab946b62e99a7a10d91314b0f840c3"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "reason": "Capacity telemetry is unobserved; one bounded local packet plus one sequential checker"
+  },
+  "local_gate": "PASS_LOCAL",
+  "public_release_gate": "BLOCKED_EXTERNAL_TRUSTED_HTTPS_REAL_DEVICE_LAB_FORMAL_CRYPTO_AUDIT_AND_T0_T1_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-E2EE-CRYPTO-PROTOCOL-REVIEW-PREPARATION-036"
+}

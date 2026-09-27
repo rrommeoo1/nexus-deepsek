@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "NX-CAP-001-20260802T065209103Z-0a61b5d4",
+  "observed_at": "2026-08-02T06:52:09.1189002+00:00",
+  "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\\planning\\validate-capacity.ps1 -RunId NX-CAP-001-20260802T065209103Z-0a61b5d4 -ObservedAt 2026-08-02T06:52:09.1189002+00:00 -ExecutorRole A00",
+  "task_id": "NX-CAP-001",
+  "status": "PASS",
+  "executor": {
+    "role": "A00",
+    "runtime": "WindowsPowerShell/5.1.26100.8972",
+    "host_fingerprint_sha256": "8a9186a7ae21ece822b2b1a289ec8c8997d08650e4336aff739e547e35899fb6"
+  },
+  "attestation": {
+    "type": "local_process_evidence_v1",
+    "statement": "The executor ran the fixed local zero-cost guard against the hashed source snapshot.",
+    "source_snapshot_sha256": "5fd2754a7009b50b6d1e1b79f7baa375c375a486c7460e0c671b277f9fbf2570"
+  },
+  "deterministic_scenario_actions": 100,
+  "child_processes_started": 1,
+  "approval_negative_cases": 6,
+  "approval_positive_cases": 1,
+  "blocked_economic_actions": 1,
+  "blocked_unallowlisted_egress_actions": 1,
+  "credential_name_matches": 0,
+  "assertions": 80,
+  "child_cpu_seconds": 0.3438,
+  "child_disk_bytes": 0,
+  "deterministic_wall_seconds": 0.7843,
+  "deterministic_cpu_seconds": 0.5625,
+  "failures": [],
+  "backlog_checks": {
+    "task_count": 13,
+    "missing_dependencies": 0,
+    "cycles": 0,
+    "active_packet_ids": ["NX-CAP-001"],
+    "ready_with_unmet_dependencies": 0,
+    "owner_self_review": false
+  },
+  "evidence_mapping": {
+    "capacity_policy": [
+      "AGENTS.md",
+      "planning/openai-plus-capacity-plan.md",
+      "planning/spend-control.yaml"
+    ],
+    "sample_checkpoint": "planning/checkpoints/NX-CAP-001.md",
+    "weekly_capacity_scorecard": "planning/capacity-scorecard.yaml",
+    "findings_registry": "planning/findings/NX-CAP-001.yaml",
+    "maker_checker_decisions": [
+      "planning/evidence/reviews/NX-CAP-001-A10.yaml",
+      "planning/evidence/reviews/NX-CAP-001-C10.yaml"
+    ]
+  },
+  "artifact_sha256": {
+    "AGENTS.md": "a2091ac4c3e7b1435c8fceec398e9bd8dd066c3d2317871d355f39d0cf21cec0",
+    "planning/openai-plus-capacity-plan.md": "001fd6011c2b79cecbdf1fa95723433dc5fde438086acfbdfa51345af6e695b1",
+    "planning/backlog-p0.yaml": "5db110d462e195cd4fdf961245185d0045e6e1d34b5e5452bb2e5c4069f70ca3",
+    "planning/capacity-scorecard.yaml": "5c6959fa48181a1936f9f41945f4326c964dc630688a7992225ecf2238b303e1",
+    "planning/spend-control.yaml": "b868b8cb147a56aca8d0bf0c4d4450a3350bff8e319da4fd7de3d00ebb12cd3c",
+    "planning/zero-cost-child-test.ps1": "120bde7b80036b46030897c61b29a6825917885aa1b7fb1009e42bd87de43e91",
+    "planning/checkpoints/NX-CAP-001.md": "edb660eb82f8abca47dfdd5abcd13adee9e4a3a88a0508a2688d140d93b516d3",
+    "planning/findings/NX-CAP-001.yaml": "963e77673dd05d1b8237ea3bd682f73785278ff0343db85687104f25d0c7f472",
+    "planning/evidence/reviews/NX-CAP-001-A10.yaml": "763f82d27ba286ac1f9b4d06e31e547250701ed90b08b0bd69bfc58e12a4c19f",
+    "planning/evidence/reviews/NX-CAP-001-C10.yaml": "9549a77a9c9162fdc8564c75ac7ef9132c8a7dd4f8b8700e9a71ac69bc061205",
+    "planning/validate-capacity.ps1": "c20185c16179147910d847749967ca8bad90daa637fe837a9c8b8171caf6fc06"
+  }
+}

@@ -1,0 +1,85 @@
+{
+  "schema": "NEXUS_M4_M5_LOCAL_CLOSURE_EVIDENCE_V1",
+  "date": "2026-09-08",
+  "cycle_range": "231-250",
+  "decision_scope": "local_demo_only",
+  "milestones": {
+    "M4_local_productization": {
+      "gate": "PASS_LOCAL",
+      "acceptance_criteria": { "total": 8, "passed": 8, "failed": 0 },
+      "focused_tests": { "total": 5, "passed": 5, "failed": 0, "skipped": 0 },
+      "controls": [
+        "content-addressed local media provider with path confinement and atomic writes",
+        "provider abstraction fails closed for unimplemented distributed storage",
+        "private media remains outside public cache paths",
+        "installable web manifest without a privacy-unsafe service-worker cache",
+        "production configuration rejects unsupported media storage providers",
+        "structured health and deployment checks remain executable"
+      ],
+      "runtime": {
+        "listen_host": "0.0.0.0",
+        "port": 3000,
+        "local_url": "http://127.0.0.1:3000/",
+        "lan_url": "http://192.168.1.153:3000/",
+        "process_id_at_verification": 13700
+      }
+    },
+    "M5_work_business_beauty": {
+      "gate": "PASS_LOCAL",
+      "acceptance_criteria": { "total": 8, "passed": 8, "failed": 0 },
+      "focused_tests": { "total": 4, "passed": 4, "failed": 0, "skipped": 0 },
+      "capabilities": [
+        "persona-isolated Work profile",
+        "job publishing, discovery, application and owner closure",
+        "business and beauty pages",
+        "service and appointment-slot publishing",
+        "race-safe one-winner appointment booking",
+        "private appointment reads and authorized lifecycle transitions",
+        "idempotent mutating API boundary and transactional outbox",
+        "responsive Work, Jobs, Business, Beauty and Appointments UI"
+      ],
+      "economic_scope": {
+        "settlement_mode": "LOCAL_DEMO_NO_PAYMENT",
+        "allowed_demo_currency": "TEST-USDC",
+        "real_value": 0
+      }
+    }
+  },
+  "integrated_verification": {
+    "m4_m5_acceptance_inventory": { "total": 16, "passed": 16, "failed": 0, "gate": "PASS_LOCAL" },
+    "full_suite": { "files": 57, "tests": 341, "passed": 341, "failed": 0, "skipped": 0 },
+    "release_check": "PASS_LOCAL",
+    "synthetic_actors": { "total": 1000, "issues": 0, "organic_leak": false },
+    "data_index_inventory": { "required_indexes": 22, "total_indexes": 148, "integrity": "ok", "foreign_keys": "ok" },
+    "mutation_outbox_drill": { "total": 6, "passed": 6, "failed": 0 },
+    "migration_restore_drill": { "total": 4, "passed": 4, "failed": 0, "integrity": "ok", "foreign_key_violations": 0 },
+    "production_isolated_health": "PASS",
+    "insecure_api_denied": true,
+    "incremental_cost": 0,
+    "external_network": false,
+    "real_funds": false
+  },
+  "artifact_hashes_sha256": {
+    "apps/nexus-web/test/p0-m4-local-productization.test.js": "a3e4696ba572d4cc8cde319cdc65d0f546f7b5bfb145a2feac8a6259f9f0824c",
+    "apps/nexus-web/test/p3-mobile-layout.test.js": "ff1e9ae759183e2be6e7dbb7e176a9bb802b6a167897cce0faa0c4dfeb3cbbba",
+    "apps/nexus-web/test/p0-offline-private-cache.test.js": "6a3a9678b246211500fddf1ed915ad889529246397d092644c9dc097e7508a82",
+    "apps/nexus-web/test/p0-deployment-contract.test.js": "51983d1028ca3652faf1c8f365501e252b5d6aaea5c17235c24412254ac832fd",
+    "apps/nexus-web/test/p1-m5-work-business.test.js": "50a2e35296520cfab9d0792a85480698504cfcf4f6041e9947b4eeb061ecf10f",
+    "apps/nexus-web/public/app.js": "7ebf62d0aa018783147a68f38fad43eb52020249bc9c30c13fd21c8b9f4a92c4",
+    "apps/nexus-web/public/work-module.js": "5840d88f7d73ea0e69d2fba00806a08c2077ef03ea26a5cbe48c79869f22b7e2",
+    "apps/nexus-web/lib/api.js": "30b5eb242be6e60c34b1d10e16d0c344f5a9f2af4057cd7d5101261565aad845"
+  },
+  "independent_review": {
+    "status": "OPEN_EXTERNAL_GATE",
+    "reason": "The separately assigned checker could not execute because the available agent capacity reported a usage limit. No independent T1 certification is claimed."
+  },
+  "external_gates_open": [
+    "trusted_public_https_edge_staging_and_observability",
+    "real_device_visual_camera_and_walletconnect_validation",
+    "distributed_object_storage_cdn_transcoding_and_push_providers",
+    "real_payment_identity_calendar_and_notification_providers",
+    "independent_security_privacy_accessibility_and_legal_review",
+    "production_deploy_mainnet_and_real_funds_approval"
+  ],
+  "closure": "M4_M5_PASS_LOCAL_EXTERNAL_GATES_REMAIN_OPEN"
+}

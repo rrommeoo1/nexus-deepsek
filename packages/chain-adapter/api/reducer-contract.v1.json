@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A22",
+  "upstreamEvent": "packages/contracts/events/action.chain.executed.v1.schema.json",
+  "sourceEvent": "packages/chain-adapter/api/indexed-observation.v1.schema.json",
+  "persistenceModel": "packages/chain-adapter/api/reducer-model.prisma#VerifiedChainObservation",
+  "eventAuthenticity": {
+    "verifierInjectionRequired": true,
+    "payloadMustMatchContentHash": true,
+    "persistedAnchors": ["contentHash", "authenticityProofHash"],
+    "persistedLineage": ["network", "contractAddress", "originalTxHash", "sourceTxHash", "sourceKind", "eventIndex", "shard", "blockNonce", "blockHash", "hyperblockNonce", "hyperblockHash", "canonicality", "finality"],
+    "restartAndRepairMustReverify": true,
+    "invalidResult": "DENY_BEFORE_PERSISTENCE"
+  },
+  "authoritativePredicate": {
+    "canonicality": "FINALIZED_CANONICAL",
+    "finality": "HYPERBLOCK_FINAL",
+    "otherObservations": "IGNORE"
+  },
+  "idempotencyKey": ["network", "originalTxHash", "sourceTxHash", "eventIndex"],
+  "deterministicOrder": ["hyperblockNonce", "blockNonce", "sourceTxHash", "eventIndex"],
+  "payloadKinds": ["ACTION_EXECUTED", "JOURNAL", "BALANCE_OBSERVED"],
+  "accounting": {
+    "model": "DOUBLE_ENTRY",
+    "assetAccounts": ["CONTRACT_ASSET"],
+    "liabilityAccounts": ["ESCROW_LIABILITY", "WITHDRAWAL_LIABILITY", "PLATFORM_FEE_LIABILITY"],
+    "invariants": [
+      "journal_debits_equal_credits",
+      "no_negative_account_balance",
+      "contract_asset_equals_total_liabilities",
+      "observed_chain_balance_equals_contract_asset"
+    ]
+  },
+  "checkpoint": {
+    "reducerVersion": 1,
+    "hash": "SHA-256",
+    "promotionRequires": ["mode_NORMAL", "reconciliation_PASS"],
+    "atomicity": "generation_compare_after_async_hash_before_promotion_for_every_checkpointed_field",
+    "concurrentMutationResult": "DENY_CHECKPOINT_PROMOTION",
+    "failureMode": "SERVE_VERIFIED_CHECKPOINT_MUTATIONS_DISABLED"
+  },
+  "repair": {
+    "source": "authoritative_finalized_event_set",
+    "requires": ["maker_A22", "checker_C03", "authenticated_authorization_verifier", "source_quorum_verified", "evidence_hash", "subject_state_root_binding", "authoritative_event_set_binding", "finite_validity_window", "single_use_approval", "economic_effect_false"],
+    "replayResult": "DENY",
+    "fabricatedRoleOrQuorumResult": "DENY",
+    "durableCommit": "unique_approval_receipt_and_replacement_event_set_in_one_serializable_transaction_before_memory_promotion",
+    "restartRecovery": "reload_complete_committed_observations_then_reverify",
+    "automaticEconomicWrite": false
+  },
+  "privacy": {
+    "rawWalletOrProfileAllowed": false,
+    "commitmentsOnly": true,
+    "kidsEventsAllowed": false
+  },
+  "localRtoFixture": {"events": 500, "maximumMilliseconds": 2000},
+  "externalClaimsExcluded": ["mainnet_repair", "production_rto", "real_funds_reconciliation"]
+}

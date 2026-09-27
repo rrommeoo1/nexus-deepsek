@@ -1,0 +1,85 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03",
+    "verifier_role":  "A20",
+    "status":  "PASS",
+    "scope":  "read_only_recovery_of_terminal_devnet_proof_after_gateway_event_shape_drift",
+    "approval":  {
+                     "approval_id":  "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-R3",
+                     "status":  "CONSUMED",
+                     "single_use":  true,
+                     "max_public_transactions":  3,
+                     "max_real_value":  0
+                 },
+    "contract":  {
+                     "address":  "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t",
+                     "owner":  "erd1qyu5wthldzr8wx5c9ucg8kjagg0jfs53s8nr3zpz3hypefsdd8ssycr6th",
+                     "wasm_sha256":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                     "runtime_codehash_hex":  "00a65735a13a6fb18193f3dfcfb95a784e52041c062fe87524ecbcc40f59d17e",
+                     "code_present":  true
+                 },
+    "transactions":  {
+                         "allow_relayer":  {
+                                               "hash":  "dc47b5e75d56ff21bc0f6c74c8ab79f85b4260cd8261d4512e2121f5c4a480db",
+                                               "status":  "success",
+                                               "hyperblock_nonce":  15186779,
+                                               "source_meta_nonce":  15186779
+                                           },
+                         "rotate_capability":  {
+                                                   "hash":  "1d09673c9c4d162969da9091f60b581baac78d39598d88b3d283d1251d84090a",
+                                                   "status":  "success",
+                                                   "hyperblock_nonce":  15186781,
+                                                   "source_meta_nonce":  15186781
+                                               },
+                         "record_action":  {
+                                               "hash":  "b4987f83d572551efe2c749edc87ad6511f68c95ce27952bda0f8a45420dc34b",
+                                               "status":  "success",
+                                               "hyperblock_nonce":  15186783,
+                                               "source_meta_nonce":  15186783
+                                           }
+                     },
+    "terminal_proof":  {
+                           "record_status":  "success",
+                           "action_recorded_event_count":  1,
+                           "event_layout":  "EI_1_5_ENDPOINT_IDENTIFIER_WITH_ABI_EVENT_TOPIC",
+                           "event_identifier":  "recordAction",
+                           "event_signature_topic":  "QWN0aW9uUmVjb3JkZWQ=",
+                           "new_capability_state_sha256":  "0c0fefe0b649feb4d848575c7905af52c6ea772dd5a6a97099255b71ed621a19",
+                           "new_capability_used_actions":  1,
+                           "new_capability_last_action_nonce":  1,
+                           "prior_capability_state_sha256":  "4c909b50b8c02f2dad4ad9e950bf7c5c26d71ff43b6674af39635db2f4e67559",
+                           "prior_capability_active":  false,
+                           "grace_relayer_allowed":  true,
+                           "ordered_is_not_assumed_executed":  true,
+                           "authoritative_only_after_terminal_success_event_and_state_query":  true
+                       },
+    "r3_public_devnet_transactions":  3,
+    "packet_public_devnet_transactions_total":  6,
+    "verifier_network_mutations":  0,
+    "verifier_read_only_network_operations":  7,
+    "real_fund_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EGLD"
+                         },
+    "claims_excluded":  [
+                            "mainnet_readiness",
+                            "mainnet_transaction",
+                            "real_funds",
+                            "production_security_audit"
+                        ],
+    "source_logs":  "planning/evidence/devnet-logs/NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03",
+    "artifact_sha256":  {
+                            "planning/verify-chain-devnet-r3.ps1":  "88f124d4a9252057ae50c462a5e123d413e37e41a39968b6281a50692ad13489",
+                            "planning/chain-devnet-guards.ps1":  "57d80f4ff0d1fb2942e397242f22039fd7384d44908fd0e3ba26a78771e8d7b2",
+                            "planning/decode-chain-capability.py":  "653efd5e3ab6fbcdf4128cdf99f9ac05073c7ee9a4d0fc5f74f46b390b8d2a2a",
+                            "contracts/nexus-actions/output/nexus-actions.abi.json":  "5ec4c699480ebd3421c68d77b429eb80da78a5a67e597928f2798bbf30d35a63",
+                            "contracts/nexus-actions/output/nexus-actions.wasm":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                            "planning/approvals/NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-R3.json":  "9ca95072f0b6a480143658217b10ee1da1c80de8bd17bceb9bafe25a82180eb3",
+                            "planning/evidence/devnet-logs/NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03/allow-relayer.json":  "4870bd7f1ba81803bddb4aa9968aed96a3272ec8e06f1c7ddf9ea288c9407aa7",
+                            "planning/evidence/devnet-logs/NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03/rotate-capability.json":  "75d7a98d098e38f6003a7304c0475d7b6f37089b4a15586d5cdcdef94a2f599a",
+                            "planning/evidence/devnet-logs/NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-03/record-action.json":  "ac4006a05f96530c34beba3dcf9ef6c27f1b45ab35f1deacef7b660e4ac9939d"
+                        },
+    "duration_seconds":  18.4094
+}

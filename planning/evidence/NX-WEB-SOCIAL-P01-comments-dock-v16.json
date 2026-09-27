@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-COMMENTS-DOCK-V16",
+  "status": "PASS",
+  "release": "20260827-neural62",
+  "scope": "hide_bottom_navigation_while_comments_are_read_or_written",
+  "implemented": {
+    "dock_hidden_while_comments_open": true,
+    "dock_inert_while_hidden": true,
+    "dock_aria_hidden_while_hidden": true,
+    "comment_viewport_expanded": true,
+    "keyboard_safe_area_reserved": true,
+    "dock_restored_on_close": true
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "lan_http": 200,
+    "lan_assets_include_release": true
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "4b9ec0b318fadfdc96b53ba7026fc4886616dd9a925e3678d2d11511e8f27b58",
+    "apps/nexus-web/public/styles.css": "83051b4d1fc6c20b0fe292529e6cb2352369949290c61772dd997e37d5030449",
+    "apps/nexus-web/public/index.html": "e6513018c816ec6301312a3fb8f8810cda783b1a9cc90740361125383d94d1f4",
+    "apps/nexus-web/test/audit.test.js": "2bbf5882e35b164f42146d487bea652ab1575a7598b6621167b6a14aa3e10e1a"
+  },
+  "network_operations": 0,
+  "economic_operations": 0,
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

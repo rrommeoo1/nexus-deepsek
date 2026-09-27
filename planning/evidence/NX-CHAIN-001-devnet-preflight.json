@@ -1,0 +1,104 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-DEVNET-POST-R3-PREFLIGHT-20260803-05",
+    "executor_role":  "A20",
+    "status":  "READY_AWAITING_EXPLICIT_PUBLIC_DEVNET_APPROVAL",
+    "scope":  "offline_devnet_payload_and_tooling_preflight",
+    "assertions":  27,
+    "failures":  [
+
+                 ],
+    "mxpy":  {
+                 "version":  "11.4.1",
+                 "output":  "MultiversX Python CLI (mxpy) 11.4.1",
+                 "isolated_root":  ".ephemeral/mxpy-11.4.1"
+             },
+    "payload_parity":  {
+                           "assertion_count":  10,
+                           "assertions":  {
+                                              "devnet_actor_is_system_test":  true,
+                                              "envelope_matches_rustvm":  true,
+                                              "fixture_actor_matches":  true,
+                                              "no_real_person_data":  true,
+                                              "offline_only":  true,
+                                              "recovery_seed_is_distinct":  true,
+                                              "recovery_seed_is_pinned":  true,
+                                              "recovery_signature_is_valid_shape":  true,
+                                              "signature_matches_rustvm":  true,
+                                              "signing_message_matches_rustvm":  true
+                                          },
+                           "economic_operations":  0,
+                           "envelope_sha256":  "a2c34ea15ba15dc8a6e09a58d98aa912e71f9057cc74e54af2570b89486f51b5",
+                           "network_operations":  0,
+                           "scenario":  "contracts/nexus-actions/scenarios/signed-action-replay.scen.json",
+                           "schema_version":  1,
+                           "status":  "PASS",
+                           "suite":  "DEVNET_PAYLOAD_OFFLINE_RUSTVM_PARITY",
+                           "task_id":  "NX-CHAIN-001"
+                       },
+    "runner_regression":  {
+                              "approval_negative_cases":  9,
+                              "assertion_count":  45,
+                              "cli_plans_parsed":  9,
+                              "economic_operations":  0,
+                              "network_operations":  0,
+                              "schema_version":  1,
+                              "status":  "PASS",
+                              "suite":  "DEVNET_RUNNER_OFFLINE",
+                              "task_id":  "NX-CHAIN-001"
+                          },
+    "guard_regression":  {
+                             "schema_version":  1,
+                             "task_id":  "NX-CHAIN-001",
+                             "suite":  "DEVNET_FAIL_CLOSED_GUARDS",
+                             "status":  "PASS",
+                             "assertion_count":  21,
+                             "network_operations":  0,
+                             "economic_operations":  0
+                         },
+    "execution_policy":  {
+                             "default_mode":  "Prepare",
+                             "execute_requires_allow_switch":  true,
+                             "execute_requires_approval_id":  true,
+                             "execute_requires_subject_bound_receipt":  true,
+                             "approval_single_use":  true,
+                             "gateway_allowlist":  [
+                                                       "https://devnet-gateway.multiversx.com"
+                                                   ],
+                             "chain_id":  "D",
+                             "wallets":  "PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY",
+                             "real_funds":  "FORBIDDEN"
+                         },
+    "packet_completion":  {
+                              "ready":  false,
+                              "reason":  "PUBLIC_DEVNET_MUTATION_APPROVAL_REQUIRED"
+                          },
+    "claims_excluded":  [
+                            "devnet_transaction",
+                            "public_bytecode_upload",
+                            "mainnet_readiness",
+                            "production_security_audit"
+                        ],
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "subject_sha256":  "af8f0739cb8ac82df6c3bdeb290f71254694ed077f8fa67c7d4a4f60c43aa0ee",
+    "artifact_sha256":  {
+                            "contracts/nexus-actions/output/nexus-actions.wasm":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                            "contracts/nexus-actions/output/nexus-actions.mxsc.json":  "e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d",
+                            "contracts/nexus-actions/output/nexus-actions.abi.json":  "5ec4c699480ebd3421c68d77b429eb80da78a5a67e597928f2798bbf30d35a63",
+                            "planning/build-chain-devnet-payload.py":  "a12dd0757f313d7f50459cb71525e21461ff791a4f7d78bd46a7b3cb451274d0",
+                            "planning/test-chain-devnet-payload.py":  "6894a4ba93eca47df523b33074a8cc9fda9d3df5d88470fb459a110df8c9ec48",
+                            "planning/test-chain-devnet-runner.py":  "707a113d5ec175e8051f8707cf93cecb81373cf5d3b51df8a33450439eccd097",
+                            "planning/validate-chain-devnet-approval.py":  "60a8c65f4fec67c0405458d0dab12339d4caad916819491b2e815660e9e5ad3a",
+                            "planning/decode-chain-capability.py":  "653efd5e3ab6fbcdf4128cdf99f9ac05073c7ee9a4d0fc5f74f46b390b8d2a2a",
+                            "planning/chain-devnet-guards.ps1":  "57d80f4ff0d1fb2942e397242f22039fd7384d44908fd0e3ba26a78771e8d7b2",
+                            "planning/test-chain-devnet-guards.ps1":  "0627c3228e69bf37e79115d673861c01c1765c530ab4495eb0adbfc61194a9bb",
+                            "planning/run-chain-devnet.ps1":  "03c8b714e6453f639639fbbd66d2896563aec9ea553382d3bad1046aad06a9e8"
+                        },
+    "duration_seconds":  12.3612
+}

@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "approval_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803",
+  "owner": "Romeo",
+  "decision": "APPROVE",
+  "issued_at": "2026-08-03T00:02:14Z",
+  "expires_at": "2026-08-10T23:59:59Z",
+  "environment": "devnet",
+  "gateway": "https://devnet-gateway.multiversx.com",
+  "subject_sha256": "222e19908284b34d97c9708ba8c4cd368304c5862fe265aea129159df5a8da08",
+  "wasm_sha256": "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+  "approved_run_id": "NX-CHAIN-001-DEVNET-RESUME-ROMEO-20260803-01",
+  "max_public_transactions": 3,
+  "max_real_value": 0,
+  "incremental_cost_cap": {
+    "amount": 0,
+    "currency": "EGLD"
+  },
+  "wallet_source": "PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY",
+  "single_use": true,
+  "status": "SUPERSEDED_PRE_EGRESS",
+  "superseded_at": "2026-08-03T00:06:56Z",
+  "superseded_reason": "Runner approval-ID guard rejected the approved Resume namespace before receipt consumption or network access; the corrected runner produces a new subject and requires a new owner approval.",
+  "replacement_subject_sha256": "12327c5aa43468a1e59fd6c499cdaee7625bf00cc8893244716327d4bfd5a9f9",
+  "source_message_sha256": "f39f055723f423a36d8e712bc99b55346f3cc5fb8431ee4d53ffca49b62741b5",
+  "operation_mode": "Resume",
+  "contract_address": "erd1qqqqqqqqqqqqqpgq3hd0f9mhnl2gt20sjmeg2z4hn5p7ew7pd8ssjldy2t"
+}

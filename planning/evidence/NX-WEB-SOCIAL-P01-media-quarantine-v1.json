@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "slice_id": "LOCAL_MEDIA_QUARANTINE_AND_ACCESS_V1",
+  "run_id": "NX-WEB-SOCIAL-P01-20260824-MEDIA-QUARANTINE-01",
+  "observed_at": "2026-08-24T19:27:54.2241556+02:00",
+  "executor_role": "OWNER_A31",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "canonicalization": "sha256(UTF8(join(LF, sort(path) map path + ':' + sha256)))",
+  "subject_sha256": "e7d3cac738f768039e88fe601d67667769c37e9cda7fe14d7e78ebb4663f02f8",
+  "validation": {
+    "node_tests": "PASS_69_OF_69",
+    "syntax": "PASS_MEDIA_DB_REPO_API_SERVER_APP",
+    "type_detection": "PASS_MAGIC_SIGNATURE_MUST_MATCH_DECLARED_MIME",
+    "documents": "PASS_PDF_AND_OOXML_QUARANTINED_WITHOUT_MALWARE_SCANNER",
+    "active_pdf_markers": "PASS_QUARANTINED",
+    "upload_binding": "PASS_USER_AND_PURPOSE_GRANT",
+    "message_access": "PASS_OWNER_AND_AUTHORIZED_CONVERSATION_ONLY",
+    "quarantine_serving": "PASS_HTTP_423",
+    "unauthorized_serving": "PASS_HTTP_404",
+    "legacy_reclassification": "PASS_7_OF_7_READY_BY_HASH_AND_SIGNATURE",
+    "database_integrity": "PASS_PRAGMA_INTEGRITY_CHECK_OK",
+    "runtime_listener": "PASS_0.0.0.0_3000_PID_5708",
+    "runtime_http": "PASS_200_LOOPBACK_AND_LAN",
+    "browser_shell": "PASS_SOCIAL06_ZERO_CONSOLE_ERRORS"
+  },
+  "policy": {
+    "ready_types": ["image/jpeg", "image/png", "image/webp", "video/mp4", "video/webm"],
+    "quarantined_types": ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/vnd.openxmlformats-officedocument.presentationml.presentation"],
+    "ready_label": "ready_local_validation",
+    "malware_scanned": false,
+    "content_address_integrity": "sha256_checked_before_read",
+    "access_model": "authenticated_owner_or_authorized_linked_resource",
+    "duplicate_content": "same_hash_requires_exact_type_and_scan_result_then_creates_explicit_user_purpose_grant"
+  },
+  "effects": {
+    "external_scanner_calls": 0,
+    "external_provider_operations": 0,
+    "external_network_writes": 0,
+    "broadcast_transactions": 0,
+    "real_funds": 0,
+    "mainnet_state_changes": 0,
+    "new_external_accounts": 0,
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "artifacts": [
+    { "path": "apps/nexus-web/lib/api.js", "sha256": "d7d59e53d71e9e0346deec4bb3fd7828f4b1c42f01496ae1d83c35cff6bcb5ff" },
+    { "path": "apps/nexus-web/lib/db.js", "sha256": "ab78f7bda0182940f49f432dd86bd5649b026b58a50ded59702c4a9ec5504656" },
+    { "path": "apps/nexus-web/lib/media.js", "sha256": "3d99f45d3f336195f7afe421501e6c1bb66da372373b407d088aa51616f58299" },
+    { "path": "apps/nexus-web/lib/repo.js", "sha256": "01f0b0071eaec13379e1aea74e90587107bf34c24546c0b9fa3dc8be69f3ae60" },
+    { "path": "apps/nexus-web/public/app.js", "sha256": "5c40f2b026afb0ef1253d5c189653903f4cc649324ccc16151b7ac5a0d1c4351" },
+    { "path": "apps/nexus-web/public/index.html", "sha256": "d2c9c9ea24c6f1acdc8676333a4a7b0716b26aad7031fde647f18aad32dc0787" },
+    { "path": "apps/nexus-web/server.js", "sha256": "344999c303e52aba6bb8ce6dd05fdea13c149f9a5459380e636697b670ab094b" },
+    { "path": "apps/nexus-web/test/core.test.js", "sha256": "1a00c970159ab91b305b578b08ac5fc1dc45dfcb30479fe001cba0aee7bba46a" }
+  ],
+  "exclusions": [
+    "claim that local signature validation detects malware",
+    "document release before an approved malware scanner exists",
+    "encrypted attachments and E2EE file-key lifecycle",
+    "content disarm and reconstruction for office documents",
+    "external antivirus provider or signature-feed certification",
+    "formal security, privacy and accessibility audit",
+    "completion of the full NX-WEB-SOCIAL-P01 packet"
+  ]
+}

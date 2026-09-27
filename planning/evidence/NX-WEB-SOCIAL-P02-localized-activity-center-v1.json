@@ -1,0 +1,101 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-ACTIVITY-CENTER-053",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["activity_load", "notification_rows", "read_one", "read_all", "notification_preferences"],
+    "catalog_parity_enforced": true,
+    "activity_load": {
+      "latest_request_gate": true,
+      "tab_or_profile_change_invalidates_pending_load": true,
+      "collections_guarded": ["notifications", "preferences"],
+      "positive_safe_integer_ids_required": true,
+      "notification_types_allowlisted": true,
+      "raw_api_error_rendered": false
+    },
+    "mutations": {
+      "stable_key_per_unchanged_intent": true,
+      "key_rotates_after_preference_edit": true,
+      "simultaneous_duplicate_submission_blocked": true,
+      "detached_or_stale_completion_ignored": true
+    },
+    "privacy": {
+      "dating_preview_forced_generic": true,
+      "security_and_system_mandatory": true,
+      "quiet_hours_both_or_neither": true,
+      "push_enabled": false,
+      "email_enabled": false,
+      "external_share_enabled": false
+    },
+    "cache_generation": {
+      "app_and_locale": "20260905-p1locale17",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_activity_audit": { "passed": 3, "failed": 0 },
+    "product_full_tests": { "passed": 216, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "native_locale_visual_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Delayed Activity responses could overwrite a newly selected tab or profile.",
+      "resolution": "A dedicated latest-request gate and immutable selection snapshots reject stale completion."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "Read and preference mutations used disposable implicit keys and allowed duplicate clicks.",
+      "resolution": "Each visible intent retains a stable key and is single-flight."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Malformed response collections, IDs, types and boolean-like fields could become interactive UI.",
+      "resolution": "Response boundaries are allow-listed and normalized before rendering."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Partial quiet hours or a Dating content preview could be submitted from tampered controls.",
+      "resolution": "Client preflight fails closed before authoritative server validation."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Activity mixed hard-coded Romanian copy with raw API errors.",
+      "resolution": "All bounded states use controlled parity-checked locale copy."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "9e800730c5de7e5ea2fb98c1d0859e0b61d6f2e58011990e23c4b1ad65f8f610",
+    "apps/nexus-web/public/app.js": "3d5a767ddeab2343f4ef7fd509d3044284ca026da937f7fd3c4d3d6d6a14ae49",
+    "apps/nexus-web/public/index.html": "6026fe365d408861ab42e52bd455549717703ba71caf32c859274d4fc83b8336",
+    "apps/nexus-web/test/audit.test.js": "f0275b745002e5be6b3f713ba224d00f852e0e378d430cc2a411fc3cd6f80aa0",
+    "apps/nexus-web/public/latest-request.js": "8437610408d4fee4f875266bfcf4226750537d1b1a5f10954d751304cc4f4260",
+    "apps/nexus-web/public/client.js": "9804c0764b1bfe08de1ab9a2287fbff28e51968009cf579cab3c3c1252e31548",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-localized-activity-center-v1.md": "cf16c2b2a0a452054f5fe19543582cf3eb4d75e3b0f0717fa5e9de573d7c4c52"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_NATIVE_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-PROFILE-SHELL-054"
+}

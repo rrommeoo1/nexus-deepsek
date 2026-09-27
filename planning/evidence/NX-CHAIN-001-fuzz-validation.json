@@ -1,0 +1,406 @@
+{
+    "schema_version":  1,
+    "task_id":  "NX-CHAIN-001",
+    "run_id":  "NX-CHAIN-001-FUZZ-20260802T210828488Z-848b6f63",
+    "executor_role":  "A20",
+    "status":  "PASS",
+    "scope":  "bounded_deterministic_property_mutation_corpus",
+    "assertions":  38,
+    "failures":  [
+
+                 ],
+    "corpus":  {
+                   "suite":  "DETERMINISTIC_PROPERTY_MUTATION_CORPUS",
+                   "fixed_seeds":  [
+                                       "0x1a2b3c4d",
+                                       "0x5e6f7788",
+                                       "0x90abcdef",
+                                       "0x13579bdf",
+                                       "0x2468ace0",
+                                       "0xc001d00d",
+                                       "0x0badf00d",
+                                       "0xdeadbeef"
+                                   ],
+                   "cases_per_seed":  512,
+                   "total_cases":  4096,
+                   "category_counts":  {
+                                           "envelope_shape":  512,
+                                           "ttl_expiry":  512,
+                                           "nonce_replay_gap":  512,
+                                           "capability_scope":  512,
+                                           "relayer_context":  512,
+                                           "capability_rotation":  512,
+                                           "lifecycle_finality":  512,
+                                           "privacy_batch":  512
+                                       },
+                   "mutation_oracle_mismatches":  0,
+                   "corpus_sha256":  "40e0659c05908773e40cd31f1e9c085b9fee86af70150092de666167577ea57f",
+                   "replay_samples":  [
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0000",
+                                              "vector_sha256":  "bb5b02fd63770b2d0459d3d15816647906b0c155a576bb56b05270cd7aefa43c",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0001",
+                                              "vector_sha256":  "4491ebb5748869cd703c57e31734336af8442f0aca45819b96be70af4e9dd190",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0002",
+                                              "vector_sha256":  "8985da5b332b7aa248c2a82232a743984729cc7cffa1633bb9b81922c2b6993d",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0003",
+                                              "vector_sha256":  "458a678a0c258fc106e4488a68bc4df309527e7e159e565b73afecb5d7ce0fa7",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0004",
+                                              "vector_sha256":  "2aaa32b67194080a8f906304c8f65bc0b2577d66f672d47ed043d101370afd51",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0005",
+                                              "vector_sha256":  "b000fcbb6f8c47bffacca70770407efafd9d38419ee0b8237a4d943e6a72d172",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0006",
+                                              "vector_sha256":  "1ef4575a99fe425d3bd818046d10fe7c6c413ad9add6a626149cce5030f028ea",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-1a2b3c4d-0007",
+                                              "vector_sha256":  "d5a63516b31b4837eb6fd5f23819ad0bc8d27973af157eba13ef5858c35be51d",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0000",
+                                              "vector_sha256":  "8f937205627bea004db0abb934bcb18a9d238e07eca428b3349481827f313031",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0001",
+                                              "vector_sha256":  "aa110a14b9a66107c91b93c5b6e0c445aaf15f3c2852564ee008011daa943b1b",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0002",
+                                              "vector_sha256":  "018c952eb4e93a9098b3b51861b40fbcd2ea622f3a0134ea953a2a5bb67eb5ef",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0003",
+                                              "vector_sha256":  "897b754dd34cff9e3c895bb5190d15d260f0ccdac747e6155ecdb2d8d9323e7d",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0004",
+                                              "vector_sha256":  "f1d991e89c74dba71f992a36f9d23b89ff7fe388f05d62f9a515ec28eb4de44e",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0005",
+                                              "vector_sha256":  "1d4875a59544ef793ac29de72a0955439332a4c00198c462a8aa195bec331786",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0006",
+                                              "vector_sha256":  "f7c83e9b9cc70f8ad9988044156cf4b5395a1ebbc35c826ba2b7829ede962143",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-5e6f7788-0007",
+                                              "vector_sha256":  "ab372399e4231979dddf400d88c40d26d9a3443c41b9f4b4e9d220951b831e3c",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0000",
+                                              "vector_sha256":  "ecb3257b1d483589f43782fd29b6b2c9da58e8cd3132ce0404f6122f5b9a5d77",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0001",
+                                              "vector_sha256":  "0c57d576eed6a188c0a88bd2dd6dc2e5f8c0e5e1fe6c06d81598593adac6bf94",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0002",
+                                              "vector_sha256":  "c2e856737802f886f8685f7432eb21dd68573bda839b2be0102db14797dc7ce2",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0003",
+                                              "vector_sha256":  "66afd82178fcbbe0f25c60620967c3c8096d0dfc5f284bc34990a750f024d9ed",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0004",
+                                              "vector_sha256":  "52296ae809b9890197d25bc7025e2c8870af41abed93c02f6e5182e036ef7542",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0005",
+                                              "vector_sha256":  "d3b7e96731035229c80afff3be949f2db5ad35ebbac8e005ef54633f3991a176",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0006",
+                                              "vector_sha256":  "d9fca56e3268fc7d7deb8d426a3bfe89c28550708c116603465c94cbf261f29d",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-90abcdef-0007",
+                                              "vector_sha256":  "9bf31a32f81526f21c99dd28f6e53f757bc858fc9bbec2c42ac922a4255125c9",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0000",
+                                              "vector_sha256":  "07765c9bccd6b33d43c4dd7c129ffd7b415b6dd51f94d419ba16216bc68cc741",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0001",
+                                              "vector_sha256":  "d6667ac7c8a70da3b8217e56f7f8ae5f5ebaff0ce5859d38aa63a5b166cd4e43",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0002",
+                                              "vector_sha256":  "3b79a5fd8587f28fc54e978b53977f1608068fa3f2ab54a78ebd7595af1ba1d9",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0003",
+                                              "vector_sha256":  "ba023260e53134232ff9e0f17830fefa5f59a731dabc07d53a37f0ce83458f0c",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0004",
+                                              "vector_sha256":  "1fefc8ef6270251d1bc40e3d81ddf927cb7f960e183789192988a18f9ad2eefe",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0005",
+                                              "vector_sha256":  "2b61fd6a7781cb0d1758e3ae949bc2343a33582b4fc40b7d76122c489ab1dbe0",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0006",
+                                              "vector_sha256":  "20f8ddf8ab9a823ff62b0e5380628106ef940ab703ea510338ab1ae9df5704f4",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-13579bdf-0007",
+                                              "vector_sha256":  "7ab51623326c51623566a8a57d07d62802bac3a04ecd32b9f090d002c7c91ac0",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0000",
+                                              "vector_sha256":  "392cbe086af77b44be62f4d5c588c505e27cd6fdb91c503fa624f9d8e55642af",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0001",
+                                              "vector_sha256":  "eb1651e7ac00926bc8f71bfc3155b3779e9f3f75d7f302d1859bc6b9afef07ee",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0002",
+                                              "vector_sha256":  "44738c875a49a9e8437f268ef6b6a65e4872e0ab9154ec44d8609fef06669c95",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0003",
+                                              "vector_sha256":  "368f21cc0b21a3666654784f57e2aa2fcd4f003cc78d4c2029320badd3fda4ff",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0004",
+                                              "vector_sha256":  "461cb004cb5e000ae2bcbf67fa6628d843395af9d29075871512df1035d4df58",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0005",
+                                              "vector_sha256":  "af564b4b9c1866d2ecad645f19d6efacfffd5857aa3ff24772cc293443395a84",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0006",
+                                              "vector_sha256":  "5d19726cc3be9ebe9261c38565ac0ef741d4456e151c874e6fdb412ab6afcff8",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-2468ace0-0007",
+                                              "vector_sha256":  "8b9145002f0c61cd1fcdf0e54fe57ee518f92e4b81ec589fde1e0581b5ebac91",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0000",
+                                              "vector_sha256":  "a0d9884bc527259638a2581ea644ba6d802ed4cf84db60f5326343da0aa8cc31",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0001",
+                                              "vector_sha256":  "dc626227459c3442ac7124bdb4c0d6a656b22ef26e731ab6d41a0eadfe40f073",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0002",
+                                              "vector_sha256":  "a6ea346f2eb0f7f24accd794868d46a4f0f3e991f7983cc822e0be05bad17398",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0003",
+                                              "vector_sha256":  "b69eb52fe7a0186bbd560e4690a8fbaaea316ec49a68ad6a43f4b3d48f85707d",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0004",
+                                              "vector_sha256":  "014b62dc501ad3b14b869fa63eee929e48b1e4903bb028e360ee382635a6f7f2",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0005",
+                                              "vector_sha256":  "8a6675dce809f062c51ebb04ca1ee636b65e57c80512b1c10fcc7664358f9f31",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0006",
+                                              "vector_sha256":  "c2100e13b68801bbf29a59354fcbdb22f3c06c55e3d9cff7c3874937d827cfb1",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-c001d00d-0007",
+                                              "vector_sha256":  "3e305d7d53d2c686c67f0206c24683221785945cfb26cf68f65b2674376fdb6b",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0000",
+                                              "vector_sha256":  "8ac3c3f0e90bd25a62902754238804d712fea30688c4bc3b84b4a5eabebf716d",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0001",
+                                              "vector_sha256":  "8ae45cc56e84f9d4d64ce0b4bdda3977de9fd627c8ce583d04446abf9c3604e9",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0002",
+                                              "vector_sha256":  "afe1f4959337e5d11922a8ea6d853e9348eb9269d05ee0687001b9d7e44b719a",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0003",
+                                              "vector_sha256":  "cab714e8f6a4ddba095fa3076655ad44b00f8e4f1062c7f92f348a58a7bb7990",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0004",
+                                              "vector_sha256":  "b8cee428d4ea341fad2994058e8f3a890db9927f3ba15ea7ea2a86f0082ac833",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0005",
+                                              "vector_sha256":  "878d10893a2ab6bf382f71a0a3867f304e88ce3e524ac42a68d8ef90b81d5941",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0006",
+                                              "vector_sha256":  "ad98a6162a2c42172fe463819c1844bd3fe16024a327711276a7578e14bf9339",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-0badf00d-0007",
+                                              "vector_sha256":  "cbcd5c3bd6b3c88dc2aa2bba6c8dceae1f162a321ef806ac99e65ba71977a520",
+                                              "category":  "privacy_batch"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0000",
+                                              "vector_sha256":  "239eba2ca4c423236d5ca25f005126ca48d39abd867cfde77c431babc2d2fcdd",
+                                              "category":  "envelope_shape"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0001",
+                                              "vector_sha256":  "6b60564e6f1154e08fe80940474c5534f5c33b9feee06e2192c0c7631c53f5dc",
+                                              "category":  "ttl_expiry"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0002",
+                                              "vector_sha256":  "19ef949155620f54db1ef51e99771ed26d2873ecd544cf74f4ea187c6bcdeaf9",
+                                              "category":  "nonce_replay_gap"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0003",
+                                              "vector_sha256":  "0a1975c81e2361af2e67c635dcae3c5f90c20a7017f18addec500eea9c3336fe",
+                                              "category":  "capability_scope"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0004",
+                                              "vector_sha256":  "6ac540de5f0f0ed86a0579e868ea3936801279f22efe8c74de6cd27d88904495",
+                                              "category":  "relayer_context"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0005",
+                                              "vector_sha256":  "1651b39e918109bdbfc1de7d8fbd114d1ebe86340dab4056947f360c0c17834b",
+                                              "category":  "capability_rotation"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0006",
+                                              "vector_sha256":  "14fed4ed8f34356dfb1ea284e7a5c94b1ab43e90655c20a43055fba76939e3be",
+                                              "category":  "lifecycle_finality"
+                                          },
+                                          {
+                                              "vector_id":  "NX-CHAIN-001-FZ-deadbeef-0007",
+                                              "vector_sha256":  "a49d03ea871a9c2de6c7d72b00728e8fb8c6550278205e41a6f812c2cff65967",
+                                              "category":  "privacy_batch"
+                                          }
+                                      ],
+                   "deterministic_replay_count":  2,
+                   "deterministic_replay_match":  true
+               },
+    "acceptance":  {
+                       "nonce_ttl_expiry":  "PASS",
+                       "capability_scope_rotation":  "PASS",
+                       "relayer_context":  "PASS",
+                       "batching_privacy":  "PASS",
+                       "ordered_vs_executed":  "PASS",
+                       "reproducible_replay":  "PASS"
+                   },
+    "execution_limits":  {
+                             "timeout_per_process_ms":  30000,
+                             "maximum_cases":  4096,
+                             "temporary_output_root":  ".ephemeral",
+                             "cleanup":  "EXACT_VALIDATED_RUN_DIRECTORY"
+                         },
+    "packet_completion":  {
+                              "ready":  false,
+                              "reason":  "DIFFERENTIAL_VM_AND_DEVNET_FINDINGS_REMAIN"
+                          },
+    "claims_excluded":  [
+                            "cryptographic_fuzzing",
+                            "rustvm_govm_differential",
+                            "devnet_transaction",
+                            "mainnet_readiness",
+                            "production_security_audit"
+                        ],
+    "network_operations":  0,
+    "economic_operations":  0,
+    "incremental_cost":  {
+                             "amount":  0,
+                             "currency":  "EUR"
+                         },
+    "subject_sha256":  "1f71124c47f4a7957cfdd27bddbd6bcf2dc25f177c744ec5167bb0899cc1c50d",
+    "artifact_sha256":  {
+                            "packages/chain-actions-api/index.ts":  "ecfd7b0a679ef554cf279ba50f3c054f46d2a8d3ef54b40926e67259dfbce37c",
+                            "packages/chain-actions-api/fuzz.test.ts":  "3ce1e4e83a2794c80cb0f5ccf983b3ad826f145954410737917538c8f9c758a0",
+                            "contracts/nexus-actions/src/lib.rs":  "13dd972d0ed9ac03447d9407b64900a00a5c228a2682e30906a7a39aa377da23",
+                            "contracts/nexus-actions/output/nexus-actions.wasm":  "16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f",
+                            "contracts/nexus-actions/output/nexus-actions.mxsc.json":  "e756a13aa23c62538f53d726486920acab71ace8604dc9f4b5125fdfa8c4f73d",
+                            "packages/contracts/abi/nexus-actions.abi.json":  "9bd6f44e083a7b35ed9dde9d5fa61a4beaa118138566003d68fb457ded97934b",
+                            "contracts/nexus-actions/output/nexus-actions.abi.json":  "5ec4c699480ebd3421c68d77b429eb80da78a5a67e597928f2798bbf30d35a63",
+                            "planning/validate-chain-fuzz.ps1":  "96cecc6235550ef337d003e902b117034b8bafa87337060a74f75ce86c2a0d0f"
+                        },
+    "duration_seconds":  3.8066
+}

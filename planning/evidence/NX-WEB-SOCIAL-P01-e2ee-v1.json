@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "slice_id": "MESSAGES_E2EE_V1",
+  "run_id": "NX-WEB-SOCIAL-P01-20260824-E2EE-V1-01",
+  "observed_at": "2026-08-24T19:00:01.2371977+02:00",
+  "executor_role": "OWNER_A31",
+  "status": "PASS_IMPLEMENTATION_SLICE_PACKET_REMAINS_IN_PROGRESS",
+  "canonicalization": "sha256(UTF8(join(LF, sort(path) map path + ':' + sha256)))",
+  "subject_sha256": "2ebe4b6a195c16a112b77ee2d46b5badef4c3cdb1e0045cbeb2bee63fc5d18ae",
+  "validation": {
+    "node_tests": "PASS_65_OF_65",
+    "syntax": "PASS_DB_REPO_API_APP_CHAT_CRYPTO",
+    "crypto_roundtrip": "PASS_P256_ECDH_HKDF_SHA256_AES256GCM",
+    "binding_tamper": "PASS_REJECTED",
+    "device_coverage": "PASS_EXACT_ACTIVE_SET_AND_STALE_COMMITMENT_DENY",
+    "nonce_replay": "PASS_IDEMPOTENT_SAME_BINDING_CONFLICT_DENY",
+    "private_key_boundary": "PASS_NONEXTRACTABLE_BROWSER_KEY_SERVER_ACCEPTS_PUBLIC_JWK_ONLY",
+    "plaintext_boundary": "PASS_E2EE_POST_FORBIDS_BODY_AND_ATTACHMENT_SERVER_RECEIVES_NO_CLEARTEXT",
+    "expiry": "PASS_ENVELOPES_DELETED_BEFORE_MESSAGE_TOMBSTONE",
+    "database_integrity": "PASS_PRAGMA_INTEGRITY_CHECK_OK",
+    "runtime_listener": "PASS_0.0.0.0_3000_PID_18804",
+    "runtime_http": "PASS_200_LOOPBACK_LAN_AND_CHAT_CRYPTO_ASSET",
+    "browser_shell": "PASS_SOCIAL04_RESOURCES_ZERO_CONSOLE_WARNINGS_OR_ERRORS"
+  },
+  "protocol": {
+    "label": "NEXUS_E2EE_V1_ECDH_P256_HKDF_SHA256_AES_256_GCM",
+    "scope": "text_messages_only",
+    "mode": "opt_in_per_message",
+    "key_storage": "IndexedDB_nonextractable_CryptoKey",
+    "envelope_scope": "one_ciphertext_per_active_recipient_device_including_sender_devices",
+    "aad_fields": [
+      "conversation_id",
+      "client_nonce",
+      "sender_device_id",
+      "recipient_device_id",
+      "device_set_commitment"
+    ],
+    "server_private_keys": false,
+    "server_cleartext_on_e2ee_path": false
+  },
+  "truthful_runtime_limits": {
+    "phone_lan_http": "E2EE_DISABLED_REQUIRES_HTTPS_OR_LOCALHOST",
+    "plaintext_fallback": "AVAILABLE_AND_EXPLICITLY_LABELLED",
+    "attachments_e2ee": false,
+    "double_ratchet": false,
+    "forward_secrecy_certified": false,
+    "multi_device_recovery": false,
+    "formal_security_audit": false
+  },
+  "effects": {
+    "network_provider_operations": 0,
+    "broadcast_transactions": 0,
+    "real_funds": 0,
+    "mainnet_state_changes": 0,
+    "new_external_accounts": 0,
+    "incremental_cost": { "amount": 0, "currency": "EUR" }
+  },
+  "artifacts": [
+    { "path": "apps/nexus-web/lib/api.js", "sha256": "e106f078bfefe59400e31d0f9dd43619e8b1124abf1eced4cb19bf0d1fb6b332" },
+    { "path": "apps/nexus-web/lib/db.js", "sha256": "faedeb47ef4d50df8834fb2ba91195bcf8f43633aec74e6817af7885572e5d6c" },
+    { "path": "apps/nexus-web/lib/repo.js", "sha256": "dd204f061990f6f513df63c8337a16cb7bed767fcc096ed60519fd88d2495d37" },
+    { "path": "apps/nexus-web/public/app.js", "sha256": "9e0ed7d23a3a9be9311be32b57e80aef40a8a8ee5261c6944ae0e0b5c55cd5bb" },
+    { "path": "apps/nexus-web/public/chat-crypto.js", "sha256": "1d7c6316a13f631affd582c39cd378192706e2fc242e62ed63c7e11cf903a5af" },
+    { "path": "apps/nexus-web/public/index.html", "sha256": "e1771b588747b4a4251c12d219cbd90d4782c28c7ef3fe4afb93d05bd53c13de" },
+    { "path": "apps/nexus-web/public/styles.css", "sha256": "b77a8a0ba17766e10d9e6a3f7c24496788a5584273c6a5d1b5eaf87a296d459c" },
+    { "path": "apps/nexus-web/test/core.test.js", "sha256": "ba9d0a0d5843907d3574a22e8c6a4bac69d2e2aadf6fff113ab96ccf3fb2b56e" }
+  ],
+  "exclusions": [
+    "Signal double ratchet or formal Signal protocol compatibility",
+    "encrypted attachment upload and malware scanning",
+    "pre-key service, device-key rotation and cross-device recovery",
+    "production HTTPS certificate and phone secure-context certification",
+    "WebRTC media E2EE and TURN or SFU provider certification",
+    "external formal security, privacy and accessibility audit",
+    "completion of the full NX-WEB-SOCIAL-P01 packet"
+  ]
+}

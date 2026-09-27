@@ -1,0 +1,45 @@
+{
+  "schema": "NEXUS_EVIDENCE_PACK_V1",
+  "cycle_range": "161-180",
+  "generated_at": "2026-09-08",
+  "environment": "local_only",
+  "gates": {
+    "ranking": { "passed": 3, "failed": 0 },
+    "graph_privacy": { "passed": 7, "failed": 0 },
+    "notifications": { "passed": 4, "failed": 0 },
+    "signaling": { "passed": 3, "failed": 0 },
+    "e2ee_churn": { "passed": 12, "failed": 0 },
+    "storage_pressure": { "passed": 10, "failed": 0 },
+    "moderation": { "passed": 4, "failed": 0 },
+    "account_security": { "passed": 17, "failed": 0 },
+    "read_authorization": { "passed": 18, "failed": 0 },
+    "supply_chain_offline": { "passed": 6, "failed": 0 },
+    "deployment_contract": { "passed": 8, "failed": 0 },
+    "data_indexes": { "passed": 4, "failed": 0, "index_count": 135 },
+    "accessibility_localization": { "passed": 13, "failed": 0 },
+    "selected_t0_t1": { "passed": 49, "failed": 0 },
+    "full_tests": { "passed": 303, "failed": 0 },
+    "social_inventory": { "passed": 62, "failed": 0 },
+    "synthetic_actor_lab": { "actors": 5000, "issues": 0, "gate": "PASS" },
+    "abuse_lab": { "actors": 500, "passed": 7, "failed": 0 },
+    "soak": { "rounds": 5, "actors_per_round": 200, "p95_ms": 688, "gate": "PASS_LOCAL" },
+    "release_check": "PASS"
+  },
+  "sha256": {
+    "apps/nexus-web/scripts/social-integrity-inventory.mjs": "25d222b88109422b700910ffb1ca168ed82f5e693957ddf114ce4d62d452b2f1",
+    "apps/nexus-web/scripts/release-evidence-inventory.mjs": "a2b0ccbf4d089e5c942232d2b713eb7f3e3a3b2b4a0b4631c74f6511fa5c6528",
+    "apps/nexus-web/scripts/supply-chain-inventory.mjs": "bd966e5774af5edfdbba817892a1da6cefe5ed94fc7b47f14064e42f7fcd0e6f",
+    "apps/nexus-web/scripts/read-authorization-inventory.mjs": "12cf7db21ea5d6e90e1d0f262a9a927961b4bdc7fa744340b9169edc3e63c4db",
+    "apps/nexus-web/scripts/data-index-inventory.mjs": "be99da39d4ea475516a5e1fb9a43ddd4bd4ebabb02ef53d75b361515dfc47797",
+    "apps/nexus-web/package.json": "5547e901981cf8624ebe4306f58c76b36ad05a313268fcbb3e84372ea2c4ec0c"
+  },
+  "manual_gates": {
+    "multiversx_native_auth_gpl_review": "PENDING",
+    "current_vulnerability_database_scan": "PENDING",
+    "formal_security_and_crypto_audit": "PENDING",
+    "formal_legal_approval": "PENDING",
+    "real_device_and_provider_validation": "PENDING",
+    "production_live_capacity": "PENDING"
+  },
+  "claims": { "external_network": false, "real_funds": false, "incremental_cost": 0 }
+}

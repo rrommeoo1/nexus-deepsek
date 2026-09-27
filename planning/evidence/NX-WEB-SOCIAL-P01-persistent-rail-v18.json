@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-WEB-SOCIAL-P01",
+  "run_id": "NX-WEB-SOCIAL-P01-20260827-PERSISTENT-RAIL-V18",
+  "status": "PASS",
+  "release": "20260827-neural64",
+  "scope": "persistent_right_engagement_rail_and_anchored_creator_menu",
+  "implemented": {
+    "right_actions_survive_hidden_chrome": true,
+    "right_actions_survive_comment_mode": true,
+    "right_actions_interactive": true,
+    "creator_menu_top_anchored": true,
+    "creator_menu_never_bottom_docked": true
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_audit": "20/20",
+    "full_web_suite": "92/92",
+    "lan_http": 200,
+    "lan_assets_include_release": true
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/public/styles.css": "f61afa08f4855b4bb0808173f75a04e7e1aff997f8175647bdd85cb8dfe1994e",
+    "apps/nexus-web/public/index.html": "696a0d48f44078ed1f898dba8636e416301002c62a56ddc30efba1514cd5f91b",
+    "apps/nexus-web/test/audit.test.js": "4d486c852914526bd9fec41b54e3ae8d8dd94a3340109a1215b50cc8757e8ee8"
+  },
+  "incremental_cost": { "amount": 0, "currency": "EUR" }
+}

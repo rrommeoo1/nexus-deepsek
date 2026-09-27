@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task_id": "NX-CONTRACT-001",
+  "run_id": "NX-CONTRACT-001-20260802T131021856Z-c6d0664b",
+  "observed_at": "2026-08-02T13:10:21.856Z",
+  "executor_role": "A00",
+  "status": "PASS",
+  "assertions": 262,
+  "failures": [],
+  "versions": {"openapi": "1.0.0", "event": "1.0.0", "abi": "1.0.0", "catalog": "1.0.0"},
+  "compatibility": {
+    "current_breaks": 0,
+    "openapi_unversioned_denied": true,
+    "event_unversioned_denied": true,
+    "abi_unversioned_denied": true,
+    "versioned_migration_allowed": true
+  },
+  "bindings": {
+    "compiler_mode": "TSC_5_9_3_NO_EMIT_PLUS_SIDE_EFFECT_FREE_DIFF",
+    "node_version": "v24.14.0",
+    "tsc_version": "Version 5.9.3",
+    "generated_sha256": "542fbbd4adf4e2fcf769b0fc549848d71045c7d3bed9b530c9e8cfc21be6d5ba",
+    "consumer_sha256": "bf0244be24a301169970a53b07d04b49ab93af82a56b3ecab0a29e5f748f9d77",
+    "resolved_imports": 4,
+    "syntax_exit_codes": [0, 0],
+    "tsc_exit_code": 0
+  },
+  "catalog_entries": 11,
+  "review_subject_sha256": "e58aa3ce27092ab5b8d234ca48a5a4b915df7316df388bca2c11909fe4739542",
+  "incremental_cost": {"amount": 0, "currency": "EUR"},
+  "artifact_hashes": {
+    "packages/contracts/api/openapi.v1.json": "c04962af3927de625a9eed34c9b466a57ab5c2e46dce17a43a71a7d584d728fd",
+    "packages/contracts/events/action.chain.executed.v1.schema.json": "3f82e426d3afb3a0c7e446dee2a7e27f4e1d5ff76179173cd5d47875df3973bf",
+    "packages/contracts/abi/nexus-actions.abi.json": "9bd6f44e083a7b35ed9dde9d5fa61a4beaa118138566003d68fb457ded97934b",
+    "packages/contracts/data/catalog.v1.json": "09e3ff791f34104d9099fdcb1965a3a59f62669a210e81c42270ba72530a0e51",
+    "packages/contracts/data/action-model.prisma": "618ff80a26729cc43f1c1d41cd8af0179893abebe703e64379ac14f14ae9c6f1",
+    "packages/contracts/compatibility-baseline.v1.json": "49567c5e2bafb79b1257918539f561a6e22486fca6ef3791d78b34b0ee257742",
+    "packages/contracts/generate-bindings.ps1": "2f83bcf3e694c9be7f0ce422e4206ff074078abbbe65974be885a7773993c8fb",
+    "packages/contracts/generated/index.ts": "542fbbd4adf4e2fcf769b0fc549848d71045c7d3bed9b530c9e8cfc21be6d5ba",
+    "packages/contracts/generated/consumer-fixture.ts": "bf0244be24a301169970a53b07d04b49ab93af82a56b3ecab0a29e5f748f9d77",
+    "packages/contracts/package.json": "6ba6d1710823fe9187d78cb0cb871fc9649cda5d859397405e83d40129e5009b",
+    "packages/contracts/package-lock.json": "8a069491e1e603745cb8a525e324b0d60f30b7433bff4aeeb24056b3ba3f455b",
+    "packages/contracts/tsconfig.generated.json": "7d4eaa8ef7f508425716e661c7450e21572d219ad4b20c8d42b0ddf102aadf56",
+    "planning/validate-contracts.ps1": "09c7fa0d62a0c38a7f4915e2c15c5d28471d82df321a26afc8b4a6cacbd235f6"
+  }
+}

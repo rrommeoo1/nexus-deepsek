@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow,noarchive" />
+  <title>Nexus · E2EE Device Lab</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; background:#050811; color:#f2f7ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-height:100dvh; padding:max(24px,env(safe-area-inset-top)) 18px max(28px,env(safe-area-inset-bottom)); background:radial-gradient(circle at 15% 10%,#083247 0,transparent 32%),radial-gradient(circle at 90% 85%,#24134b 0,transparent 36%),#050811; }
+    main { width:min(720px,100%); margin:auto; }
+    header,section { border:1px solid #3c6481aa; border-radius:24px; background:#09121dcc; box-shadow:0 18px 70px #000b,inset 0 1px #b9efff22; backdrop-filter:blur(16px); }
+    header { padding:24px; margin-bottom:16px; }
+    h1 { margin:4px 0 8px; font-size:clamp(28px,8vw,48px); letter-spacing:.04em; }
+    h1 span,.ok { color:#5ff7ed; }
+    p { color:#b8c8d8; line-height:1.55; }
+    section { padding:20px; }
+    label { display:block; margin:12px 0 6px; color:#cfe8f7; }
+    select,input,button { width:100%; min-height:48px; border-radius:14px; border:1px solid #47708d; padding:11px 14px; background:#06101b; color:#f5fbff; font:inherit; }
+    button { margin-top:14px; border-color:#56f6e6; background:linear-gradient(135deg,#13d5cd,#6d5dfb); color:#041014; font-weight:800; cursor:pointer; }
+    button.secondary { background:#0b1824; color:#d9faff; }
+    button:disabled { opacity:.5; cursor:not-allowed; }
+    progress { width:100%; height:10px; accent-color:#5ff7ed; }
+    pre { white-space:pre-wrap; overflow-wrap:anywhere; min-height:180px; padding:14px; border-radius:16px; background:#02060c; border:1px solid #263b50; color:#bffef7; }
+    .warning { color:#ffd89a; }
+    small { color:#8fa5b8; }
+  </style>
+</head>
+<body>
+  <main>
+    <header><small>LOCAL TEST HARNESS · NO PRODUCTION CLAIM</small><h1>NE<span>X</span>US Device Lab</h1><p>Verifică local criptarea de grup în browser. Cheile și ciphertext-ul rămân numai în memoria acestei pagini și nu sunt trimise serverului.</p></header>
+    <section>
+      <p id="capability" role="status">Verific mediul securizat…</p>
+      <label for="platform">Clasa dispozitivului (aleasă manual)</label>
+      <select id="platform"><option value="android">Android</option><option value="ios">iPhone / iPad</option><option value="desktop">Desktop</option><option value="other">Alt dispozitiv</option></select>
+      <label for="devices">Dispozitive distincte simulate (1–500)</label>
+      <input id="devices" type="number" min="1" max="500" step="1" value="50" inputmode="numeric" />
+      <button id="run" type="button">Rulează verificarea locală</button>
+      <button id="cancel" class="secondary" type="button" disabled>Anulează după operația curentă</button>
+      <p><progress id="progress" max="100" value="0"></progress></p>
+      <pre id="report" aria-live="polite">Nicio rulare.</pre>
+      <button id="download" class="secondary" type="button" disabled>Descarcă raportul fără chei/date</button>
+      <p class="warning">Un rezultat local PASS nu aprobă producția și nu înlocuiește auditul criptografic sau testarea independentă pe dispozitive reale.</p>
+    </section>
+  </main>
+  <script type="module" src="/diagnostics/e2ee-device-lab.js?v=20260903-lab1"></script>
+</body>
+</html>

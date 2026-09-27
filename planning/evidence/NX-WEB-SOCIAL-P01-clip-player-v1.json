@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "evidence_id": "NX-WEB-SOCIAL-P01-CLIP-PLAYER-V1",
+  "task_packet": "NX-WEB-SOCIAL-P01",
+  "created_at": "2026-08-24T22:00:45+02:00",
+  "status": "PARTIAL_OPEN_NODE_GATE",
+  "scope": "immersive clip-first player and optional-support gate",
+  "runtime_url": "http://192.168.1.153:3000/?v=social27",
+  "checks": {
+    "social_clips_default": "PASS",
+    "one_card_vertical_snap_contract": "PASS",
+    "intersection_muted_autoplay": "PASS",
+    "tap_and_keyboard_play_pause": "PASS",
+    "explicit_sound_toggle": "PASS",
+    "labelled_action_rail": "PASS",
+    "reaction_palette_expansion": "PASS",
+    "support_amount_selection": "PASS",
+    "support_wallet_gate_without_payment": "PASS",
+    "nexus_home_return": "PASS",
+    "app_and_audit_source_parse": "PASS",
+    "full_node_test_suite": "OPEN_RUNTIME_EXECUTION_DENIED_BY_SANDBOX"
+  },
+  "economics": {
+    "free_engagement": true,
+    "support_optional": true,
+    "support_organic_ranking_weight": 0,
+    "proposed_split_bps": {
+      "creator": 9000,
+      "platform": 500,
+      "safety": 300,
+      "infrastructure": 200
+    },
+    "payment_executed": false,
+    "wallet_signature_executed": false
+  },
+  "effects": {
+    "incremental_cost_amount": 0,
+    "currency": "EUR",
+    "network_provider_operations": 0,
+    "economic_operations": 0,
+    "real_fund_operations": 0
+  },
+  "artifacts_sha256": {
+    "apps/nexus-web/public/app.js": "7edcf5df6430512bf6cc5ea4d824e34f2c1ea2371408e7785141b5e2d52f59d7",
+    "apps/nexus-web/public/styles.css": "a7044f025b1827d514009150b7744553bcaf6361770f0e25efcd67e5815d613d",
+    "apps/nexus-web/public/index.html": "6eac1ae141cf029d41cfdbb4cc60a600ad515919f3e8f6b2300b8af3d4a8f7bd",
+    "apps/nexus-web/test/audit.test.js": "4f1951a8067a35e34582762e454bb9a8da2b67e77cb4b861c0a1fc0d998269d5",
+    "docs/17-ui-action-blueprint.md": "5ee69024e8d37852cc3a1a858f2b300ab968e2ab4b018c8d43b9c5a405129024",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "01f77958cee09e26e0b4c6e0efaf060d401b48af3435091c76dc5e95a1854c33"
+  },
+  "claims_excluded": [
+    "mainnet_payment",
+    "production_wallet_settlement",
+    "licensed_music_catalog",
+    "production_scale_ranking",
+    "formal_accessibility_audit",
+    "independent_t1_final_review"
+  ]
+}

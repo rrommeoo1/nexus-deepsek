@@ -1,0 +1,30 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-MODERATION-APPEAL-INTEGRITY-101",
+  "date": "2026-09-06",
+  "gate": "PASS_LOCAL",
+  "finding": {
+    "severity": "HIGH",
+    "problem": "The same account could request a Social assessment appeal while authenticated in another profile, and the browser generated a new replay identity after an uncertain result.",
+    "resolution": "The API now requires the exact Social owner/persona/view boundary. The client retains one stable key, prevents concurrent submissions and accepts only the exact target/appellant/persona/outcome response."
+  },
+  "verification": {
+    "focused": "8/8",
+    "full": "253/253",
+    "profile_confusion_denied": true,
+    "wrong_owner_denied": true,
+    "same_key_replay_same_appeal": true,
+    "duplicate_appeal_rows_on_replay": 0
+  },
+  "constraints": {
+    "external_network": false,
+    "real_funds": false,
+    "incremental_cost": 0,
+    "automated_label_final_truth_claim": false
+  },
+  "sha256": {
+    "apps/nexus-web/lib/api.js": "503ce27b3f33b702a5115330d86cd4696ac4844af42db5f1139d3f547d186ae7",
+    "apps/nexus-web/public/app.js": "4a9dbd70d7013d57109e34a8715659d842f796d24c0f1149566f955b4910f42a",
+    "apps/nexus-web/test/p1-comments-profiles.test.js": "95f2c56a95fec3e089901ffe309459c9b09736a5d833ce177d757e3f817136b2"
+  },
+  "next": "NX-WEB-SOCIAL-P01-TRUST-READ-INTEGRITY-102"
+}

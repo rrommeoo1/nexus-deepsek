@@ -1,0 +1,115 @@
+schema_version: 1
+task_id: NX-SYNTH-P01
+review_id: NX-SYNTH-P01-C01-C02-C08-C10-20260809-FINALREVIEW01
+reviewer_roles: [C01, C02, C08, C10]
+risk_class: T1
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A37
+decision: PASS
+gate_effect: T1_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost: {amount: 0, currency: EUR}
+
+owner_evidence:
+  path: planning/evidence/NX-SYNTH-P01-validation.json
+  sha256: 1cf113e7a9f09a4987555e71d0b4197a8042f51b0f629cc09c9fddcfce3261fb
+  run_id: NX-SYNTH-P01-OWNER-FINAL01
+  executor_role: A37
+  status: PASS
+  assertions: 105
+  scenario_assertions: 32
+  deterministic_repetitions: 3
+  artifact_count: 18
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 32fca4639812b8f441211cd898047859f444552542acbfae95f91d41667b0ddb
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-synthetic-town.ps1
+  run_id: NX-SYNTH-P01-C01-FINALREVIEW01B
+  executor_role: C01
+  status: PASS
+  assertions: 105
+  scenario_assertions: 32
+  deterministic_repetitions: 3
+  review_subject_sha256: 32fca4639812b8f441211cd898047859f444552542acbfae95f91d41667b0ddb
+  output_sha256: 5a2e47fb4d302ece2c97a1bb77d45271c6914071764a40757f655d536bed6d17
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  real_fund_operations: 0
+  incremental_cost: {amount: 0, currency: EUR}
+
+adversarial_review:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: validator_plus_static_deterministic_source_review
+  results:
+    exact_actor_count: 10000
+    actor_cap: ENFORCED
+    journey_action_count: 40000
+    journey_action_cap: ENFORCED
+    forbidden_effect_attempts: 50000
+    forbidden_effect_denials: 50000
+    deterministic_same_seed_corpus: PASS
+    different_seed_corpus_separation: PASS
+    actor_label_stripping: DENIED
+    actor_class_substitution: DENIED
+    exact_shape_getter_proxy_boolean_string: DENIED_OR_CANONICALLY_RECONSTRUCTED
+    payout_atomic: "0"
+    reviews: 0
+    reputation_delta: 0
+    organic_events: 0
+    adoption_events: 0
+    run_replay: DENIED
+    request_replay_after_fresh_restore: DENIED
+    checkpoint_authority_substitution: DENIED
+    checkpoint_prefix: DENIED
+    checkpoint_fabrication_or_effect_poison: DENIED
+    checkpoint_corpus_tamper: DENIED
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all eighteen current artifact hashes match owner evidence and independently recompute the declared subject
+  ten_thousand_actor_corpus:
+    status: PASS
+    evidence: exactly 10000 deterministic SYSTEM_TEST actors produce 40000 bounded journey actions; actor, action and forbidden-attempt caps are enforced
+  actor_class_and_shape_isolation:
+    status: PASS
+    evidence: actor identifiers, traffic class, fixture-only wallet and generated-only data are exact-parsed; stripped labels, mixed classes, extra fields and boolean-like strings fail closed
+  production_effect_isolation:
+    status: PASS
+    evidence: all 50000 forbidden production-effect attempts are denied and payout, reviews, reputation, organic and adoption outputs remain exactly zero
+  restore_replay_and_checkpoint:
+    status: PASS
+    evidence: signed exact checkpoint authority, full sorted request index, regenerated canonical corpus and receipt equality reject prefix, fabrication, tamper and authority substitution; fresh restore preserves replay denial
+  resource_and_effect_boundary:
+    status: PASS
+    evidence: network, external process, real-fund and cap-escalation requests fail closed; independent execution recorded zero network, provider, economic, real-fund and incremental-cost effects
+
+findings: []
+
+accepted_controls:
+  - All eighteen artifacts and the review subject are cryptographically bound to the owner evidence.
+  - Exactly 10000 SYSTEM_TEST actors, deterministic corpus generation and all configured resource caps are independently validated.
+  - Label stripping, actor-class substitution, replay and checkpoint prefix/fabrication/authority attacks fail closed.
+  - Synthetic activity cannot contribute payout, reviews, reputation, organic metrics or adoption metrics.
+  - No network, provider, economic, real-fund or incremental-cost effects occurred.
+
+claims_excluded:
+  - real_users
+  - production_traffic
+  - production_metrics
+  - real_wallets
+  - external_llm_agents
+  - device_farms
+  - provider_load
+  - production_sla_certification
+
+residual_scope_notes:
+  - PASS covers only the bound local deterministic synthetic-town harness and its signed checkpoint and replay boundary.
+  - Production users, real traffic, provider load, device farms, external LLM agents and production SLA certification remain excluded gates.
+  - No finding remains open in this independent T1 review.

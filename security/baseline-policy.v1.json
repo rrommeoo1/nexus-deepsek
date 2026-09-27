@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "policy_id": "nexus-security-privacy-baseline-v1",
+  "status": "enforced",
+  "default_decision": "DENY",
+  "unknown_data_class": "DENY",
+  "missing_classification": "DENY_FOR_NON_PUBLIC_SINK",
+  "incremental_cost_limit": {"amount": 0, "currency": "EUR"},
+  "repository_scan": {
+    "roots": ["apps", "services", "contracts", "packages", "platform/sample-module"],
+    "excluded_segments": ["node_modules", ".artifacts", ".ephemeral"],
+    "extensions": [".ts", ".tsx", ".js", ".mjs", ".cjs", ".json", ".yaml", ".yml", ".prisma", ".rs", ".toml"],
+    "file_name_patterns": [".env", ".env.*"],
+    "structured_extensions": [".json"],
+    "secret_value_key_fragments": ["api_key", "apikey", "client_secret", "private_key", "seed_phrase", "mnemonic", "password", "refresh_token", "bearer_token"],
+    "sensitive_field_fragments": ["email", "phone", "full_name", "date_of_birth", "street_address", "precise_location", "biometric_template", "sexual_orientation", "health_diagnosis"],
+    "synthetic_markers": ["SYSTEM_TEST", "example.invalid", "synthetic_fixture"]
+  },
+  "path_context_overrides": [
+    {"path_prefix":"packages/contracts/","context":"contract_registry"},
+    {"path_prefix":"platform/sample-module/","context":"platform"}
+  ],
+  "classification_catalog": {
+    "unknown_schema": "DENY",
+    "missing_schema": "DENY",
+    "declared_inferred_conflict": "DENY",
+    "schemas": [
+      {"schema_id":"nexus.identity.kyc-claim.v1","data_classes":["KYC_RAW"]},
+      {"schema_id":"nexus.profile.public.v1","data_classes":["PUBLIC"]},
+      {"schema_id":"nexus.messaging.ciphertext.v1","data_classes":["MESSAGE_CIPHERTEXT"]},
+      {"schema_id":"nexus.messaging.plaintext-on-device.v1","data_classes":["MESSAGE_PLAINTEXT_ON_DEVICE"]},
+      {"schema_id":"nexus.dating.private-action.v1","data_classes":["CHAIN_COMMITMENT"]},
+      {"schema_id":"nexus.dating.private.v1","data_classes":["DATING_SENSITIVE"]},
+      {"schema_id":"nexus.kids.private.v1","data_classes":["CHILD_DATA"]},
+      {"schema_id":"nexus.moderation.safety-evidence.v1","data_classes":["SAFETY_EVIDENCE"]},
+      {"schema_id":"nexus.commerce.settlement.v1","data_classes":["FINANCIAL","CHAIN_COMMITMENT"]},
+      {"schema_id":"nexus.media.private-source.v1","data_classes":["MEDIA_PRIVATE_SOURCE"]},
+      {"schema_id":"nexus.chain.action.v1","data_classes":["CHAIN_COMMITMENT","FINANCIAL"]},
+      {"schema_id":"nexus.platform.config.v1","data_classes":["INTERNAL_CONFIG"]},
+      {"schema_id":"nexus.social.public.v1","data_classes":["PUBLIC"]}
+    ],
+    "field_rules": [
+      {"data_class":"CHILD_DATA","field_fragments":["child_profile_id","child_account_id","parent_consent","age_band","kids_history"]},
+      {"data_class":"DATING_SENSITIVE","field_fragments":["sexual_orientation","dating_preference","dating_target","match_preference","dating_location"]},
+      {"data_class":"KYC_RAW","field_fragments":["identity_document","biometric_template","liveness_image","tax_document"]},
+      {"data_class":"ACCOUNT_PRIVATE","field_fragments":["account_profile_mapping","recovery_contact","private_contact"]},
+      {"data_class":"LOCATION_PRECISE_EPHEMERAL","field_fragments":["precise_location","live_latitude","live_longitude"]},
+      {"data_class":"WELLNESS_PRIVATE","field_fragments":["health_diagnosis","health_measurement","nutrition_private"]},
+      {"data_class":"SAFETY_EVIDENCE","field_fragments":["moderation_evidence","incident_evidence","reported_private_message"]},
+      {"data_class":"MESSAGE_PLAINTEXT_ON_DEVICE","field_fragments":["message_plaintext","decrypted_message"]},
+      {"data_class":"SECRET","field_fragments":["seed_phrase","mnemonic","private_key","client_secret","refresh_token"]}
+    ]
+  },
+  "boundary_control_catalog": {
+    "authentication_types": ["OIDC_NATIVEAUTH_WALLET_PROOF","WORKLOAD_IDENTITY","DEVICE_SESSION","SCOPED_SESSION_CAPABILITY","PARENT_AUTHORIZED_TOKEN","STAFF_STEP_UP","SCOPED_WALLET_INTENT","SHORT_LIVED_WORKLOAD_CREDENTIAL","WALLET_OR_CAPABILITY_SIGNATURE","LOCAL_PROCESS_IDENTITY"],
+    "authorization_types": ["RECENT_AUTH_DENY_DEFAULT","ACCOUNT_PROFILE_PURPOSE","ROOM_ACL_PROFILE_POLICY","PRIVATE_ACTION_POLICY","KIDS_ALLOWLIST_CONSENT","CASE_PURPOSE_LEAST_PRIVILEGE","EXACT_PAYMENT_NONCE","ASSET_AUDIENCE_LIFECYCLE","CONTRACT_SCOPE_NONCE_PAUSE","FIXED_TOOL_ZERO_COST"],
+    "transport_types": ["TLS_OIDC_NATIVEAUTH","SIGNED_INTERNAL_IDENTITY","TLS_CLIENT_CIPHERTEXT","PUBLIC_PACKAGE_CONTRACT","ISOLATED_KIDS_API","PURPOSE_BOUND_ADMIN_CONTRACT","SIGNED_TRANSACTION_FINALIZED_EVENT","ALLOWLISTED_SIGNED_OBJECT_API","LOCAL_DETERMINISTIC_BUILD"],
+    "edge_types": ["EXTERNAL_ADAPTER","SOURCE_IMPORTS_TARGET","TARGET_IMPORTS_SOURCE"]
+  },
+  "sinks": {
+    "internal_service": {"allows": ["PUBLIC", "INTERNAL_CONFIG", "ACCOUNT_PRIVATE", "ACCOUNT_AUTHORIZED_PROJECTION", "DATING_SENSITIVE", "CHILD_DATA", "MESSAGE_PLAINTEXT_ON_DEVICE", "MESSAGE_CIPHERTEXT", "KYC_RAW", "WELLNESS_PRIVATE", "LOCATION_PRECISE_EPHEMERAL", "SAFETY_EVIDENCE", "MEDIA_PRIVATE_SOURCE", "WORK_PRIVATE", "AGENT_PRIVATE", "NODE_CIPHERTEXT", "FINANCIAL", "CHAIN_COMMITMENT", "TELEMETRY_REDACTED"]},
+    "private_storage": {"allows": ["MESSAGE_CIPHERTEXT", "MEDIA_PRIVATE_SOURCE", "NODE_CIPHERTEXT"]},
+    "repository": {"allows": ["PUBLIC", "INTERNAL_CONFIG", "CHAIN_COMMITMENT", "TELEMETRY_REDACTED"], "synthetic_fixture_only": ["ACCOUNT_PRIVATE", "DATING_SENSITIVE", "CHILD_DATA", "KYC_RAW", "SAFETY_EVIDENCE"]},
+    "log": {"allows": ["PUBLIC", "INTERNAL_CONFIG", "CHAIN_COMMITMENT", "TELEMETRY_REDACTED"]},
+    "public_event": {"allows": ["PUBLIC", "CHAIN_COMMITMENT", "TELEMETRY_REDACTED"]},
+    "chain": {"allows": ["CHAIN_COMMITMENT", "FINANCIAL"]},
+    "public_search": {"allows": ["PUBLIC"]},
+    "analytics": {"allows": ["PUBLIC", "TELEMETRY_REDACTED"]}
+  },
+  "data_rules": [
+    {"data_class":"PUBLIC","owner_context":"profile_core","allowed_contexts":["profile_core","moderation","media","recommendations","social","work","commerce","live","music_grow","rights_creator","agent_network","node_network","mobile_shell","public_web_shell","admin_shell"],"forbidden_sinks":[]},
+    {"data_class":"INTERNAL_CONFIG","owner_context":"architecture_governance","allowed_contexts":["architecture_governance","platform","contract_registry","core_api_shell"],"forbidden_sinks":["chain","public_event","public_search","analytics"]},
+    {"data_class":"ACCOUNT_PRIVATE","owner_context":"profile_core","allowed_contexts":["profile_core"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"ACCOUNT_AUTHORIZED_PROJECTION","owner_context":"profile_core","allowed_contexts":["mobile_shell","public_web_shell","admin_shell"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"DATING_SENSITIVE","owner_context":"dating","allowed_contexts":["dating"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"CHILD_DATA","owner_context":"kids","allowed_contexts":["kids"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"MESSAGE_PLAINTEXT_ON_DEVICE","owner_context":"messaging","allowed_contexts":["messaging","mobile_shell"],"forbidden_sinks":["repository","chain","public_event","public_search","analytics","log"]},
+    {"data_class":"MESSAGE_CIPHERTEXT","owner_context":"messaging","allowed_contexts":["messaging","dating","node_network"],"forbidden_sinks":["public_search","analytics","log"]},
+    {"data_class":"KYC_RAW","owner_context":"identity","allowed_contexts":["identity"],"forbidden_sinks":["repository","chain","public_event","public_search","analytics","log"]},
+    {"data_class":"WELLNESS_PRIVATE","owner_context":"music_grow","allowed_contexts":["music_grow"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"LOCATION_PRECISE_EPHEMERAL","owner_context":"commerce","allowed_contexts":["commerce"],"forbidden_sinks":["repository","chain","public_event","public_search","analytics","log"]},
+    {"data_class":"SAFETY_EVIDENCE","owner_context":"moderation","allowed_contexts":["moderation","admin_shell"],"forbidden_sinks":["repository","chain","public_event","public_search","analytics","log"]},
+    {"data_class":"MEDIA_PRIVATE_SOURCE","owner_context":"media","allowed_contexts":["media","live"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"WORK_PRIVATE","owner_context":"work","allowed_contexts":["work"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"AGENT_PRIVATE","owner_context":"agent_network","allowed_contexts":["agent_network"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"NODE_CIPHERTEXT","owner_context":"node_network","allowed_contexts":["node_network"],"forbidden_sinks":["chain","public_event","public_search","analytics","log"]},
+    {"data_class":"FINANCIAL","owner_context":"chain_escrow","allowed_contexts":["chain_escrow","chain_integration","commerce","rights_creator"],"forbidden_sinks":["public_event","public_search","analytics","log"]},
+    {"data_class":"CHAIN_COMMITMENT","owner_context":"chain_integration","allowed_contexts":["chain_actions","chain_integration","dating"],"forbidden_sinks":[]},
+    {"data_class":"TELEMETRY_REDACTED","owner_context":"observability","allowed_contexts":["observability","recommendations"],"forbidden_sinks":["chain"]},
+    {"data_class":"SECRET","owner_context":"platform","allowed_contexts":[],"forbidden_sinks":["repository","chain","public_event","public_search","analytics","log"]}
+  ],
+  "flow_policy": {
+    "cross_context_mode": "PUBLIC_CONTRACT_OR_EVENT_ONLY",
+    "direct_foreign_table_read": "DENY",
+    "undeclared_import": "DENY",
+    "unknown_context": "DENY",
+    "kids_adult_context_flow": "DENY",
+    "dating_raw_non_dating_flow": "DENY",
+    "private_plaintext_on_chain": "DENY"
+  },
+  "t0_assurance": {
+    "fail_closed_required": true,
+    "coverage_target_percent": 100,
+    "sample_method": "census_100_percent",
+    "exception_policy": "no_waiver",
+    "author_may_waive": false,
+    "author_may_approve_own_artifact": false,
+    "independent_control_required": true,
+    "missing_registry": "DENY",
+    "missing_evidence": "DENY"
+  }
+}

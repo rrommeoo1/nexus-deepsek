@@ -1,0 +1,46 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-INBOX-RESULT-INTEGRITY-073",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "exact_filter_and_box_binding": true,
+    "server_privacy_assertion_required": true,
+    "maximum_conversations": 100,
+    "unique_conversation_ids": true,
+    "maximum_group_members": 50,
+    "viewer_membership_required": true,
+    "unique_participant_ids": true,
+    "direct_participant_count": 2,
+    "participant_identity_role_state_validated": true,
+    "internal_avatar_urls_only": true,
+    "last_message_sender_and_status_validated": true,
+    "malformed_response_as_empty": false,
+    "cache_generation": "20260905-p1locale37"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_inbox_integrity": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 234, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Inbox rendering accepted any positive conversation ID while silently dropping malformed rows, without binding the response to the requested filter or authenticated viewer.", "resolution": "Exact scope, viewer membership and the complete bounded conversation summary are now mandatory for the entire response." },
+    { "severity": "MEDIUM", "finding": "Participant, avatar and last-message shapes could diverge from the repository contract and still reach UI rendering.", "resolution": "Participant cardinality/identity/role/state, canonical internal avatars and last-message sender/status now validate fail closed." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "6c4fc0fbe4a43148df29a931a3c9fa473740810ab08d3a21545758356ac64341",
+    "apps/nexus-web/public/index.html": "7c0e9ea1fae1fae27376f90c8d1eed58fcb13c0652a128930de03668df1d9f66",
+    "apps/nexus-web/test/audit.test.js": "6db1a6a84275fbfee5d12969500dd4e09ad75525f6cafe5fb8941012a18d9392",
+    "planning/NX-WEB-SOCIAL-inbox-result-integrity-v1.md": "3c53d14474e6f3972e23bfbeeafa59ded92f194a9baf19df62934e6325ee74b3",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "b6cdc8058146411ddfd4142d94dbcc4ba4eae2acc89e7b8509066acd8ce743c6",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "c477e7641d032d24d39cf5c7b98b7195337a0f9a427e8e1f758d2c8c72ec435a"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_REAL_DEVICE_E2EE_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-CONVERSATION-CREATION-INTEGRITY-074"
+}

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.1.0",
+  "owner": "A12",
+  "defaultDecision": "DENY",
+  "profileTypes": ["WORK", "SOCIAL", "DATING", "TRAVEL", "MARKETPLACE"],
+  "sessionBinding": ["schemaVersion", "accountId", "activeProfileId", "ownedProfileIds", "profileTypes", "generation", "actorClass", "riskClear", "incognito", "issuedAt", "expiresAt", "issuerKeyId", "signature"],
+  "accessBinding": ["accountId", "actorProfileId", "actorProfileType", "sessionGeneration", "resourceOwnerProfileId", "resourceOwnerProfileType", "relation", "purpose", "surface", "globalDiscovery", "blocked"],
+  "grantBinding": ["schemaVersion", "grantId", "ownerProfileId", "ownerProfileType", "granteeProfileId", "granteeProfileType", "policyVersion", "purposes", "relation", "allowCrossProfile", "allowGlobalDiscovery", "issuedAt", "expiresAt", "issuerKeyId", "signature"],
+  "rules": {
+    "sameWalletIsNotAuthorization": true,
+    "activeProfileMustMatch": true,
+    "signedProfileTypeProvenanceRequired": true,
+    "staleGeneration": "DENY",
+    "globalBlockPrecedesAudience": true,
+    "crossProfileRequiresSignedGrant": true,
+    "datingGlobalDiscoveryWithoutEntitlement": "DENY",
+    "incognitoGlobalLinking": "DENY"
+  },
+  "clientPolicy": "SAME_DECISION_FUNCTION_AS_API",
+  "auditTrace": { "rawProfileIdsAllowed": false, "actorCommitmentRequired": true, "resourceCommitmentRequired": true, "syntheticOnlyInCurrentPacket": true },
+  "claimsExcluded": ["production_identity", "real_personal_data", "dating_candidate_service", "global_search_index", "formal_privacy_audit", "legal_opinion"]
+}

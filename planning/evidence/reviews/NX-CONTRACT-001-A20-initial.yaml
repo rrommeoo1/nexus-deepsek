@@ -1,0 +1,18 @@
+schema_version: 1
+task_id: NX-CONTRACT-001
+reviewer_role: A20
+independence: sole_independent_checker
+mode: YELLOW_read_only
+decision: CHANGES_REQUIRED
+run_id: NX-CONTRACT-001-20260802T124026118Z-ef69d02b
+validator_status: PASS
+assertions: 174
+review_subject_sha256: 19448cd5cd8ad2e53327cb0afca8647debcad045cb53520964eef3be91305315
+blocking_findings:
+  - {id: A20-CONTRACT-001, severity: HIGH, finding: Forbidden profile projection persisted in chain_integration.}
+  - {id: A20-CONTRACT-002, severity: HIGH, finding: Compatibility gate did not fingerprint full public surfaces.}
+  - {id: A20-CONTRACT-003, severity: HIGH, finding: In-place regeneration masked drift and compilation was syntax-only.}
+  - {id: A20-CONTRACT-004, severity: MEDIUM, finding: Reorg and hyperblock finality lineage was incomplete.}
+  - {id: A20-CONTRACT-005, severity: MEDIUM, finding: Privacy catalog was not cross-validated with bounded-context policy.}
+  - {id: A20-CONTRACT-006, severity: LOW, finding: Review validation wrote generated files in-place.}
+files_modified: []

@@ -1,0 +1,81 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P1-FOLLOW-REQUESTS-UI-011",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Follow-request inbox and deterministic UI states for the active Social persona",
+  "controls": {
+    "privacy": {
+      "active_persona_only": true,
+      "incoming_and_outgoing_separated": true,
+      "private_profile_requests_only": true,
+      "accept_decline_owner_route": true,
+      "requester_cancel_route": true,
+      "external_share": "DENY"
+    },
+    "interaction_states": {
+      "loading": true,
+      "empty": true,
+      "error": true,
+      "retry": true,
+      "mutation_buttons_disabled_while_pending": true,
+      "header_reflects_selected_relation_context": true,
+      "second_click_closes_switcher": true
+    },
+    "responsive_ui": {
+      "four_relation_tabs": ["Followers", "Following", "Favorite", "Cereri"],
+      "incoming_actions": ["Acceptă", "Refuză"],
+      "outgoing_actions": ["Anulează"],
+      "narrow_phone_layout": true
+    }
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "focused_tests": { "passed": 25, "failed": 0 },
+    "full_tests": { "passed": 125, "failed": 0 },
+    "mobile_browser_dom_qa": {
+      "viewport": "390x844",
+      "request_tab_visible": true,
+      "empty_state_visible": true,
+      "header_label_after_selection": "Cereri",
+      "toggle_close_without_trap": true,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 5628,
+      "listen_address": "0.0.0.0",
+      "local_http": 200,
+      "phone_lan_http": 200,
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p1requests1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "MEDIUM",
+      "finding": "Private follow requests existed in the backend but had no user-facing inbox or decision controls.",
+      "resolution": "Added incoming/outgoing request lists with accept, decline, cancel, loading, empty, error and retry states."
+    },
+    {
+      "severity": "LOW",
+      "finding": "The relationship switcher exposed only three contexts and its header did not reflect the selected request context.",
+      "resolution": "Added a fourth responsive tab and synchronized the header label during selection."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/app.js": "fbed02f33ce61b23336da7dc6406297c09aaca2d1089c2e41129eb17df3fcf92",
+    "apps/nexus-web/public/p1-requests.css": "9324fa7c434e91f330c9d5c1010f37bf6f394836696ab2262ddd77bfd5d84b50",
+    "apps/nexus-web/public/index.html": "69ca47d9f5996ade4731cdf8709956dd15f28d02bcea5f1180254ad6184f2a3c",
+    "apps/nexus-web/test/audit.test.js": "ab6c952a8cbceca3ed9976d3fb31e8cf704e54e4ab197976be5aa3d1d2d7abcb"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "worker_status": "UNAVAILABLE_UNTIL_PLUS_RESET",
+    "independent_recheck": "PENDING_PLUS_RESET"
+  },
+  "p1_follow_requests_ui_local_gate": "PASS",
+  "release_gate": "PENDING_INDEPENDENT_T0_T1_SIGNOFF_AND_EXTERNAL_PROVIDER_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-STORY-LIFECYCLE-012"
+}

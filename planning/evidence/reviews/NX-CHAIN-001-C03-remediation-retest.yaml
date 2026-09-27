@@ -1,0 +1,91 @@
+schema_version: 1
+task_id: NX-CHAIN-001
+review_id: NX-CHAIN-001-C03-REMEDIATION-RETEST-20260802T215500Z
+reviewer_role: C03
+risk_class: T0
+status: PASS_PREFLIGHT_FOR_APPROVED_DEVNET_EXECUTION
+gate_recommendation: ALLOW_ONE_SUBJECT_BOUND_APPROVED_DEVNET_EXECUTION_ONLY
+review_scope: RP-001_THROUGH_RP-004_CURRENT_VERSION_ONLY
+review_mode: STRICT_LOCAL_READ_ONLY
+network_operations: 0
+economic_operations: 0
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+subject:
+  runner_sha256: 4af22f58fad90e35ea35b6bc1d143baa2d4728c057886a3342c1cd0e629fdd3c
+  approval_validator_sha256: 85b867cf33b9887d7497246917925a562c76ffd88411ff80fab2328305080ed1
+  runner_regression_sha256: a9aee91d8d24ce4ac28b58d5feabec520aa8400cf6a6595fefe69aacf3a553f2
+  preflight_run_id: NX-CHAIN-001-DEVNET-20260802T215250183Z-f328d9a8
+  preflight_sha256: 6791b6f169df47d26f7ab1ae1ff20f3f158e4622721e2e78f81964d57d94b3ad
+  preflight_subject_sha256: 940f02df211385293f2f5db8272973f52094ccd73384cf62c6aed7186f2937f4
+  wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+  artifact_hash_mismatches: 0
+
+independent_results:
+  runner_regression:
+    status: PASS
+    assertions: 22
+    cli_plans_parsed: 6
+    approval_negative_cases: 6
+    concurrency_expected_return_codes: [0, 1]
+    concurrency_final_receipt_status: CONSUMED
+    network_operations: 0
+    economic_operations: 0
+  approval_receipt_structure:
+    status: PASS
+    approval_id: NX-CHAIN-001-DEVNET-APPROVAL-ROMEO-20260802
+    owner: Romeo
+    issued_receipt_sha256: 3d64600ad1d5372e5554ce4a17a83ccc29d948db4d5fc48508dcff3a63dbc7da
+    subject_bound: true
+    wasm_bound: true
+    run_bound: true
+    single_use: true
+    consumed_during_review: false
+
+finding_disposition:
+  RP-001:
+    status: CLOSED
+    evidence: The validator acquires fcntl.LOCK_EX on a stable sidecar before rereading and revalidating the receipt, writes CONSUMED through a PID-specific temporary file and atomically replaces the receipt. The two-process regression requires exactly return codes [0, 1] and final status CONSUMED; it passed.
+  RP-002:
+    status: CLOSED
+    evidence: The runner captures pinned mxpy 11.4.1 contract-query JSON from stdout without unsupported --outfile; the supported query plan parses locally and the invalid --outfile variant is rejected.
+  RP-003:
+    status: CLOSED
+    evidence: The ABI-pinned decoder requires the exact twelve SessionCapability fields, exact 136-byte encoding and validates identity, relayer, actor, scope, limits, used_actions=1, nonce=1, expiry, valid_from and active=true.
+  RP-004:
+    status: CLOSED
+    evidence: Six pinned-mxpy command plans parse, unsupported query output syntax is rejected, six approval mutations fail, and the offline regression passes 22/22 without network or economic operations.
+
+preflight_controls:
+  approval_fail_closed_for_serial_execution: PASS
+  approval_single_use_under_concurrency: PASS
+  query_stdout_capture: PASS
+  strict_capability_decode: PASS
+  cli_command_plan_parse: PASS
+  approval_negative_mutations: PASS
+
+authorization_boundary:
+  executions_allowed: 1
+  environment: devnet
+  gateway: https://devnet-gateway.multiversx.com
+  subject_sha256: 940f02df211385293f2f5db8272973f52094ccd73384cf62c6aed7186f2937f4
+  wasm_sha256: 16cb227ba43678b8bbe8772cd2b704ff2d01a3e40b848ecd98b89de6493ab16f
+  approved_run_id: NX-CHAIN-001-DEVNET-20260802T214653Z-romeo01
+  max_public_transactions: 4
+  max_real_value: 0
+  wallet_source: PUBLIC_MULTIVERSX_SDK_TEST_FIXTURES_ONLY
+  receipt_must_be_issued_unexpired_and_atomically_consumed: true
+
+packet_acceptance:
+  allowed: false
+  reason: DEVNET_TRANSACTION_PROOF_PENDING
+  devnet_transaction_proof: MISSING
+
+claims_excluded:
+  - devnet_transaction_completed
+  - public_bytecode_upload_completed
+  - packet_acceptance
+  - mainnet_readiness
+  - production_security_audit

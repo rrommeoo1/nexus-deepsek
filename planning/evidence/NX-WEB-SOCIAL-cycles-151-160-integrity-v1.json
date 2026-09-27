@@ -1,0 +1,25 @@
+{
+  "schema": "NEXUS_EVIDENCE_PACK_V1",
+  "cycle_range": "151-160",
+  "generated_at": "2026-09-08",
+  "environment": "local_only",
+  "gates": {
+    "story_privacy": { "passed": 11, "failed": 0 },
+    "messaging_offline_idempotency": { "passed": 12, "failed": 0 },
+    "upload_and_ui": { "passed": 81, "failed": 0 },
+    "fullscreen": { "passed": 3, "failed": 0 },
+    "engagement": { "passed": 5, "failed": 0 },
+    "private_access": { "passed": 2, "failed": 0 },
+    "responsive_locale": { "passed": 6, "failed": 0 },
+    "aggregate": { "passed": 298, "failed": 0 },
+    "release_check": "PASS"
+  },
+  "sha256": {
+    "apps/nexus-web/public/app.js": "f40626810d1ea2fb6eb6e9242686754f5ab96ae96c11c2f7205eaffba3b134bf",
+    "apps/nexus-web/test/p2-story-owner-ui.test.js": "753ae71c190335d54632c495b4e282ac54d3056e4279327d0c88c828bec60a57",
+    "apps/nexus-web/test/p2-story-lifecycle.test.js": "8eee1936d22bf5cdb033a9edd573803daee3605cecaafa5fcb3e958031a626bc",
+    "apps/nexus-web/test/p2-message-pagination.test.js": "faa0d14f26c7ba41e55654176caadf591c508c5f71967643015c09cbe664cd81"
+  },
+  "claims": { "external_network": false, "real_funds": false, "incremental_cost": 0 },
+  "not_claimed": ["browser_pixel_parity", "real_device_validation", "production_provider_readiness"]
+}

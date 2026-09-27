@@ -1,0 +1,100 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-SESSIONS-DEVICES-020",
+  "checkpoint_date": "2026-08-29",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "scope": "Privacy-safe active-session inventory, individual revocation and replay-safe logout-all with step-up",
+  "controls": {
+    "inventory": {
+      "coarse_device_label": true,
+      "current_session_marked": true,
+      "raw_token_hash_exposed": false,
+      "raw_device_fingerprint_exposed": false,
+      "ip_exposed": false,
+      "legacy_session_bound_on_first_authenticated_read": true
+    },
+    "revocation": {
+      "other_session_requires_step_up": true,
+      "current_session_requires_local_logout_route": true,
+      "logout_all_requires_step_up": true,
+      "password_step_up": true,
+      "xportal_step_up": true,
+      "logout_all_replay_after_revocation": true,
+      "security_notification": true
+    },
+    "policy": {
+      "external_share": "DENY",
+      "default_deny_spend": true
+    }
+  },
+  "verification": {
+    "focused_tests": { "passed": 3, "failed": 0 },
+    "static_tests": { "passed": 26, "failed": 0 },
+    "full_tests": { "passed": 140, "failed": 0 },
+    "release_check": {
+      "gate": "PASS",
+      "test_files": 15,
+      "synthetic_actors": 1000,
+      "synthetic_issues": 0,
+      "production_smoke": "PASS"
+    },
+    "database": {
+      "real_restart": "PASS",
+      "columns": ["device_id", "device_label", "device_fingerprint", "last_seen_at"],
+      "integrity_check": "ok"
+    },
+    "browser_qa": {
+      "account_access_journey": true,
+      "current_device_visible": true,
+      "password_step_up_field_visible": true,
+      "local_and_all_logout_actions_distinct": true,
+      "destructive_actions_executed_on_real_session": false,
+      "console_errors": 0,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 16064,
+      "listen_address": "0.0.0.0",
+      "local_health": "PASS",
+      "phone_lan_health": "PASS",
+      "phone_url": "http://192.168.1.153:3000/",
+      "browser_build": "20260829-p1sessions1"
+    }
+  },
+  "findings": [
+    {
+      "severity": "HIGH",
+      "finding": "Account Center had only local logout and no authoritative view or revocation of other active sessions.",
+      "resolution": "Added coarse active-session inventory, public opaque session IDs and owner-scoped revocation with password/xPortal step-up."
+    },
+    {
+      "severity": "HIGH",
+      "finding": "A naive logout-all behind the authenticated mutation registry would lose idempotent replay after deleting its own credential.",
+      "resolution": "Added a credential-bound logout-all command record that replays safely for 24 hours after every session is gone."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Adding a persistent device cookie changed Set-Cookie from scalar to array and exposed a legacy test/request normalization bug.",
+      "resolution": "Cookie parsing now normalizes array input defensively; the full auth/account suite covers the regression."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "b818bfb6d07a9a2f6b828459c7aa4fb869b7307e531a7ac59972dfc524d0baf5",
+    "apps/nexus-web/lib/repo.js": "2dde70d7fd33033847d313c7f85970ff189df64c75349fb2df445645340768c1",
+    "apps/nexus-web/lib/email-auth-session.js": "dc901298fadef523ce0b7d78c3b859bbd3f8e83f120be49cb11d87feb4d26d2d",
+    "apps/nexus-web/lib/api.js": "7ed35c778705db9badb2666bda3d8a2878a0c14a9dec09598ee1e659a0d12872",
+    "apps/nexus-web/lib/transport.js": "e1ef609dbce01b04c01c6196e00357fe03d8dbde60babb02332a83bf9dbbbf09",
+    "apps/nexus-web/public/app.js": "5eb90bae4d91e4e1ad4d514ae6eb061074abfb0282062377c82fb02c19e7b4cd",
+    "apps/nexus-web/public/p3-visual-foundation.css": "e63cec5765b798b24d14fab7c4bed407c9fdb5a8004ac66836cbc8ff3ad1d06b",
+    "apps/nexus-web/public/index.html": "e62fc03fbcade44568620949342c7922fbda981272fefae33f32f147701f3132",
+    "apps/nexus-web/test/p1-sessions-devices.test.js": "ec57b9130689921fcc91fa743465f49c0f18e27d8a79ba00f7c80c5fada55e63",
+    "apps/nexus-web/test/audit.test.js": "d29eee8c794609e00b0178514e2df1d63d20e0a17d187186c6b0ff546fb2d0c7",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "92fcdeda0f3003e2017301d0ced0c2dc4b022a0d91f8c2d2071ad692a062693f"
+  },
+  "capacity": { "band": "YELLOW", "reason": "usage capacity unobserved" },
+  "p1_sessions_devices_gate": "PASS_LOCAL",
+  "release_gate": "PENDING_GDPR_OPERATIONS_RECONCILIATION_AND_EXTERNAL_T0_T1_SIGNOFF",
+  "next_packet": "NX-WEB-SOCIAL-P01-GDPR-LIFECYCLE-021"
+}

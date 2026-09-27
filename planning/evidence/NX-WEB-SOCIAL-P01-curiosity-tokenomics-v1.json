@@ -1,0 +1,29 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01",
+  "artifact": "curiosity_tokenomics",
+  "status": "completed",
+  "date": "2026-08-25",
+  "files": [
+    "docs/23-collectible-identity-market-economy.md"
+  ],
+  "model": "free_by_default_pay_for_curiosity",
+  "economic_primitives": [
+    "Unlock",
+    "Reveal x2",
+    "Mutual Reveal",
+    "Peek",
+    "Collect",
+    "Gift Unlock",
+    "Friend Vault",
+    "Bounty Reveal"
+  ],
+  "key_decisions": [
+    "Normal social usage remains free; curiosity, private access, collectibles and identity assets can be paid.",
+    "Reveal x2 requires prior consent via anonymous/revealable/mutual-reveal policy.",
+    "For Reveal x2, recommended split is 60% to the revealed visitor, 30% to the owner/context creator and 10% to Nexus.",
+    "Reviews, trust, KYC, earned badges, dating seriousness and organic reach cannot be bought or transferred.",
+    "A transferable Nexus token is still not recommended for MVP/Phase 2; use EGLD, approved ESDT stablecoins, non-transferable points, gas credits and NFTs/SFTs."
+  ],
+  "no_cost_actions": true,
+  "external_services_used": false
+}

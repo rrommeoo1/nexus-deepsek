@@ -1,0 +1,25 @@
+schema_version: 1
+task_id: NX-PLAT-001
+reviewer_role: C11
+independence: sole_independent_checker
+mode: YELLOW_read_only
+decision: CHANGES_REQUIRED
+review_subject_sha256: 17d7cb7cbb3de10a7fe12602de822f267212b8c454d2262e4d78dad81355a8de
+replay_run_id: NX-PLAT-001-VALIDATE-20260802T121353419Z-a9a4715c
+validator_status: PASS
+assertions: 65
+blocking_findings:
+  - id: C11-PLAT-001
+    severity: HIGH
+    finding: Dependency scan was not connected to module.dependencies.
+  - id: C11-PLAT-002
+    severity: HIGH
+    finding: RunId and manifest paths lacked containment enforcement.
+  - id: C11-PLAT-003
+    severity: HIGH
+    finding: Metered workflow activation lacked a complete registered approval gate and timeout.
+non_blocking_findings:
+  - id: C11-PLAT-004
+    severity: MEDIUM
+    finding: Builder/workflow were absent from provenance and checkout used a mutable tag.
+files_modified: []

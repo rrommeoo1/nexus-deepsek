@@ -1,0 +1,75 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-PRIVACY-MATRIX-003",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "matrix_order": [
+    "subject_valid",
+    "resource_active",
+    "persona_match",
+    "not_blocked",
+    "owner_override",
+    "profile_audience",
+    "resource_audience"
+  ],
+  "covered_resources": [
+    "profile",
+    "post",
+    "story",
+    "profile_avatar_media",
+    "post_media",
+    "story_media",
+    "private_content_listing"
+  ],
+  "intentional_exception": {
+    "resource": "unified_messages",
+    "read_scope": "account membership and history boundary across profile filters",
+    "send_scope": "exact conversation persona"
+  },
+  "verification": {
+    "syntax": "PASS",
+    "tests": { "passed": 104, "failed": 0 },
+    "synthetic_privacy_decisions": {
+      "cases": 1000,
+      "persona_bypass": 0,
+      "block_bypass": 0,
+      "inactive_resource_bypass": 0,
+      "gate": "PASS"
+    },
+    "repository_matrix": {
+      "public": "PASS",
+      "followers": "PASS",
+      "friends": "PASS",
+      "private_entitlement": "PASS",
+      "expired_or_blocked": "PASS",
+      "cross_persona": "PASS",
+      "stories": "PASS",
+      "media": "PASS"
+    },
+    "social_actor_lab": {
+      "actors": 1000,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "gate": "PASS"
+    }
+  },
+  "get_side_effects_removed": [
+    "implicit persona creation",
+    "presence touch on inbox/message read",
+    "delivered receipt on GET messages",
+    "message and call expiry cleanup during reads"
+  ],
+  "capacity": {
+    "band": "YELLOW",
+    "evidence": "independent checker reported ChatGPT Plus usage limit",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true,
+    "production_demo_unpaid_private_access": "DENY"
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-ATOMIC-COMMANDS-004"
+}

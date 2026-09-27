@@ -1,0 +1,49 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-SOCIAL-SEARCH-RESULT-INTEGRITY-071",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "latest_request_and_persona_guard": true,
+    "exact_query_and_scope_binding": true,
+    "server_privacy_assertion_required": true,
+    "synthetic_traffic_excluded": true,
+    "maximum_profiles": 20,
+    "maximum_posts": 20,
+    "identity_author_visibility_reactions_validated": true,
+    "internal_media_only": true,
+    "hardened_public_profile_reused": true,
+    "search_media_collection_bound": true,
+    "raw_server_errors_rendered": false,
+    "locales": ["ro", "en", "pl", "ar"],
+    "cache_generation": "20260905-p1locale35"
+  },
+  "verification": {
+    "javascript_syntax": "PASS",
+    "locale_coverage": { "status": "PASS", "ro_missing": 0, "en_missing": 0, "pl_missing": 0, "ar_missing": 0 },
+    "focused_social_search_integrity": { "passed": 1, "failed": 0 },
+    "product_full_tests": { "passed": 233, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Search results were rendered without a bounded client response contract and could expose malformed media or identity fields.", "resolution": "Exact index/privacy flags, bounded collections and profile/post/media validators now fail closed before rendering." },
+    { "severity": "MEDIUM", "finding": "A delayed search could replace a later query and profile preview duplicated weaker validation.", "resolution": "Latest-request/persona guards discard stale work and profile results reuse the hardened public-profile overlay." },
+    { "severity": "MEDIUM", "finding": "Search media actions resolved against the unrelated feed collection.", "resolution": "Post action wiring and full-screen navigation accept the validated search collection explicitly." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "624c15e98eb278b47888dff658354c3d001e6e95942d589b1351e0b28d1ad796",
+    "apps/nexus-web/public/app.js": "36a71f6f9e9fa4335e8d8da5fccda4d064c8e5e37ff9ea21dbf69b251ab28718",
+    "apps/nexus-web/public/index.html": "0000ead6038412a544f6b768451b319a62e26cfb074998a2f525f79b46278958",
+    "apps/nexus-web/test/audit.test.js": "b7a53f12a097ce9428ca24bd1367c24d6982078f592cea42aac3ac0034af1e80",
+    "planning/NX-WEB-SOCIAL-social-search-result-integrity-v1.md": "b5db819e96e5ea695cd18b1824e9d820ab82b4c35b96deef79bab428c60051fd",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "cb1dc6e1844dda4a91798544824afc60617bb5b2fce3fcbe4b21f2bc4d92a6e0",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "e41b80494034115ecf1015b250dee241789034cda01e929a5a74dba7805616a5"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_FEDERATED_INDEX_PRIVACY_REGIONAL_ABUSE_REVIEW_AND_INDEPENDENT_REVIEW",
+  "next_packet": "NX-WEB-SOCIAL-P01-MESSAGE-BADGE-INTEGRITY-072"
+}

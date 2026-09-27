@@ -1,0 +1,3139 @@
+/* The feed surface: the header bar with the rail of the three readings on it, the tray of moments the
+   Messages screen prints (wave 14f), and the three feeds.
+   Loaded last, like profile-experience.css and post-detail.css, so one surface's look lives in one
+   file of its own and the seven-file shell allowance stays exactly where it was. Everything here
+   uses the tokens the Profile page already prints (--teal, --nx67-void, --nx-muted), so the feed
+   and the profile are visibly the same application. */
+
+/* ---------------------------------------------------------------- header bar */
+/* Wave 14f: this screen has one row. The shelf of moments left for the Messages screen and the rail of
+   readings left for the bar, so the three-row grid (shelf + switch + column) and the `storiesCollapsed`
+   fold that was measured with it are gone; the column takes the whole screen. */
+.clipsScreen{grid-template-rows:minmax(0,1fr)!important}
+/* No hairline under the bar. The line the owner photographed was this border-bottom plus the shadow a
+   later sheet paints under every header; both are gone here, and `border-bottom:0` has to be forced
+   because styles.css prints one at `!important` too. The bar now ends where its own gradient ends. */
+.appHeader.feedHeader{align-items:center!important;gap:6px!important;min-height:56px!important;padding:10px 12px 9px!important;border-bottom:0!important;box-shadow:none!important;background:linear-gradient(180deg,rgba(8,13,20,.94),rgba(8,13,20,.78))!important;backdrop-filter:blur(18px) saturate(1.15)!important}
+/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as
+   well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in
+   the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */
+.appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels){--feed-tint:#8b68d4;--feed-tint-soft:rgba(139,104,212,.14);--feed-tint-glow:rgba(139,104,212,.28)}
+.appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers){--feed-tint:#43df80;--feed-tint-soft:rgba(67,223,128,.18);--feed-tint-glow:rgba(67,223,128,.38)}
+.appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news){--feed-tint:#2fb7ff;--feed-tint-soft:rgba(47,183,255,.18);--feed-tint-glow:rgba(47,183,255,.38)}
+/* The bar has one row and the switch plates are not in it: the module plates belong to the screens that
+   are not the feed. `display:contents` has to be forced, because a later `!important` grid rule in
+   styles.css keeps an empty, zero-height switch box inside the row - and measured on the live page that
+   invisible box took 49px of the 390px bar away from the search field (79px instead of 135px). */
+.appHeader.feedHeader .headerSwitches{display:contents!important;flex:0 0 auto!important;min-width:0!important;grid-template-columns:none!important;gap:0!important}
+/* Wave 14i: the door of the drawer is back on the right of the bar. Wave 14h read the mark the owner had
+   marked - "the screen with an arrow" - as this button and took it off; he corrected that reading, so this
+   is the button of wave 14g again, drawn as a screen with an arrow leaving it. It opens the same small
+   drawer, and so does the `menu` mark of the bottom bar: `bindFeedHub` answers for both with one listener,
+   bound on the phone screen. From the second reel it leaves with the wordmark, because a full-screen reel
+   is a reading and a way out of the screen is not part of one. */
+.appHeader.feedHeader .feedHeaderIcons{flex:0 0 auto!important;display:flex!important;align-items:center;gap:5px;transition:opacity .22s ease,visibility 0s}
+.appHeader.feedHeader .feedHeaderIcon{width:40px;height:40px;min-width:40px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--feed-tint,#a06bff) 56%,#fff 14%);border-radius:13px;background:color-mix(in srgb,var(--feed-tint,#a06bff) 22%,#0b1720);color:#eaffff;cursor:pointer}
+.appHeader.feedHeader .feedHeaderIcon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.appHeader.feedHeader .feedHeaderIcon:active{transform:scale(.95)}
+.phoneScreen:has(.clipsScreen.feed-reels) #phoneHeader.feedChromeFolded .feedHeaderIcons{opacity:0;visibility:hidden;pointer-events:none}
+@media(pointer:coarse){.appHeader.feedHeader .feedHeaderIcon{min-width:44px!important;min-height:44px!important}}
+/* The lens and relations doors keep their ids and their menus; on this bar they are icons, because
+   the feed header is a bar and not a shelf of plates. */
+.appHeader.feedHeader .modeBadge{width:38px!important;min-width:38px!important;max-width:38px!important;height:38px!important;padding:0!important;margin:0!important;border-radius:13px!important;clip-path:none!important;display:grid!important;place-items:center!important}
+.appHeader.feedHeader .modeBadge>span,.appHeader.feedHeader .modeBadge>em{display:none!important}
+.appHeader.feedHeader .modeBadge>i{width:100%!important;height:100%!important;border-radius:12px!important;font-size:15px!important}
+/* One row, always: the bar is a bar. The pill gives up width, the logo and the doors do not, and on a
+   narrow phone the pill keeps its glyph and drops its words rather than pushing a door off the bar. */
+.appHeader.feedHeader{display:flex!important;flex-flow:row nowrap!important;align-items:center!important;flex-wrap:nowrap!important;gap:6px!important;overflow:hidden!important}
+/* The logo is the one thing on the bar that is allowed to grow: it is what the reader recognises before
+   reading a word. 84x22 in a phone bar, 96x25 once there is room, 68x19 on the narrowest phones that
+   still show it, and it never takes width away from a door. */
+.appHeader.feedHeader .wordmark{flex:0 0 auto!important;width:auto!important;min-width:0!important;padding:0!important;gap:0!important}
+.appHeader.feedHeader .wordmark svg,.appHeader.feedHeader .wordmark .nexusWordmarkSvg{width:76px!important;min-width:0!important;height:20px!important;max-width:none!important}
+/* The logo wears the tint of the reading it is read in, the same tint the rail and the puck wear: violet
+   on Reels, green on Whispers, blue on News. Wave 14h asked for exactly this - the owner reads the colour
+   before he reads a word - and it costs no markup: the SVG the shell draws carries its colours as
+   presentation attributes, which any rule here outranks, so `currentColor` recolours the whole wordmark
+   from the one custom property the bar already prints. The colour has to be forced, because the shell
+   prints a white wordmark at `!important` (see styles.css), and this is the sheet that has the last word
+   on the feed's bar. */
+/* The persona plate is the same door as the source button, so the feed bar does not print it twice. */
+.appHeader.feedHeader #modeBadge{display:none!important}
+/* The rail is the whole middle of the bar now: there is no mark on either side of it to leave room for,
+   because a reading is what this bar is for. */
+/* ------------------------------- the rail of the three readings, on the bar (wave 14f) */
+/* The owner's second mockup moved the switch up here: the rail is the middle of the bar, between the logo and
+   the two doors, so a reading is named where the tint already lives. It is the same tablist it was under the
+   shelf - puck, three words, and only the neighbour that is one swipe away - laid out in one row instead of a
+   column of two. Width is shared deliberately: the rail is `flex:1 1 auto` with `min-width:0`, the logo and
+   the doors are `flex:0 0 auto`, so a narrow phone shortens the words and never the way out of the screen. */
+.appHeader.feedHeader .feedModes{flex:1 1 auto!important;min-width:0!important;display:flex!important;align-items:center;justify-content:center;gap:5px;margin:0!important;padding:0!important;border:0!important;background:none!important}
+.appHeader.feedHeader .feedModePuck{flex:0 0 auto;width:26px;height:26px}
+.appHeader.feedHeader .feedModePuck i{font-size:11px}
+.appHeader.feedHeader .feedModeRow{gap:2px;min-width:0;overflow:hidden}
+/* The word is the target: a 32px mark inside a 44px ring, the rule every other control on this bar obeys. The
+   ring is transparent, so the bar keeps its height while the thumb keeps its surface. The words wear spacing of
+   their own and not the wide tracking the shell prints on every plate: measured at 390px, `1.68px` of tracking
+   pushed the three words 26px past the width the bar has for them and every one of them printed as "REEL…". */
+.appHeader.feedHeader .feedModes button{flex:0 1 auto!important;min-width:0!important;min-height:32px!important;padding:0 6px!important;gap:4px!important;font-size:10px!important;letter-spacing:.02em!important}
+.appHeader.feedHeader .feedModes button:after{content:"";position:absolute;inset:-6px -2px;border-radius:999px}
+.appHeader.feedHeader .feedModeHint{font-size:11px}
+/* A narrow phone spells the three readings with one mark fewer: the puck wears the colour and the glyph of the
+   reading you are in, so the glyph inside every word is the first thing to go before the words collide. */
+@media (max-width:430px){
+  .appHeader.feedHeader .feedModes button i{display:none}
+}
+
+
+/* ------------------------------ the bar over a reel, and its fold (wave 14g) */
+/* The owner asked for the reel to own the whole screen, so on the Reels reading the bar stops being a row
+   above the column and becomes a layer over it: it keeps no background of its own, only a scrim at the top
+   so its marks stay legible over bright video, and the column takes the height the bar was using. The rule
+   is written for Reels and for nothing else: a text reading (Whispers, News) keeps the bar it was built
+   with, because a headline needs the contrast. Both presentations of Reels are covered, because the reader
+   who keeps cards must not lose the bar: a full-screen reel goes edge to edge under the floating bar, and a
+   column of cards starts below it. */
+.phoneScreen:has(.clipsScreen.feed-reels) #phoneHeader{position:absolute!important;z-index:40;top:0;inset-inline:0}
+.phoneScreen:has(.clipsScreen.feed-reels) #phoneHeader .appHeader.feedHeader{background:linear-gradient(180deg,rgba(2,6,12,.62),rgba(2,6,12,0))!important;backdrop-filter:none!important;box-shadow:none!important;border-bottom:0!important}
+.phoneScreen:has(.clipsScreen.feed-reels) .screenViewport{height:calc(100% - 52px)!important}
+/* A reel is the whole screen: the column loses the inset it had when a bar sat above it. */
+.phoneScreen:has(.clipsScreen.feed-reels) .clipsScreen.presentation-immersive>.pulsePosts{padding:0!important}
+/* A column of cards is not: it starts under the bar the reader can still see. */
+.phoneScreen:has(.clipsScreen.feed-reels) .clipsScreen.presentation-cards>.pulsePosts{padding-top:82px!important}
+/* From the second reel on, the one thing on the bar that is about being somewhere else - the wordmark -
+   folds away, and the rail stays: the reading is named at every reel. The box stays in the layout so the
+   rail does not jump when it goes, `visibility` takes it out of the tab order as well as out of sight, and
+   `feed-surface.js` only puts this class on the bar while a reel is what is on the screen, so a text
+   reading can never wear it. */
+.phoneScreen:has(.clipsScreen.feed-reels) #phoneHeader .wordmark{transition:opacity .22s ease,visibility 0s}
+.phoneScreen:has(.clipsScreen.feed-reels) #phoneHeader.feedChromeFolded .wordmark{opacity:1;visibility:visible;pointer-events:auto}
+
+/* One thing owns the corner at a time (wave 14i). On a full-screen reel the bar still carries the wordmark
+   over the first reel, and the author's own row - Follow and the clip's `•••` - was drawn in that same
+   corner: that is the pile the owner photographed, a settings mark and three dots over the logo. The gear
+   is gone for good (its panel is a row of the clip's `•••` menu now); the author's row steps aside while
+   the bar is up, and from the second reel, when the logo folds away, it takes the corner the logo left. It
+   keeps its place in the layout, so nothing under it moves when it comes back. */
+.clipCreator.clipIdentityPersistent{transition:opacity .22s ease,visibility 0s}
+.phoneScreen:has(.clipsScreen.feed-reels.presentation-immersive):has(#phoneHeader:not(.feedChromeFolded)) .clipCreator.clipIdentityPersistent{opacity:0;visibility:hidden;pointer-events:none}
+
+/* ------------------------------------ the drawer of marks, above the bottom bar (waves 14g-14h) */
+/* A drawer with no words in it: one tile per module of Nexus and one tile that ends the session, the tile
+   you are reading marked with its own colour. Wave 14g anchored it under the one button the bar had left;
+   wave 14h took that button off the bar, so the drawer is opened from the first mark of the bottom bar and
+   sits above it - bottom-inline-end, clear of the 58px bar the drawer belongs to. It is small on purpose -
+   the owner asked for a small drawer, not a sheet. Nothing textual is printed, so the names are read out
+   from the labels the app already carries. */
+.feedQuickLayer{position:absolute;inset:0;z-index:230;display:block;padding:0}
+.feedQuickLayer[hidden]{display:none}
+.feedQuickBackdrop{position:absolute;inset:0;background:rgba(0,0,0,.18);backdrop-filter:none}
+.feedQuickDrawer{position:absolute;inset-block-start:62px;inset-inline-end:10px;display:grid;gap:9px;padding:9px;border:1px solid rgba(255,255,255,.28);border-radius:17px;background:#050608;box-shadow:0 18px 42px rgba(0,0,0,.7);animation:feedQuickIn .18s ease-out both}
+.feedQuickDrawer:focus{outline:2px solid #fff;outline-offset:3px}
+.feedQuickGrid{display:grid;grid-template-columns:repeat(3,40px);gap:8px}
+.feedQuickGrid button,.feedQuickLogout{display:grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid rgba(255,255,255,.22);border-radius:13px;background:#0b0c0e;color:#fff;line-height:1}
+.feedQuickGrid button{color:#fff}
+.feedQuickGrid button i{font-style:normal;font-size:14px;font-weight:800}
+.feedQuickGrid button:active,.feedQuickLogout:active{transform:scale(.94)}
+.feedQuickGrid button.active{border-color:#fff;background:#fff;color:#050608;box-shadow:none}
+.feedQuickLogout{color:#fff;border-color:rgba(255,255,255,.42);background:#050608}
+.feedQuickLogout svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.feedQuickGrid button:focus-visible,.feedQuickLogout:focus-visible{outline:2px solid #fff;outline-offset:2px}
+@keyframes feedQuickIn{from{opacity:.4;transform:translateY(-6px) scale(.96)}to{opacity:1;transform:none}}
+
+/* --------------------- the mark of the creator on the reel's rail, and the row that stayed (wave 14g) */
+/* The name left the reel, so the picture is the identity and it sits where a thumb already is: the top of
+   the action rail, above the button that likes. It stays the button it always was - it opens the
+   creator's moment - so it wears the ring that says the moment is there. The row the mark left keeps what
+   a reader can still do about the creator: follow, and the menu behind the three dots. */
+.clipStage .clipQuickActions>.clipRailAvatar{width:62px!important;min-width:62px!important;min-height:54px!important;padding:2px 0!important;border:0!important;background:none!important}
+.clipStage .clipQuickActions>.clipRailAvatar>i{display:grid;place-items:center;width:46px;height:46px;min-width:46px;padding:0;overflow:hidden;border:2px solid rgba(255,255,255,.86);border-radius:50%;background:linear-gradient(145deg,#6a4bf1,#ca4db6);color:#fff;font-size:13px!important;line-height:46px!important;font-style:normal;font-weight:800;box-shadow:0 6px 16px rgba(0,0,0,.4)}
+.clipStage .clipQuickActions>.clipRailAvatar>i img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.clipStage .clipMetaOverlay .clipCreator.clipIdentityPersistent{grid-template-columns:max-content!important;width:max-content!important;max-width:calc(100% - 4px)!important;gap:0!important}
+
+
+/* ------------------------------------------------------------------ moments */
+/* The shelf of moments is the first thing the Messages screen prints now - the owner moved it there, where
+   it sits above the conversation list the way a tray of unseen moments does - so these are the same approved
+   cards (a picture edge to edge, the name as a band over its foot, a ring for what is unseen) in a tray. */
+.inboxScreen>.stories{--inbox-tray-height:160px;height:var(--inbox-tray-height)!important;min-height:0!important;margin:0 0 12px!important;padding:8px 2px 6px!important;gap:10px!important;scroll-snap-type:x proximity!important;background:linear-gradient(90deg,rgba(32,224,208,.05),transparent 46%,rgba(140,98,255,.06))!important;border:0!important}
+.inboxScreen .stories .storyCard{position:relative;width:98px!important;min-width:98px!important;height:150px!important;margin:0!important;padding:0!important;gap:7px!important;border-radius:16px;scroll-snap-align:start;background:transparent}
+.inboxScreen .stories .storyPrism{width:98px!important;height:126px!important;padding:0!important;border:0!important;border-radius:15px!important;clip-path:none!important;overflow:hidden!important;background:linear-gradient(160deg,#1a2b3d,#0a121c)!important;box-shadow:0 8px 20px rgba(0,0,0,.34)!important}
+.inboxScreen .stories .storyPrism:after{display:none!important}
+.inboxScreen .stories .storyPrism img,.inboxScreen .stories .storyPrism video{position:relative;z-index:1;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important;clip-path:none!important}
+/* A card that has no picture to show - a generated demo card, or one whose picture cannot be loaded -
+   shows the author's initials instead of a broken-picture glyph. */
+.inboxScreen .stories .storyInitials{position:absolute;inset:0;z-index:0;display:grid;place-items:center;width:100%;height:100%;color:#dfefff;font-size:19px!important;font-style:normal;background:linear-gradient(160deg,#1a2b3d,#0a121c);border-radius:0!important}
+.inboxScreen .stories .storyPrism>em{inset-inline-end:auto;left:6px;top:6px;width:22px;height:22px;font-size:9px;display:none!important}
+/* The name is a band at the bottom of the picture, not a shape of its own: an earlier pass in
+   styles.css still draws every `b`, `img` and `video` inside a prism as a 50% ellipse, and its
+   `.stories .storyPrism>b` selectors also match this name and these initials, so measured on the live
+   page the card painted a 98x126 ellipse with an 18px name over the artwork. This file is read last,
+   so the shelf's own shape wins here. */
+.inboxScreen .stories .storyName{position:absolute;z-index:3;left:0;right:0;bottom:0;width:auto!important;height:auto!important;display:block!important;padding:26px 8px 8px;color:#fff;font-size:11px!important;font-weight:800;line-height:1.2;text-align:start;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 8px rgba(0,0,0,.7);background:linear-gradient(180deg,transparent,rgba(3,8,14,.88))!important;border-radius:0!important}
+.inboxScreen .stories .createPrism>b:after{content:none!important;display:none!important}
+.inboxScreen .stories .storyAddBadge{width:26px!important;height:26px!important;font-size:17px!important;color:#03110f!important;background:linear-gradient(145deg,#5cf6e7,#12bfb4)!important}
+/* An unseen story keeps the accent ring; a seen one dims. Both say it without a legend - and both draw the
+   ring around the picture, not around the card. Measured on the live page the card was 98x150 with its
+   picture 98x126 pinned to the top, so a ring on the card left 22px of empty frame below the photo, and
+   the two kinds of card (the reader's own dashed one and every unseen one) framed two different boxes. A
+   ring drawn with a shadow keeps the picture its full size, which a border on the picture would not. */
+.inboxScreen .stories .storyUnseen{border:0!important;box-shadow:none!important}
+.inboxScreen .stories .storyUnseen .storyPrism{box-shadow:0 0 0 2px rgba(36,240,210,.85),0 0 0 4px rgba(9,14,22,.9),0 0 22px rgba(36,240,210,.22)}
+.inboxScreen .stories .storyViewed{border:0!important;box-shadow:none!important}
+.inboxScreen .stories .storyViewed .storyPrism{box-shadow:0 0 0 2px rgba(135,183,220,.16);filter:saturate(.55) brightness(.8)}
+/* The card is the picture: a story card is as tall as its picture, and the 24px that used to sit under it
+   were a box with nothing in it and a tap target outside the frame the reader can see. The reader's own
+   card keeps its height, because it carries the line under its picture. */
+.inboxScreen .stories .feedStoryCard:not(.feedStoryOwn){height:auto!important;min-height:0!important}
+/* The reader's own card is the one with a line under its picture, so it is the one whose height is its content
+   and not a fixed 150px: in the tray that line was the last 10px of the card, and the 150px box pushed it out
+   of the tray's padding. Measured on the live page: the label sat at the very edge and was cut. */
+.inboxScreen .stories .feedStoryOwn{height:auto!important;min-height:0!important;gap:3px!important}
+.inboxScreen .stories .feedStoryCard>span{display:none}
+/* A card that has a picture shows the picture, edge to edge; a card that has none shows the initials. */
+.inboxScreen .stories .feedStoryCard img,.inboxScreen .stories .feedStoryCard video{position:absolute;inset:0;width:100%!important;height:100%!important;object-fit:cover!important;border-radius:inherit!important;clip-path:none!important;z-index:1}
+.inboxScreen .stories .feedStoryOwn>span{display:block;max-width:98px;color:#cad6da;font-size:11px;text-align:center}
+.inboxScreen .stories .feedStoryOwn{border:0!important;box-shadow:none}
+.inboxScreen .stories .createPrism{border:1px dashed rgba(36,240,210,.5)!important;background:linear-gradient(160deg,rgba(16,42,49,.9),rgba(12,20,34,.9))!important}
+.inboxScreen .stories .createPrism img{object-fit:cover}
+.inboxScreen .stories .createPrism>b{color:var(--teal);font-size:20px;font-weight:800}
+.inboxScreen .stories .createPrism:before{display:none}
+.storyAddBadge{position:absolute;z-index:4;inset-inline-end:6px;bottom:6px;width:26px;height:26px;border:2px solid #0a1119;border-radius:50%;background:linear-gradient(145deg,#5cf6e7,#12bfb4);color:#03110f;font-size:17px;font-weight:900;font-style:normal;display:grid;place-items:center}
+
+/* ------------------------------------------------------------ the rail of modes */
+/* The swipe itself, drawn: a puck wearing the mark of the reading you are in, then the three words, with
+   the neighbour that is one swipe away pointed at. No box and no hairline - the line under the bar went
+   with the pill that drew it - and the tint is what tells the three readings apart. */
+.feedModes{display:grid;justify-items:center;gap:2px;margin:8px 12px 0;padding:0;border:0;background:radial-gradient(70% 150% at 50% 0,var(--feed-tint-soft,transparent),transparent 72%);transition:opacity .18s ease,transform .18s ease}
+.feedModePuck{width:34px;height:34px;border:1px solid var(--feed-tint-glow,rgba(135,183,220,.24));border-radius:50%;background:radial-gradient(circle at 50% 38%,var(--feed-tint-soft,rgba(12,24,40,.6)),rgba(9,16,25,.72));display:grid;place-items:center;box-shadow:0 0 18px var(--feed-tint-glow,rgba(36,240,210,.2))}
+.feedModePuck i{font-style:normal;font-size:13px;color:var(--feed-tint,var(--teal))}
+.feedModeRow{display:flex;align-items:center;justify-content:center;gap:4px;min-width:0;max-width:100%}
+.feedModes button{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 9px;border:0;border-radius:999px;background:transparent;color:#7f93a6;font:inherit;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;transition:color .24s ease,text-shadow .24s ease,transform .16s ease}
+.feedModes button i{font-style:normal;font-size:11px;opacity:.8}
+.feedModes button span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feedModes button.active{color:#f6fbff;text-shadow:0 0 16px var(--feed-tint-glow,rgba(36,240,210,.4))}
+.feedModes button.active i{opacity:1;color:var(--feed-tint,var(--teal))}
+.feedModes button:active{transform:scale(.96)}
+.feedModes button:focus-visible{outline:2px solid var(--feed-tint,var(--teal));outline-offset:3px}
+.feedModeHint{font-style:normal;font-size:13px;color:#5f7386}
+/* The top of the column wears the same tint, so the reading is still violet, green or blue after the rail
+   has left the page. */
+.clipsScreen>.pulsePosts{background:radial-gradient(90% 34% at 50% 0,var(--feed-tint-soft,transparent),transparent 74%)!important}
+/* The feed section of the source sheet: same rows as the module list, so it reads as one sheet. */
+.feedSourceGrid button i strong{font-size:15px}
+
+
+/* -------------------------------------------------------------- the feed itself */
+.clipsScreen>.pulsePosts{height:100%!important;min-height:0!important;padding:10px 12px 18px!important;background:transparent!important;scroll-snap-type:none!important}
+/* Reels as cards: the reader asked for the card presentation, so the media keeps a rounded frame
+   and the list scrolls card after card instead of one post per screen. */
+.pulsePosts.feedReels{padding:10px 12px 18px!important}
+.presentation-cards .pulsePosts.feedReels .clipCard{position:relative;min-height:0!important;margin:0 0 14px!important;padding:9px!important;border:1px solid rgba(135,183,220,.14)!important;border-radius:18px!important;background:linear-gradient(180deg,#0d141d,#0a1017)!important;box-shadow:0 12px 30px rgba(0,0,0,.34)!important;overflow:hidden!important;scroll-snap-align:start;scroll-snap-stop:normal!important}
+.presentation-cards .pulsePosts.feedReels .clipCard .clipStage{height:min(64dvh,600px)!important;min-height:380px!important;margin:0!important;border-radius:14px!important}
+.presentation-cards .pulsePosts.feedReels .clipCard>.actions{border-top:1px solid rgba(135,183,220,.12)!important;margin-top:8px!important}
+/* The palette opens inside the card, over its own media, where the action rail that opened it is. It
+   was measured in a card: the popover rules place it against the bottom edge of the card, and a card
+   that is not a full screen has no room there, so the reader saw a 22px sliver of it. Everything the
+   popover rules say about its own position is overridden here, and the media area gives it a home. */
+.presentation-cards .pulsePosts.feedReels .clipCard>.reactionBar,
+.presentation-cards .pulsePosts.feedReels .clipCard>.reactionBar.dropDown{
+  top:auto!important;bottom:104px!important;left:12px!important;right:12px!important;
+  height:auto!important;max-height:none!important;overflow:visible!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:8px!important;padding:10px!important;
+  border:1px solid rgba(36,240,210,.32)!important;border-radius:16px!important;background:rgba(5,14,20,.96)!important;
+  backdrop-filter:blur(14px)!important;z-index:60!important;
+}
+/* A comment thread inside a card is a panel under the media, not a sheet floating over a screen. */
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipCommentsDrawer,.pulsePosts.feedWhispers .clipCard.commentsExpanded>.clipCommentsDrawer{position:static!important;height:auto!important;max-height:52dvh!important;margin:8px 0 0!important;border:1px solid rgba(135,183,220,.16)!important;border-radius:14px!important;background:#08111b!important}
+.presentation-cards .pulsePosts.feedReels .clipCommentsDrawer .clist,.pulsePosts.feedWhispers .clipCommentsDrawer .clist{height:auto!important;max-height:calc(52dvh - 150px)!important;overflow-y:auto!important}
+/* ----------------------------------------------------------- loading, empty, failed */
+.feedSkeleton,.feedState{display:grid;gap:12px}
+.feedSkeletonLabel{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.feedSkeletonCard{display:grid;gap:10px;padding:12px;border:1px solid rgba(135,183,220,.12);border-radius:18px;background:linear-gradient(180deg,#0d141d,#0a1017)}
+.feedSkeletonCard header{display:flex;align-items:center;gap:10px}
+.skeletonAvatar{width:38px;height:38px;border-radius:50%}
+.skeletonName{width:44%;height:12px;border-radius:6px}
+.skeletonKicker{width:30%;height:12px;border-radius:6px}
+.skeletonMedia{display:block;width:100%;aspect-ratio:4/5;border-radius:14px}
+.feedSkeletonCard footer{display:flex;gap:8px}
+.skeletonAction{width:72px;height:30px;border-radius:15px}
+.skeletonLine{display:block;width:100%;height:11px;border-radius:6px}
+.skeletonLine.wide{width:86%}
+.skeletonLine.short{width:52%}
+.skeletonMeta{display:block;width:38%;height:10px;border-radius:5px}
+.feedSkeleton .skeletonAvatar,.feedSkeleton .skeletonName,.feedSkeleton .skeletonKicker,.feedSkeleton .skeletonMedia,.feedSkeleton .skeletonAction,.feedSkeleton .skeletonLine,.feedSkeleton .skeletonMeta{background:linear-gradient(90deg,rgba(135,183,220,.10),rgba(135,183,220,.22),rgba(135,183,220,.10));background-size:280% 100%;animation:feedShimmer 1.5s ease-in-out infinite}
+@keyframes feedShimmer{0%{background-position:0 0}100%{background-position:200% 0}}
+.feedState{place-items:center;text-align:center;gap:8px;margin:26px 8px;padding:22px 18px;border:1px dashed rgba(135,183,220,.22);border-radius:18px;background:rgba(10,18,28,.55)}
+.feedState i{font-style:normal;font-size:26px;color:var(--teal)}
+.feedState b{font-size:15px;color:#eaf6fb}
+.feedState span{max-width:34ch;color:#91a5b7;font-size:12px;line-height:1.45}
+.feedState button{min-height:40px;padding:0 18px;border:1px solid rgba(36,240,210,.4);border-radius:999px;background:rgba(10,38,42,.6);color:#d8fffa;font-size:13px;font-weight:700}
+
+/* ---------------------------------------------------------------- whispers */
+/* Quieter than a reel on purpose: a text card on a slightly lighter surface, one column, no
+   full-bleed media, and engagement that reads as a line of words rather than a rail of buttons. */
+.pulsePosts.feedWhispers{padding:12px 12px 22px!important}
+.whisperCard{position:relative;display:grid;gap:10px;margin:0 0 12px;padding:13px 14px;border:1px solid rgba(135,183,220,.13);border-radius:16px;background:linear-gradient(180deg,rgba(15,22,31,.94),rgba(9,14,21,.94));box-shadow:0 10px 24px rgba(0,0,0,.28)}
+.whisperCard:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.whisperHead{position:relative;display:flex;align-items:flex-start;gap:10px}
+.whisperAvatar{width:40px;height:40px;flex:0 0 auto;padding:0;border:1px solid rgba(135,183,220,.22);border-radius:50%;background:#101c28;color:#cfe4ea;font-size:12px;overflow:hidden;display:grid;place-items:center}
+.whisperAvatar img{width:100%;height:100%;object-fit:cover}
+.whisperWho{min-width:0;display:grid;gap:2px;padding-inline-end:34px}
+.whisperWho>b{display:flex;align-items:center;gap:6px}
+.whisperName{padding:0;border:0;background:transparent;color:#eef7fb;font-size:13px;font-weight:800;text-align:start}
+.whisperWho small{color:#8fa3b3;font-size:11px}
+.whisperLock{margin-inline-start:6px;font-style:normal;font-size:12px;opacity:.72}
+.whisperMenu{position:absolute;inset-inline-end:-4px;top:-4px;width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:#84919b;font-size:13px;letter-spacing:.06em}
+.whisperMenu:active{transform:scale(.94)}
+.whisperBody{margin:0;color:#e9f3f8;font-size:14.5px;line-height:1.55;overflow-wrap:anywhere;white-space:pre-wrap}
+.whisperAttachment{display:block;max-height:232px;padding:0;border:1px solid rgba(135,183,220,.16);border-radius:13px;background:#0a1119;overflow:hidden}
+.whisperAttachment img{display:block;width:100%;height:100%;max-height:230px;object-fit:cover}
+.whisperEngagement{display:flex;align-items:center;gap:4px;margin-top:2px;overflow-x:auto;scrollbar-width:none}
+.whisperEngagement::-webkit-scrollbar{display:none}
+.whisperAction{display:flex;align-items:center;gap:5px;min-height:38px;padding:0 10px;border:1px solid transparent;border-radius:999px;background:transparent;color:#9fb3c4;font-size:11px;white-space:nowrap;flex:0 0 auto}
+.whisperAction i{font-style:normal;font-size:14px}
+.whisperAction:active{transform:scale(.95)}
+.whisperAction.on{border-color:rgba(36,240,210,.4);background:rgba(12,52,52,.42);color:var(--teal)}
+.whisperAction:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+/* The palette opens above the card, and under it when the card sits too high to have room. */
+.pulsePosts.feedWhispers .whisperCard .reactionBar{inset-inline:10px;top:auto;bottom:calc(100% + 6px);z-index:16;max-height:0;overflow:hidden;visibility:hidden;opacity:0;pointer-events:none}
+.pulsePosts.feedWhispers .whisperCard .reactionBar.expanded{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;max-height:none;padding:10px;border:1px solid rgba(36,240,210,.3);border-radius:16px;background:rgba(5,14,20,.96);backdrop-filter:blur(14px);box-shadow:0 18px 40px rgba(0,0,0,.5);overflow:visible;visibility:visible;opacity:1;pointer-events:auto}
+.pulsePosts.feedWhispers .whisperCard .reactionBar.dropDown{bottom:auto;top:calc(100% + 6px)}
+
+/* ---------------------------------------------------------------- voice notes */
+/* preload="none" means a feed of fifty whispers still downloads no audio until one is played. */
+.feedAudio{display:grid;grid-template-columns:46px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 11px;border:1px solid rgba(135,183,220,.16);border-radius:14px;background:rgba(10,20,32,.6)}
+.feedAudioToggle{width:46px;height:46px;border:1px solid rgba(36,240,210,.4);border-radius:50%;background:radial-gradient(circle at 35% 25%,rgba(36,240,210,.26),rgba(8,20,26,.5));color:#e9fffb;font-size:14px;display:grid;place-items:center}
+.feedAudioToggle:active{transform:scale(.95)}
+.feedAudioToggle:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.feedAudioVisual{position:relative;display:block;min-width:0;height:36px}
+.feedAudioTrack{position:absolute;inset:50% 0 auto;display:block;height:3px;border-radius:2px;background:rgba(135,183,220,.22)}
+.feedAudioTrack i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#5cf6e7,#12bfb4)}
+.feedAudioWave{position:absolute;inset:0;display:flex;align-items:center;gap:2px}
+.feedAudioWave i{flex:1 1 auto;height:var(--h,30%);border-radius:2px;background:linear-gradient(180deg,rgba(36,240,210,.82),rgba(18,191,180,.35))}
+.feedAudioTime{color:#9fb3c4;font-size:11px;font-variant-numeric:tabular-nums}
+.feedAudioLabel{grid-column:2/4;color:#8fa3b3;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feedAudio.playing{border-color:rgba(36,240,210,.34)}
+
+.feedStateError i{color:#ff7180}
+
+/* -------------------------------------------------------------------- news */
+/* Editorial, not social: a headline is read, not scrolled past. The card keeps the shape the news
+   contract pins (mark, body, out) and gains only type and frame. No image and no category chip,
+   because the approved aggregator sends neither and this lens has never invented one. */
+.breakingNews{padding:6px 0 26px}
+.breakingNewsHead{display:grid;gap:4px;padding:4px 2px 12px;border-bottom:1px solid rgba(135,183,220,.14)}
+.breakingNewsHead b{color:#f6fbfd;font-size:21px;font-weight:800;letter-spacing:-.01em}
+.breakingNewsHead small{color:#8fa3b3;font-size:11px}
+.breakingNewsList{display:grid;gap:12px;margin:13px 0 0;padding:0;list-style:none}
+.breakingNewsCard{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:start;padding:14px;border:1px solid rgba(135,183,220,.14);border-radius:16px;background:linear-gradient(180deg,#0e1520,#0a1017);box-shadow:0 10px 26px rgba(0,0,0,.26)}
+.breakingNewsCardMark{width:32px;height:32px;border-radius:10px;background:linear-gradient(145deg,#5cf6e7,#12bfb4);color:#04110f;font-size:15px;display:grid;place-items:center}
+.breakingNewsCardBody{min-width:0;display:grid;gap:8px}
+.breakingNewsTitle{display:block;color:#f4fbfe;font-size:17px;font-weight:800;line-height:1.34;text-decoration:none;overflow-wrap:anywhere}
+a.breakingNewsTitle{border-bottom:1px solid rgba(135,183,220,.16)}
+a.breakingNewsTitle:hover{border-bottom-color:rgba(36,240,210,.55)}
+b.breakingNewsTitle{font-weight:700;color:#e6f1f7}
+.breakingNewsMeta{margin:0;color:#8fa3b3;font-size:11px}
+.breakingNewsHeld{color:#ffc46b}
+.breakingNewsCardOut{align-self:start;color:var(--teal);font-size:15px;font-style:normal}
+.breakingNewsNote{margin:14px 2px 0;color:#8fa3b3;font-size:11px;line-height:1.5}
+.breakingNewsEmpty{margin:14px 2px;color:#9fb3c4;font-size:13px}
+.feedNotice{display:grid;gap:8px;margin:12px 0;padding:18px;border:1px dashed rgba(135,183,220,.24);border-radius:16px;background:rgba(10,18,28,.55);text-align:center}
+.feedNotice b{color:#eaf6fb;font-size:15px}
+.feedNotice span{color:#91a5b7;font-size:12px;line-height:1.5}
+.feedNotice button{justify-self:center;min-height:40px;padding:0 18px;border:1px solid rgba(36,240,210,.4);border-radius:999px;background:rgba(10,38,42,.6);color:#d8fffa;font-size:13px;font-weight:700}
+
+/* --------------------------------------------------------------- the phone */
+/* Wave 14f: the 18px threshold that used to fold the rail of readings off the page went with the fold itself.
+   The rail sits on the bar, which does not scroll, so the reading is named at every scroll position; the swipe
+   is unchanged and still listens on the column, never on the rail. */
+/* A wide window gets a column, not a stretched card: the feed stops growing where reading stops. */
+@media (min-width:640px){
+  .clipsScreen>.pulsePosts{padding-inline:max(12px,calc((100% - 560px) / 2))!important}
+  .inboxScreen>.stories{margin-inline:max(12px,calc((100% - 560px) / 2))}
+  .inboxScreen .stories .storyCard{width:104px!important;min-width:104px!important}
+  .inboxScreen .stories .storyPrism{width:104px!important}
+}
+@media (max-width:374px){
+  .appHeader.feedHeader{padding-inline:9px!important}
+  .appHeader.feedHeader .wordmark svg,.appHeader.feedHeader .wordmark .nexusWordmarkSvg{width:68px!important;height:19px!important}
+  .appHeader.feedHeader .modeBadge{width:34px!important;min-width:34px!important;max-width:34px!important;height:34px!important}
+  .inboxScreen .stories .storyCard{width:86px!important;min-width:86px!important}
+  .inboxScreen .stories .storyPrism{width:86px!important;height:118px!important}
+}
+html[dir="rtl"] .storyName{text-align:right}
+html[dir="rtl"] .whisperBody{text-align:right}
+/* Arabic reads the same rail from the other edge: the two hints point at the same neighbours, mirrored. */
+html[dir="rtl"] .feedModeHint{transform:scaleX(-1)}
+@media (prefers-reduced-motion:reduce){
+  .feedModes,.feedModes button,.whisperAction,.feedAudioToggle,.storyCard{transition:none!important}
+  .feedSkeleton *,.feedSkeleton{animation:none!important}
+}
+
+/* ---------------------------------------------------------------- Reels G0 */
+/* The immersive reader follows the approved Nexus reference without cloning another product: the
+   existing Nexus wordmark, feed modes and navigation stay functional, while the media remains the
+   largest object on screen. Solid marks deliberately replace the thin outline/emoji rail. */
+.reelViewer{--viewer-safe-top:max(10px,env(safe-area-inset-top));--viewer-safe-bottom:max(8px,env(safe-area-inset-bottom));isolation:isolate!important;background:#000!important}
+.reelViewer .viewerStage:after{content:"";position:absolute;z-index:2;inset:0;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,.52),transparent 24%,transparent 59%,rgba(0,0,0,.72) 83%,rgba(0,0,0,.92))}
+.reelViewer .reelsReferenceHeader{position:absolute!important;z-index:30!important;inset:var(--viewer-safe-top) 12px auto 12px!important;width:auto!important;min-height:56px!important;padding:0!important;display:grid!important;grid-template-columns:minmax(88px,112px) 44px minmax(132px,1fr) 52px 36px!important;align-items:center!important;gap:7px!important;background:transparent!important;pointer-events:none}
+.reelViewer .reelsReferenceHeader>button,.reelViewer .reelsReferenceHeader>nav{pointer-events:auto}
+.reelViewer .viewerWordmark{width:100%!important;min-width:0!important;height:48px!important;padding:0!important;border:0!important;background:transparent!important;color:#fff!important;display:grid!important;place-items:center!important;filter:drop-shadow(0 2px 10px #000)}
+.reelViewer .viewerWordmark .nexusWordmarkSvg{width:100%!important;max-width:112px!important;height:auto!important;overflow:visible!important}
+.reelViewer .viewerBrandPlay{width:44px!important;height:44px!important;min-width:44px!important;min-height:44px!important;padding:0!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;background:linear-gradient(145deg,#8c34ff,#5d2bd7)!important;color:#fff!important;display:grid!important;place-items:center!important;box-shadow:0 7px 25px rgba(93,43,215,.46),inset 0 1px rgba(255,255,255,.28)!important}
+.reelViewer .viewerBrandPlay.paused{background:linear-gradient(145deg,#17e7e4,#6550ff)!important}
+.reelViewer .viewerBrandPlay .viewerSolidSvg{width:24px;height:24px;margin-left:2px}
+.reelViewer .viewerModeTabs{height:52px;min-width:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:2px}
+.reelViewer .viewerModeTabs button{position:relative;min-width:0!important;min-height:44px!important;padding:0 3px 5px!important;border:0!important;background:transparent!important;color:rgba(255,255,255,.72)!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;font-size:10px!important;font-weight:850!important;letter-spacing:.04em!important;text-transform:uppercase!important;text-shadow:0 2px 9px #000!important;white-space:nowrap!important}
+.reelViewer .viewerModeTabs button:after{content:"";position:absolute;left:10%;right:10%;bottom:1px;height:3px;border-radius:3px;background:transparent}
+.reelViewer .viewerModeTabs button.active{color:#fff!important}
+.reelViewer .viewerModeTabs button.active:after{background:linear-gradient(90deg,#14e8ed,#b85eff);box-shadow:0 0 12px rgba(38,237,243,.75)}
+.reelViewer .viewerModeTabs .viewerSolidSvg{flex:0 0 auto;width:17px;height:17px}
+.reelViewer .viewerTune{position:relative!important;inset:auto!important;width:52px!important;height:52px!important;min-width:52px!important;min-height:52px!important;padding:0!important;border:1px solid rgba(255,255,255,.17)!important;border-radius:50%!important;background:linear-gradient(145deg,#8b35ff,#5630d1)!important;color:#fff!important;display:grid!important;place-items:center!important;box-shadow:0 8px 27px rgba(80,42,205,.42),inset 0 1px rgba(255,255,255,.24)!important;text-shadow:none!important}
+.reelViewer .viewerTune .viewerSolidSvg{width:28px;height:28px}
+.reelViewer .viewerClose{position:relative!important;inset:auto!important;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;border:1px solid rgba(255,255,255,.24)!important;border-radius:50%!important;background:rgba(4,8,15,.62)!important;color:#fff!important;display:grid!important;place-items:center!important;font-size:24px!important;line-height:1!important;box-shadow:0 5px 18px rgba(0,0,0,.32)!important;backdrop-filter:blur(12px)!important;text-shadow:none!important}
+.reelViewer .viewerFitMenu{position:absolute!important;z-index:34!important;top:58px!important;right:36px!important;width:min(230px,72vw)!important;padding:8px!important;border:1px solid rgba(146,118,255,.44)!important;border-radius:18px!important;background:rgba(8,11,22,.94)!important;box-shadow:0 16px 50px rgba(0,0,0,.62)!important;backdrop-filter:blur(18px)!important}
+.reelViewer .viewerFitMenu button{width:100%;min-height:44px;border:0;border-radius:12px;background:transparent;color:#dbe9ef;text-align:start;padding:0 12px;font-size:13px}
+.reelViewer .viewerFitMenu button.active{background:linear-gradient(90deg,rgba(25,235,232,.18),rgba(121,69,255,.19));color:#fff}
+
+.reelViewer .viewerActionRail{position:absolute!important;z-index:24!important;right:max(12px,env(safe-area-inset-right))!important;top:118px!important;bottom:100px!important;width:66px!important;display:flex!important;flex-direction:column!important;justify-content:flex-end!important;align-items:center!important;gap:2px!important;pointer-events:none}
+.reelViewer .viewerActionRail>button{pointer-events:auto;width:64px!important;min-width:64px!important;height:66px!important;min-height:66px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#fff!important;display:grid!important;grid-template-rows:52px 13px!important;align-items:center!important;justify-items:center!important;gap:1px!important;box-shadow:none!important;backdrop-filter:none!important;text-shadow:0 2px 8px #000!important}
+.reelViewer .viewerActionRail>button>i.viewerSolidIcon,.reelViewer .viewerActionRail .viewerPrimaryReaction .reactionMetric>b{position:relative;width:52px!important;height:52px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:50%!important;background:rgba(9,14,21,.86)!important;color:#fff!important;display:grid!important;place-items:center!important;box-shadow:0 8px 24px rgba(0,0,0,.5),inset 0 1px rgba(255,255,255,.1)!important;backdrop-filter:blur(10px)!important;filter:none!important}
+.reelViewer .viewerActionRail .viewerSolidSvg{width:31px!important;height:31px!important;display:block!important;fill:currentColor!important;stroke:none!important;filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))}
+.reelViewer .viewerActionRail .viewerReactionHeart{width:32px!important;height:32px!important;fill:#fff!important}
+.reelViewer .viewerActionRail>button>small,.reelViewer .viewerPrimaryReaction .reactionMetric>em{max-width:64px!important;margin:0!important;color:#fff!important;font-size:11px!important;font-weight:850!important;line-height:13px!important;font-style:normal!important;text-align:center!important;text-shadow:0 2px 7px #000!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+.reelViewer .viewerActionRail .viewerActionWord{font-size:0!important}
+.reelViewer .viewerActionRail .viewerActionWord:after{content:"•";font-size:8px;opacity:.72}
+.reelViewer .viewerActionRail>button.on>i.viewerSolidIcon,.reelViewer .viewerActionRail>button.on .reactionMetric>b{color:#fff!important;background:linear-gradient(145deg,rgba(127,42,255,.92),rgba(14,206,214,.82))!important;border-color:rgba(255,255,255,.42)!important;box-shadow:0 0 22px rgba(101,70,255,.55)!important}
+.reelViewer .viewerActionRail>[data-viewer-reactions]{height:66px!important;min-height:66px!important;padding:0!important}
+.reelViewer .viewerPrimaryReaction{width:64px!important;height:66px!important;display:block!important}
+.reelViewer .viewerPrimaryReaction .reactionMetric{width:64px!important;height:66px!important;min-height:66px!important;display:grid!important;grid-template-rows:52px 13px!important;gap:1px!important;place-items:center!important}
+.reelViewer .viewerPrimaryReaction .reactionMetric>b{font-size:29px!important;line-height:1!important;font-family:Arial,sans-serif!important}
+.reelViewer .viewerPrimaryReaction .reactionMetric[data-kind="LIKE"]>b,.reelViewer .viewerPrimaryReaction .reactionMetric[data-kind="LOVE"]>b{color:#fff!important}
+.reelViewer .viewerRailAvatar{height:68px!important;min-height:68px!important;grid-template-rows:64px!important;margin-bottom:3px!important}
+.reelViewer .viewerRailAvatar>i{width:62px!important;height:62px!important;padding:3px!important;border:3px solid #8b39f5!important;border-radius:50%!important;background:#080c13!important;color:#fff!important;display:grid!important;place-items:center!important;overflow:hidden!important;box-shadow:0 0 0 1px rgba(255,255,255,.64),0 6px 24px rgba(102,47,237,.5)!important;font-size:15px!important;font-weight:900!important;font-style:normal!important}
+.reelViewer .viewerRailAvatar img{width:100%!important;height:100%!important;border-radius:50%!important;object-fit:cover!important}
+.reelViewer .viewerActionRail>[data-viewer-more]{display:none!important}
+.reelViewer .viewerActionRail .clipAudioAction i{animation:none!important}
+.reelViewer .viewerActionRail .clipAudioAction.muted i:after{display:none!important}
+.reelViewer .viewerActionMenu{right:68px!important;bottom:4px!important}
+.reelViewer .viewerReactionTray{right:70px!important;bottom:60px!important}
+
+.reelViewer .viewerCreatorOverlay{z-index:20!important;left:max(14px,env(safe-area-inset-left))!important;right:86px!important;bottom:106px!important;max-width:min(520px,calc(100vw - 106px))!important;padding:10px 12px!important;border:0!important;border-radius:15px!important;background:linear-gradient(90deg,rgba(0,0,0,.58),rgba(0,0,0,.12))!important;box-shadow:none!important;backdrop-filter:none!important}
+.reelViewer .viewerCreatorOverlay>em{color:#fff!important;text-shadow:0 2px 8px #000!important}
+.reelViewer .viewerCommentShortcut{display:none!important}
+.reelViewer .viewerBottomNav{position:absolute;z-index:28;left:50%;bottom:var(--viewer-safe-bottom);width:min(760px,calc(100% - 20px));height:82px;padding:7px 12px;transform:translateX(-50%);border:1px solid rgba(129,157,203,.3);border-radius:35px;background:linear-gradient(180deg,rgba(19,28,43,.83),rgba(5,8,15,.94));box-shadow:0 -9px 30px rgba(0,0,0,.35),0 0 26px rgba(60,80,255,.14),inset 0 1px rgba(255,255,255,.08);backdrop-filter:blur(18px);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:2px}
+.reelViewer .viewerBottomNav button{position:relative;min-width:0!important;width:100%!important;height:62px!important;min-height:62px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#fff!important;display:grid!important;place-items:center!important}
+.reelViewer .viewerBottomNav button>i{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:24px}
+.reelViewer .viewerBottomNav svg{width:28px;height:28px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 4px #000)}
+.reelViewer .viewerBottomNav img{width:42px!important;height:42px!important;border:2px solid #8c38f1!important;border-radius:50%!important;object-fit:cover!important;box-shadow:0 0 13px rgba(123,63,245,.48)!important}
+.reelViewer .viewerBottomNav button.active{color:#76f7ff!important}
+.reelViewer .viewerBottomNav .viewerCreateNav{z-index:2;transform:translateY(-13px)!important}
+.reelViewer .viewerBottomNav .viewerCreateNav>i{width:70px!important;height:70px!important;border:3px solid #071018!important;background:linear-gradient(145deg,#22f0ef 8%,#32cde9 47%,#9c42ff 100%)!important;color:#fff!important;font-size:42px!important;font-family:Arial,sans-serif!important;font-weight:200!important;box-shadow:0 0 0 1px rgba(255,255,255,.46),0 0 26px rgba(65,220,246,.5),0 10px 28px rgba(0,0,0,.5)!important}
+.reelViewer.viewerCommentsOpen .viewerActionRail,.reelViewer.viewerCommentsOpen .viewerCreatorOverlay,.reelViewer.viewerCommentsOpen .viewerBottomNav,.reelViewer.viewerCommentsOpen .reelsReferenceHeader{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+
+@media(max-width:480px){
+  .reelViewer .reelsReferenceHeader{left:8px!important;right:8px!important;grid-template-columns:72px 36px minmax(156px,1fr) 42px 32px!important;gap:4px!important}
+  .reelViewer .viewerWordmark .nexusWordmarkSvg{max-width:72px!important}
+  .reelViewer .viewerBrandPlay{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important}
+  .reelViewer .viewerModeTabs button{gap:2px!important;padding-inline:1px!important;font-size:8px!important;letter-spacing:0!important}
+  .reelViewer .viewerModeTabs .viewerSolidSvg{width:11px!important;height:11px!important}
+  .reelViewer .viewerTune{width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important}
+  .reelViewer .viewerClose{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;font-size:22px!important}
+  .reelViewer .viewerBottomNav{height:76px;padding-inline:7px;border-radius:32px}
+  .reelViewer .viewerBottomNav button{height:58px!important;min-height:58px!important}
+  .reelViewer .viewerBottomNav button>i{width:38px;height:38px}
+  .reelViewer .viewerBottomNav svg{width:25px;height:25px}
+  .reelViewer .viewerBottomNav .viewerCreateNav>i{width:64px!important;height:64px!important;font-size:38px!important}
+  .reelViewer .viewerCreatorOverlay{bottom:98px!important}
+  .reelViewer .viewerActionRail{bottom:91px!important}
+}
+@media(max-width:380px){
+  .reelViewer .reelsReferenceHeader{left:6px!important;right:6px!important;grid-template-columns:68px 34px minmax(145px,1fr) 40px 30px!important;gap:2px!important}
+  .reelViewer .viewerWordmark .nexusWordmarkSvg{max-width:68px!important}
+  .reelViewer .viewerBrandPlay{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
+  .reelViewer .viewerModeTabs button{font-size:7.5px!important}
+  .reelViewer .viewerModeTabs .viewerSolidSvg{width:10px!important;height:10px!important}
+  .reelViewer .viewerTune{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}
+  .reelViewer .viewerTune .viewerSolidSvg{width:22px;height:22px}
+  .reelViewer .viewerClose{width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;font-size:21px!important}
+  .reelViewer .viewerActionRail{right:6px!important;transform:scale(.9);transform-origin:right bottom}
+  .reelViewer .viewerCreatorOverlay{right:76px!important}
+}
+@media(max-width:350px){
+  .reelViewer .reelsReferenceHeader{grid-template-columns:62px 32px minmax(128px,1fr) 38px 28px!important}
+  .reelViewer .viewerWordmark .nexusWordmarkSvg{max-width:62px!important}
+  .reelViewer .viewerModeTabs .viewerSolidSvg{display:none!important}
+  .reelViewer .viewerModeTabs button{font-size:7.5px!important}
+}
+
+/* ---------------------------------------------------------------- Reels G1 — main Social reader
+   The reference is the normal Reels experience too, not only the expanded viewer. One reel owns the
+   available viewport, media is edge-to-edge, and every frequently-used action is a solid, thumb-sized
+   mark on a dark circular plate. */
+.clipsScreen.presentation-immersive.feed-reels>.pulsePosts.feedReels{
+  height:100%!important;
+  padding:0!important;
+  scroll-snap-type:y mandatory!important;
+  background:#000!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard{
+  position:relative!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#000!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  scroll-snap-align:start!important;
+  scroll-snap-stop:always!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard>.clipStage{
+  position:absolute!important;
+  inset:0!important;
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:#000!important;
+  box-shadow:none!important;
+}
+.presentation-immersive .pulsePosts.feedReels .clipStage>.media,
+.presentation-immersive .pulsePosts.feedReels .clipStage>.studioMedia,
+.presentation-immersive .pulsePosts.feedReels .clipStage>.demoClipFallback,
+.presentation-immersive .pulsePosts.feedReels .clipStage .studioAsset{
+  width:100%!important;
+  height:100%!important;
+  min-height:100%!important;
+  max-width:none!important;
+  max-height:none!important;
+  margin:0!important;
+  border-radius:0!important;
+  object-fit:cover!important;
+  object-position:center!important;
+  background:#000!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard>.actions{
+  position:absolute!important;
+  z-index:46!important;
+  top:62px!important;
+  right:72px!important;
+  bottom:auto!important;
+  width:176px!important;
+  margin:0!important;
+  padding:7px!important;
+  border:1px solid rgba(145,190,237,.3)!important;
+  border-radius:16px!important;
+  background:rgba(5,13,23,.96)!important;
+  box-shadow:0 18px 48px rgba(0,0,0,.62)!important;
+  backdrop-filter:blur(18px)!important;
+  display:none!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard>.actions.expanded{display:grid!important}
+
+.pulsePosts.feedReels .clipQuickActions{
+  right:max(9px,env(safe-area-inset-right))!important;
+  bottom:18px!important;
+  width:58px!important;
+  gap:2px!important;
+  align-items:center!important;
+}
+.pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar){
+  width:58px!important;
+  min-width:58px!important;
+  height:60px!important;
+  min-height:60px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  display:grid!important;
+  grid-template-rows:46px 12px!important;
+  place-items:center!important;
+  gap:1px!important;
+  color:#fff!important;
+}
+.pulsePosts.feedReels .clipQuickActions .clipSolidIcon,
+.pulsePosts.feedReels .clipQuickActions .clipAudioAction>i,
+.pulsePosts.feedReels .clipQuickActions .viewerPrimaryReaction .reactionMetric>b{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+  min-height:46px!important;
+  padding:0!important;
+  border:1px solid rgba(255,255,255,.2)!important;
+  border-radius:50%!important;
+  background:rgba(8,13,21,.86)!important;
+  color:#fff!important;
+  display:grid!important;
+  place-items:center!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.48),inset 0 1px rgba(255,255,255,.09)!important;
+  backdrop-filter:blur(10px)!important;
+  font-style:normal!important;
+  filter:none!important;
+}
+.pulsePosts.feedReels .clipQuickActions .clipSolidIcon .viewerSolidSvg,
+.pulsePosts.feedReels .clipQuickActions .clipAudioAction>i .viewerSolidSvg,
+.pulsePosts.feedReels .clipQuickActions .viewerReactionHeart{
+  width:28px!important;
+  height:28px!important;
+  display:block!important;
+  fill:currentColor!important;
+  stroke:none!important;
+  filter:drop-shadow(0 2px 4px rgba(0,0,0,.55))!important;
+}
+.pulsePosts.feedReels .clipQuickActions .viewerPrimaryReaction,
+.pulsePosts.feedReels .clipQuickActions .viewerPrimaryReaction .reactionMetric{
+  width:58px!important;
+  height:60px!important;
+  min-height:60px!important;
+  display:grid!important;
+  grid-template-rows:46px 12px!important;
+  place-items:center!important;
+  gap:1px!important;
+}
+.pulsePosts.feedReels .clipQuickActions>button small,
+.pulsePosts.feedReels .clipQuickActions .viewerPrimaryReaction .reactionMetric>em{
+  max-width:58px!important;
+  margin:0!important;
+  color:#fff!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  line-height:12px!important;
+  font-style:normal!important;
+  text-align:center!important;
+  text-shadow:0 2px 7px #000!important;
+}
+.pulsePosts.feedReels .clipQuickActions>button.on .clipSolidIcon,
+.pulsePosts.feedReels .clipQuickActions>button.on .reactionMetric>b{
+  border-color:rgba(255,255,255,.4)!important;
+  background:linear-gradient(145deg,rgba(128,44,255,.94),rgba(13,202,211,.84))!important;
+  box-shadow:0 0 22px rgba(104,67,255,.52)!important;
+}
+.pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  width:58px!important;
+  min-width:58px!important;
+  height:58px!important;
+  min-height:58px!important;
+  margin-bottom:14px!important;
+}
+.pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i{
+  width:54px!important;
+  height:54px!important;
+  min-width:54px!important;
+  border:3px solid #8b39f5!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.62),0 7px 22px rgba(105,49,237,.48)!important;
+}
+.pulsePosts.feedReels .clipMetaOverlay{
+  left:14px!important;
+  right:76px!important;
+  bottom:18px!important;
+}
+
+/* Seven purposeful marks: Home, Messages, Search, Create, Friends, Live, Profile. */
+.appNav.social{justify-content:space-between!important;gap:1px!important;padding-inline:8px!important}
+.appNav.social>button{flex:1 1 0!important;max-width:64px!important}
+.appNav.social>button.createNav{flex:0 0 68px!important;max-width:68px!important}
+
+/* The active reading becomes part of the Nexus mark. The other two readings are reached by swipe. */
+.appHeader.feedHeader{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:auto 42px minmax(0,1fr) 42px!important;
+  align-items:center!important;
+  overflow:visible!important;
+}
+.appHeader.feedHeader .wordmark{grid-column:1;justify-self:start;z-index:2}
+.appHeader.feedHeader .wordmark{color:#baa8dc!important;filter:drop-shadow(0 0 7px rgba(169,145,214,.22))}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg :is(text,circle){fill:currentColor!important}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg stop{stop-color:currentColor!important}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg path{stroke:currentColor!important}
+.appHeader.feedHeader .feedHeaderIcons{grid-column:4!important;justify-self:end!important;display:flex!important;align-items:center!important}
+.appHeader.feedHeader .feedModes{
+  position:static!important;
+  grid-column:2!important;
+  z-index:3!important;
+  width:40px!important;
+  height:40px!important;
+  transform:none!important;
+  display:grid!important;
+  place-items:center!important;
+  pointer-events:auto!important;
+}
+.appHeader.feedHeader .feedModeRow{
+  width:38px!important;
+  display:grid!important;
+  grid-template-columns:38px!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:0!important;
+  overflow:visible!important;
+  pointer-events:auto!important;
+}
+.appHeader.feedHeader .feedModes button{
+  width:38px!important;
+  min-width:38px!important;
+  height:38px!important;
+  min-height:38px!important;
+  padding:0!important;
+  border:1px solid transparent!important;
+  border-radius:50%!important;
+  background:transparent!important;
+  display:grid!important;
+  place-items:center!important;
+  color:rgba(231,240,247,.62)!important;
+  transform:none!important;
+  transition:color .16s ease,background .16s ease,border-color .16s ease,box-shadow .16s ease!important;
+}
+.appHeader.feedHeader .feedModes button:after{content:none!important}
+.appHeader.feedHeader .feedModes button i{
+  display:grid!important;
+  place-items:center!important;
+  width:24px!important;
+  height:24px!important;
+  font-size:17px!important;
+  line-height:1!important;
+  opacity:.78!important;
+  transform:scale(.9)!important;
+  transition:transform .16s ease,opacity .16s ease!important;
+}
+.appHeader.feedHeader .feedModes button.active{
+  border-color:color-mix(in srgb,var(--feed-tint,#a06bff) 58%,white 12%)!important;
+  background:color-mix(in srgb,var(--feed-tint,#a06bff) 23%,#07101a)!important;
+  color:#fff!important;
+  box-shadow:0 0 18px var(--feed-tint-glow,rgba(160,107,255,.42)),inset 0 1px rgba(255,255,255,.13)!important;
+}
+.appHeader.feedHeader .feedModes button.active i{opacity:1!important;transform:scale(1.28)!important;color:#fff!important}
+
+/* The content stays dominant: the dock and actions are white on black. Only the Nexus signature and
+   the active reading glyph keep the quiet mode accent. */
+.phoneScreen:has(.clipsScreen) .appNav.social{border-top-color:rgba(255,255,255,.13)!important;background:linear-gradient(180deg,rgba(0,0,0,.2),#020304 52%,#000)!important;box-shadow:0 -10px 28px rgba(0,0,0,.48)!important}
+.phoneScreen:has(.clipsScreen) .appNav.social:before{border-color:rgba(255,255,255,.22)!important;background:linear-gradient(180deg,rgba(14,16,20,.96),rgba(2,3,5,.98))!important;box-shadow:0 -8px 26px rgba(0,0,0,.52),inset 0 1px rgba(255,255,255,.09),inset 0 -1px rgba(255,255,255,.04)!important}
+.phoneScreen:has(.clipsScreen) .appNav.social button{color:#fff!important}
+.phoneScreen:has(.clipsScreen) .appNav.social button i svg{stroke:currentColor!important}
+.phoneScreen:has(.clipsScreen) .appNav.social button.active,.phoneScreen:has(.clipsScreen) .appNav.social button.active i{color:#fff!important;filter:drop-shadow(0 0 5px rgba(255,255,255,.3))}
+.phoneScreen:has(.clipsScreen) .appNav.social button.active i svg{stroke:#fff!important;filter:drop-shadow(0 0 5px rgba(255,255,255,.3))!important}
+.phoneScreen:has(.clipsScreen) .appNav.social button[data-slot="primary"] i svg path{fill:rgba(255,255,255,.08)!important}
+.phoneScreen:has(.clipsScreen) .appNav.social button.active:not(.createNav) i{background:rgba(255,255,255,.08)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),0 0 10px rgba(255,255,255,.08)!important}
+.phoneScreen:has(.clipsScreen) .appNav.social .createNav i{border-color:rgba(255,255,255,.4)!important;background:radial-gradient(circle at 35% 28%,#fff 0,#d8dce1 38%,#343941 72%,#050608 100%)!important;color:#050608!important;box-shadow:0 0 14px rgba(255,255,255,.18)!important}
+.phoneScreen:has(.clipsScreen) .clipQuickActions>button:not(.clipRailAvatar),.phoneScreen:has(.clipsScreen) .reelViewer .viewerActionRail>button{color:#fff!important;border-color:rgba(255,255,255,.2)!important;box-shadow:0 5px 16px rgba(0,0,0,.42)!important}
+.phoneScreen:has(.clipsScreen) .clipQuickActions .viewerSolidSvg,.phoneScreen:has(.clipsScreen) .clipQuickActions .clipSolidIcon,.phoneScreen:has(.clipsScreen) .clipQuickActions .viewerReactionHeart{color:#fff!important;fill:#fff!important}
+.phoneScreen:has(.clipsScreen) .clipQuickActions small{color:#fff!important}
+.phoneScreen:has(.clipsScreen) .clipQuickActions>button.on :is(.clipSolidIcon,.reactionMetric>b){border-color:rgba(255,255,255,.58)!important;background:#050608!important;color:#fff!important;box-shadow:0 0 13px rgba(255,255,255,.16)!important}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i{border-color:rgba(255,255,255,.82)!important;box-shadow:0 5px 15px rgba(0,0,0,.46)!important}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i:not(:has(img)){background:linear-gradient(145deg,#282b31,#08090c)!important;color:#fff!important}
+.phoneScreen:has(.clipsScreen) .clipAudioMeta i{border-color:rgba(255,255,255,.42)!important;color:#fff!important}
+.phoneScreen:has(.clipsScreen) :is(.clipsScreen,.reelViewer) [data-follow]{border:1px solid rgba(255,255,255,.72)!important;background:rgba(3,4,6,.78)!important;color:#fff!important;box-shadow:0 5px 14px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08)!important;text-shadow:0 1px 4px #000!important;transition:transform .14s ease,background .14s ease,box-shadow .14s ease!important}
+.phoneScreen:has(.clipsScreen) :is(.clipsScreen,.reelViewer) [data-follow]:active{transform:scale(.95)!important}
+.phoneScreen:has(.clipsScreen) :is(.clipsScreen,.reelViewer) [data-follow][data-active="1"]{border-color:rgba(255,255,255,.34)!important;background:rgba(255,255,255,.08)!important;color:rgba(255,255,255,.78)!important;box-shadow:none!important;text-shadow:none!important}
+.phoneScreen:has(.clipsScreen) :is(.clipsScreen,.reelViewer) [data-follow][data-pending="1"]{border-color:rgba(255,255,255,.46)!important;background:rgba(255,255,255,.12)!important;color:#fff!important;box-shadow:none!important}
+.feed-whispers .whisperCard,.feed-news .breakingNewsCard{border-color:color-mix(in srgb,var(--feed-tint) 34%,rgba(138,177,204,.2))!important;box-shadow:0 14px 36px rgba(0,0,0,.22),0 0 20px var(--feed-tint-soft)!important}
+
+/* Captions are the control: three lines when closed, a readable overlay when opened, no extra label. */
+[data-expandable-caption][data-expandable="true"]{cursor:pointer}
+[data-expandable-caption][data-expandable="true"]:focus-visible{outline:2px solid var(--feed-tint,#a06bff);outline-offset:3px}
+[data-expandable-caption] [data-caption-toggle]{display:none!important}
+.clipCaptionBlock.expanded,.viewerCaptionBlock.expanded{border:1px solid color-mix(in srgb,var(--feed-tint,#a06bff) 46%,transparent)!important}
+.feed-reels .clipContext{display:none!important}
+.clipCreator.clipIdentityPersistent{opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+.clipStage .creatorStoryTrigger small{display:none!important}
+.clipTranslate{min-height:24px!important;padding:1px 0!important;border:0!important;background:transparent!important;color:rgba(255,255,255,.86)!important;font-size:10px!important;font-weight:800!important;text-shadow:0 2px 7px #000!important;pointer-events:auto!important}
+.clipTranslate:disabled{opacity:.65}
+.clipMusicDisc{width:46px!important;height:46px!important;min-height:46px!important;border:2px solid rgba(255,255,255,.42)!important;border-radius:50%!important;background:radial-gradient(circle at 38% 30%,#353941,#08090c 48%,#020304 49%)!important;box-shadow:0 6px 16px rgba(0,0,0,.5)!important;animation:nexusMusicDisc 5s linear infinite!important}
+.clipMusicDisc i{font-style:normal!important;font-size:20px!important;color:#fff!important}
+.clipMusicDisc.muted{animation-play-state:paused!important;opacity:.72}
+@keyframes nexusMusicDisc{to{transform:rotate(360deg)}}
+
+/* Immediate confirmation for the familiar double-tap-to-like gesture. */
+.clipStage,.viewerStage{position:relative}
+.doubleTapHeart{position:absolute;z-index:180;left:50%;top:50%;width:92px;height:92px;display:grid;place-items:center;pointer-events:none;color:#fff;font-size:82px;line-height:1;transform:translate(-50%,-50%) scale(.35);filter:drop-shadow(0 0 22px var(--feed-tint-glow,rgba(160,107,255,.7)));animation:nexusHeartPop .72s ease-out forwards}
+@keyframes nexusHeartPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3) rotate(-8deg)}28%{opacity:1;transform:translate(-50%,-50%) scale(1.18) rotate(3deg)}72%{opacity:1;transform:translate(-50%,-50%) scale(.96)}100%{opacity:0;transform:translate(-50%,-58%) scale(1.05)}}
+
+/* The module switcher is a grid, while sign-out is a red power mark. The X and the full backdrop both
+   close the same drawer, so a thumb is never trapped in it. */
+.appHeader.feedHeader .feedHeaderIcon{border-color:rgba(255,255,255,.3)!important;border-radius:50%!important;background:rgba(3,4,7,.78)!important;color:#fff!important;box-shadow:0 5px 14px rgba(0,0,0,.32)!important}
+.appHeader.feedHeader .feedHeaderIcon svg{width:23px!important;height:23px!important}
+.feedQuickDrawer{padding:14px 10px 10px!important}
+.feedQuickClose{
+  position:absolute!important;
+  top:-14px!important;
+  right:-8px!important;
+  width:36px!important;
+  min-width:36px!important;
+  height:36px!important;
+  min-height:36px!important;
+  padding:0!important;
+  border:1px solid rgba(255,255,255,.5)!important;
+  border-radius:50%!important;
+  background:#050608!important;
+  color:#fff!important;
+  display:grid!important;
+  place-items:center!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.45)!important;
+}
+.feedQuickClose svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round}
+.feedQuickLogout{border-radius:50%!important;justify-self:center!important}
+
+/* The expanded viewer uses the same icon-only language. */
+.reelViewer .viewerModeTabs{height:52px!important;display:grid!important;grid-template-columns:repeat(3,44px)!important;justify-content:center!important;align-items:center!important;gap:8px!important}
+.reelViewer .viewerModeTabs button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;padding:0!important;border:1px solid transparent!important;border-radius:50%!important;display:grid!important;place-items:center!important;color:rgba(255,255,255,.68)!important}
+.reelViewer .viewerModeTabs button:after{content:none!important}
+.reelViewer .viewerModeTabs .viewerSolidSvg{width:21px!important;height:21px!important;transition:transform .16s ease!important}
+.reelViewer .viewerModeTabs button.active{border-color:rgba(126,241,255,.44)!important;background:rgba(22,31,48,.62)!important;box-shadow:0 0 18px rgba(125,73,255,.44)!important}
+.reelViewer .viewerModeTabs button.active .viewerSolidSvg{width:26px!important;height:26px!important;transform:scale(1.12)!important}
+
+@media(max-width:380px){
+  .appHeader.feedHeader .wordmark svg,.appHeader.feedHeader .wordmark .nexusWordmarkSvg{width:72px!important;height:20px!important}
+  .appHeader.feedHeader .feedModes{width:38px!important}
+  .appHeader.feedHeader .feedModeRow{grid-template-columns:36px!important;gap:0!important}
+  .appHeader.feedHeader .feedModes button{width:42px!important;min-width:42px!important;height:42px!important;min-height:42px!important}
+  .pulsePosts.feedReels .clipQuickActions{right:5px!important;transform:scale(.9);transform-origin:right bottom}
+  .pulsePosts.feedReels .clipMetaOverlay{right:67px!important}
+  .appNav.social{padding-inline:4px!important}
+  .appNav.social>button.createNav{flex-basis:62px!important}
+}
+@media(max-height:720px){
+  .reelViewer .viewerActionRail{top:90px!important;gap:0!important;transform:scale(.86);transform-origin:right bottom}
+  .reelViewer .viewerCreatorOverlay{padding-block:6px!important}
+  .reelViewer .viewerCreatorOverlay>p{max-height:2.6em;overflow:hidden}
+}
+@media(prefers-reduced-motion:reduce){.reelViewer .viewerBrandPlay,.reelViewer .viewerActionRail>button,.reelViewer .viewerBottomNav button{transition:none!important}}
+
+.feedStateError button{border-color:rgba(255,113,128,.45);background:rgba(42,17,25,.6);color:#ffd9de}
+.socialFeedMore{width:100%;min-height:44px;margin:4px 0 0;border:1px solid rgba(135,183,220,.18);border-radius:14px;background:rgba(12,24,40,.5);color:#cfe4ea;font-size:13px;font-weight:700}
+.socialFeedMore[disabled]{opacity:.6}
+
+@media (prefers-reduced-motion:reduce){
+  /* The drawer of the bar comes in with a small slide; the reader who asked for less motion gets it
+     still, the same way every other move on this surface stands down. */
+  .feedQuickDrawer{animation:none!important}
+}
+
+/* Social monochrome shell -------------------------------------------------
+   Navigation and utility controls use one quiet black/white language on every Social page.
+   Reels keeps its subtle violet Nexus signature and Play puck above this shared shell. */
+.phoneScreen:has(.appNav.social) .appNav.social{
+  border-top-color:rgba(255,255,255,.13)!important;
+  background:linear-gradient(180deg,rgba(0,0,0,.12),#020304 52%,#000)!important;
+  box-shadow:0 -10px 28px rgba(0,0,0,.48)!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social:before{
+  border-color:rgba(255,255,255,.22)!important;
+  background:linear-gradient(180deg,rgba(14,16,20,.97),rgba(2,3,5,.99))!important;
+  box-shadow:0 -8px 26px rgba(0,0,0,.52),inset 0 1px rgba(255,255,255,.09),inset 0 -1px rgba(255,255,255,.04)!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social button,
+.phoneScreen:has(.appNav.social) .appNav.social button i{color:#fff!important}
+.phoneScreen:has(.appNav.social) .appNav.social button i{
+  border-color:rgba(255,255,255,.12)!important;
+  background:rgba(4,5,7,.74)!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social button i svg{stroke:#fff!important;filter:none!important}
+.phoneScreen:has(.appNav.social) .appNav.social button[data-slot="primary"] i svg path{fill:rgba(255,255,255,.08)!important}
+.phoneScreen:has(.appNav.social) .appNav.social button.active:not(.createNav) i{
+  border-color:rgba(255,255,255,.42)!important;
+  background:#090a0c!important;
+  box-shadow:0 0 10px rgba(255,255,255,.12)!important;
+  filter:none!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social .createNav i{
+  border-color:rgba(255,255,255,.46)!important;
+  background:radial-gradient(circle at 35% 28%,#fff 0,#d8dce1 38%,#343941 72%,#050608 100%)!important;
+  color:#050608!important;
+  box-shadow:0 0 14px rgba(255,255,255,.18)!important;
+}
+
+/* The action rail is made from discrete black discs. The former shared shadow joined the discs into
+   a blurry vertical strip over the video, so the rail containers deliberately cast no shadow. */
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions,
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar){
+  background:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  filter:none!important;
+}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipCard{backdrop-filter:none!important}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar)::before,
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar)::after{content:none!important}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b),
+.phoneScreen:has(.clipsScreen) .reelViewer .viewerActionRail :is(.viewerSolidIcon,.reactionMetric>b){
+  border-color:rgba(255,255,255,.24)!important;
+  background:#050608!important;
+  box-shadow:0 4px 10px rgba(0,0,0,.34)!important;
+  backdrop-filter:none!important;
+  filter:none!important;
+}
+
+/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */
+.phoneScreen:has(.appNav.social):not(:has(.clipsScreen)){
+  --teal:#fff;
+  --purple:#fff;
+  --profile-color:#fff;
+  background:#000!important;
+}
+.phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) :is(.screen,.inboxScreen,.messengerScreen,.accountScreen,.nexusOwnerProfile){
+  background:#000!important;
+  color:#f7f7f7!important;
+}
+.phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) :is(button,input,textarea,select,summary):focus-visible{
+  outline-color:#fff!important;
+}
+
+/* Messages */
+.phoneScreen:has(.messengerScreen) .messengerTopbar{
+  background:#000!important;
+  border-bottom-color:rgba(255,255,255,.12)!important;
+}
+.phoneScreen:has(.messengerScreen) .messengerHome .nexusWordmarkSvg{filter:none!important}
+.phoneScreen:has(.messengerScreen) .messengerHome .nexusWordmarkSvg :is(text,circle){fill:#fff!important}
+.phoneScreen:has(.messengerScreen) .messengerHome .nexusWordmarkSvg stop{stop-color:#fff!important}
+.phoneScreen:has(.messengerScreen) .messengerHome .nexusWordmarkSvg path{stroke:#fff!important}
+.phoneScreen:has(.messengerScreen) .messengerHome small{color:rgba(255,255,255,.68)!important}
+.phoneScreen:has(.messengerScreen) .messengerTopbar summary,
+.phoneScreen:has(.messengerScreen) .inboxSearch,
+.phoneScreen:has(.messengerScreen) .inboxSearch input,
+.phoneScreen:has(.messengerScreen) .inboxBoxes button,
+.phoneScreen:has(.messengerScreen) .inboxFilters button{
+  border-color:rgba(255,255,255,.22)!important;
+  background:#090a0c!important;
+  color:#f7f7f7!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.messengerScreen) .messengerTopbar details>div{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#08090b!important;
+  box-shadow:0 14px 32px rgba(0,0,0,.72)!important;
+}
+.phoneScreen:has(.messengerScreen) :is(.messengerTopbar details button[aria-pressed=true],.inboxBoxes button[aria-pressed=true],.inboxFilters button[aria-pressed=true]){
+  border-color:#fff!important;
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen:has(.messengerScreen) .inboxSearch button,
+.phoneScreen:has(.messengerScreen) .iconBtn,
+.phoneScreen:has(.messengerScreen) .inboxReturn{color:#fff!important;background:#050608!important;border-color:rgba(255,255,255,.3)!important;box-shadow:none!important}
+.phoneScreen:has(.messengerScreen) .stories{
+  background:#000!important;
+  border-block-color:rgba(255,255,255,.09)!important;
+}
+.phoneScreen:has(.messengerScreen) .stories:before{background:linear-gradient(90deg,rgba(255,255,255,.5),transparent)!important}
+.phoneScreen:has(.messengerScreen) .storyCard :is(i,.storyPrism){border-color:rgba(255,255,255,.6)!important;box-shadow:none!important}
+.phoneScreen:has(.messengerScreen) .createPrism{border-color:#fff!important;box-shadow:none!important;color:#fff!important}
+.phoneScreen:has(.messengerScreen) .storyAddBadge{background:#fff!important;color:#050608!important;box-shadow:none!important}
+.phoneScreen:has(.messengerScreen) .chatList>button{border-bottom-color:rgba(255,255,255,.1)!important}
+.phoneScreen:has(.messengerScreen) .chatList>button>i{background:#15171a!important;color:#fff!important}
+.phoneScreen:has(.messengerScreen) .chatList>button>em strong{background:#fff!important;color:#050608!important}
+
+/* Friends */
+.phoneScreen .socialFriendsSwitcherBackdrop{background:#000!important;backdrop-filter:none!important}
+.phoneScreen .socialFriendsSheet{
+  border-color:rgba(255,255,255,.24)!important;
+  background:#050608!important;
+  box-shadow:0 24px 64px rgba(0,0,0,.78)!important;
+}
+.phoneScreen .socialFriendsSheet:after{display:none!important}
+.phoneScreen .socialFriendsSheet>header small{color:#c8c8c8!important}
+.phoneScreen .socialFriendsSheet>header button,
+.phoneScreen .friendsTabs button,
+.phoneScreen .friendRow button{
+  border-color:rgba(255,255,255,.22)!important;
+  background:#0b0c0e!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen .friendsTabs button.active{
+  border-color:#fff!important;
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen .friendRow{border-color:rgba(255,255,255,.14)!important;background:#08090b!important;box-shadow:none!important}
+
+/* Profile */
+.phoneScreen:has(.accountScreen) .ownerHero{background:#000!important}
+.phoneScreen:has(.accountScreen) .ownerAvatar{
+  border-color:#fff!important;
+  background:#090a0c!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.2)!important;
+}
+.phoneScreen:has(.accountScreen) .ownerAvatar>b{border-color:#fff!important;box-shadow:none!important}
+.phoneScreen:has(.accountScreen) :is(.ownerMenuButton,.ownerVisibility,.heroIconButton,.ownerFiltersToggle){color:#fff!important}
+.phoneScreen:has(.accountScreen) :is(.ownerMenuButton,.ownerVisibility,.heroIconButton):is(:hover,:focus-visible,[aria-expanded=true]){
+  border-color:rgba(255,255,255,.34)!important;
+  background:#0a0b0d!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.accountScreen) .ownerTicker{
+  border-color:rgba(255,255,255,.12)!important;
+  background:#050608!important;
+}
+.phoneScreen:has(.accountScreen) .ownerTickerSep{background:#fff!important}
+.phoneScreen:has(.accountScreen) .ownerContentTabs{
+  background:#000!important;
+  border-bottom-color:rgba(255,255,255,.16)!important;
+}
+.phoneScreen:has(.accountScreen) .ownerContentTabs button{color:rgba(255,255,255,.62)!important}
+.phoneScreen:has(.accountScreen) .ownerContentTabs button[aria-selected=true]{border-color:#fff!important;color:#fff!important}
+.phoneScreen:has(.accountScreen) .profileTilePin{
+  border-color:rgba(255,255,255,.28)!important;
+  background:#07080a!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.accountScreen) .profileTilePin[aria-pressed="true"]{border-color:#fff!important;background:#fff!important;color:#050608!important}
+.phoneScreen:has(.accountScreen) .profileTilePin{font-size:0!important;filter:grayscale(1)!important}
+.phoneScreen:has(.accountScreen) .profileTilePin::before{content:"⌖";font-size:17px;color:#fff!important}
+.phoneScreen:has(.accountScreen) .profileTilePin[aria-pressed="true"]::before{color:#050608!important}
+.phoneScreen:has(.accountScreen) :is(.account-card,.privateAccessCard,.profileEditorDisclosure){
+  border-color:rgba(255,255,255,.18)!important;
+  background:#07080a!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.accountScreen) :is(.btn,.ownerHeroActions .heroIconButton){border-color:rgba(255,255,255,.25)!important;background:#090a0c!important;color:#fff!important;box-shadow:none!important}
+
+/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight,
+   spacing and gray values; mode green/cyan no longer competes with the writing. */
+.phoneScreen:has(.clipsScreen.feed-whispers){--feed-tint:#fff;--feed-tint-soft:transparent;--feed-tint-glow:transparent;background:#000!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) #phoneHeader .appHeader.feedHeader{
+  border-bottom:1px solid rgba(255,255,255,.1)!important;
+  background:#000!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .wordmark{color:#fff!important;filter:none!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedModes button.active{
+  border-color:rgba(255,255,255,.5)!important;
+  background:#08090b!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedModes button.active i{color:#fff!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedHeaderIcon{
+  border-color:rgba(255,255,255,.25)!important;
+  background:#08090b!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) :is(.clipsScreen,.pulsePosts.feedWhispers){background:#000!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedState{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#060709!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedState i,
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedState b{color:#fff!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedState span{color:#9a9da2!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedState button,
+.phoneScreen:has(.clipsScreen.feed-whispers) .socialFeedMore{
+  border-color:rgba(255,255,255,.5)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedSkeletonCard{
+  border-color:rgba(255,255,255,.12)!important;
+  background:#07080a!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedSkeleton :is(.skeletonAvatar,.skeletonName,.skeletonKicker,.skeletonMedia,.skeletonAction,.skeletonLine,.skeletonMeta){
+  background:linear-gradient(90deg,#111317,#26282d,#111317)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperCard{
+  border-color:rgba(255,255,255,.14)!important;
+  background:#07080a!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperCard:focus-visible{outline-color:#fff!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperAvatar{
+  border-color:rgba(255,255,255,.38)!important;
+  background:#111317!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) :is(.whisperName,.whisperBody){color:#f7f7f7!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperWho small{color:#979a9f!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperMenu{color:#fff!important;background:transparent!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperAttachment{border-color:rgba(255,255,255,.16)!important;background:#030405!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperAction{
+  border-color:transparent!important;
+  background:transparent!important;
+  color:#b8bbc0!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperAction.on{
+  border-color:rgba(255,255,255,.5)!important;
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperAction:focus-visible{outline-color:#fff!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .whisperCard .reactionBar.expanded{
+  border-color:rgba(255,255,255,.24)!important;
+  background:#050608!important;
+  box-shadow:0 16px 38px rgba(0,0,0,.68)!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedAudio{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#0a0b0d!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedAudioToggle{
+  border-color:rgba(255,255,255,.55)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedAudioTrack{background:rgba(255,255,255,.18)!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedAudioTrack i,
+.phoneScreen:has(.clipsScreen.feed-whispers) .feedAudioWave i{background:#fff!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) :is(.feedAudioTime,.feedAudioLabel){color:#aaaeb3!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) .clipCommentsDrawer{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#050608!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) [data-follow]{
+  border-color:rgba(255,255,255,.7)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+
+/* Stronger header signature and a crisp utility door. Reels keeps its quiet violet identity; every
+   monochrome reading receives the same weight in white. */
+.appHeader.feedHeader .wordmark{
+  width:96px!important;
+  min-width:96px!important;
+  height:34px!important;
+  opacity:1!important;
+  filter:drop-shadow(0 0 8px rgba(186,168,220,.32))!important;
+}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg{width:96px!important;height:auto!important}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg text{font-weight:560!important}
+.appHeader.feedHeader .wordmark .nexusWordmarkSvg path{stroke-width:1.35!important}
+.appHeader.feedHeader .feedHeaderIcon{
+  width:42px!important;
+  min-width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  border:1px solid rgba(255,255,255,.5)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:0 5px 13px rgba(0,0,0,.42)!important;
+}
+
+/* Refresh must never reveal the old cyan/teal canvas. While the app is still booting, and while a Social
+   pull-to-refresh gesture is active, the layer underneath is solid black and the progress treatment is
+   white. The selector stops applying as soon as the boot node is replaced, so other Nexus modules keep
+   their own intentional surfaces. */
+html:has(#app>.boot),
+html:has(#app>.boot) body,
+#app:has(>.boot){background:#000!important;background-image:none!important}
+body:has(#app>.boot)::after{display:none!important;animation:none!important}
+#app>.boot{
+  min-height:100dvh!important;
+  display:grid!important;
+  place-items:center!important;
+  background:#000!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.appNav.social){background:#000!important}
+.phoneScreen:has(.appNav.social)::before,
+.phoneScreen:has(.appNav.social)::after{background:none!important;background-image:none!important;opacity:0!important;animation:none!important}
+.phoneScreen:has(.appNav.social) .screenViewport{background:#000!important}
+.phoneScreen:has(.appNav.social) .pullRefreshIndicator{
+  border-color:rgba(255,255,255,.46)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.48)!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.appNav.social) .pullRefreshIndicator i{color:#fff!important;filter:none!important}
+.phoneScreen:has(.clipsScreen.feed-whispers) :is(.feedRefreshing,.feedRefreshing .pulsePosts){background:#000!important}
+.phoneScreen:has(.accountScreen) .accountScreen::before{
+  border:1px solid rgba(255,255,255,.46)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.48)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .wordmark{
+  color:#fff!important;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.2))!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedHeaderIcon{
+  border-color:rgba(255,255,255,.5)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:0 5px 13px rgba(0,0,0,.42)!important;
+}
+
+/* Social monochrome completion audit. The older visual-foundation files still paint cyan/teal behind
+   Search, Create, Live and News. This last, Social-scoped layer removes those legacy surfaces without
+   changing Booking, Dating, Work or the other Nexus modules. Green remains available only for semantic
+   presence (Online), never as page chrome. */
+.phoneScreen:has(.appNav.social) .nexusWordmarkSvg{filter:none!important}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader:not(.feedHeader){
+  border-bottom-color:rgba(255,255,255,.12)!important;
+  background:#000!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader:not(.feedHeader) .wordmark{
+  color:#fff!important;
+  filter:none!important;
+  text-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader:not(.feedHeader) .nexusWordmarkSvg :is(text,circle){fill:#fff!important}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader:not(.feedHeader) .nexusWordmarkSvg stop{stop-color:#fff!important}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader:not(.feedHeader) .nexusWordmarkSvg path{stroke:#fff!important}
+.phoneScreen:has(.appNav.social) #phoneHeader .headerSwitches .modeBadge{
+  border-color:rgba(255,255,255,.22)!important;
+  background:#08090b!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) #phoneHeader .headerSwitches .modeBadge>i{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#111317!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) #phoneHeader .headerSwitches .modeBadge:is(:hover,:focus-visible,[aria-expanded=true]){
+  border-color:rgba(255,255,255,.52)!important;
+  background:#111317!important;
+}
+
+/* Home / Reels keeps only the deliberately quiet violet Nexus + Play signature. */
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .wordmark .nexusWordmarkSvg{
+  filter:drop-shadow(0 0 6px rgba(186,168,220,.22))!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipPlayState{
+  border-color:rgba(186,168,220,.55)!important;
+  background:#08080b!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:0 0 0 1px rgba(255,255,255,.08),0 0 22px rgba(139,104,212,.2)!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipPlayState:focus-visible{outline-color:rgba(186,168,220,.8)!important}
+
+/* News follows the same black-and-white reading language as Whispers. */
+.phoneScreen:has(.clipsScreen.feed-news){--feed-tint:#fff;--feed-tint-soft:transparent;--feed-tint-glow:transparent;background:#000!important}
+.phoneScreen:has(.clipsScreen.feed-news) #phoneHeader .appHeader.feedHeader{
+  border-bottom-color:rgba(255,255,255,.1)!important;
+  background:#000!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .wordmark{color:#fff!important;filter:drop-shadow(0 0 6px rgba(255,255,255,.18))!important}
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .feedModes button.active,
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .feedHeaderIcon{
+  border-color:rgba(255,255,255,.45)!important;
+  background:#08090b!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-news) :is(.clipsScreen,.pulsePosts,.newsCard){background-color:#000!important}
+.phoneScreen:has(.clipsScreen.feed-news) .feedNotice,
+.phoneScreen:has(.clipsScreen.feed-news) .feedState{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#07080a!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-news) :is(.feedNotice,.feedState) button{
+  border-color:rgba(255,255,255,.45)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+
+/* Search: useful information only; no cyan nebula, blue form card or glowing empty state. */
+.phoneScreen:has(.socialSearchScreen) .socialSearchScreen{
+  background:#000!important;
+  background-image:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchScreen>header small{color:#b7b9bd!important}
+.phoneScreen:has(.socialSearchScreen) .socialSearchScreen>header>i{
+  border-color:rgba(255,255,255,.24)!important;
+  background:#08090b!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchForm{
+  border-color:rgba(255,255,255,.16)!important;
+  background:#07080a!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchForm :is(input,button){
+  border-color:rgba(255,255,255,.22)!important;
+  background:#0a0b0d!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchForm button{
+  border-color:rgba(255,255,255,.62)!important;
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchEmpty{
+  border-color:rgba(255,255,255,.15)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) .socialSearchEmpty::before{display:none!important}
+.phoneScreen:has(.socialSearchScreen) .socialSearchEmpty>i{
+  border-color:rgba(255,255,255,.3)!important;
+  background:#0d0e11!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.phoneScreen:has(.socialSearchScreen) :is(.socialSearchMore,.socialTrendsHost button){
+  border-color:rgba(255,255,255,.22)!important;
+  background:#08090b!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+
+/* Create hub and composer: the selected action is expressed by contrast, not a teal flood. */
+.phoneScreen:has(.appNav.social) .createHubBackdrop{
+  background:rgba(0,0,0,.82)!important;
+  backdrop-filter:blur(8px)!important;
+}
+.phoneScreen:has(.appNav.social) .createHub{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:0 -18px 48px rgba(0,0,0,.72)!important;
+}
+.phoneScreen:has(.appNav.social) .createHub>header button{
+  border:1px solid rgba(255,255,255,.2)!important;
+  background:#111317!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.appNav.social) .createHubGrid button,
+.phoneScreen:has(.appNav.social) .createHubGrid button.primary{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#08090b!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .createHubGrid button:is(:hover,:focus-visible),
+.phoneScreen:has(.appNav.social) .createHubGrid button.primary:is(:hover,:focus-visible){border-color:rgba(255,255,255,.64)!important;background:#111317!important}
+.phoneScreen:has(.appNav.social) .createHubGrid i{
+  border:1px solid rgba(255,255,255,.18)!important;
+  background:#111317!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .createHubTruth{color:#8f9297!important}
+.phoneScreen:has(.composerScreen) .composerScreen,
+.phoneScreen:has(.composerScreen) :is(.composerCamera,.creatorStudio,.studioTimeline,.studioAudio,.uploadProgress){
+  border-color:rgba(255,255,255,.17)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+
+/* Live: preserve the red LIVE meaning only as a small semantic mark; the page structure is monochrome. */
+.phoneScreen:has(.socialLiveScreen) .socialLiveScreen{
+  background:#000!important;
+  background-image:none!important;
+}
+.phoneScreen:has(.socialLiveScreen) .liveHero>span>small{color:#b7b9bd!important}
+.phoneScreen:has(.socialLiveScreen) .liveHero>button{
+  border-color:rgba(255,255,255,.55)!important;
+  background:#fff!important;
+  background-image:none!important;
+  color:#050608!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialLiveScreen) .liveTabs button{
+  border-color:rgba(255,255,255,.18)!important;
+  background:#08090b!important;
+  background-image:none!important;
+  color:#a7a9ae!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialLiveScreen) .liveTabs button.active{
+  border-color:#fff!important;
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen:has(.socialLiveScreen) .liveEmpty{
+  border-color:rgba(255,255,255,.16)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.socialLiveScreen) .liveEmpty::before{display:none!important;filter:none!important}
+.phoneScreen:has(.socialLiveScreen) .liveEmpty>i{
+  border-color:rgba(255,255,255,.34)!important;
+  background:#0d0e11!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.phoneScreen:has(.socialLiveScreen) :is(.liveSessionCard,.liveCreatorBoard,.competitionIntro,.competitionList>article){
+  border-color:rgba(255,255,255,.16)!important;
+  background:#07080a!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+
+/* Shared Social overlays and detail surfaces must not reintroduce the legacy teal glass. */
+.phoneScreen:has(.appNav.social) :is(.clipCommentsDrawer,.postDetailLayer,.publicProfileSheet,.phoneModal,.socialDiscoverSheet){
+  border-color:rgba(255,255,255,.18)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) :is(.clipCommentsDrawer,.postDetailLayer,.publicProfileSheet,.socialDiscoverSheet) button:not(.danger):not([aria-pressed=true]){
+  border-color:rgba(255,255,255,.2)!important;
+  background-color:#090a0c!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+
+/* Public entry and browser refresh are part of the same product surface. Paint black at every layer so
+   overscroll, reload and signed-out rendering cannot reveal the legacy navy/cyan canvas. */
+html,body,#app{
+  background:#000!important;
+  background-color:#000!important;
+  background-image:none!important;
+}
+body::after{display:none!important;background:none!important;animation:none!important}
+.landing{
+  background:#000!important;
+  background-image:none!important;
+}
+.landing::before,.landing::after,.landing-card::after{display:none!important;background:none!important;box-shadow:none!important}
+.landing-card{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:0 24px 72px rgba(0,0,0,.72)!important;
+  backdrop-filter:none!important;
+}
+.landing .brand{
+  color:#fff!important;
+  text-shadow:none!important;
+  filter:none!important;
+}
+.landing .brand span{
+  color:#fff!important;
+  text-shadow:none!important;
+}
+.landing .brand::before{
+  background:linear-gradient(145deg,#fff 0 38%,#a8a8a8 62%,#545454 100%)!important;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.28)!important;
+  filter:none!important;
+}
+.landing .tagline{color:#a9abb0!important}
+.landing .auth-box{
+  border-color:rgba(255,255,255,.17)!important;
+  background:#08090b!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.landing .auth-box::before{
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.65),transparent)!important;
+  opacity:.45!important;
+}
+.landing .auth-box-title,
+.landing .field label,
+.landing .field-label{color:#f5f5f5!important}
+.landing .field input{
+  border-color:rgba(255,255,255,.2)!important;
+  background:#030405!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.landing .field input:focus{
+  border-color:#fff!important;
+  box-shadow:0 0 0 2px rgba(255,255,255,.16)!important;
+}
+.landing .btn{
+  border-color:rgba(255,255,255,.22)!important;
+  background:#0a0b0d!important;
+  background-image:none!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+.landing :is(.wallet-btn,.primary-btn){
+  border-color:#fff!important;
+  background:#fff!important;
+  background-image:none!important;
+  color:#050608!important;
+  box-shadow:none!important;
+}
+.landing :is(.wallet-btn,.primary-btn) .btn-logo,
+.landing :is(.wallet-btn,.primary-btn) small{background:rgba(0,0,0,.09)!important;color:#050608!important}
+.landing .btn:disabled{border-color:rgba(255,255,255,.12)!important;background:#090a0c!important;color:#a0a2a7!important;filter:none!important}
+.landing .btn-logo{background:#17191d!important;color:currentColor!important}
+.landing .sep{color:#85888e!important}
+.landing .sep::before,.landing .sep::after{background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent)!important}
+.landing :is(.provider-note,.mvx-hint,.signup-note){color:#96999f!important}
+.landing .signup-note span,
+.landing .auth-text-link{color:#fff!important;text-decoration-color:rgba(255,255,255,.4)!important}
+
+/* Nexus itself is monochrome everywhere. Reels may keep the separate Play control softly violet, but the
+   wordmark and its circuit strokes no longer inherit the mode tint. */
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark{
+  color:#fff!important;
+  filter:none!important;
+  text-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg{filter:none!important}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg :is(text,circle){fill:#fff!important}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg stop{stop-color:#fff!important}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg path{stroke:#fff!important}
+
+/* Pull-to-refresh and first feed load use the same neutral skeleton. The old shimmer was mixed from
+   blue RGB values, which made the entire screen flash navy even though the page underneath was black. */
+.phoneScreen:has(.appNav.social) :is(.feedRefreshing,.feedRefreshing .pulsePosts,.feedSkeleton){
+  background:#000!important;
+  background-image:none!important;
+}
+.phoneScreen:has(.appNav.social) .feedSkeletonCard{
+  border-color:rgba(255,255,255,.1)!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .feedSkeleton :is(.skeletonAvatar,.skeletonName,.skeletonKicker,.skeletonMedia,.skeletonAction,.skeletonLine,.skeletonMeta){
+  background:linear-gradient(90deg,#0c0d0f 0%,#202226 48%,#0c0d0f 100%)!important;
+  background-size:280% 100%!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .feedSkeleton .skeletonMedia{
+  border:1px solid rgba(255,255,255,.045)!important;
+  background:linear-gradient(90deg,#08090b 0%,#17191d 48%,#08090b 100%)!important;
+  background-size:280% 100%!important;
+}
+.phoneScreen:has(.appNav.social) .feedRefreshing .pullRefreshIndicator{
+  border-color:rgba(255,255,255,.34)!important;
+  background:#050608!important;
+  color:#fff!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.58)!important;
+}
+
+/* Keep the author line, caption and translation on one clean left axis. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipMetaOverlay{
+  left:18px!important;
+  right:76px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipMetaOverlay>:is(.clipCreator,.clipCaptionBlock,.clipTranslate){
+  width:100%!important;
+  max-width:100%!important;
+  margin-inline:0!important;
+  padding-inline:0!important;
+  box-sizing:border-box!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipMetaOverlay .creatorStoryTrigger,
+.phoneScreen:has(.clipsScreen.feed-reels) .clipMetaOverlay .creatorStoryTrigger>span{
+  margin-inline:0!important;
+  padding-inline:0!important;
+  transform:none!important;
+  text-align:start!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipMetaOverlay .creatorStoryTrigger{
+  justify-content:flex-start!important;
+  justify-items:start!important;
+}
+
+/* Repost and Share live behind one compact distribute control, leaving more room for the content. */
+.phoneScreen:has(.clipsScreen.feed-reels) :is(.clipQuickActions,.viewerActionRail){overflow:visible!important}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu{
+  position:absolute!important;
+  z-index:90!important;
+  top:var(--distribute-y,180px)!important;
+  inset-inline-end:64px!important;
+  width:162px!important;
+  padding:6px!important;
+  display:grid!important;
+  gap:4px!important;
+  border:1px solid rgba(255,255,255,.2)!important;
+  border-radius:16px!important;
+  background:#050608!important;
+  background-image:none!important;
+  box-shadow:0 14px 34px rgba(0,0,0,.68)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu[hidden]{display:none!important}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button{
+  width:100%!important;
+  min-height:48px!important;
+  padding:7px 9px!important;
+  display:grid!important;
+  grid-template-columns:32px minmax(0,1fr)!important;
+  align-items:center!important;
+  gap:8px!important;
+  border:0!important;
+  border-radius:11px!important;
+  background:#0b0c0e!important;
+  color:#fff!important;
+  text-align:start!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button:is(:hover,:focus-visible){
+  background:#17191d!important;
+  outline:2px solid rgba(255,255,255,.58)!important;
+  outline-offset:-2px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button>i{
+  width:30px!important;
+  height:30px!important;
+  display:grid!important;
+  place-items:center!important;
+  border-radius:50%!important;
+  background:#17191d!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button>i svg{
+  width:18px!important;
+  height:18px!important;
+  fill:#fff!important;
+  color:#fff!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button>span{
+  min-width:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button>span b{
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  font-size:13px!important;
+  font-weight:700!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button>span small{
+  color:#aeb1b7!important;
+  font-size:10px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button.on{
+  background:#fff!important;
+  color:#050608!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button.on>i{background:#e7e7e7!important}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button.on>i svg{fill:#050608!important;color:#050608!important}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipDistributeMenu>button.on>span small{color:#4d5055!important}
+
+/* Quiet Nexus green -------------------------------------------------------
+   The product is still near-black, but no longer clinically monochrome. The green is deliberately
+   below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */
+:root{
+  --nexus-green-canvas:#010302;
+  --nexus-green-panel:#050806;
+  --nexus-green-line:rgba(112,164,130,.16);
+  --nexus-green-glow:rgba(76,142,102,.075);
+}
+html,body,#app,.landing{
+  background-color:var(--nexus-green-canvas)!important;
+}
+.landing{
+  background-image:radial-gradient(95% 52% at 50% 100%,var(--nexus-green-glow),transparent 72%)!important;
+}
+.phoneScreen:has(.appNav.social),
+.phoneScreen:has(.appNav.social) .screenViewport{
+  background-color:var(--nexus-green-canvas)!important;
+}
+.phoneScreen:has(.appNav.social) .screenViewport{
+  background-image:radial-gradient(110% 44% at 50% 100%,var(--nexus-green-glow),transparent 72%)!important;
+}
+.phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) :is(.screen,.inboxScreen,.messengerScreen,.accountScreen,.nexusOwnerProfile),
+.phoneScreen:has(.clipsScreen.feed-whispers) :is(.clipsScreen,.pulsePosts.feedWhispers),
+.phoneScreen:has(.clipsScreen.feed-news) :is(.clipsScreen,.pulsePosts,.newsCard){
+  background-color:var(--nexus-green-canvas)!important;
+}
+.phoneScreen:has(.appNav.social) #phoneHeader .appHeader,
+.phoneScreen:has(.messengerScreen) .messengerTopbar,
+.phoneScreen:has(.clipsScreen.feed-whispers) #phoneHeader .appHeader.feedHeader,
+.phoneScreen:has(.clipsScreen.feed-news) #phoneHeader .appHeader.feedHeader{
+  border-color:var(--nexus-green-line)!important;
+  background-color:rgba(1,5,3,.96)!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social{
+  border-top-color:var(--nexus-green-line)!important;
+  background:linear-gradient(180deg,rgba(3,8,5,.25),rgba(2,7,4,.97) 52%,#010302)!important;
+  box-shadow:0 -10px 28px rgba(20,64,39,.11)!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social:before{
+  border-color:rgba(126,173,142,.2)!important;
+  background:linear-gradient(180deg,rgba(12,19,15,.97),rgba(2,7,4,.99))!important;
+  box-shadow:0 -8px 24px rgba(13,49,29,.16),inset 0 1px rgba(175,211,187,.07)!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social button i{
+  background:rgba(5,11,7,.7)!important;
+}
+.phoneScreen:has(.appNav.social) .appNav.social button.active:not(.createNav) i{
+  border-color:rgba(159,197,171,.34)!important;
+  background:rgba(12,24,16,.88)!important;
+  box-shadow:0 0 11px rgba(75,135,95,.11)!important;
+}
+.phoneScreen:has(.appNav.social) :is(.whisperCard,.feedState,.feedSkeletonCard,.account-card,.privateAccessCard,.profileEditorDisclosure,.friendRow,.socialSearchForm,.socialSearchEmpty,.liveEmpty,.liveSessionCard,.liveCreatorBoard,.competitionIntro,.competitionList>article){
+  border-color:var(--nexus-green-line)!important;
+  background-color:var(--nexus-green-panel)!important;
+}
+
+/* Reaction marks float directly over the content. Keep the full touch target, but remove the black
+   discs and blur behind Like, Comment, Distribute and Save. */
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b),
+.phoneScreen:has(.clipsScreen) .reelViewer .viewerActionRail :is(.viewerSolidIcon,.reactionMetric>b){
+  border-color:transparent!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  filter:none!important;
+}
+.phoneScreen:has(.clipsScreen) .pulsePosts.feedReels .clipQuickActions>button.on :is(.clipSolidIcon,.reactionMetric>b),
+.phoneScreen:has(.clipsScreen) .reelViewer .viewerActionRail>button.on :is(.viewerSolidIcon,.reactionMetric>b){
+  border-color:transparent!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen) :is(.clipQuickActions,.viewerActionRail) .viewerSolidSvg,
+.phoneScreen:has(.clipsScreen) :is(.clipQuickActions,.viewerActionRail) .viewerReactionHeart{
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.82))!important;
+}
+
+/* Header refinement: the module door has no black tile, while the current Reels mark stays a compact
+   violet part of the Nexus signature. The button keeps its 44px touch target; only its visible disc is
+   reduced. */
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon,
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedHeaderIcon,
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .feedHeaderIcon{
+  border-color:rgba(172,201,182,.2)!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon:is(:hover,:focus-visible,[aria-expanded=true]){
+  border-color:rgba(190,216,198,.42)!important;
+  background:rgba(108,154,123,.055)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes{
+  width:34px!important;
+  height:40px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModeRow{
+  width:34px!important;
+  grid-template-columns:34px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes button{
+  width:34px!important;
+  min-width:34px!important;
+  height:34px!important;
+  min-height:34px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes button.active{
+  border-color:rgba(221,211,246,.58)!important;
+  background:linear-gradient(145deg,#7652bd,#62409e)!important;
+  color:#fff!important;
+  box-shadow:0 0 12px rgba(118,82,189,.26),inset 0 1px rgba(255,255,255,.18)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes button.active i{
+  width:17px!important;
+  height:17px!important;
+  color:#fff!important;
+  font-size:13px!important;
+  transform:none!important;
+  text-shadow:none!important;
+}
+
+/* Compact creator copy: no empty row between identity and caption, and every text line starts on the
+   same axis. The expanded caption veil remains readable but lets substantially more video show through. */
+.phoneScreen:has(.clipsScreen.feed-reels) .clipStage .clipMetaOverlay{
+  gap:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipStage .clipCreator.clipIdentityPersistent,
+.phoneScreen:has(.clipsScreen.feed-reels) .clipStage .creatorStoryTrigger{
+  min-height:24px!important;
+  margin:0!important;
+  padding-block:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipStage .creatorStoryTrigger b{
+  font-weight:900!important;
+  letter-spacing:.005em!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipCaptionBlock{
+  margin:0!important;
+  padding:0 0 2px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipTranslate{
+  width:auto!important;
+  min-height:22px!important;
+  align-self:flex-start!important;
+  margin:0!important;
+  padding:1px 0!important;
+  display:block!important;
+  text-align:start!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .clipCaptionBlock.expanded,
+.reelViewer .viewerCaptionBlock.expanded{
+  background:rgba(1,5,3,.44)!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.18)!important;
+  backdrop-filter:blur(3px)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipStage:before{
+  background:linear-gradient(180deg,rgba(0,0,0,.34),transparent 23%,transparent 64%,rgba(0,0,0,.52))!important;
+}
+.reelViewer .viewerStage:after{
+  background:linear-gradient(180deg,rgba(0,0,0,.42),transparent 24%,transparent 61%,rgba(0,0,0,.64) 88%,rgba(0,0,0,.72))!important;
+}
+
+/* A true source selector: no black tile, border or active fill in any state. */
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon,
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon:is(:hover,[aria-expanded=true]){
+  border-color:transparent!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon:focus-visible{
+  outline:2px solid rgba(202,221,208,.66)!important;
+  outline-offset:1px!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedHeaderIcon svg{
+  width:24px!important;
+  height:24px!important;
+  stroke-width:1.75!important;
+}
+
+/* Smaller dynamic Nexus signature. The control keeps a comfortable target, while its visible mode disc
+   is only 28px. Reels borrows the vivid violet used by the full-screen player. */
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark{
+  width:80px!important;
+  min-width:80px!important;
+  height:28px!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg{
+  width:80px!important;
+  height:auto!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedModes,
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedModeRow{
+  width:38px!important;
+  height:40px!important;
+  grid-template-columns:38px!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedModes button{
+  width:38px!important;
+  min-width:38px!important;
+  height:40px!important;
+  min-height:40px!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.appNav.social) .appHeader.feedHeader .feedModes button i{
+  width:28px!important;
+  height:28px!important;
+  border:1px solid rgba(255,255,255,.18)!important;
+  border-radius:50%!important;
+  background:rgba(255,255,255,.035)!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#fff!important;
+  font-size:12px!important;
+  transform:none!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes button.active{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .appHeader.feedHeader .feedModes button.active i{
+  border-color:rgba(233,224,255,.68)!important;
+  background:linear-gradient(145deg,#9b3cff,#642be0)!important;
+  color:#fff!important;
+  box-shadow:0 0 13px rgba(140,52,255,.38),inset 0 1px rgba(255,255,255,.24)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedModes button.active,
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .feedModes button.active{
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-whispers) .appHeader.feedHeader .feedModes button.active i{
+  border-color:rgba(132,188,151,.32)!important;
+  background:rgba(66,134,88,.13)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-news) .appHeader.feedHeader .feedModes button.active i{
+  border-color:rgba(255,255,255,.25)!important;
+  background:rgba(255,255,255,.055)!important;
+}
+@media(max-width:374px){
+  .phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark,
+  .phoneScreen:has(.appNav.social) .appHeader.feedHeader .wordmark .nexusWordmarkSvg{width:72px!important;min-width:72px!important}
+}
+
+/* One vertical rhythm for the creator and every reaction. The old avatar margin created a visibly larger
+   first gap; each rail slot now owns the same 60px cell and is centred inside it. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:4px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button{
+  flex:0 0 60px!important;
+  width:58px!important;
+  min-width:58px!important;
+  height:60px!important;
+  min-height:60px!important;
+  margin:0!important;
+  align-self:center!important;
+  justify-self:center!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  margin:0!important;
+  padding:0!important;
+  display:grid!important;
+  place-items:center!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i{
+  width:50px!important;
+  height:50px!important;
+  min-width:50px!important;
+  margin:0 auto!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b){
+  margin-inline:auto!important;
+}
+.reelViewer .viewerActionRail{
+  gap:4px!important;
+}
+.reelViewer .viewerActionRail>button,
+.reelViewer .viewerActionRail>.viewerRailAvatar{
+  flex:0 0 64px!important;
+  width:64px!important;
+  height:64px!important;
+  min-height:64px!important;
+  margin:0!important;
+  align-self:center!important;
+  justify-self:center!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar>i{
+  width:54px!important;
+  height:54px!important;
+  margin:0 auto!important;
+}
+
+/* Compact rail pass: equal does not need to mean loose. Counts sit close to their mark and the whole
+   group reads as one control column instead of isolated buttons spread down the video. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions{
+  width:54px!important;
+  gap:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar){
+  flex-basis:48px!important;
+  width:54px!important;
+  min-width:54px!important;
+  height:48px!important;
+  min-height:48px!important;
+  grid-template-rows:35px 11px!important;
+  gap:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  flex-basis:52px!important;
+  width:54px!important;
+  min-width:54px!important;
+  height:52px!important;
+  min-height:52px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i{
+  width:46px!important;
+  height:46px!important;
+  min-width:46px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b){
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  min-height:34px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  width:54px!important;
+  height:48px!important;
+  min-height:48px!important;
+  grid-template-rows:35px 11px!important;
+  gap:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart){
+  width:25px!important;
+  height:25px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(button small,.reactionMetric>em){
+  line-height:11px!important;
+}
+.reelViewer .viewerActionRail{gap:0!important}
+.reelViewer .viewerActionRail>button{
+  flex-basis:52px!important;
+  height:52px!important;
+  min-height:52px!important;
+  grid-template-rows:39px 11px!important;
+  gap:0!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar{
+  flex-basis:56px!important;
+  height:56px!important;
+  min-height:56px!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar>i{width:50px!important;height:50px!important}
+.reelViewer .viewerActionRail :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  height:52px!important;
+  min-height:52px!important;
+  grid-template-rows:39px 11px!important;
+  gap:0!important;
+}
+.reelViewer .viewerActionRail :is(.viewerSolidIcon,.reactionMetric>b){width:38px!important;height:38px!important}
+
+/* Final rail rhythm: preserve the creator portrait, isolate it from Like, then tighten only the action
+   stack. This avoids both the avatar collision and the over-large Like-to-Comment interval. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  flex:0 0 62px!important;
+  width:58px!important;
+  min-width:58px!important;
+  height:62px!important;
+  min-height:62px!important;
+  margin:0 0 6px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar>i{
+  width:54px!important;
+  height:54px!important;
+  min-width:54px!important;
+  min-height:54px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar){
+  flex:0 0 42px!important;
+  width:54px!important;
+  min-width:54px!important;
+  height:42px!important;
+  min-height:42px!important;
+  margin:0!important;
+  grid-template-rows:30px 10px!important;
+  gap:0!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  height:42px!important;
+  min-height:42px!important;
+  grid-template-rows:30px 10px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b){
+  width:30px!important;
+  height:30px!important;
+  min-width:30px!important;
+  min-height:30px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart){
+  width:23px!important;
+  height:23px!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar{
+  flex:0 0 68px!important;
+  height:68px!important;
+  min-height:68px!important;
+  margin:0 0 6px!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar>i{width:62px!important;height:62px!important}
+.reelViewer .viewerActionRail>button:not(.viewerRailAvatar){
+  flex:0 0 46px!important;
+  height:46px!important;
+  min-height:46px!important;
+  grid-template-rows:34px 10px!important;
+}
+.reelViewer .viewerActionRail :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  height:46px!important;
+  min-height:46px!important;
+  grid-template-rows:34px 10px!important;
+}
+
+/* Optical spacing follows what the icons look like, not only their box dimensions. The Like block has
+   an extra count row, so Comment moves closer; Share, Save and Audio then receive breathing room. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button[data-comments]{
+  margin-top:-12px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipDistributeToggle{
+  margin-top:6px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button[data-save]{
+  margin-top:6px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipMusicDisc{
+  margin-top:8px!important;
+}
+.reelViewer .viewerActionRail>button[data-viewer-comments]{margin-top:-10px!important}
+.reelViewer .viewerActionRail>.clipDistributeToggle,
+.reelViewer .viewerActionRail>button[data-viewer-save]{margin-top:6px!important}
+.reelViewer .viewerActionRail>.clipAudioAction{margin-top:8px!important}
+
+/* Reference rhythm: one predictable 56px action cell, icon above its factual metric. Save has no public
+   count in the current API, so it reserves the metric row without inventing a number. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions{
+  gap:2px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  margin:0 0 8px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button:not(.clipRailAvatar){
+  flex:0 0 56px!important;
+  width:56px!important;
+  min-width:56px!important;
+  height:56px!important;
+  min-height:56px!important;
+  margin:0!important;
+  grid-template-rows:39px 14px!important;
+  gap:1px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  width:56px!important;
+  height:56px!important;
+  min-height:56px!important;
+  grid-template-rows:39px 14px!important;
+  gap:1px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.clipSolidIcon,.reactionMetric>b){
+  width:36px!important;
+  height:36px!important;
+  min-width:36px!important;
+  min-height:36px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart){
+  width:29px!important;
+  height:29px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions :is(button small,.reactionMetric>em){
+  font-size:11px!important;
+  line-height:14px!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions .railMetricPlaceholder,
+.reelViewer .viewerActionRail .railMetricPlaceholder{
+  visibility:hidden!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipMusicDisc{
+  margin-top:4px!important;
+  grid-template-rows:1fr!important;
+}
+.reelViewer .viewerActionRail{gap:2px!important}
+.reelViewer .viewerActionRail>.viewerRailAvatar{margin:0 0 8px!important}
+.reelViewer .viewerActionRail>button:not(.viewerRailAvatar){
+  flex:0 0 56px!important;
+  height:56px!important;
+  min-height:56px!important;
+  margin:0!important;
+  grid-template-rows:39px 14px!important;
+  gap:1px!important;
+}
+.reelViewer .viewerActionRail :is(.viewerPrimaryReaction,.viewerPrimaryReaction .reactionMetric){
+  height:56px!important;
+  min-height:56px!important;
+  grid-template-rows:39px 14px!important;
+  gap:1px!important;
+}
+.reelViewer .viewerActionRail :is(.viewerSolidIcon,.reactionMetric>b){width:36px!important;height:36px!important}
+.reelViewer .viewerActionRail :is(.viewerSolidSvg,.viewerReactionHeart){width:29px!important;height:29px!important}
+
+/* Final optical nudge requested from the phone capture: separate creator identity from the reaction
+   stack without disturbing Comment, Save, Share or Audio. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>.clipRailAvatar{
+  transform:translateY(-4px)!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipQuickActions>button[data-reaction-toggle]{
+  transform:translateY(4px)!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar{transform:translateY(-4px)!important}
+.reelViewer .viewerActionRail>button[data-viewer-reactions]{transform:translateY(4px)!important}
+
+/* The full-screen viewer is appended directly to <body>, not inside .phoneScreen. These exact selectors
+   mirror the feed rule without relying on an ancestor that the viewer does not have. */
+.reelViewer .viewerActionRail>button>i.viewerSolidIcon,
+.reelViewer .viewerActionRail .viewerPrimaryReaction .reactionMetric>b{
+  border-color:transparent!important;
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  filter:none!important;
+}
+.reelViewer .viewerActionRail>button.on>i.viewerSolidIcon,
+.reelViewer .viewerActionRail>button.on .reactionMetric>b{
+  border-color:transparent!important;
+  background:transparent!important;
+  background-color:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+.reelViewer .viewerActionRail>button::before,
+.reelViewer .viewerActionRail>button::after{content:none!important}
+
+/* Full-screen media now reuses the feed's visual hierarchy. It deliberately has only two pieces of
+   chrome which differ from the feed: Back at the top and the long comment entry at the bottom. */
+.reelViewer .reelsReferenceHeader.viewerFeedHeader{
+  position:absolute!important;
+  z-index:30!important;
+  inset:max(10px,env(safe-area-inset-top)) auto auto max(10px,env(safe-area-inset-left))!important;
+  width:48px!important;
+  min-height:48px!important;
+  padding:0!important;
+  display:block!important;
+  background:transparent!important;
+  pointer-events:none!important;
+}
+.reelViewer .viewerFeedHeader .viewerBack{
+  pointer-events:auto!important;
+  width:40px!important;
+  height:40px!important;
+  min-width:40px!important;
+  min-height:40px!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:rgba(0,0,0,.08)!important;
+  color:#fff!important;
+  display:grid!important;
+  place-items:center!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(2px)!important;
+  -webkit-backdrop-filter:blur(2px)!important;
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,.86))!important;
+  opacity:.84!important;
+}
+.reelViewer .viewerFeedHeader .viewerBack svg{
+  width:22px!important;
+  height:22px!important;
+  fill:none!important;
+  stroke:currentColor!important;
+  stroke-width:2.1!important;
+  stroke-linecap:round!important;
+  stroke-linejoin:round!important;
+}
+.reelViewer .viewerBottomNav,
+.reelViewer .viewerWordmark,
+.reelViewer .viewerBrandPlay,
+.reelViewer .viewerModeTabs,
+.reelViewer .viewerTune,
+.reelViewer .viewerClose,
+.reelViewer .viewerFitMenu{display:none!important}
+
+.reelViewer .viewerCommentShortcut{
+  position:absolute!important;
+  z-index:28!important;
+  left:max(12px,env(safe-area-inset-left))!important;
+  right:max(12px,env(safe-area-inset-right))!important;
+  bottom:max(9px,env(safe-area-inset-bottom))!important;
+  width:auto!important;
+  height:50px!important;
+  min-height:50px!important;
+  padding:0 14px 0 18px!important;
+  border:1px solid rgba(255,255,255,.24)!important;
+  border-radius:26px!important;
+  background:rgba(5,8,6,.66)!important;
+  color:rgba(255,255,255,.72)!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  text-align:start!important;
+  font-size:14px!important;
+  font-weight:550!important;
+  box-shadow:0 7px 24px rgba(0,0,0,.34),inset 0 1px rgba(255,255,255,.055)!important;
+  backdrop-filter:blur(10px)!important;
+  -webkit-backdrop-filter:blur(10px)!important;
+}
+.reelViewer .viewerCommentShortcut i{
+  width:34px!important;
+  height:34px!important;
+  border-radius:50%!important;
+  display:grid!important;
+  place-items:center!important;
+  color:#fff!important;
+  font-style:normal!important;
+}
+.reelViewer .viewerCommentShortcut svg{width:21px!important;height:21px!important}
+
+.reelViewer .viewerActionRail{
+  top:92px!important;
+  bottom:67px!important;
+  right:max(6px,env(safe-area-inset-right))!important;
+  width:58px!important;
+  gap:2px!important;
+}
+.reelViewer .viewerActionRail>button{
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  color:#fff!important;
+}
+.reelViewer .viewerActionRail>.viewerRailAvatar{
+  transform:translateY(-4px)!important;
+  margin-bottom:8px!important;
+}
+.reelViewer .viewerActionRail>button[data-viewer-reactions]{transform:translateY(4px)!important}
+.reelViewer .viewerActionRail>.clipAudioAction{
+  margin-top:4px!important;
+  grid-template-rows:1fr!important;
+}
+.reelViewer .viewerActionRail>.clipAudioAction .viewerSolidIcon{
+  transform:rotate(-10deg)!important;
+}
+
+.reelViewer .viewerCreatorOverlay{
+  position:absolute!important;
+  z-index:20!important;
+  left:max(18px,env(safe-area-inset-left))!important;
+  right:76px!important;
+  bottom:68px!important;
+  width:auto!important;
+  max-width:min(520px,calc(100vw - 94px))!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  background-image:none!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:0!important;
+  text-shadow:0 2px 8px #000,0 1px 3px #000!important;
+}
+.reelViewer .viewerCreatorRow{
+  position:relative!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-height:28px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:7px!important;
+}
+.reelViewer .viewerCreatorIdentity{
+  width:auto!important;
+  min-height:28px!important;
+  padding:0!important;
+  display:block!important;
+  border:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  text-align:start!important;
+  box-shadow:none!important;
+}
+.reelViewer .viewerCreatorIdentity>i,
+.reelViewer .viewerCreatorIdentity small,
+.reelViewer .viewerCreatorIdentity .usernameSigil{display:none!important}
+.reelViewer .viewerCreatorIdentity>span{
+  width:auto!important;
+  max-width:min(52vw,230px)!important;
+  display:block!important;
+}
+.reelViewer .viewerCreatorIdentity b{
+  max-width:min(52vw,230px)!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  white-space:nowrap!important;
+  color:#fff!important;
+  font-size:14px!important;
+  font-weight:900!important;
+  line-height:1.25!important;
+}
+.reelViewer .viewerCreatorInline{
+  position:relative!important;
+  min-height:28px!important;
+  padding:0!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:0!important;
+}
+.reelViewer .viewerCreatorInline>button[data-follow]{
+  min-width:0!important;
+  min-height:28px!important;
+  height:28px!important;
+  padding:0 10px!important;
+  border:1px solid rgba(255,255,255,.74)!important;
+  border-radius:14px!important;
+  background:rgba(0,0,0,.12)!important;
+  color:#fff!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+.reelViewer .viewerCreatorMore,
+.reelViewer .viewerCreatorMenu{display:none!important}
+.reelViewer .viewerCaptionBlock{
+  width:100%!important;
+  max-width:100%!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0 0 2px!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  color:#fff!important;
+  font-size:13px!important;
+  line-height:1.35!important;
+  text-align:start!important;
+}
+.reelViewer .viewerCaptionBlock [data-caption-text]{
+  display:-webkit-box!important;
+  overflow:hidden!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:2!important;
+}
+.reelViewer .viewerCaptionBlock.expanded{
+  max-height:min(54dvh,430px)!important;
+  margin:-8px -10px 0!important;
+  padding:8px 10px 10px!important;
+  overflow:auto!important;
+  border:0!important;
+  border-radius:12px!important;
+  background:rgba(1,5,3,.52)!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.22)!important;
+  backdrop-filter:blur(3px)!important;
+}
+.reelViewer .viewerCaptionBlock.expanded [data-caption-text]{display:block!important;overflow:visible!important}
+.reelViewer .viewerCreatorOverlay>.clipTranslate{
+  width:auto!important;
+  min-height:22px!important;
+  margin:0!important;
+  padding:1px 0!important;
+  align-self:flex-start!important;
+  border:0!important;
+  background:transparent!important;
+  color:rgba(255,255,255,.86)!important;
+  text-align:start!important;
+  font-size:10px!important;
+  order:4!important;
+}
+.reelViewer .viewerCreatorOverlay>em,
+.reelViewer .viewerAudioMeta{display:none!important}
+.reelViewer.viewerCommentsOpen .viewerCommentShortcut{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+
+@media(max-width:380px){
+  .reelViewer .viewerActionRail{right:2px!important;transform:scale(.92)!important;transform-origin:right bottom!important}
+  .reelViewer .viewerCreatorOverlay{left:14px!important;right:66px!important;max-width:calc(100vw - 80px)!important}
+  .reelViewer .viewerCommentShortcut{left:9px!important;right:9px!important}
+}
+@media(orientation:landscape){
+  .reelViewer .viewerCreatorOverlay{bottom:68px!important;max-width:46%!important}
+  .reelViewer .viewerActionRail{bottom:67px!important}
+  .reelViewer .viewerCommentShortcut{left:12px!important;right:12px!important;width:auto!important}
+}
+
+/* ---------------------------------------------------------------- Comments workspace
+   Feed and full-screen use the same reading surface. Opening it gives the conversation most of the
+   viewport while keeping the complete media, play state and sound control visible above it. */
+.clipCommentsDrawer,.reelViewer .viewerCommentsPanel{
+  color:#f7f7f7!important;
+  border:0!important;
+  background:#050505!important;
+  background-image:none!important;
+  box-shadow:0 -12px 34px rgba(0,0,0,.42)!important;
+  overflow:hidden!important;
+}
+.clipCommentsDrawer:not(.hidden){display:grid!important;grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important}
+.clipCommentsDrawer .drawerHandle,.reelViewer .viewerCommentsPanel>.drawerHandle{
+  width:38px!important;height:4px!important;margin:7px auto 3px!important;border-radius:99px!important;
+  background:rgba(255,255,255,.3)!important;display:block!important;
+}
+.commentPanelBar{
+  height:38px!important;min-height:38px!important;padding:0 14px 3px!important;border-bottom:0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;
+  background:#050505!important;
+}
+.commentPanelBar>b{font-size:14px!important;font-weight:850!important}
+.commentPanelBar>small{color:#8d9298!important;font-size:11px!important}
+.commentPanelBar>button{
+  position:absolute!important;inset-inline-end:10px!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;
+  padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#fff!important;font-size:23px!important;box-shadow:none!important;
+}
+.commentPostSummary,.commentSurfacePost{border-bottom:1px solid rgba(255,255,255,.1)!important;background:#050505!important}
+.commentSurfacePost{position:relative!important;margin:0!important;padding:0!important;border-radius:0!important}
+.commentPostCreator{min-height:62px;padding:8px 14px 5px;display:flex;align-items:center;gap:10px}
+.commentPostIdentity{min-width:0!important;flex:1;display:flex!important;align-items:center!important;gap:10px!important;padding:0!important;border:0!important;background:transparent!important;color:#fff!important;text-align:start!important;box-shadow:none!important}
+.commentPostIdentity>i{width:42px;height:42px;flex:0 0 auto;display:grid;place-items:center;overflow:hidden;border:1px solid rgba(255,255,255,.3);border-radius:50%;background:#151515;color:#fff;font-size:11px;font-weight:900;font-style:normal}
+.commentPostIdentity>i img{width:100%;height:100%;object-fit:cover}
+.commentPostIdentity>span{min-width:0;display:grid;gap:1px}
+.commentPostIdentity b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:900}
+.commentPostIdentity small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#969ba1;font-size:11px}
+.commentFollow{min-width:78px!important;height:34px!important;min-height:34px!important;padding:0 14px!important;border:1px solid #fff!important;border-radius:18px!important;background:#fff!important;color:#080808!important;font-size:12px!important;font-weight:900!important;box-shadow:none!important}
+.commentFollow[data-active="1"],.commentFollow[data-pending="1"]{background:transparent!important;color:#fff!important;border-color:rgba(255,255,255,.5)!important}
+.commentPostActions{position:relative;min-height:48px;padding:2px 10px 7px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:center;gap:2px}
+.commentPostActions>button,.commentPostActions>span{
+  width:100%!important;height:40px!important;min-width:0!important;min-height:40px!important;padding:0!important;border:0!important;border-radius:0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;background:transparent!important;color:#e9e9e9!important;box-shadow:none!important;font-style:normal!important;
+}
+.commentPostActions svg{width:23px!important;height:23px!important;fill:currentColor!important;stroke:none!important}
+.commentPostActions small,.commentPostActions .reactionMetric>em{margin:0!important;color:#969ba1!important;font-size:10px!important;font-style:normal!important;font-weight:700!important}
+.commentPostActions .viewerPrimaryReaction,.commentPostActions .reactionMetric{width:auto!important;height:40px!important;display:flex!important;align-items:center!important;gap:5px!important}
+.commentPostActions .reactionMetric>b{width:25px!important;height:25px!important;display:grid!important;place-items:center!important;background:transparent!important;color:#fff!important}
+.commentPostActions .viewerReactionHeart{width:23px!important;height:23px!important;fill:currentColor!important}
+.commentPostActions>button.on{color:#fff!important}
+.commentSort{height:42px;padding:0 14px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:stretch;gap:22px;background:#050505}
+.commentSort button{position:relative;min-width:0!important;min-height:40px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#777d84!important;font-size:12px!important;font-weight:800!important;box-shadow:none!important}
+.commentSort button.active{color:#fff!important}
+.commentSort button.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;border-radius:2px;background:#fff}
+.clipCommentsDrawer>.clist,.reelViewer .viewerCommentsPanel>.clist,.commentFocusScroll{
+  width:100%!important;height:auto!important;max-height:none!important;min-height:0!important;padding:0!important;overflow-y:auto!important;overscroll-behavior:contain!important;scrollbar-width:thin;background:#050505!important;
+}
+.clipCommentsDrawer .clist:before{content:none!important;display:none!important}
+.commentThread{border-bottom:1px solid rgba(255,255,255,.085)}
+.clipCommentsDrawer .commentRow,.viewerCommentsPanel .commentRow{position:relative!important;min-height:72px!important;margin:0!important;padding:10px 14px!important;padding-inline-start:calc(14px + min(var(--reply-depth),3)*18px)!important;border:0!important;border-radius:0!important;background:#050505!important;display:grid!important;grid-template-columns:40px minmax(0,1fr)!important;gap:10px!important;color:#fff!important;cursor:pointer!important;outline:none!important}
+.commentRow.reply{border-top:1px solid rgba(255,255,255,.045)!important}
+.clipCommentsDrawer .commentRow.reply,.viewerCommentsPanel .commentRow.reply{margin-inline-start:0!important;border-inline-start:0!important}
+.clipCommentsDrawer .commentRow.reply:before,.viewerCommentsPanel .commentRow.reply:before{content:none!important;display:none!important}
+.commentRow:focus-visible{background:#101010!important;box-shadow:inset 3px 0 #fff!important}
+.clipCommentsDrawer .commentRow>.commentAvatar,.viewerCommentsPanel .commentRow>.commentAvatar{width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;padding:0!important;border:1px solid rgba(255,255,255,.24)!important;border-radius:50%!important;background:#161616!important;color:#fff!important;display:grid!important;place-items:center!important;overflow:hidden!important;font-size:10px!important;font-weight:900!important;box-shadow:none!important}
+.commentRow>.commentAvatar img{width:100%;height:100%;object-fit:cover}
+.commentBody{min-width:0;display:grid;align-content:start;gap:3px}
+.commentBody>header{display:flex;align-items:baseline;gap:5px;min-width:0}
+.commentBody>header>b{max-width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:900}
+.commentBody>header>small{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#7f858c;font-size:10px}
+.commentBody>.replyContext{color:#7f858c;font-size:9px}
+.commentBody>p{margin:0;color:#efefef;font-size:13px;line-height:1.38;white-space:pre-wrap;overflow-wrap:anywhere}
+.commentActions{min-height:24px;display:flex;align-items:center;gap:17px;color:#858b91}
+.commentActions>button,.commentActions>.commentManage button{min-width:0!important;min-height:24px!important;padding:0!important;border:0!important;background:transparent!important;color:#8b9197!important;font-size:10px!important;font-weight:700!important;box-shadow:none!important}
+.commentActions>[data-comment-love]{margin-inline-start:auto!important;display:flex!important;align-items:center!important;gap:3px!important;font-size:18px!important;color:#dfe2e4!important}
+.commentActions>[data-comment-love] small{font-size:9px;color:#8b9197}
+.commentSignals{color:#858b91;font-size:9px;white-space:nowrap}
+.commentManage{display:flex!important;gap:8px!important;margin:0!important}
+.commentLoading,.clipCommentsDrawer>.clist>p,.viewerCommentsPanel>.clist>p{margin:28px 16px;color:#8e9399;text-align:center;font-size:12px}
+.commentComposer{min-height:58px;margin:0!important;padding:7px 10px calc(7px + env(safe-area-inset-bottom))!important;border-top:1px solid rgba(255,255,255,.12)!important;background:#050505!important;display:grid!important;grid-template-columns:minmax(0,1fr) 30px 38px!important;align-items:center!important;gap:5px!important}
+.clipCommentsDrawer>.commentComposer,.viewerCommentsPanel>.commentComposer{width:100%!important;height:auto!important;grid-template-columns:minmax(0,1fr) 30px 38px!important}
+.commentComposer input{height:42px!important;min-height:42px!important;padding:0 14px!important;border:1px solid rgba(255,255,255,.15)!important;border-radius:23px!important;background:#141414!important;color:#fff!important;font-size:15px!important;outline:none!important}
+.commentComposer input:focus{border-color:rgba(255,255,255,.45)!important}
+.commentComposer .cancelReply,.commentComposer .commentSend{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;padding:0!important;border:0!important;border-radius:50%!important;background:transparent!important;color:#fff!important;display:grid!important;place-items:center!important;box-shadow:none!important}
+.commentComposer .commentSend{background:#fff!important;color:#050505!important;font-size:16px!important}
+.commentFocusView{position:absolute;z-index:18;inset:0 0 58px;background:#050505;display:grid;grid-template-rows:48px minmax(0,1fr)}
+.commentFocusView>header{padding:0 12px;border-bottom:1px solid rgba(255,255,255,.12);display:grid;grid-template-columns:40px 1fr 40px;align-items:center;text-align:center;background:#050505}
+.commentFocusView>header button{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;padding:0!important;border:0!important;background:transparent!important;color:#fff!important;font-size:23px!important;box-shadow:none!important}
+.commentFocusView>header b{font-size:14px}
+
+/* Immersive feed: media becomes a contained preview, conversation owns the remaining height. */
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded{display:flex!important;flex-direction:column!important;background:#000!important}
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen{
+  position:relative!important;inset:auto!important;flex:0 0 34%!important;width:100%!important;height:34%!important;min-height:210px!important;background:#000!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen>.media,
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen>.studioMedia,
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen>.demoClipFallback,
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen .studioAsset{object-fit:contain!important;min-height:0!important;background:#000!important}
+.clipStage.commentsOpen .clipMetaOverlay{display:none!important}
+.clipStage.commentsOpen .clipQuickActions{inset:auto 10px 10px auto!important;width:44px!important;height:44px!important;display:block!important}
+.clipStage.commentsOpen .clipQuickActions>*{display:none!important}
+.clipStage.commentsOpen .clipQuickActions>.clipMusicDisc{display:grid!important;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;margin:0!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:50%!important;background:rgba(0,0,0,.3)!important;color:#fff!important}
+.clipStage.commentsOpen .clipPlayState{display:grid!important;opacity:1!important;visibility:visible!important;pointer-events:auto!important}
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipCommentsDrawer{
+  position:relative!important;inset:auto!important;flex:1 1 auto!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0!important;border-radius:18px 18px 0 0!important;
+  display:grid!important;grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+}
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.reactionBar,
+.presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.actions{z-index:90!important}
+.commentsModeActive .pulsePosts.feedReels{overflow:hidden!important}
+
+/* Card presentation keeps the same ratio and gives the drawer a useful, scrollable height. */
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipStage{height:min(34dvh,310px)!important;min-height:210px!important;background:#000!important}
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipStage>.media,
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipStage>.studioMedia,
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipStage .studioAsset{object-fit:contain!important}
+.presentation-cards .pulsePosts.feedReels .clipCard.commentsExpanded>.clipCommentsDrawer{
+  position:relative!important;height:min(62dvh,610px)!important;max-height:none!important;margin:0!important;display:grid!important;grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+}
+
+/* Full-screen viewer uses the same split and interaction geometry. */
+.reelViewer.viewerCommentsOpen .viewerStage{
+  position:absolute!important;z-index:2!important;inset:0 0 auto 0!important;width:100%!important;height:34dvh!important;min-height:210px!important;background:#000!important;
+}
+.reelViewer.viewerCommentsOpen .viewerStage>video,.reelViewer.viewerCommentsOpen .viewerStage>img{width:100%!important;height:100%!important;object-fit:contain!important;background:#000!important}
+.reelViewer.viewerCommentsOpen .viewerStage>.viewerCreatorOverlay{display:none!important}
+.reelViewer.viewerCommentsOpen .reelsReferenceHeader{opacity:1!important;visibility:visible!important;pointer-events:none!important}
+.reelViewer.viewerCommentsOpen .viewerActionRail{
+  z-index:29!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;inset:calc(34dvh - 54px) 10px auto auto!important;width:44px!important;height:44px!important;display:block!important;transform:none!important;
+}
+.reelViewer.viewerCommentsOpen .viewerActionRail>*{display:none!important}
+.reelViewer.viewerCommentsOpen .viewerActionRail>.clipAudioAction{display:grid!important;pointer-events:auto!important;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;grid-template-rows:1fr!important;border:1px solid rgba(255,255,255,.35)!important;border-radius:50%!important;background:rgba(0,0,0,.3)!important}
+.reelViewer.viewerCommentsOpen .viewerPlayState{z-index:28!important}
+.reelViewer .viewerCommentsPanel{
+  position:absolute!important;z-index:32!important;left:0!important;right:0!important;top:34dvh!important;bottom:0!important;width:100%!important;height:auto!important;max-height:none!important;padding:0!important;border-radius:20px 20px 0 0!important;
+  display:grid!important;grid-template-rows:auto auto auto auto minmax(0,1fr) auto!important;
+}
+.reelViewer .viewerCommentsPanel>.commentSurfacePost>.reactionBar{z-index:50!important}
+
+@media(max-height:680px){
+  .presentation-immersive .pulsePosts.feedReels>.clipCard.commentsExpanded>.clipStage.commentsOpen{flex-basis:31%!important;height:31%!important;min-height:170px!important}
+  .reelViewer.viewerCommentsOpen .viewerStage{height:31dvh!important;min-height:170px!important}
+  .reelViewer.viewerCommentsOpen .viewerActionRail{top:calc(31dvh - 50px)!important}
+  .reelViewer .viewerCommentsPanel{top:31dvh!important}
+  .commentPostCreator{min-height:54px;padding-top:5px;padding-bottom:3px}
+  .commentPostIdentity>i{width:36px;height:36px}
+  .commentPostActions{min-height:42px;padding-bottom:3px}
+}
+
+/* ---------------------------------------------------------------- Reels/comments coherence pass
+   The feed and the viewer show the same complete source frame. Wide clips therefore letterbox on a
+   portrait phone instead of silently losing their left and right edges. */
+.clipsScreen.feed-reels .pulsePosts.feedReels .clipStage>.media,
+.clipsScreen.feed-reels .pulsePosts.feedReels .clipStage>.studioMedia,
+.clipsScreen.feed-reels .pulsePosts.feedReels .clipStage>.demoClipFallback,
+.clipsScreen.feed-reels .pulsePosts.feedReels .clipStage .studioAsset,
+.clipsScreen.feed-reels .pulsePosts.feedReels .clipStage[data-video-aspect] video.media{
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#000!important;
+}
+body .mediaViewer.reelViewer.media-fit-fill .viewerStage>video,
+body .mediaViewer.reelViewer.media-fit-fill .viewerStage>img,
+body .mediaViewer.reelViewer.media-fit-fit .viewerStage>video,
+body .mediaViewer.reelViewer.media-fit-fit .viewerStage>img{
+  object-fit:contain!important;
+  object-position:center center!important;
+  background:#000!important;
+}
+
+/* While the conversation is open, the vertical engagement rail is replaced by media-only controls.
+   The deliberately long selectors win over the normal mobile rail rules without affecting other reels. */
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipStage.commentsOpen .clipQuickActions{
+  inset:auto 10px 10px auto!important;
+  width:42px!important;
+  height:42px!important;
+  min-height:42px!important;
+  display:block!important;
+  transform:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipStage.commentsOpen .clipQuickActions>*{
+  display:none!important;
+}
+.phoneScreen:has(.clipsScreen.feed-reels) .pulsePosts.feedReels .clipStage.commentsOpen .clipQuickActions>.clipMusicDisc{
+  display:grid!important;
+  width:42px!important;
+  height:42px!important;
+  min-width:42px!important;
+  min-height:42px!important;
+  margin:0!important;
+  grid-template-rows:1fr!important;
+  border:1px solid rgba(255,255,255,.34)!important;
+  border-radius:50%!important;
+  background:rgba(0,0,0,.2)!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+}
+body .reelViewer.viewerCommentsOpen .viewerActionRail>*{display:none!important}
+body .reelViewer.viewerCommentsOpen .viewerActionRail>.clipAudioAction{
+  display:grid!important;
+  grid-template-rows:1fr!important;
+  background:rgba(0,0,0,.2)!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+}
+
+/* No hidden plate or blur remains behind full-screen reactions. */
+body .reelViewer .viewerActionRail>button,
+body .reelViewer .viewerActionRail :is(.viewerPrimaryReaction,.reactionMetric,.reactionMetric>b,.viewerSolidIcon){
+  background:transparent!important;
+  background-image:none!important;
+  border-color:transparent!important;
+  box-shadow:none!important;
+  backdrop-filter:none!important;
+  -webkit-backdrop-filter:none!important;
+  filter:none!important;
+}
+
+/* A compact, predictable three-line comment: identity, message, then five server-backed actions. */
+.clipCommentsDrawer .commentRow,.viewerCommentsPanel .commentRow{
+  min-height:76px!important;
+  padding:7px 12px!important;
+  padding-inline-start:calc(12px + min(var(--reply-depth),3)*16px)!important;
+  grid-template-columns:36px minmax(0,1fr)!important;
+  gap:8px!important;
+}
+.clipCommentsDrawer .commentRow>.commentAvatar,.viewerCommentsPanel .commentRow>.commentAvatar{
+  width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
+}
+.commentBody{gap:2px!important}
+.commentBody>header{height:15px!important;min-height:15px!important;gap:4px!important;white-space:nowrap!important}
+.commentBody>header>b{max-width:42%!important;font-size:11px!important;line-height:15px!important}
+.commentBody>header>.commentHandle,.commentBody>header>time{
+  min-width:0!important;overflow:hidden!important;text-overflow:ellipsis!important;color:#888e94!important;font-size:9px!important;line-height:15px!important;font-style:normal!important;
+}
+.commentBody>header>time{flex:0 0 auto!important}
+.commentBody>header>.commentManage{display:none!important}
+.commentFocusView .commentBody>header>.commentManage{display:flex!important;margin-inline-start:auto!important}
+.commentBody>p{
+  min-height:18px!important;max-height:36px!important;margin:0!important;overflow:hidden!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;
+  color:#f1f1f1!important;font-size:12px!important;line-height:18px!important;
+}
+.commentBody>p .replyContext{color:#858b91!important;font-size:10px!important}
+.commentActions{
+  min-height:25px!important;height:25px!important;width:100%!important;margin:0!important;display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;align-items:center!important;gap:0!important;
+}
+.commentActions>button,.commentActions>.commentViews{
+  width:100%!important;height:25px!important;min-width:0!important;min-height:25px!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#858b91!important;
+  display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:3px!important;box-shadow:none!important;backdrop-filter:none!important;
+}
+.commentActions>button.on{color:#f4f4f4!important}
+.commentActions i{width:17px!important;height:17px!important;display:grid!important;place-items:center!important;font-style:normal!important}
+.commentActions svg{width:16px!important;height:16px!important;fill:currentColor!important;stroke:none!important}
+.commentActions small{margin:0!important;color:inherit!important;font-size:9px!important;font-weight:700!important;line-height:1!important}
+.commentActions.withdrawn{display:flex!important;justify-content:flex-end!important}
+.commentActions.withdrawn>.commentViews{width:auto!important}
+
+@media(max-height:760px){
+  .commentPostCreator{min-height:50px!important;padding:4px 12px 2px!important}
+  .commentPostIdentity>i{width:34px!important;height:34px!important}
+  .commentPostActions{min-height:38px!important;height:38px!important;padding:0 8px 2px!important}
+  .commentPostActions>button,.commentPostActions>span{height:36px!important;min-height:36px!important}
+  .commentSort{height:36px!important}
+  .commentSort button{min-height:34px!important}
+  .commentComposer{min-height:52px!important;padding-top:4px!important}
+}
+
+/* The creator portrait is a clean photo, without the old violet ring or black padded disc. */
+.reelViewer .viewerActionRail>.viewerRailAvatar>i{
+  padding:0!important;border:1.5px solid rgba(255,255,255,.88)!important;
+  background:transparent!important;background-image:none!important;box-shadow:none!important;
+}
+
+/* Comment cards: warmer surface, compact identity, six-line disclosure. */
+.clipCommentsDrawer,.reelViewer .viewerCommentsPanel{
+  background:#0b0d10!important;
+}
+.commentPanelBar,.commentSort,.commentComposer,.commentFocusView,.commentFocusView>header{
+  background:#0b0d10!important;
+}
+.clipCommentsDrawer>.clist,.reelViewer .viewerCommentsPanel>.clist,.commentFocusScroll{
+  padding:7px 8px 10px!important;
+  background:#0b0d10!important;
+}
+.commentThread{
+  margin:0 0 7px!important;
+  border:0!important;
+}
+.clipCommentsDrawer .commentRow,.viewerCommentsPanel .commentRow{
+  min-height:88px!important;
+  margin:0 0 5px!important;
+  padding:10px!important;
+  padding-inline-start:calc(10px + min(var(--reply-depth),3)*14px)!important;
+  grid-template-columns:48px minmax(0,1fr)!important;
+  gap:10px!important;
+  border:1px solid rgba(255,255,255,.08)!important;
+  border-radius:14px!important;
+  background:linear-gradient(145deg,#171a1f,#111318)!important;
+  box-shadow:0 4px 12px rgba(0,0,0,.18)!important;
+}
+.clipCommentsDrawer .commentRow.reply,.viewerCommentsPanel .commentRow.reply{
+  margin-top:5px!important;
+  background:linear-gradient(145deg,#14171b,#0f1114)!important;
+  border-color:rgba(255,255,255,.065)!important;
+}
+.clipCommentsDrawer .commentRow>.commentAvatar,.viewerCommentsPanel .commentRow>.commentAvatar{
+  width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  border:1px solid rgba(255,255,255,.35)!important;
+}
+.commentBody{gap:2px!important}
+.commentBody>header{
+  height:18px!important;min-height:18px!important;gap:4px!important;
+}
+.commentBody>header>b{
+  max-width:45%!important;color:#fff!important;font-size:12px!important;line-height:18px!important;font-weight:900!important;
+}
+.commentBody>header>.commentHandle{
+  flex:0 1 auto!important;margin:0!important;color:#92979d!important;font-size:10px!important;line-height:18px!important;
+}
+.commentBody>header>time{
+  margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
+}
+.commentBody>p{
+  min-height:18px!important;max-height:108px!important;-webkit-line-clamp:6!important;
+  color:#f1f2f3!important;font-size:12px!important;line-height:18px!important;
+}
+.commentRow.commentExpanded .commentBody>p{
+  max-height:none!important;display:block!important;-webkit-line-clamp:unset!important;
+}
+.commentExpandToggle{
+  justify-self:start!important;width:auto!important;min-width:0!important;min-height:20px!important;margin:0!important;padding:0!important;
+  border:0!important;background:transparent!important;color:#adb2b8!important;font-size:10px!important;font-weight:800!important;line-height:20px!important;box-shadow:none!important;
+}
+.commentExpandToggle[hidden]{display:none!important}
+.commentActions{margin-top:1px!important}
+
+/* Full-screen comments form one compact Post detail page. */
+.reelViewer .viewerTopTitle{
+  justify-self:start;align-self:center;color:#fff;font-size:18px;font-weight:900;
+}
+.reelViewer.viewerCommentsOpen .viewerTopBar{
+  z-index:40!important;inset:0 0 auto!important;width:100%!important;height:64px!important;min-height:64px!important;
+  padding:8px 12px!important;display:grid!important;grid-template-columns:48px minmax(0,1fr) 48px!important;
+  align-items:center!important;background:#050607!important;pointer-events:none!important;
+}
+.reelViewer.viewerCommentsOpen .viewerTopBar>*{pointer-events:auto!important}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel{
+  z-index:32!important;inset:64px 0 0!important;width:100%!important;height:auto!important;
+  padding:0!important;border:0!important;border-radius:0!important;background:#050607!important;
+  background-image:none!important;box-shadow:none!important;backdrop-filter:none!important;
+  display:grid!important;grid-template-rows:auto 40px minmax(0,1fr) auto!important;overflow:hidden!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.drawerHandle,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.commentPanelBar{
+  position:absolute!important;width:1px!important;height:1px!important;min-height:0!important;
+  padding:0!important;margin:-1px!important;clip-path:inset(50%)!important;overflow:hidden!important;
+}
+.reelViewer.viewerCommentsOpen .commentSurfacePost{
+  min-height:0!important;margin:0!important;padding:0!important;border:0!important;
+  border-bottom:1px solid rgba(255,255,255,.1)!important;border-radius:0!important;
+  background:#050607!important;box-shadow:none!important;
+}
+.reelViewer.viewerCommentsOpen .commentPostCreator{
+  min-height:54px!important;padding:8px 14px 4px!important;
+}
+.reelViewer.viewerCommentsOpen .commentPostIdentity>i{
+  width:42px!important;height:42px!important;min-width:42px!important;border-radius:50%!important;
+}
+.reelViewer.viewerCommentsOpen .commentPostIdentity b{font-size:14px!important;color:#fff!important}
+.reelViewer.viewerCommentsOpen .commentPostIdentity small{font-size:11px!important}
+.reelViewer.viewerCommentsOpen .viewerCommentCaption{
+  margin:0 14px 8px!important;color:#f1f1f1!important;font-size:13px!important;line-height:1.35!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:2!important;overflow:hidden!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentMediaSlot{
+  position:relative!important;width:calc(100% - 24px)!important;height:clamp(210px,30dvh,330px)!important;
+  margin:4px 12px 0!important;border:1px solid rgba(255,255,255,.12)!important;
+  border-radius:14px!important;overflow:hidden!important;background:#000!important;
+}
+body .reelViewer.viewerCommentsOpen .viewerCommentsPanel .viewerStage{
+  position:relative!important;z-index:1!important;inset:auto!important;width:100%!important;height:100%!important;
+  min-height:0!important;background:#000!important;
+}
+body .reelViewer.viewerCommentsOpen .viewerCommentsPanel .viewerStage>video,
+body .reelViewer.viewerCommentsOpen .viewerCommentsPanel .viewerStage>img{
+  position:absolute!important;inset:0!important;width:100%!important;height:100%!important;
+  object-fit:contain!important;background:#000!important;
+}
+.reelViewer.viewerCommentsOpen .viewerStage>.clipAudioAction{
+  position:absolute!important;z-index:8!important;right:8px!important;bottom:8px!important;
+  width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important;
+  margin:0!important;padding:0!important;border:1px solid rgba(255,255,255,.34)!important;
+  border-radius:50%!important;display:grid!important;place-items:center!important;
+  background:rgba(0,0,0,.28)!important;color:#fff!important;box-shadow:none!important;
+}
+.reelViewer.viewerCommentsOpen .viewerStage>.clipAudioAction small{display:none!important}
+.reelViewer.viewerCommentsOpen .viewerActionRail{display:none!important}
+.reelViewer.viewerCommentsOpen .viewerCommentPostMeta{
+  min-height:28px;padding:5px 14px 2px;display:flex;align-items:center;gap:6px;
+  color:#8d9298;font-size:11px;border-bottom:1px solid rgba(255,255,255,.06);
+}
+.reelViewer.viewerCommentsOpen .viewerCommentPostMeta>*+*:before{content:"·";margin-inline-end:6px}
+.reelViewer.viewerCommentsOpen .commentPostActions{
+  min-height:46px!important;height:46px!important;padding:1px 10px 4px!important;border-bottom:0!important;
+}
+.reelViewer.viewerCommentsOpen .commentPostActions>button,
+.reelViewer.viewerCommentsOpen .commentPostActions>span{height:40px!important;min-height:40px!important}
+.reelViewer.viewerCommentsOpen .commentSort{
+  height:40px!important;min-height:40px!important;padding:0 14px!important;
+  background:#050607!important;gap:28px!important;
+}
+.reelViewer.viewerCommentsOpen .commentSort button{min-height:38px!important;font-size:12px!important}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{
+  padding:0!important;background:#050607!important;
+}
+.reelViewer.viewerCommentsOpen .commentThread{margin:0!important;border:0!important}
+.reelViewer.viewerCommentsOpen .commentRow{
+  min-height:72px!important;margin:0!important;padding:8px 14px!important;
+  padding-inline-start:calc(14px + min(var(--reply-depth),3)*12px)!important;
+  grid-template-columns:42px minmax(0,1fr)!important;gap:10px!important;
+  border:0!important;border-bottom:1px solid rgba(255,255,255,.09)!important;border-radius:0!important;
+  background:transparent!important;box-shadow:none!important;
+}
+.reelViewer.viewerCommentsOpen .commentRow.reply{background:#080a0d!important}
+.reelViewer.viewerCommentsOpen .commentRow>.commentAvatar{
+  width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;
+  aspect-ratio:1!important;border-radius:50%!important;overflow:hidden!important;align-self:start!important;
+}
+.reelViewer.viewerCommentsOpen .commentRow>.commentAvatar img{
+  width:100%!important;height:100%!important;object-fit:cover!important;border-radius:50%!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>header{
+  height:18px!important;min-height:18px!important;gap:4px!important;display:flex!important;align-items:baseline!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>header>b{
+  flex:0 1 auto!important;max-width:40%!important;color:#fff!important;font-size:12px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>header>.commentHandle{
+  flex:0 1 auto!important;max-width:38%!important;margin:0!important;color:#8f949a!important;
+  font-size:10px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>header>time{
+  flex:0 0 auto!important;margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>p{
+  min-height:18px!important;max-height:108px!important;margin:0!important;color:#f0f1f2!important;
+  font-size:12px!important;line-height:18px!important;display:-webkit-box!important;
+  -webkit-box-orient:vertical!important;-webkit-line-clamp:6!important;overflow:hidden!important;
+}
+.reelViewer.viewerCommentsOpen .commentBody>p .replyContext{display:inline!important;margin-inline-end:4px!important}
+.reelViewer.viewerCommentsOpen .commentRow.commentExpanded .commentBody>p{
+  max-height:none!important;display:block!important;-webkit-line-clamp:unset!important;
+}
+.reelViewer.viewerCommentsOpen .commentActions{
+  min-height:24px!important;height:24px!important;margin-top:2px!important;
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+}
+.reelViewer.viewerCommentsOpen .commentActions>button,
+.reelViewer.viewerCommentsOpen .commentActions>.commentViews{
+  height:24px!important;min-height:24px!important;justify-content:flex-start!important;
+}
+.reelViewer.viewerCommentsOpen .commentComposer{
+  min-height:58px!important;padding:7px 10px calc(7px + env(safe-area-inset-bottom))!important;background:#090a0c!important;
+}
+@media(max-height:760px){
+  .reelViewer.viewerCommentsOpen .viewerCommentMediaSlot{height:clamp(180px,27dvh,240px)!important}
+  .reelViewer.viewerCommentsOpen .commentPostCreator{min-height:48px!important;padding-top:4px!important}
+  .reelViewer.viewerCommentsOpen .viewerCommentCaption{margin-bottom:5px!important}
+}
+
+/* One compact conversation surface in feed and full-screen. The back control floats inside the
+   creator row, so a title/header never consumes a separate band of vertical space. */
+.clipCommentsDrawer:not(.hidden),
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel{
+  position:relative!important;
+  display:grid!important;
+  grid-template-rows:auto auto minmax(0,1fr) auto!important;
+  background:#0b0d10!important;
+  overflow:hidden!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel{
+  position:absolute!important;inset:34dvh 0 0!important;
+  width:100%!important;height:auto!important;
+  border-radius:18px 18px 0 0!important;
+}
+.reelViewer.viewerCommentsOpen .viewerTopBar{display:none!important}
+.commentBack{
+  position:absolute!important;z-index:55!important;inset-block-start:9px!important;inset-inline-start:8px!important;
+  width:28px!important;height:28px!important;min-width:28px!important;min-height:28px!important;
+  margin:0!important;padding:0!important;border:0!important;border-radius:50%!important;
+  display:grid!important;place-items:center!important;background:transparent!important;color:rgba(255,255,255,.82)!important;
+  font-size:19px!important;font-weight:500!important;line-height:1!important;box-shadow:none!important;
+}
+.commentBack:focus-visible{outline:1px solid rgba(255,255,255,.65)!important;outline-offset:1px!important}
+.commentSurfacePost{position:relative!important;background:#0b0d10!important}
+.commentSurfacePost .commentPostCreator{
+  min-height:50px!important;padding:4px 10px 2px!important;padding-inline-start:52px!important;
+}
+.commentSurfacePost .commentPostIdentity>i{
+  width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
+}
+.commentSurfacePost .commentPostActions{min-height:40px!important;height:40px!important;padding:0 8px 2px!important}
+.commentSurfacePost .commentPostActions>button,.commentSurfacePost .commentPostActions>span{height:36px!important;min-height:36px!important}
+.clipCommentsDrawer .commentSort,.reelViewer.viewerCommentsOpen .commentSort{height:36px!important;min-height:36px!important;padding:0 12px!important}
+.clipCommentsDrawer .commentSort button,.reelViewer.viewerCommentsOpen .commentSort button{min-height:34px!important}
+
+/* Older full-screen detail rules were more specific than the shared surface and could still
+   flatten cards or place Back over the creator avatar. Keep both entry points pixel-equivalent. */
+.reelViewer.viewerCommentsOpen .commentSurfacePost .commentPostCreator{
+  min-height:50px!important;padding:4px 10px 2px!important;padding-inline-start:52px!important;
+}
+.reelViewer.viewerCommentsOpen .commentSurfacePost .commentPostIdentity>i{
+  width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
+}
+.reelViewer.viewerCommentsOpen .commentSurfacePost .commentPostActions{
+  min-height:40px!important;height:40px!important;padding:0 8px 2px!important;
+}
+.reelViewer.viewerCommentsOpen .commentSurfacePost .commentPostActions>button,
+.reelViewer.viewerCommentsOpen .commentSurfacePost .commentPostActions>span{
+  height:36px!important;min-height:36px!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.commentSort{
+  height:36px!important;min-height:36px!important;padding:0 12px!important;gap:22px!important;background:#0b0d10!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.commentSort button{min-height:34px!important}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{
+  padding:7px 8px 10px!important;background:#0b0d10!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentThread{
+  margin:0 0 7px!important;border:0!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow{
+  min-height:88px!important;margin:0 0 5px!important;padding:10px!important;
+  padding-inline-start:calc(10px + min(var(--reply-depth),3)*14px)!important;
+  grid-template-columns:48px minmax(0,1fr)!important;gap:10px!important;
+  border:1px solid rgba(255,255,255,.08)!important;border-radius:14px!important;
+  background:linear-gradient(145deg,#171a1f,#111318)!important;
+  box-shadow:0 4px 12px rgba(0,0,0,.18)!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow.reply{
+  margin-top:5px!important;background:linear-gradient(145deg,#14171b,#0f1114)!important;
+  border-color:rgba(255,255,255,.065)!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow>.commentAvatar{
+  width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+  border:1px solid rgba(255,255,255,.35)!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>header{
+  height:18px!important;min-height:18px!important;gap:4px!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>header>b{
+  max-width:45%!important;color:#fff!important;font-size:12px!important;line-height:18px!important;font-weight:900!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>header>.commentHandle{
+  flex:0 1 auto!important;margin:0!important;color:#92979d!important;font-size:10px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>header>time{
+  margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>p{
+  min-height:18px!important;max-height:108px!important;-webkit-line-clamp:6!important;
+  color:#f1f2f3!important;font-size:12px!important;line-height:18px!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow.commentExpanded .commentBody>p{
+  max-height:none!important;display:block!important;-webkit-line-clamp:unset!important;
+}
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.commentComposer{background:#0b0d10!important}
+
+/* Replies are disclosed one direct child at a time. Every revealed reply owns the control for its
+   own children, keeping a deep conversation readable without printing the full tree at once. */
+.commentRepliesToggle{
+  width:auto!important;min-width:0!important;min-height:25px!important;margin:0 10px 6px 68px!important;padding:0!important;
+  border:0!important;border-radius:0!important;background:transparent!important;color:#aeb4ba!important;
+  font-size:10px!important;font-weight:800!important;line-height:25px!important;box-shadow:none!important;
+}
+[dir="rtl"] .commentRepliesToggle{margin:0 68px 6px 10px!important}
+.commentReplyChildren[hidden],.commentReplyBranch[hidden]{display:none!important}
+.commentReplyChildren{margin-inline-start:14px!important;border-inline-start:1px solid rgba(255,255,255,.12)!important}
+.commentReplyChildren .commentRow{padding-inline-start:10px!important}
+.commentReplyBranch>.commentRepliesToggle{margin-inline-start:54px!important}
+.commentReplyBranch>.commentReplyChildren{margin-inline-start:12px!important}
+
+/* Compact comments pass: media remains tappable without a large play plate, audio stays secondary,
+   and every comment uses one undistorted author avatar inside a narrower reading card. */
+.clipStage.commentsOpen .clipPlayState,
+.reelViewer.viewerCommentsOpen .viewerPlayState{display:none!important}
+.clipStage.commentsOpen .clipQuickActions{
+  inset:auto 8px 8px auto!important;width:32px!important;height:32px!important;
+}
+.clipStage.commentsOpen .clipQuickActions>.clipMusicDisc,
+body .reelViewer.viewerCommentsOpen .viewerActionRail>.clipAudioAction{
+  width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important;
+  border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;
+  background:rgba(0,0,0,.12)!important;box-shadow:none!important;opacity:.78!important;
+}
+.clipStage.commentsOpen .clipQuickActions>.clipMusicDisc .viewerSolidSvg,
+body .reelViewer.viewerCommentsOpen .viewerActionRail>.clipAudioAction .viewerSolidSvg{
+  width:17px!important;height:17px!important;
+}
+body .reelViewer.viewerCommentsOpen .viewerActionRail{
+  inset:calc(34dvh - 38px) 8px auto auto!important;width:32px!important;height:32px!important;
+  display:block!important;opacity:1!important;visibility:visible!important;pointer-events:none!important;
+}
+.clipCommentsDrawer>.clist,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{
+  padding:7px 14px 10px!important;
+}
+.clipCommentsDrawer .commentRow,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow{
+  min-height:76px!important;margin:0 0 6px!important;padding:8px 10px!important;
+  padding-inline-start:calc(10px + min(var(--reply-depth),3)*12px)!important;
+  grid-template-columns:40px minmax(0,1fr)!important;gap:9px!important;
+  border-radius:12px!important;
+}
+.clipCommentsDrawer .commentRow>.commentAvatar,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow>.commentAvatar{
+  width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;
+  aspect-ratio:1/1!important;padding:0!important;border-radius:50%!important;overflow:hidden!important;
+  align-self:start!important;background:#121418!important;
+}
+.clipCommentsDrawer .commentRow>.commentAvatar>img,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow>.commentAvatar>img{
+  display:block!important;width:100%!important;height:100%!important;aspect-ratio:1/1!important;
+  object-fit:cover!important;object-position:center!important;border-radius:50%!important;
+}
+
+/* The rail deliberately ignores empty-space taps, but its reaction popover is interactive.
+   Restore hit-testing on the tray itself so choosing an emoji in fullscreen cannot fall through
+   to the caption or video underneath. */
+.reelViewer .viewerActionRail>.viewerReactionTray,
+.reelViewer .viewerActionRail>.viewerReactionTray button{
+  pointer-events:auto!important;
+}
+
+/* Facebook-style reaction picker: one compact row attached to the primary heart. The feed
+   version sits immediately to the heart's left; fullscreen uses the same row inside its rail. */
+.reactionBar.reactionPopoverAnchored,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored{
+  width:min(306px,calc(100vw - 78px))!important;
+  min-width:0!important;max-width:none!important;height:52px!important;max-height:52px!important;
+  padding:5px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:28px!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;gap:2px!important;
+  background:rgba(11,13,16,.96)!important;box-shadow:0 8px 28px rgba(0,0,0,.58)!important;
+  backdrop-filter:blur(16px)!important;-webkit-backdrop-filter:blur(16px)!important;
+  overflow:visible!important;z-index:80!important;transform:none!important;
+}
+.reactionBar.reactionPopoverAnchored{
+  position:absolute!important;inset:auto auto auto auto!important;
+  left:var(--reaction-popover-left,8px)!important;top:var(--reaction-popover-top,8px)!important;
+}
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored{
+  position:absolute!important;left:auto!important;right:calc(100% + 6px)!important;
+  top:var(--reaction-popover-top,0px)!important;bottom:auto!important;
+}
+.reactionBar.reactionPopoverAnchored button,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button{
+  width:34px!important;min-width:34px!important;height:40px!important;min-height:40px!important;padding:0!important;
+  border:0!important;border-radius:20px!important;background:transparent!important;color:#fff!important;
+  display:grid!important;place-items:center!important;box-shadow:none!important;transform:none!important;
+}
+.reactionBar.reactionPopoverAnchored button span,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button span{
+  font-size:21px!important;line-height:1!important;transition:transform .12s ease!important;
+}
+.reactionBar.reactionPopoverAnchored button small,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button small{display:none!important}
+.reactionBar.reactionPopoverAnchored button:is(:hover,:focus-visible) span,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button:is(:hover,:focus-visible) span{
+  transform:translateY(-5px) scale(1.28)!important;
+}
+.reactionBar.reactionPopoverAnchored button.on,
+.reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button.on{
+  background:rgba(255,255,255,.13)!important;
+}
+@media(max-width:360px){
+  .reactionBar.reactionPopoverAnchored,
+  .reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored{
+    width:min(282px,calc(100vw - 70px))!important;padding-inline:3px!important;gap:1px!important;
+  }
+  .reactionBar.reactionPopoverAnchored button,
+  .reelViewer .viewerActionRail>.viewerReactionTray.reactionPopoverAnchored button{
+    width:32px!important;min-width:32px!important;
+  }
+}
+

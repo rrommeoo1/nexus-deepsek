@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "contractVersion": "1.0.0",
+  "owner": "A15",
+  "dataPolicy": {
+    "classification": "TELEMETRY_REDACTED",
+    "attributeMode": "ALLOWLIST_ONLY",
+    "baggageAllowed": false,
+    "rawIdentifiersAllowed": false,
+    "criticalAuditIndependentFromHighCardinality": true
+  },
+  "traceContract": {
+    "format": "W3C_TRACE_CONTEXT",
+    "carrier": "traceparent_only",
+    "processPath": ["api", "outbox", "worker", "dependency"],
+    "requiredSpanKinds": ["SERVER", "PRODUCER", "CONSUMER", "CLIENT"]
+  },
+  "sloIds": [
+    "api_non_media_availability",
+    "api_non_media_write_latency",
+    "feed_first_page_latency",
+    "action_final_supernova_latency",
+    "action_executed_success_latency",
+    "chain_index_lag"
+  ],
+  "alertPolicy": {
+    "requiredFields": ["sloId", "owner", "severity", "burnRate", "longWindowMinutes", "shortWindowMinutes", "runbook"],
+    "severities": ["PAGE", "TICKET"],
+    "owner": "A15",
+    "runbookRoot": "services/observability/runbooks"
+  },
+  "dashboards": [
+    {
+      "id": "nexus_reliability_v1",
+      "panels": ["slo_compliance", "error_budget_remaining", "burn_rate", "latency_p95", "trace_failures"],
+      "variables": ["environment", "version", "region", "device_class"]
+    },
+    {
+      "id": "nexus_unit_cost_v1",
+      "panels": ["cost_by_domain", "cost_per_action", "gas_per_action", "media_per_minute", "provider_per_call", "human_agent_per_minute", "test_traffic_isolation"],
+      "variables": ["environment", "traffic_class", "workload", "provider_class"]
+    }
+  ],
+  "costTagContract": {
+    "domains": ["GAS", "MEDIA", "PROVIDER", "HUMAN_AGENT", "TEST_TRAFFIC"],
+    "requiredTags": ["domain", "unit", "environment", "trafficClass", "workload", "providerClass", "economicEffect"],
+    "systemTestEconomicEffect": false
+  },
+  "rollback": {
+    "switch": "high_cardinality_enabled",
+    "disabledEffect": "drop_high_cardinality_attributes",
+    "preservedSignals": ["critical_audit", "slo_aggregates", "cost_aggregates"]
+  }
+}

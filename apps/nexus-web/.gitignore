@@ -1,0 +1,6 @@
+# Secrets — never commit
+.env
+
+# Local data
+data/
+.certs/

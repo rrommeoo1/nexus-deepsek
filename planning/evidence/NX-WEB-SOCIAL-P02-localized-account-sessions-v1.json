@@ -1,0 +1,45 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-ACCOUNT-SESSIONS-057",
+  "checkpoint_date": "2026-09-05",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_locales": ["ro", "en", "pl", "ar"],
+    "latest_request_and_persona_bound": true,
+    "session_shape_fail_closed": true,
+    "exactly_one_current_session": true,
+    "maximum_rendered_sessions": 100,
+    "explicit_revoke_idempotency": true,
+    "single_flight_and_detached_guard": true,
+    "raw_errors_rendered": false,
+    "external_share_enabled": false,
+    "cache_generation": "20260905-p1locale21"
+  },
+  "verification": {
+    "syntax_and_catalogue": "PASS",
+    "focused_audit": { "passed": 2, "failed": 0 },
+    "product_full_tests": { "passed": 220, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "independent_bounded_checker": { "status": "DEFERRED_CAPACITY_LIMIT", "final_independent_pass_claimed": false }
+  },
+  "resolved_findings": [
+    { "severity": "HIGH", "finding": "Concurrent session refreshes could render stale state.", "resolution": "Latest-request, attached-host and selected-persona gates reject stale completion." },
+    { "severity": "HIGH", "finding": "Malformed session metadata was trusted.", "resolution": "IDs, labels, persona, timestamps and current marker now fail closed." },
+    { "severity": "HIGH", "finding": "Password revoke lacked explicit stable replay and detached-screen controls.", "resolution": "Stable key, single-flight and stale completion guards added." }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "0658a516afdd12bc51b1b9039411a48256e4607616fe80c8179008f0556665ab",
+    "apps/nexus-web/public/app.js": "7641cdbb8b9a6107d55d6439e51ebf010e54f7cb2bce0cdb199bfad802f01a5a",
+    "apps/nexus-web/public/index.html": "feb2ab18a0aca1c1917a2063e703db907ea6f2c39c546a488aace6fbe7c2d354",
+    "apps/nexus-web/test/audit.test.js": "189649db1bab6083ce38e83f9871fb60a84d7475b13efa194aa78e7f8d15ca62",
+    "planning/NX-WEB-SOCIAL-localized-account-sessions-v1.md": "393ddee0f4e1dbc6f61c7911bc4ed336a36f425b09518b2e43af5a44f2cb0287",
+    "planning/NX-WEB-SOCIAL-completion-gap-matrix.md": "c156d91271289a2ba7ff6f5a8944bff52f5c00a68443547aa51857ec620072f2",
+    "planning/checkpoints/NX-WEB-SOCIAL-P01.md": "12a772d9aa868ad0f8060e7d27dd2684fe5f148f84b144a787f10bde5db3aff3"
+  },
+  "capacity": { "band": "YELLOW", "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY" },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_NATIVE_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-E2EE-DEVICE-RECOVERY-058"
+}

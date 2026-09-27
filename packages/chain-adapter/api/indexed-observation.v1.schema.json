@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.nexus.invalid/events/chain.indexed-observation.v1.schema.json",
+  "title": "chain.indexed-observation.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["network", "contractAddress", "originalTxHash", "sourceTxHash", "sourceKind", "eventIndex", "shard", "blockNonce", "blockHash", "hyperblockNonce", "hyperblockHash", "contentHash", "authenticityProofHash", "canonicality", "finality", "payload"],
+  "properties": {
+    "network": {"enum": ["localnet", "devnet", "testnet", "mainnet"]},
+    "contractAddress": {"type": "string", "pattern": "^erd1[a-z0-9]{58}$"},
+    "originalTxHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sourceTxHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "sourceKind": {"enum": ["TRANSACTION", "SMART_CONTRACT_RESULT"]},
+    "eventIndex": {"type": "integer", "minimum": 0},
+    "shard": {"type": "integer", "minimum": 0},
+    "blockNonce": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,77})$"},
+    "blockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "hyperblockNonce": {"type": "string", "pattern": "^(0|[1-9][0-9]{0,77})$"},
+    "hyperblockHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "contentHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "authenticityProofHash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "canonicality": {"const": "FINALIZED_CANONICAL"},
+    "finality": {"const": "HYPERBLOCK_FINAL"},
+    "payload": {"type": "object"}
+  },
+  "x-persistence-model": "VerifiedChainObservation",
+  "x-authenticity-policy": "complete_lineage_content_hash_and_proof_must_verify_before_persistence_and_after_reload"
+}

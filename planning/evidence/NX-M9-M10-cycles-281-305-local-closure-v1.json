@@ -1,0 +1,30 @@
+{
+  "schema": "NEXUS_M9_M10_LOCAL_EVIDENCE_V1",
+  "date": "2026-09-10",
+  "cycle_range": "281-305",
+  "milestones": {
+    "M9": { "gate": "PASS_LOCAL", "acceptance": "12/12", "focused_tests": "6/6" },
+    "M10": { "gate": "PASS_LOCAL", "acceptance": "16/16", "focused_tests": "6/6" }
+  },
+  "full_regression": { "passed": 360, "failed": 0 },
+  "controls": {
+    "dating_persona_isolation": true,
+    "dating_no_scalar_desirability_score": true,
+    "prive_fail_closed": true,
+    "watch_rights_before_discovery": true,
+    "live_public_ingest_fail_closed": true,
+    "kids_child_token_not_adult_session": true,
+    "kids_autoplay_ads_wallet_messages_public_upload": false,
+    "kids_activity_action_ledger": false
+  },
+  "external_network": false,
+  "real_funds": false,
+  "incremental_cost": 0,
+  "external_gates_open": [
+    "dating_age_identity_liveness_and_legal_review",
+    "vod_storage_transcoding_cdn_rights_and_moderation",
+    "managed_live_ingest_sfu_failover_and_moderation",
+    "kids_separate_production_tenant_country_pack_dpia_and_parental_authority",
+    "independent_security_privacy_child_safety_and_accessibility_review"
+  ]
+}

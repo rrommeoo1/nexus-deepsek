@@ -1,0 +1,94 @@
+{
+  "packet": "NX-WEB-SOCIAL-P02-LOCALIZE-MESSAGES-SHELL-048",
+  "checkpoint_date": "2026-09-04",
+  "environment": "local_deterministic_no_external_network",
+  "incremental_cost": 0,
+  "external_network": false,
+  "real_funds": false,
+  "implementation": {
+    "supported_interface_locales": ["ro", "en", "pl", "ar"],
+    "surfaces": ["messages_shell", "inbox_boxes", "persona_filters", "loading_error_empty_states", "conversation_summaries"],
+    "catalog_parity_enforced": true,
+    "stale_response_protection": {
+      "latest_request_gate": true,
+      "box_snapshot": true,
+      "persona_filter_snapshot": true,
+      "connected_host_required": true
+    },
+    "malformed_response_policy": {
+      "conversation_array_guarded": true,
+      "positive_safe_integer_id_required": true,
+      "participants_guarded": true,
+      "unread_count_normalized": true,
+      "raw_backend_error_rendered": false
+    },
+    "privacy_matrix_server_authoritative": true,
+    "e2ee_protocol_changed": false,
+    "external_share_enabled": false,
+    "cache_generation": {
+      "app_and_locale": "20260904-p1locale12",
+      "styles": "20260904-p1locale6"
+    }
+  },
+  "verification": {
+    "syntax_check": "PASS",
+    "focused_core_audit_operational_tests": { "passed": 115, "failed": 0 },
+    "product_full_tests": { "passed": 211, "failed": 0 },
+    "release_check": { "gate": "PASS", "test_files": 27, "synthetic_actors": 1000, "synthetic_issues": 0 },
+    "production_probe": { "health": "PASS", "insecure_api_denied": true, "isolated_data": true },
+    "browser_runtime": {
+      "status": "NOT_EXECUTED_IN_THIS_PACKET",
+      "real_device_locale_or_layout_claim": "NONE"
+    },
+    "independent_bounded_checker": {
+      "status": "DEFERRED_CAPACITY_LIMIT",
+      "findings": { "critical": null, "high": null, "medium": null },
+      "final_independent_pass_claimed": false
+    }
+  },
+  "resolved_findings": [
+    {
+      "severity": "HIGH",
+      "finding": "An older inbox request could resolve after a section or persona-filter change and overwrite the current list.",
+      "resolution": "A latest-request token, immutable selection snapshots and a connected-host check reject stale results."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Conversation collections, participants and identifiers were trusted directly.",
+      "resolution": "Malformed collections fail to a safe empty state and only positive safe-integer conversation IDs become interactive."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Raw API failure text could be exposed by the inbox shell.",
+      "resolution": "The shell renders stable localized recovery copy only."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Inbox controls lacked complete tab semantics and announced load state.",
+      "resolution": "Tab roles, selected state, group labels and an aria-live list region were added."
+    },
+    {
+      "severity": "MEDIUM",
+      "finding": "Inbox and conversation-summary copy mixed Romanian and English literals.",
+      "resolution": "The bounded surface uses the parity-checked RO/EN/PL/AR catalogue."
+    }
+  ],
+  "artifact_sha256": {
+    "apps/nexus-web/public/interface-locale.js": "aa6ad0a86e6ffa2f76a37cc04147ba2a88843339d73b24b689e395bc3c5ae50f",
+    "apps/nexus-web/public/app.js": "ed63b7a51fca018cb542ea8b6c6ceea3030e064e23acf07714a7e91887879132",
+    "apps/nexus-web/public/index.html": "7ad9807696dab1c10273356328502de61a786c0a22b52975ef13e70ae6f2a305",
+    "apps/nexus-web/test/audit.test.js": "811800d7b0522dc8ec19a211a946c2906df994f836ec3aca21d0df9114d2ef84",
+    "apps/nexus-web/public/latest-request.js": "8437610408d4fee4f875266bfcf4226750537d1b1a5f10954d751304cc4f4260",
+    "apps/nexus-web/lib/api.js": "14b6f35cfbcc211fe431ad6a964eee2b65ad9b3445f3a346da101a7670e66ab1",
+    "apps/nexus-web/lib/repo.js": "25a73bcb519fe399007ea6e320949234c36409905fabaaef7a4b015a47671716",
+    "planning/NX-WEB-SOCIAL-localized-messages-shell-v1.md": "de0feddbe8f0265a52ef43afe52dfb0a3525cadea72eb992bad4e0b0e2130d5e"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "observed_evidence": "The separate worker remains usage-limited; no independent verdict is inferred.",
+    "execution_policy": "PRIMARY_AGENT_ONE_BOUNDED_PACKET_ONLY"
+  },
+  "local_gate": "PASS_LOCAL_PRIMARY_REVIEW_PENDING",
+  "public_release_gate": "BLOCKED_INDEPENDENT_REVIEW_TRUSTED_HTTPS_REAL_DEVICE_AND_EXTERNAL_PRODUCTION_GATES",
+  "next_packet": "NX-WEB-SOCIAL-P02-LOCALIZE-CONVERSATION-CREATOR-049"
+}

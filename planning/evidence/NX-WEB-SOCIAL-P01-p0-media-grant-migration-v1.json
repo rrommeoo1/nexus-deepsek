@@ -1,0 +1,62 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-MEDIA-GRANT-MIGRATION-005",
+  "checkpoint_date": "2026-08-28",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "migration": {
+    "from_primary_key": ["media_id", "user_id", "purpose"],
+    "to_primary_key": ["media_id", "user_id", "purpose", "actor_persona"],
+    "demo_rows_before": 25,
+    "demo_rows_after": 25,
+    "foreign_key_check": [],
+    "integrity_check": "ok",
+    "invalid_legacy_persona_policy": "normalize_to_social",
+    "unsupported_schema_policy": "fail_closed",
+    "restart_idempotent": true
+  },
+  "rollback": {
+    "crash_before_commit_simulated": true,
+    "legacy_table_restored": true,
+    "legacy_rows_restored": true,
+    "recovery_copy": "apps/nexus-web/data/nexus.sqlite.pre-media-grant-v2-20260828.bak",
+    "recovery_copy_sha256": "ad2ff03e88b2a4e98c296cde715bddb6a6451327ae085722dd334ee360926386"
+  },
+  "verification": {
+    "migration_test": { "passed": 1, "failed": 0 },
+    "full_tests": { "passed": 107, "failed": 0 },
+    "synthetic_actor_lab": {
+      "seed": 2026082805,
+      "actors": 1000,
+      "posts": 1000,
+      "reactions": 1000,
+      "comments": 1000,
+      "replies": 334,
+      "organic_leak": false,
+      "sigil_leak": false,
+      "gate": "PASS"
+    },
+    "runtime": {
+      "pid": 24352,
+      "http_3000": 200,
+      "https_3443": 200,
+      "phone_https": 200,
+      "listen_address": "0.0.0.0"
+    }
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "c8e019468edc923d0d84b995a25b9a254e5069af6fd19e4954a3f9a05fc611de",
+    "apps/nexus-web/test/db-migrations.test.js": "106e98712de20c96dd80fc92d595200cf7312951a5bf8fd262c38da8e05a3564"
+  },
+  "capacity": {
+    "band": "YELLOW",
+    "implementation": "main_agent_only",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  },
+  "next_packet": "NX-WEB-SOCIAL-P01-P0-SPECIALIZED-AUTH-IDEMPOTENCY-006"
+}

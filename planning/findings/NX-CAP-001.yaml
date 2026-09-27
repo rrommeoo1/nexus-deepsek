@@ -1,0 +1,44 @@
+schema_version: 1
+task_id: NX-CAP-001
+updated_at: 2026-08-02
+
+findings:
+  - finding_id: CAP-F-002
+    title: Timeline requires observed throughput
+    severity: LOW
+    owner: A00
+    due_at: 2026-08-30
+    status: OPEN_MITIGATING
+    disposition: mitigate
+    risk_acceptance:
+      accepted: false
+      required: false
+      rationale: No external timeline commitment is permitted before measurement.
+    treatment: Measure accepted packets and lead time for four weeks, then reforecast.
+    release_impact: none_for_capacity_bootstrap
+
+  - finding_id: CAP-F-003
+    title: Test mix target has a small empirical sample
+    severity: LOW
+    owner: C10
+    due_at: 2026-08-30
+    status: OPEN_MITIGATING
+    disposition: mitigate
+    risk_acceptance:
+      accepted: false
+      required: false
+      rationale: The target is provisional and not used as a release claim.
+    treatment: Recompute the normalized mix weekly and recalibrate after four weeks.
+    release_impact: none_for_capacity_bootstrap
+
+closed_findings:
+  - finding_id: CAP-F-001
+    closed_by: A10_review_and_owner_remediation
+  - finding_id: C10-CAP-001
+    closed_by: C10_retest
+  - finding_id: C10-CAP-002
+    closed_by: C10_retest
+  - finding_id: C10-CAP-003
+    closed_by: C10_retest
+  - finding_id: C10-CAP-004
+    closed_by: C10_retest

@@ -1,0 +1,149 @@
+schema_version: 1
+task_id: NX-SOCIAL-P01
+review_id: NX-SOCIAL-P01-C01-C04-C06-C08-20260809-FINALREVIEW03
+reviewer_roles: [C01, C04, C06, C08]
+risk_class: T1
+review_mode: independent_bounded_read_only
+independence: independent_of_owner_A32
+decision: PASS
+gate_effect: T1_REVIEW_SATISFIED
+task_status_recommendation: eligible_for_done
+incremental_cost:
+  amount: 0
+  currency: EUR
+
+owner_evidence:
+  path: planning/evidence/NX-SOCIAL-P01-validation.json
+  sha256: 781d140367c763b0eec30897549e980ad188c4c8937660d85ab46895e83b6f81
+  run_id: NX-SOCIAL-P01-OWNER-FINAL03
+  executor_role: A32
+  status: PASS
+  assertions: 116
+  scenario_assertions: 34
+  deterministic_repetitions: 3
+  artifact_count: 22
+  current_artifact_hash_mismatches: 0
+  review_subject_sha256: 36a0e916c5cfa4eb96b956dfb165a137cd9191b8759cd9f16d83c37e1b8db612
+  subject_recomputed_and_matched: true
+
+independent_verifier:
+  script: planning/validate-social.ps1
+  run_id: NX-SOCIAL-P01-C01-FINALREVIEW03
+  executor_role: C01
+  status: PASS
+  assertions: 116
+  scenario_assertions: 34
+  deterministic_repetitions: 3
+  review_subject_sha256: 36a0e916c5cfa4eb96b956dfb165a137cd9191b8759cd9f16d83c37e1b8db612
+  output_sha256: ea8236df2acdeef6b9670354d81f1a0a543981adce4385dc8730ee56cf294c46
+  source_boundary_findings: 0
+  credential_name_matches: 0
+  network_operations: 0
+  economic_operations: 0
+  external_provider_operations: 0
+  incremental_cost:
+    amount: 0
+    currency: EUR
+
+adversarial_retest:
+  status: PASS
+  subject_code_modified: false
+  probe_mode: local_in_memory_typescript
+  probe_output_sha256: 9b4c04be29dd03d911ae465710297771acc86b1f6fb692ed189ab4ac93cee8e9
+  results:
+    execution_authorization_exact_shape_signature_and_policy_version: PASS
+    target_payload_action_actor_session_capability_nonce_domain_and_authorization_substitution: DENIED
+    authorization_then_media_purge: CLIP_NOT_PLAYABLE
+    profile_mutation_during_async_prepare: CLIP_EXECUTION_STATE_CONFLICT
+    block_audience_device_policy_mutation_during_async_prepare: CLIP_EXECUTION_STATE_CONFLICT
+    media_state_or_generation_mutation_during_async_prepare: CLIP_EXECUTION_STATE_CONFLICT
+    events_after_denied_post_prepare_paths: 0
+    retained_token_after_policy_or_profile_denial: PREPARED_ACTION_INVALID
+    capability_after_denied_post_prepare_path_used_actions: 0
+    capability_after_denied_post_prepare_path_nonce: 0
+    injected_commit_failure: DENIED
+    retained_token_after_failed_commit: PREPARED_ACTION_INVALID
+    capability_after_failed_commit_used_actions: 0
+    capability_after_failed_commit_nonce: 0
+    same_authorization_retry_after_failed_commit: COMMITTED
+    concurrent_same_authorization_outcomes: [COMMITTED, CLIP_EXECUTION_STATE_CONFLICT]
+    concurrent_action_events: 1
+    concurrent_capability_used_actions: 1
+    concurrent_capability_nonce: 1
+    concurrent_losing_and_winning_tokens_after_resolution: PREPARED_ACTION_INVALID
+    successful_authorization_reuse: LIKE_AUTHORIZATION_REPLAY
+    prepared_action_forgery_and_second_commit: PREPARED_ACTION_INVALID
+    chain_capability_nonce_and_session_signature_regression: PASS
+    finalized_canonical_authentic_event_terminal_and_reconciliation: PASS
+    telemetry_transactions: 0
+    network_provider_economic_cost_effects: 0
+
+control_assessment:
+  artifact_and_subject_binding:
+    status: PASS
+    evidence: all twenty-two current hashes match owner evidence and independently recompute the declared subject
+  exact_execution_authorization:
+    status: PASS
+    evidence: signed exact-shape authorization binds decision clip actor generation session capability nonce payload chain domain expiry clip state media generation and engagement policy version
+  envelope_and_authorization_substitution:
+    status: PASS
+    evidence: target payload action actor session capability nonce domain signature and authorization substitutions fail before preparation and leave authorization and chain state unchanged
+  policy_profile_media_cas:
+    status: PASS
+    evidence: current policy profile clip and media versions and values are checked before and after async prepare; block audience device profile purge and media-generation mutations fail before commit
+  prepared_action_lifecycle:
+    status: PASS
+    evidence: genuine prepared tokens are WeakSet-authenticated one-time values and every post-prepare noncommit path aborts them so retained references fail PREPARED_ACTION_INVALID
+  failed_and_concurrent_attempt_atomicity:
+    status: PASS
+    evidence: failed commit leaves authorization and capability reusable, while concurrent same-authorization execution creates exactly one action and invalidates all losing prepared tokens
+  replay_and_happy_commit:
+    status: PASS
+    evidence: a successful authorization is consumed once with the exact action and later reuse fails LIKE_AUTHORIZATION_REPLAY
+  publication_purge_labels_and_surfaces:
+    status: PASS
+    evidence: publication moderation rights age promotion readiness purge organic exclusion Kids exclusion and no-telemetry controls remain fail closed
+  chain_action_and_reducer:
+    status: PASS
+    evidence: capability nonce session signature nonpayability canonical finality authenticity terminal execution exact object commitment and reconciliation remain PASS
+  effect_boundary:
+    status: PASS
+    evidence: no network provider economic mainnet telemetry or incremental-cost operation occurred
+
+findings:
+  - id: C04-SOCIAL-P01-001
+    severity: HIGH
+    status: CLOSED
+    title: Like eligibility is atomically closed over exact action policy state and prepared-action lifecycle
+    closure_evidence:
+      - LikeExecutionAuthorization now includes a signed policyVersion in addition to all exact action actor capability nonce payload domain expiry clip and media bindings.
+      - ClipEngagementPolicyBoundary is queried before and after asynchronous preparation and exact version blocked audienceAllowed and deviceActive values must match the signed decision.
+      - Profile media policy and purge mutations during prepare return CLIP_EXECUTION_STATE_CONFLICT and emit zero actions.
+      - LikeActionRecorder exposes abortPreparedAction and SocialClipRegistry invokes it on every exception after preparation.
+      - NexusActionsSandbox removes aborted tokens from its WeakSet; retained references after denial or failed commit return PREPARED_ACTION_INVALID without consuming capability state.
+      - A failed commit does not consume decision or authorization and the same valid authorization can be retried successfully.
+      - Concurrent same-authorization execution creates exactly one action; the losing execution is rejected and both resolved tokens are unusable afterward.
+      - Successful authorization remains one-time and exact target plus reducer terminal and reconciliation regressions pass.
+
+accepted_controls:
+  - All current subject artifacts and owner evidence are cryptographically bound.
+  - Exact signed publication eligibility engagement execution and purge inputs fail closed on substitution and malformed runtime types.
+  - Creator viewer policy profile media and device state are independently checked at the relevant phases.
+  - Purge immediately denies playback preparation and stale execution while state generations close async races.
+  - Synthetic and paid packet content remains organic-ineligible and Kids-ineligible and telemetry creates no transaction.
+  - Exactly one authorized LIKE reaches authentic finalized terminal reducer state with reconciliation PASS.
+
+claims_excluded:
+  - real_media
+  - production_cdn
+  - external_moderation
+  - real_users
+  - real_metrics
+  - production_ranking
+  - production_kids_surface
+  - mainnet_transaction
+  - formal_security_or_cryptographic_audit
+
+residual_scope_notes:
+  - This PASS covers only the deterministic synthetic Clip publication engagement purge and chain-reducer composition.
+  - Real media CDN moderation users metrics ranking Kids mainnet production persistence and formal audit remain external gates.

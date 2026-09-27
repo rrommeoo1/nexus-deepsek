@@ -1,0 +1,74 @@
+schema_version: 1
+task_id: NX-WEB-AUTH-P01
+observed_at: 2026-08-23T11:00:00+02:00
+classification: LOCAL_LEGACY_CUSTODY_QUARANTINE
+status: DELETED_AND_APP_STORAGE_SANITIZED_OWNER_APPROVED
+
+pre_deletion_inventory:
+  encrypted_keystore_records: 6
+  distinct_local_users: 6
+  distinct_wallet_addresses: 6
+  addresses_disclosed_in_evidence: 0
+  mnemonic_or_private_key_reads: 0
+
+post_deletion_inventory:
+  encrypted_keystore_records: 0
+  deletion_verified: true
+  mnemonic_or_private_key_reads: 0
+
+runtime_controls:
+  signup_creates_server_keystore: false
+  server_seed_import: RETIRED_410
+  server_seed_export: RETIRED_410
+  account_api_returns_keystore: false
+  local_device_wallet_real_funding: PROHIBITED
+  external_xportal_wallet_required_for_funding: true
+
+read_only_asset_screen:
+  checked_addresses: 6
+  addresses_with_detected_positive_multiversx_assets: 0
+  unknown_results: 0
+  mainnet_transactions: 0
+  real_fund_movements: 0
+
+residual_risk: >-
+  Closed for the current Nexus-managed SQLite generation: after explicit owner
+  approval, exactly six encrypted keystore rows were deleted atomically, the database
+  was checkpointed and rebuilt with secure_delete plus VACUUM while quiesced, and the
+  pre-sanitization WAL/SHM sidecars were removed. Hardware-level SSD recovery and
+  external backups outside the Nexus workspace are explicitly not claimed.
+
+destructive_action:
+  executed: true
+  owner_approval_observed_at: "2026-08-23T13:08:00.000Z"
+  owner_instruction: delete_the_six_rows_and_close_the_packet
+  bounded_target_if_approved: exactly the six rows currently present in the local wallets table
+  implementation: apps/nexus-web/scripts/purge-legacy-wallets.mjs
+  approval_id_required: NX-WEB-AUTH-P01-LEGACY-PURGE-20260823
+  dry_run_result: EXACTLY_6_ROWS_ZERO_MUTATIONS
+  controls:
+    - original deletion captured row IDs inside BEGIN IMMEDIATE
+    - original commit required deleted=6 and remaining=0
+    - quiesced secure storage rebuild completed after logical deletion
+    - durable non-secret six-row sanitization receipt retained
+    - all destructive purge and sanitizer execution paths permanently retired
+  result:
+    before: 6
+    deleted: 6
+    remaining: 0
+    post_delete_dry_run_count: 0
+
+storage_sanitization:
+  evidence: planning/evidence/NX-WEB-AUTH-P01-legacy-storage-sanitization.yaml
+  operation_id: NX-WEB-AUTH-P01-LEGACY-STORAGE-SANITIZE-20260823
+  integrity_check: ok
+  wal_and_shm_absent_at_quiesced_completion: true
+  durable_receipt_verified_after_restart: true
+  destructive_harness_retired: true
+
+effects:
+  incremental_cost_eur: 0
+  provider_writes: 0
+  broadcast_transactions: 0
+  real_funds: 0
+  local_legacy_keystore_rows_deleted: 6
