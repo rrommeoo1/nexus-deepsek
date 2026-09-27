@@ -6,7 +6,18 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CONFIGURED_DATA_DIR = String(process.env.NEXUS_DATA_DIR ?? "").trim();
-export const DATA_DIR = CONFIGURED_DATA_DIR ? resolve(CONFIGURED_DATA_DIR) : join(HERE, "..", "data");
+const BASE_DATA_DIR = CONFIGURED_DATA_DIR ? resolve(CONFIGURED_DATA_DIR) : join(HERE, "..", "data");
+
+export function resolveDataDirectory(baseDir, env = process.env) {
+  const preview = env.NODE_ENV === "production"
+    && String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() === "preview";
+  const deploymentIdentity = String(env.VERCEL_GIT_COMMIT_SHA ?? env.VERCEL_URL ?? "").trim();
+  if (!preview || !deploymentIdentity) return resolve(baseDir);
+  const deploymentKey = createHash("sha256").update(deploymentIdentity).digest("hex").slice(0, 16);
+  return join(resolve(baseDir), `preview-${deploymentKey}`);
+}
+
+export const DATA_DIR = resolveDataDirectory(BASE_DATA_DIR);
 export const DB_PATH = join(DATA_DIR, "nexus.sqlite");
 
 const SCHEMA = `

@@ -1,9 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign as ed25519Sign } from "node:crypto";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { UserSecretKey, Message, MessageComputer, Address } from "@multiversx/sdk-core";
-import { openDb } from "../lib/db.js";
+import { openDb, resolveDataDirectory } from "../lib/db.js";
 import { createRepo, payloadHash, normalizePersona, PERSONAS } from "../lib/repo.js";
 import { hashPassword, verifyPassword, signToken, verifyToken, hashToken, sha256Hex } from "../lib/security.js";
 import { inspectMedia, mediaDeliveryPolicy, storeMedia, readMedia } from "../lib/media.js";
@@ -48,6 +48,17 @@ test("interface locale honors explicit account choice, device fallback and RTL w
   assert.deepEqual(applyInterfaceLocale(documentRef, "ar"), { locale: "ar", direction: "rtl" });
   assert.equal(documentRef.documentElement.lang, "ar");
   assert.equal(documentRef.documentElement.dir, "rtl");
+});
+
+test("Vercel preview data is isolated per deployment while local and production paths stay stable", () => {
+  const base = resolve("preview-data-test");
+  const preview = { NODE_ENV: "production", NEXUS_DEPLOYMENT_MODE: "preview", VERCEL_GIT_COMMIT_SHA: "a".repeat(40) };
+  const first = resolveDataDirectory(base, preview);
+  const second = resolveDataDirectory(base, { ...preview, VERCEL_GIT_COMMIT_SHA: "b".repeat(40) });
+  assert.notEqual(first, second);
+  assert.equal(first.startsWith(join(base, "preview-")), true);
+  assert.equal(resolveDataDirectory(base, { NODE_ENV: "production", NEXUS_DEPLOYMENT_MODE: "production", VERCEL_GIT_COMMIT_SHA: "a".repeat(40) }), base);
+  assert.equal(resolveDataDirectory(base, { NODE_ENV: "development", NEXUS_DEPLOYMENT_MODE: "preview" }), base);
 });
 
 test("latest request gate prevents stale tab responses from replacing the active view", () => {
