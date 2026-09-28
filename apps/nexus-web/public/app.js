@@ -19,7 +19,7 @@ import {
   handleCallState, handleCallSignal, restoreCurrentCalls, endCurrentCall,
 } from "./call-client.js?v=20260906-p2decrypt1";
 import { initializeModalAccessibility as initializeSharedModalAccessibility } from "./modal-accessibility.js";
-import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260928-comments24";
+import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260928-name1";
 import {
   FEED_MODE_CONTRACT, nextFeedMode, feedModeSwitchMarkup,
   feedHeaderActionsMarkup, feedDrawerEndMarkup, bindFeedModeRail, clipCreatorAvatarMarkup,
@@ -29,9 +29,9 @@ import {
 } from "./feed-surface.js?v=20260926-source2";
 import { createFeedHub } from "./feed-hub.js?v=20260923-wave14i";
 import { NAV_LABEL_KEYS, navFaceMarkup, navIconMarkup } from "./nav-marks.js?v=20260923-wave14i";
-import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260928-comments24";
+import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260928-name1";
 import { expandableCaptionMarkup, bindExpandableCaptions } from "./reel-caption.js?v=20260923-wave14i";
-import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260928-comments24";
+import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260928-name1";
 import { bindCaptionTranslations, captionTranslationButtonMarkup } from "./caption-translation.js?v=20260925-dynamic1";
 import { createLatestRequestGate, createSingleFlightGate } from "./latest-request.js?v=20260904-p1locale3";
 import { planDraftEvictions, localDraftId } from "./draft-policy.js?v=20260912-camera3";
@@ -42,12 +42,12 @@ import { renderDatingWorkspace, renderPriveGate } from "./dating-module.js?v=202
 import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
-import { createPostDetailSurface } from "./post-detail.js?v=20260928-comments24";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-comments24";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-comments24";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-comments24";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-comments24";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20260928-comments24";
+import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-name1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-name1";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-name1";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-name1";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20260928-name1";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";

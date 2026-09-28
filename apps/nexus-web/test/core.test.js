@@ -1812,6 +1812,20 @@ test("API: Social feed is profile-bound, Breaking is truthful and engagement has
     assert.equal(wrongActivePersona.status, 409);
     assert.equal(wrongActivePersona.body.code, "ACTIVE_PERSONA_REQUIRED");
 
+    // A profile rename is an identity write, not a temporary DOM label. A completely new session must
+    // read the same Social name, and the account fallback must no longer resurrect the signup name.
+    const renamed = await call("PATCH", "/api/persona/social", { name: "Adam Walker" });
+    assert.equal(renamed.status, 200);
+    assert.equal(renamed.body.persona.name, "Adam Walker");
+    assert.equal(renamed.body.user.display_name, "Adam Walker");
+    assert.equal(repo.getUserById(bob.id).display_name, "Adam Walker");
+    const reconnectSession = issueSession(bob.id, "social");
+    repo.insertSession({ tokenHash: reconnectSession.tokenHash, userId: bob.id, persona: "social", expiresAt: reconnectSession.expiresAt });
+    const reconnected = await callWith(`nexus_session=${reconnectSession.token}`, "GET", "/api/me");
+    assert.equal(reconnected.status, 200);
+    assert.equal(reconnected.body.user.display_name, "Adam Walker");
+    assert.equal(reconnected.body.profiles.find((item) => item.persona === "social").name, "Adam Walker");
+
     const profile = await call("PATCH", "/api/persona/social", { region_code: "PL-MAZ", near_enabled: true, interface_locale: "ro", content_languages: ["ro", "en"], profile_kind: "creator", orbit_status: { mood: "CURIOUS", place: "Warsaw", now: "Synthetic show", fandom: "Test FC", quote: "Synthetic wisdom", expires_hours: 24 } });
     assert.equal(profile.status, 200);
     assert.equal(profile.body.owner_id, bob.id);

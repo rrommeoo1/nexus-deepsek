@@ -459,14 +459,16 @@ export function createRepo(db) {
       const nextTabsOrder = tabsOrder === undefined
         ? cur.tabs_order
         : (Array.isArray(tabsOrder) && tabsOrder.length === 0 ? "" : normaliseTabsOrder(tabsOrder).join(","));
-      this.db.prepare(`
-        UPDATE personas SET name = ?, bio = ?, location = ?, age = ?, birth_date = ?, avatar = ?, cover = ?,
-          cover_focus = ?, cover_mode = ?, tabs_order = ?,
-          orbit_mood = ?, orbit_place = ?, orbit_now = ?, orbit_fandom = ?, orbit_quote = ?, orbit_expires_at = ?, profile_kind = ?, visibility = ?, discoverability = ?,
-          message_policy = ?, interface_locale = ?, content_languages = ?, region_code = ?,
-          near_enabled = ?, private_access_enabled = ?, private_access_price_cents = ?, private_access_month_price_cents = ?, private_access_forever_price_cents = ?, private_access_currency = ?, private_access_duration_days = ?, updated_at = unixepoch()
-        WHERE user_id = ? AND persona = ?
-      `).run(
+      this.db.exec("BEGIN IMMEDIATE");
+      try {
+        this.db.prepare(`
+          UPDATE personas SET name = ?, bio = ?, location = ?, age = ?, birth_date = ?, avatar = ?, cover = ?,
+            cover_focus = ?, cover_mode = ?, tabs_order = ?,
+            orbit_mood = ?, orbit_place = ?, orbit_now = ?, orbit_fandom = ?, orbit_quote = ?, orbit_expires_at = ?, profile_kind = ?, visibility = ?, discoverability = ?,
+            message_policy = ?, interface_locale = ?, content_languages = ?, region_code = ?,
+            near_enabled = ?, private_access_enabled = ?, private_access_price_cents = ?, private_access_month_price_cents = ?, private_access_forever_price_cents = ?, private_access_currency = ?, private_access_duration_days = ?, updated_at = unixepoch()
+          WHERE user_id = ? AND persona = ?
+        `).run(
         name ?? cur.name,
         bio ?? cur.bio,
         location ?? cur.location,
@@ -498,8 +500,19 @@ export function createRepo(db) {
         privateAccess === undefined ? cur.private_access_currency : privateAccess.currency,
         privateAccess === undefined ? cur.private_access_duration_days : privateAccess.durationDays,
         userId,
-        persona,
-      );
+          persona,
+        );
+        // The Social persona is the account's public identity. Keep the account fallback in sync so a
+        // fresh session, an account-only surface or an older post can never resurrect the signup name
+        // after the owner has changed it on the profile. Other personas remain intentionally independent.
+        if (persona === "social" && name !== undefined) {
+          this.db.prepare(`UPDATE users SET display_name = ? WHERE id = ?`).run(name, userId);
+        }
+        this.db.exec("COMMIT");
+      } catch (error) {
+        this.db.exec("ROLLBACK");
+        throw error;
+      }
       return this.getPersona(userId, persona);
     },
 

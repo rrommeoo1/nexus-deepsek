@@ -42,6 +42,6 @@ test("the band, the drawer and the tabs stay inside the screen on every width", 
   // 200 % zoom is another stylesheet concern: nothing the phone layout needs is declared in pixels that
   // would break when the viewport is halved, and the assets are still tagged so a stale app.js cannot be
   // served against a new stylesheet.
-  assert.match(index, /\/app\.js\?v=20260928-comments24/);
+  assert.match(index, /\/app\.js\?v=20260928-name1/);
   assert.match(index, /\/profile-experience\.css\?v=20260923-wave14i/);
 });

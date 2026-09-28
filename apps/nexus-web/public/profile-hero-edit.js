@@ -682,6 +682,11 @@ export function createProfileHeroEditor({ t, toast, api, newMutationKey, getStat
         if ("avatar" in body) profileInState.avatar = body.avatar;
         if ("cover" in body) profileInState.cover = body.cover;
       } else if (savedRow) state.profiles = [...(state?.profiles ?? []), savedRow];
+      // Social owns the account's public display name. Apply the server-confirmed user row now so
+      // account-only fallbacks and the next render cannot flash the old signup identity.
+      if ("name" in body && persona === "social" && result?.user && Number(result.user.id) === Number(state?.user?.id)) {
+        state.user = { ...state.user, ...result.user };
+      }
       if (photoFailed) {
         // The words are saved and the photo is not: the editor stays open with the chosen photo still in
         // it, so pressing the same check again is the entire retry.

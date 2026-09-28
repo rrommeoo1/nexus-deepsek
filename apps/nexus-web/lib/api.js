@@ -3031,6 +3031,8 @@ export async function handleRequest(req, res, ctx) {
       }
     }
     const profileKind = body.profile_kind === undefined ? undefined : sanitizeText(body.profile_kind, 20).toLowerCase();
+    const personaName = body.name === undefined ? undefined : sanitizeText(body.name, 50);
+    if (body.name !== undefined && !personaName) return json(res, 400, { ok: false, error: "profile name required" });
     // The one band choice the profile carries: a cover photo (the default) or the shelf of saved
     // stories. It is not a photo and not a post, so it travels as its own whole-word setting.
     const coverMode = body.cover_mode === undefined ? undefined : sanitizeText(body.cover_mode, 12).toLowerCase();
@@ -3132,7 +3134,7 @@ export async function handleRequest(req, res, ctx) {
       }
     }
     const row = repo.updatePersona(auth.user.id, persona, {
-      name: body.name !== undefined ? sanitizeText(body.name, 50) : undefined,
+      name: personaName,
       bio: body.bio !== undefined ? sanitizeText(body.bio, 300) : undefined,
       location,
       avatar,
@@ -3153,7 +3155,15 @@ export async function handleRequest(req, res, ctx) {
       nearEnabled: body.near_enabled === undefined ? undefined : body.near_enabled === true,
       privateAccess,
     });
-    return json(res, 200, { ok: true, owner_id: auth.user.id, requested_persona: requestedPersona, persona: row });
+    return json(res, 200, {
+      ok: true,
+      owner_id: auth.user.id,
+      requested_persona: requestedPersona,
+      persona: row,
+      // Echo the canonical account identity too. The client can update every fallback immediately,
+      // and a reconnect reads the same value from /api/me instead of the original signup name.
+      user: publicUser(repo.getUserById(auth.user.id)),
+    });
   }
 
   if (method === "POST" && path === "/api/persona/switch") {
