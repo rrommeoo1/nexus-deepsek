@@ -45,8 +45,12 @@ test("Reels integration keeps feed actions but swaps global navigation for a com
   const app = read("app.js");
   const css = read("feed-surface.css");
   assert.match(app, /viewerRailAvatar.+data-creator-profile/);
-  assert.match(app, /viewerReactionSummaryMarkup\(reactions\)/);
-  assert.match(app, /solidViewerIcon\("heart", "viewerReactionHeart"\)/);
+  assert.match(app, /viewerReactionSummaryMarkup\(reactions, post\?\.reactions\?\.viewer_reaction\)/);
+  assert.match(app, /viewerReactionSummaryMarkup\(counts = \{\}, viewerReaction = null\)/);
+  assert.match(app, /selectedKind && selectedKind !== "LIKE"/);
+  assert.match(app, /viewerReactionSummaryMarkup\(counts, viewerReaction\)/);
+  assert.match(app, /viewerReactionSummaryMarkup\(reactions, currentReaction\)/);
+  assert.match(app, /viewerReactionSummaryMarkup\(reactions, item\.reactions\?\.viewer_reaction\)/);
   assert.match(app, /data-viewer-back/);
   assert.match(app, /viewerCommentShortcut.+viewer\.addComment/);
   assert.doesNotMatch(app, /reelsViewerBottomNavMarkup|viewerNavItems/);

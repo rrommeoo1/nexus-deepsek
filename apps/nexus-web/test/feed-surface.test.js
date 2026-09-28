@@ -344,7 +344,8 @@ test("a reel floats the bar while the compact Nexus identity remains visible", (
   assert.match(app, /'<div class="clipCreator clipIdentityPersistent"><button class="creatorStoryTrigger"/);
   assert.match(app, /isOwner \? '' : '<button data-follow="'/);
   assert.match(app, /class="clipMusicDisc" data-clip-sound/);
-  assert.match(app, /const primaryMark = solidViewerIcon\("heart", "viewerReactionHeart"\)/);
+  assert.match(app, /const primaryMark = selectedKind && selectedKind !== "LIKE"/);
+  assert.match(app, /primary\.glyph/);
   assert.match(app, /expandableCaptionMarkup\(captionWithTagsMarkup\(post\.caption\), \{ t, esc \}\)/);
   assert.match(feedSurface, /export function clipCreatorAvatarMarkup\(\{ esc, t, handle, name, avatar \}\)/);
   assert.match(feedSurface, /'<button class="clipRailAvatar" data-creator-story="' \+ esc\(handle\) \+ '" type="button" aria-label="' \+ esc\(t\("post\.openStory"\) \+ " " \+ name\) \+ '"><i>' \+ avatar \+ '<\/i><\/button>'/);
@@ -483,7 +484,7 @@ test("the feed opens immersive on a phone while the optional card presentation r
   // A thread opened inside a card is a panel under the media, not a sheet floating over a screen.
   assert.match(css, /clipCard\.commentsExpanded>\.clipCommentsDrawer\{position:static!important;height:auto!important;max-height:52dvh!important/);
   // The surface ships its own stylesheet, tagged with the wave, the way the profile and the post page do.
-  assert.match(index, /feed-surface\.css\?v=20260927-comments19/);
+  assert.match(index, /feed-surface\.css\?v=20260928-reactions1/);
   assert.match(css, /\.pulsePosts\.feedReels \.clipQuickActions>\.clipRailAvatar\{[\s\S]*margin-bottom:14px!important;/);
   assert.equal(app.includes("./feed-surface.js?v=20260926-source2"), true);
 });

@@ -3517,13 +3517,18 @@ function reactionSummaryMarkup(counts = {}) {
   return '<i class="reactionSummaryGlyphs">' + summary.entries.map((entry) => '<span class="reactionMetric" data-kind="' + entry.kind + '"><b>' + entry.glyph + '</b><em>' + entry.count + '</em></span>').join("") + '</i>';
 }
 
-function viewerReactionSummaryMarkup(counts = {}) {
+function viewerReactionSummaryMarkup(counts = {}, viewerReaction = null) {
   const summary = reactionSummary(counts);
-  const primary = summary.entries[0] || { kind: "LIKE", glyph: REACTION_GLYPHS.LIKE };
+  const selectedKind = REACTION_GLYPHS[viewerReaction] ? viewerReaction : null;
+  const primary = selectedKind
+    ? { kind: selectedKind, glyph: REACTION_GLYPHS[selectedKind] }
+    : { kind: "LIKE", glyph: REACTION_GLYPHS.LIKE };
   const total = Object.values(counts || {}).reduce((sum, value) => sum + Math.max(0, Number(value || 0)), 0);
-  // The compact Reel rail always uses the same solid white heart. The selected nuanced reaction remains
-  // available in the palette and in data-kind, without turning the primary control into a coloured emoji.
-  const primaryMark = solidViewerIcon("heart", "viewerReactionHeart");
+  // An untouched control keeps the crisp white heart used by the action rail. Once the viewer chooses a
+  // reaction, the control mirrors that exact choice everywhere (feed, viewer, profile and post detail).
+  const primaryMark = selectedKind && selectedKind !== "LIKE"
+    ? primary.glyph
+    : solidViewerIcon("heart", "viewerReactionHeart");
   return '<i class="reactionSummaryGlyphs viewerPrimaryReaction"><span class="reactionMetric" data-kind="' + primary.kind + '"><b>' + primaryMark + '</b><em>' + total + '</em></span></i>';
 }
 
@@ -3547,7 +3552,7 @@ function applyReactionSummary(button, counts = {}, viewerReaction) {
   const summary = reactionSummary(counts);
   const icon = button.querySelector("i");
   if (icon) icon.innerHTML = button.dataset.viewerReactions !== undefined || button.dataset.reactionDisplay === "compact"
-    ? viewerReactionSummaryMarkup(counts).replace(/^<i[^>]*>|<\/i>$/g, "")
+    ? viewerReactionSummaryMarkup(counts, viewerReaction).replace(/^<i[^>]*>|<\/i>$/g, "")
     : summary.entries.map((entry) => '<span class="reactionMetric" data-kind="' + entry.kind + '"><b>' + entry.glyph + '</b><em>' + entry.count + '</em></span>').join("");
   button.classList.toggle("distributedReactions", summary.distributed);
   if (viewerReaction !== undefined) button.classList.toggle("on", Boolean(viewerReaction));
@@ -3640,7 +3645,7 @@ function commentPostActionsMarkup(post) {
   const reactions = post?.reactions?.counts || {};
   const repostLabel = t(post?.kind === "text" ? "post.retweet" : "post.repost");
   return '<div class="commentPostActions" aria-label="' + esc(t("post.actions")) + '">'
-    + '<button type="button" data-reaction-toggle="' + id + '" data-reaction-display="compact" class="' + (post?.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("post.openReactions")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions) + '</button>'
+    + '<button type="button" data-reaction-toggle="' + id + '" data-reaction-display="compact" class="' + (post?.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("post.openReactions")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, post?.reactions?.viewer_reaction) + '</button>'
     + '<span aria-label="' + esc(t("comments.title")) + '"><i>' + solidViewerIcon("comment") + '</i><small>' + Number(post?.comment_count || 0) + '</small></span>'
     + '<button type="button" data-repost="' + id + '" class="' + (post?.reposted_by_me ? 'on' : '') + '" aria-label="' + esc(repostLabel) + '"><i>' + solidViewerIcon("repost") + '</i><small>' + Number(post?.reposts || 0) + '</small></button>'
     + '<button type="button" data-save="' + id + '" class="' + (post?.saved_by_me ? 'on' : '') + '" aria-label="' + esc(t("post.save")) + '"><i>' + solidViewerIcon("save") + '</i></button>'
@@ -4181,7 +4186,7 @@ function postCard(post) {
   const clipActions = clipMode ? [
     '<div class="clipQuickActions" aria-label="' + esc(t("post.actions")) + '">',
     clipCreatorAvatarMarkup({ esc, t, handle: authorHandle, name: authorName, avatar: creatorAvatar }),
-    '<button data-reaction-toggle="' + post.id + '" data-reaction-display="compact" type="button" class="' + (post.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("post.openReactions")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions) + '</button>',
+    '<button data-reaction-toggle="' + post.id + '" data-reaction-display="compact" type="button" class="' + (post.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("post.openReactions")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, currentReaction) + '</button>',
     '<button data-comments="' + post.id + '" type="button" aria-label="' + esc(t("post.openComments")) + '"><i class="clipSolidIcon">' + solidViewerIcon("comment") + '</i><small>' + post.comment_count + '</small></button>',
     '<button data-save="' + post.id + '" type="button" class="' + (post.saved_by_me ? "on" : "") + '" aria-label="' + esc(t("post.save")) + '"><i class="clipSolidIcon">' + solidViewerIcon("save") + '</i><small class="railMetricPlaceholder" aria-hidden="true">•</small></button>',
     clipDistributeMarkup({ postId: post.id, repostLabel, repostCount, reposted: post.reposted_by_me === true }),
@@ -4908,7 +4913,7 @@ function openMediaViewer(items, initialIndex = 0, options = {}) {
       '<footer class="viewerCreatorOverlay"><div class="viewerCreatorRow"><button class="viewerCreatorIdentity" data-creator-story="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.openStory") + " " + authorName) + '"><i>' + creatorAvatar + '</i><span>' + usernameSigil(author, item.persona || state.persona) + '<b><bdi dir="auto">' + esc(authorName) + '</bdi></b><small><bdi dir="ltr">@' + esc(authorHandle) + '</bdi></small></span></button><div class="viewerCreatorInline">' + (isViewerOwner ? '' : '<button data-follow="' + Number(author.id || item.user_id) + '" data-active="' + (item.following_me ? 1 : 0) + '" data-pending="' + (item.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followButtonLabel({ active: item.following_me, pending: item.follow_request_pending })) + '</button>') + '<button class="viewerCreatorMore" data-viewer-creator-menu type="button" aria-label="' + esc(t("post.moreCreator")) + '" aria-expanded="false">•••</button><div class="viewerCreatorMenu" hidden>' + (isViewerOwner ? viewerOwnerMenu : '<button data-creator-profile="' + esc(authorHandle) + '" type="button">' + esc(t("post.viewProfile")) + '</button><button data-creator-message="' + esc(authorHandle) + '" type="button">' + esc(t("post.message")) + '</button><button data-not-interested="' + item.id + '" type="button">' + esc(t("post.notInterested")) + '</button><button data-report="' + item.id + '" type="button">' + esc(t("post.report")) + '</button>') + '</div></div></div>' + (item.caption ? expandableCaptionMarkup(captionWithTagsMarkup(item.caption), { className: "viewerCaptionBlock", t, esc }) + captionTranslationButtonMarkup({ language: item.language, locale: interfaceLocale, esc }) : '') + '</footer>';
     document.getElementById("viewerActionRail").innerHTML = [
       '<button class="viewerRailAvatar" data-creator-profile="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.viewProfile") + " " + authorName) + '"><i>' + creatorAvatar + '</i></button>',
-      '<button data-viewer-reactions="' + item.id + '" data-reaction-display="compact" type="button" class="' + (item.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("viewer.chooseReaction")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions) + '</button>',
+      '<button data-viewer-reactions="' + item.id + '" data-reaction-display="compact" type="button" class="' + (item.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("viewer.chooseReaction")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, item.reactions?.viewer_reaction) + '</button>',
       '<button data-viewer-comments="' + item.id + '" type="button" aria-label="' + esc(t("viewer.comments")) + '"><i class="viewerSolidIcon">' + solidViewerIcon("comment") + '</i><small>' + Number(item.comment_count || 0) + '</small></button>',
       '<button data-save="' + item.id + '" type="button" class="' + (item.saved_by_me ? "on" : "") + '" aria-label="' + esc(t("post.save")) + '"><i class="viewerSolidIcon">' + solidViewerIcon("save") + '</i><small class="railMetricPlaceholder" aria-hidden="true">•</small></button>',
       clipDistributeMarkup({ postId: item.id, repostLabel: t(item.kind === "text" ? "post.retweet" : "post.repost"), repostCount: Number(item.reposts || 0), reposted: item.reposted_by_me === true, iconClass: "viewerSolidIcon" }),
