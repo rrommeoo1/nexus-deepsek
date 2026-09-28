@@ -73,9 +73,9 @@ test("reply trees start collapsed and disclose one direct reply at a time", () =
 test("comment mode keeps controls quiet and cards compact", () => {
   assert.match(app, /viewerPlay\.hidden = viewer\.classList\.contains\("viewerCommentsOpen"\) \? true : !viewerVideo\?\.paused/);
   assert.match(feedStyles, /\.clipStage\.commentsOpen \.clipPlayState,[\s\S]*?\.reelViewer\.viewerCommentsOpen \.viewerPlayState\{display:none!important\}/);
-  assert.match(feedStyles, /\.clipCommentsDrawer>\.clist,[\s\S]*?padding:7px 20px 10px!important/);
-  assert.match(feedStyles, /max-width:520px!important;margin:0 auto 5px!important/);
-  assert.match(feedStyles, /grid-template-columns:36px minmax\(0,1fr\)!important;gap:8px!important/);
+  assert.match(feedStyles, /\.clipCommentsDrawer>\.clist,[\s\S]*?padding:5px 28px 8px!important/);
+  assert.match(feedStyles, /max-width:480px!important;margin:0 auto 4px!important/);
+  assert.match(feedStyles, /grid-template-columns:36px minmax\(0,1fr\)!important;gap:7px!important/);
   assert.match(feedStyles, /width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important/);
   assert.match(feedStyles, /object-fit:cover!important;object-position:center!important;border-radius:50%!important/);
   assert.match(feedStyles, /width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important/);
