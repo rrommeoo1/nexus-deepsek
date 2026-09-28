@@ -5,6 +5,7 @@ import { inspectStoredMedia, purgeStoredMedia } from "./media.js";
 import { assessSocialContent, MODERATION_POLICY_VERSION, publicAssessment, REPORT_CATEGORIES } from "./moderation.js";
 import { creatorStudioHash, normalizeCreatorAudio, normalizeCreatorStudio } from "./creator-studio.js";
 import { evaluatePrivacy } from "./privacy-matrix.js";
+import { normalizeJamendoTrack } from "./jamendo.js";
 
 export const PERSONAS = ["social", "work", "dating", "travel", "market"];
 export const SOCIAL_REACTIONS = ["LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY", "FAKE_OPINION", "DISLIKE"];
@@ -107,13 +108,15 @@ export function normalizePersona(value) {
 }
 
 function canonicalPostCommitment(row) {
-  return sha256Hex(JSON.stringify({
+  const payload = {
     userId: row.user_id, persona: row.persona, kind: row.kind, caption: row.caption,
     mediaId: row.media_id, visibility: row.visibility, language: row.language,
     regionCode: row.region_code, provenance: row.provenance,
     mediaEditHash: row.media_edit_hash, audioMediaId: row.audio_media_id,
     audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
-  }));
+  };
+  if (row.external_audio_json) payload.externalAudio = row.external_audio_json;
+  return sha256Hex(JSON.stringify(payload));
 }
 
 function canonicalCommentCommitment(row) {
@@ -569,7 +572,7 @@ export function createRepo(db) {
     },
 
     // ---- posts ----
-    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "" }) {
+    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null }) {
       persona = normalizePersona(persona);
       const safeVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : "public";
       // A media-less video placeholder is valid feed state, but it must not
@@ -579,6 +582,14 @@ export function createRepo(db) {
         ? null
         : normalizeCreatorStudio(mediaEdit, { mediaKind: kind });
       const normalizedAudio = normalizeCreatorAudio({ audioMediaId, rights: audioRights, attribution: audioAttribution });
+      const normalizedExternalAudio = externalAudio && externalAudio.provider === "jamendo" ? {
+        provider: "jamendo", id: String(externalAudio.id), name: String(externalAudio.name), artist: String(externalAudio.artist),
+        duration: Number(externalAudio.duration), audio_url: String(externalAudio.audio_url), share_url: String(externalAudio.share_url),
+        license_url: String(externalAudio.license_url), license: String(externalAudio.license), attribution: String(externalAudio.attribution),
+        segment_seconds: Number(externalAudio.segment_seconds), preview_offset: Number(externalAudio.preview_offset || 0),
+      } : null;
+      if (normalizedAudio.audioMediaId && normalizedExternalAudio) throw new Error("CREATOR_AUDIO_SOURCE_CONFLICT");
+      if (normalizedExternalAudio && kind !== "video") throw new Error("CREATOR_EXTERNAL_AUDIO_REQUIRES_VIDEO");
       const sourceMedia = mediaId ? this.getMediaById(mediaId) : null;
       if (normalizedStudio && (!sourceMedia || sourceMedia.kind !== kind || !this.hasMediaUploadGrant(mediaId, userId, "social_post", persona))) {
         throw new Error("CREATOR_STUDIO_SOURCE_MEDIA_INVALID");
@@ -591,18 +602,21 @@ export function createRepo(db) {
         }
       }
       const mediaEditHash = creatorStudioHash(normalizedStudio);
-      const commitment = sha256Hex(JSON.stringify({
+      const externalAudioJson = normalizedExternalAudio ? JSON.stringify(normalizedExternalAudio) : null;
+      const commitmentPayload = {
         userId, persona, kind, caption, mediaId, visibility: safeVisibility, language, regionCode, provenance,
         mediaEditHash, audioMediaId: normalizedAudio.audioMediaId, audioRights: normalizedAudio.rights,
         audioAttribution: normalizedAudio.attribution,
-      }));
+      };
+      if (externalAudioJson) commitmentPayload.externalAudio = externalAudioJson;
+      const commitment = sha256Hex(JSON.stringify(commitmentPayload));
       const info = this.db.prepare(
         `INSERT INTO posts (user_id, persona, kind, caption, media_id, visibility, language, region_code, provenance,
-                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, content_commitment, devnet_tx)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(userId, persona, kind, caption, mediaId, safeVisibility, language, regionCode, provenance,
         normalizedStudio ? JSON.stringify(normalizedStudio) : null, mediaEditHash, normalizedAudio.audioMediaId,
-        normalizedAudio.rights, normalizedAudio.attribution, commitment, null);
+        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null);
       this.db.prepare(`INSERT INTO post_versions (post_id, version, caption, visibility, status, content_commitment)
         VALUES (?, 1, ?, ?, 'active', ?)`).run(Number(info.lastInsertRowid), caption, safeVisibility, commitment);
       return this.getPostById(Number(info.lastInsertRowid));
@@ -646,6 +660,17 @@ export function createRepo(db) {
         audio: row.audio_media_id && studioIntegrity === "VERIFIED" ? this.getMediaById(row.audio_media_id) : null,
         audio_rights: row.audio_media_id && studioIntegrity === "VERIFIED" ? row.audio_rights : null,
         audio_attribution: row.audio_media_id && studioIntegrity === "VERIFIED" ? row.audio_attribution : "",
+        external_audio: (() => {
+          if (!row.external_audio_json || studioIntegrity !== "VERIFIED") return null;
+          try {
+            const value = JSON.parse(row.external_audio_json);
+            const normalized = normalizeJamendoTrack({
+              id: value?.id, name: value?.name, artist_name: value?.artist, duration: value?.duration,
+              audio: value?.audio_url, shareurl: value?.share_url, license_ccurl: value?.license_url,
+            }, value?.segment_seconds);
+            return normalized?.id === String(value?.id) ? normalized : null;
+          } catch { return null; }
+        })(),
       };
     },
     saveContentAssessment(subjectType, subjectId, contentCommitment, assessment) {

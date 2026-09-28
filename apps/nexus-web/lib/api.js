@@ -39,11 +39,14 @@ import {
 } from "./account-lifecycle.js";
 import { evaluateOperationalControl, operationalStatus } from "./operational-controls.js";
 import { readBreakingNews } from "./news-provider.js";
+import { buildJamendoTracksUrl, normalizeJamendoTrack, signJamendoSelection, verifyJamendoSelection } from "./jamendo.js";
 
 const OAUTH_STATE = new Map(); // state -> provider + expiry + PKCE verifier
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 const AUTH_ATTEMPTS = new Map(); // hashed scope+subject -> timestamps (local adapter)
 const AUTH_ATTEMPT_MAX_BUCKETS = 10_000;
+const JAMENDO_CACHE = new Map();
+const JAMENDO_CACHE_TTL_MS = 10 * 60 * 1000;
 
 const WORK_AVAILABILITY = new Set(["open", "not_looking", "hiring"]);
 const WORKPLACE_TYPES = new Set(["onsite", "hybrid", "remote"]);
@@ -1623,6 +1626,49 @@ export async function handleRequest(req, res, ctx) {
   if (!auth) {
     // Everything below requires auth.
     return json(res, 401, { ok: false, error: "not signed in" });
+  }
+
+  if (method === "GET" && path === "/api/reels/sound-suggestions") {
+    const rate = enforceAuthRate(req, res, "jamendo-suggestions", String(auth.user.id), { limit: 30, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const clientId = String(process.env.JAMENDO_CLIENT_ID || "").trim();
+    if (!clientId) return json(res, 503, {
+      ok: false, code: "JAMENDO_NOT_CONFIGURED",
+      error: "Sugestiile audio Jamendo necesită JAMENDO_CLIENT_ID.",
+    });
+    const motion = new Set(["static", "moderate", "dynamic"]).has(url.searchParams.get("motion")) ? url.searchParams.get("motion") : "moderate";
+    const brightness = new Set(["dark", "balanced", "bright"]).has(url.searchParams.get("brightness")) ? url.searchParams.get("brightness") : "balanced";
+    const duration = Math.max(15, Math.min(60, Math.round(Number(url.searchParams.get("duration")) || 30)));
+    const query = sanitizeText(url.searchParams.get("q") || "", 80);
+    let request;
+    try { request = buildJamendoTracksUrl({ clientId, motion, brightness, duration, query }); }
+    catch { return json(res, 503, { ok: false, code: "JAMENDO_NOT_CONFIGURED", error: "Jamendo nu este configurat." }); }
+    const cacheKey = request.url.toString().replace(clientId, "[client]");
+    const cached = JAMENDO_CACHE.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return json(res, 200, cached.payload);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    let upstream;
+    try {
+      upstream = await fetcher(request.url, { headers: { accept: "application/json" }, signal: controller.signal });
+    } catch {
+      return json(res, 502, { ok: false, code: "JAMENDO_UNAVAILABLE", error: "Jamendo nu răspunde momentan." });
+    } finally { clearTimeout(timeout); }
+    if (!upstream?.ok) return json(res, 502, { ok: false, code: "JAMENDO_UNAVAILABLE", error: "Jamendo nu răspunde momentan." });
+    let data;
+    try { data = await upstream.json(); } catch { return json(res, 502, { ok: false, code: "JAMENDO_RESPONSE_INVALID", error: "Răspuns Jamendo invalid." }); }
+    const tracks = (Array.isArray(data?.results) ? data.results : [])
+      .map((track) => normalizeJamendoTrack(track, request.segment))
+      .filter(Boolean)
+      .slice(0, 5)
+      .map((track) => ({ ...track, selection_token: signJamendoSelection(track, sessionSecret()) }));
+    const payload = { ok: true, provider: "jamendo", catalog_mode: "configured_free", analysis: { motion, brightness, segment_seconds: request.segment, profile: request.profile }, tracks };
+    JAMENDO_CACHE.set(cacheKey, { expiresAt: Date.now() + JAMENDO_CACHE_TTL_MS, payload });
+    if (JAMENDO_CACHE.size > 200) {
+      for (const [key, value] of JAMENDO_CACHE) if (value.expiresAt <= Date.now()) JAMENDO_CACHE.delete(key);
+      if (JAMENDO_CACHE.size > 200) JAMENDO_CACHE.delete(JAMENDO_CACHE.keys().next().value);
+    }
+    return json(res, 200, payload);
   }
 
   // Every authenticated mutation has one replay boundary. Chunked upload routes
@@ -3514,6 +3560,12 @@ export async function handleRequest(req, res, ctx) {
       audioMediaId = audio.id;
     }
     if (audioMediaId && kind === "text") return json(res, 400, { ok: false, error: "creator audio requires image or video" });
+    const externalAudio = body.jamendo_selection_token
+      ? verifyJamendoSelection(sanitizeText(body.jamendo_selection_token, 4096), sessionSecret())
+      : null;
+    if (body.jamendo_selection_token && !externalAudio) return json(res, 400, { ok: false, error: "Jamendo selection invalid or expired" });
+    if (externalAudio && kind !== "video") return json(res, 400, { ok: false, error: "Jamendo audio requires a video" });
+    if (externalAudio && audioMediaId) return json(res, 400, { ok: false, error: "choose one audio source" });
     let studioManifest;
     let creatorAudio;
     try {
@@ -3546,7 +3598,7 @@ export async function handleRequest(req, res, ctx) {
       const post = repo.createPost({
         userId: auth.user.id, persona, kind, caption, mediaId, visibility, language, regionCode, provenance,
         mediaEdit: studioManifest, audioMediaId: creatorAudio.audioMediaId,
-        audioRights: creatorAudio.rights, audioAttribution: creatorAudio.attribution,
+        audioRights: creatorAudio.rights, audioAttribution: creatorAudio.attribution, externalAudio,
       });
       // The gallery and the tags belong to the same write as the post: a post can never claim
       // a tag or a media item it does not really have.
@@ -3586,7 +3638,7 @@ export async function handleRequest(req, res, ctx) {
       db.exec("COMMIT");
     } catch (err) {
       db.exec("ROLLBACK");
-      if (new Set(["CREATOR_STUDIO_SOURCE_MEDIA_INVALID", "CREATOR_AUDIO_SOURCE_MEDIA_REQUIRED", "CREATOR_AUDIO_MEDIA_INVALID"]).has(err.message)) {
+      if (new Set(["CREATOR_STUDIO_SOURCE_MEDIA_INVALID", "CREATOR_AUDIO_SOURCE_MEDIA_REQUIRED", "CREATOR_AUDIO_MEDIA_INVALID", "CREATOR_AUDIO_SOURCE_CONFLICT", "CREATOR_EXTERNAL_AUDIO_REQUIRES_VIDEO"]).has(err.message)) {
         return json(res, 400, { ok: false, error: err.message });
       }
       throw err;

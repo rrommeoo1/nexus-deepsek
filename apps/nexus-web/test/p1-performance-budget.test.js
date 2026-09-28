@@ -73,7 +73,9 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // identity (photo, cover, location) and deleted the four fields the settings form was duplicating, so
   // the allowance comes down a second time. The compact comments wave adds the shared five-action row,
   // real save/share wiring and root-versus-reply composer state; keep that named surface below 618 KB.
-  assert.equal(sizes.app <= 618_000, true, `app.js budget exceeded: ${sizes.app}`);
+  // Jamendo audio is implemented in its own module; the 1 kB glue allowance here only binds the
+  // selected token to publish and the same external stream to feed/fullscreen playback.
+  assert.equal(sizes.app <= 619_000, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance
@@ -116,5 +118,7 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // of the desktop showcase frame and its 0.88 scale. That one rule replaces a screen of shrunken text.
   // The lower-left reel metadata is a named mobile surface: author/follow, soundtrack and a bounded,
   // scrollable three-line caption. Its allowance includes both the feed and full-screen viewer states.
-  assert.equal(sizes.css <= 364_000, true, `CSS budget exceeded: ${sizes.css}`);
+  // Automatic Reel sound adds one compact attributed selection card, five alternatives and manual
+  // search states. The 4 kB allowance is the complete surface, not an open-ended CSS increase.
+  assert.equal(sizes.css <= 368_000, true, `CSS budget exceeded: ${sizes.css}`);
 });

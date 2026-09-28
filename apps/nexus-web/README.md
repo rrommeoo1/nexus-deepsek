@@ -145,8 +145,14 @@ afișează avertismentul înaintea decriptării locale.
 5. Setează `NEXUS_DATA_DIR` la un volum absolut, persistent și monitorizat.
 6. Setează explicit `NEXUS_MEDIA_STORAGE_PROVIDER=local-content-addressed` pentru
    un singur nod; un provider distribuit cere implementare și audit separat.
-7. Rulează `npm run release:check`, apoi `npm start`.
-8. Monitorizează `GET /health`; în production răspunsul este intenționat minimal.
+7. Pentru sugestiile automate de sunet la Reels, creează o aplicație gratuită în
+   Jamendo Developer și setează `JAMENDO_CLIENT_ID`. Cheia rămâne numai pe server;
+   Nexus cere doar `/v3.0/tracks`, filtrează la CC BY și păstrează doar referința,
+   creditul și licența, nu fișierul audio. Fără variabilă, creatorul continuă să
+   funcționeze și afișează starea `Jamendo trebuie configurat`. Clientul public de test
+   nu este folosit ca fallback; cheia aplicației trebuie să fie explicită în orice mediu.
+8. Rulează `npm run release:check`, apoi `npm start`.
+9. Monitorizează `GET /health`; în production răspunsul este intenționat minimal.
 
 Procesul refuză să pornească în production dacă lipsesc secretul, HTTPS origin,
 attestation WalletConnect, trusted-edge gate sau calea persistentă de date.

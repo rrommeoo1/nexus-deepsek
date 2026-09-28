@@ -44,6 +44,7 @@ import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.j
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
 import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-name1";
+import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20260928-jamendo1";
 import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-name1";
 import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-name1";
 import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-name1";
@@ -389,7 +390,8 @@ function writeSocialMuted(muted) {
 }
 
 function applySocialMuted(root, muted) {
-  root.querySelectorAll("video.media,.viewerStage>video,.studioSound audio").forEach((media) => { media.muted = muted; });
+  root.querySelectorAll("video.media,.viewerStage>video").forEach((media) => { media.muted = muted || Boolean(media.closest?.(".clipStage,.mediaViewer")?.querySelector?.(".jamendoSound audio")); });
+  root.querySelectorAll(".studioSound audio").forEach((media) => { media.muted = muted; });
   document.querySelectorAll("[data-clip-sound],[data-viewer-sound]").forEach((button) => {
     const stage = button.closest('.clipStage,.mediaViewer');
     renderSoundToggle(button, muted, t, Boolean(stage?.querySelector('video.media,.viewerStage>video,.studioSound audio')));
@@ -3084,6 +3086,15 @@ function wireClipPlayback(container) {
     });
   }, { root: scrollRoot, threshold: [.15, .65, .9] });
   videos.forEach((video) => {
+    const jamendoAudio = video.closest(".clipStage")?.querySelector(".jamendoSound audio");
+    if (jamendoAudio && !jamendoAudio.dataset.syncBound) {
+      jamendoAudio.dataset.syncBound = "true";
+      synchronizeReelSound(video, jamendoAudio, {
+        duration: Number(jamendoAudio.dataset.jamendoDuration),
+        segment_seconds: Number(jamendoAudio.dataset.jamendoSegment),
+        preview_offset: Number(jamendoAudio.dataset.jamendoOffset),
+      });
+    }
     video.muted = readSocialMuted();
     video.loop = true;
     video.playsInline = true;
@@ -3459,9 +3470,10 @@ function renderStudioMedia(post, mediaUrl) {
   } else {
     media = '<img class="media studioAsset" src="' + esc(mediaUrl) + '" alt="' + esc(t("studio.previewAlt")) + '" style="filter:' + filter + '" />';
   }
-  const audioUrl = post.audio ? "/media/" + post.audio.hash + "." + post.audio.ext : null;
+  const external = post.external_audio?.provider === "jamendo" ? post.external_audio : null;
+  const audioUrl = external?.audio_url || (post.audio ? "/media/" + post.audio.hash + "." + post.audio.ext : null);
   const audio = audioUrl
-    ? '<div class="studioSound"><b>♫ ' + esc(t("studio.audioCreator")) + '</b><span>' + esc(post.audio_attribution || t("studio.untitled")) + '</span><small>' + esc(t(post.audio_rights === "ORIGINAL_OWNED" ? "studio.declaredOriginal" : "studio.declaredLicense")) + '</small><audio src="' + esc(audioUrl) + '" controls preload="metadata"></audio></div>'
+    ? '<div class="studioSound' + (external ? ' jamendoSound' : '') + '"><b>♫ ' + esc(external ? external.name : t("studio.audioCreator")) + '</b><span>' + esc(external ? external.artist : (post.audio_attribution || t("studio.untitled"))) + '</span><small>' + (external ? '<a href="' + esc(external.share_url) + '" target="_blank" rel="noopener noreferrer">' + esc(external.license + " · Jamendo") + '</a>' : esc(t(post.audio_rights === "ORIGINAL_OWNED" ? "studio.declaredOriginal" : "studio.declaredLicense"))) + '</small><audio src="' + esc(audioUrl) + '" preload="metadata"' + (external ? ' data-jamendo-duration="' + Number(external.duration) + '" data-jamendo-segment="' + Number(external.segment_seconds) + '" data-jamendo-offset="' + Number(external.preview_offset || 0) + '"' : ' controls') + '></audio></div>'
     : "";
   return '<div class="studioMedia ' + studioAspectClass(studio.aspect) + '">' + media + overlay + '</div>' + audio;
 }
@@ -4172,7 +4184,7 @@ function postCard(post) {
   const repostCount = Number(post.reposts || 0);
   const isOwner = Number(post.user_id) === Number(state.user?.id) && post.persona === state.persona;
   const followLabel = followButtonLabel({ active: post.following_me, pending: post.follow_request_pending });
-  const audioAttribution = post.audio_attribution || (t("post.audioOriginal") + " · " + authorName);
+  const audioAttribution = post.external_audio?.attribution || post.audio_attribution || (t("post.audioOriginal") + " · " + authorName);
   const trustLabel = post.trust?.riskLevel === "CONTEXT" ? "Context automat" : "Trust Lens";
   const unavailableClip = !m && (post.kind === "video" || socialFormat === "clips");
   const clipMode = socialFormat === "clips" && (["video", "image"].includes(post.media?.kind) || unavailableClip);
@@ -4916,12 +4928,18 @@ function openMediaViewer(items, initialIndex = 0, options = {}) {
     const authorHandle = author.handle || state.user.handle;
     const isViewerOwner = Number(item.user_id || author.id) === Number(state.user?.id) && item.persona === state.persona;
     const viewerOwnerMenu = '<button data-post-manage="' + item.id + '" type="button">' + esc(t("post.manage")) + '</button><button data-post-history="' + item.id + '" type="button">' + esc(t("post.history")) + '</button>';
-    const audioAttribution = item.audio_attribution || (t("post.audioOriginal") + " · " + authorName);
+    const externalAudio = item.external_audio?.provider === "jamendo" ? item.external_audio : null;
+    const audioAttribution = externalAudio?.attribution || item.audio_attribution || (t("post.audioOriginal") + " · " + authorName);
+    const externalAudioMarkup = externalAudio ? '<div class="studioSound jamendoSound"><audio src="' + esc(externalAudio.audio_url) + '" preload="metadata" data-jamendo-duration="' + Number(externalAudio.duration) + '" data-jamendo-segment="' + Number(externalAudio.segment_seconds) + '" data-jamendo-offset="' + Number(externalAudio.preview_offset || 0) + '"></audio></div>' : '';
+    const soundCreditMarkup = externalAudio ? '<a class="viewerSoundCredit" href="' + esc(externalAudio.share_url) + '" target="_blank" rel="noopener noreferrer">♫ ' + esc(externalAudio.attribution + " · " + externalAudio.license) + '</a>' : '';
     document.getElementById("viewerStage").innerHTML = (item.media.kind === "video"
-      ? '<video src="' + esc(url) + '" autoplay loop playsinline' + (readSocialMuted() ? ' muted' : '') + ' aria-label="' + esc(t("viewer.videoAria")) + '"></video>'
+      ? '<video src="' + esc(url) + '" autoplay loop playsinline' + (readSocialMuted() || externalAudio ? ' muted' : '') + ' aria-label="' + esc(t("viewer.videoAria")) + '"></video>' + externalAudioMarkup
       : '<img src="' + esc(url) + '" alt="' + esc(t("viewer.imageBy")) + ' @' + esc(authorHandle) + '" />') +
       '<button class="viewerPlayState" type="button" aria-label="' + esc(t("viewer.play")) + '" hidden>▶</button>' +
-      '<footer class="viewerCreatorOverlay"><div class="viewerCreatorRow"><button class="viewerCreatorIdentity" data-creator-story="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.openStory") + " " + authorName) + '"><i>' + creatorAvatar + '</i><span>' + usernameSigil(author, item.persona || state.persona) + '<b><bdi dir="auto">' + esc(authorName) + '</bdi></b><small><bdi dir="ltr">@' + esc(authorHandle) + '</bdi></small></span></button><div class="viewerCreatorInline">' + (isViewerOwner ? '' : '<button data-follow="' + Number(author.id || item.user_id) + '" data-active="' + (item.following_me ? 1 : 0) + '" data-pending="' + (item.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followButtonLabel({ active: item.following_me, pending: item.follow_request_pending })) + '</button>') + '<button class="viewerCreatorMore" data-viewer-creator-menu type="button" aria-label="' + esc(t("post.moreCreator")) + '" aria-expanded="false">•••</button><div class="viewerCreatorMenu" hidden>' + (isViewerOwner ? viewerOwnerMenu : '<button data-creator-profile="' + esc(authorHandle) + '" type="button">' + esc(t("post.viewProfile")) + '</button><button data-creator-message="' + esc(authorHandle) + '" type="button">' + esc(t("post.message")) + '</button><button data-not-interested="' + item.id + '" type="button">' + esc(t("post.notInterested")) + '</button><button data-report="' + item.id + '" type="button">' + esc(t("post.report")) + '</button>') + '</div></div></div>' + (item.caption ? expandableCaptionMarkup(captionWithTagsMarkup(item.caption), { className: "viewerCaptionBlock", t, esc }) + captionTranslationButtonMarkup({ language: item.language, locale: interfaceLocale, esc }) : '') + '</footer>';
+      '<footer class="viewerCreatorOverlay"><div class="viewerCreatorRow"><button class="viewerCreatorIdentity" data-creator-story="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.openStory") + " " + authorName) + '"><i>' + creatorAvatar + '</i><span>' + usernameSigil(author, item.persona || state.persona) + '<b><bdi dir="auto">' + esc(authorName) + '</bdi></b><small><bdi dir="ltr">@' + esc(authorHandle) + '</bdi></small></span></button><div class="viewerCreatorInline">' + (isViewerOwner ? '' : '<button data-follow="' + Number(author.id || item.user_id) + '" data-active="' + (item.following_me ? 1 : 0) + '" data-pending="' + (item.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followButtonLabel({ active: item.following_me, pending: item.follow_request_pending })) + '</button>') + '<button class="viewerCreatorMore" data-viewer-creator-menu type="button" aria-label="' + esc(t("post.moreCreator")) + '" aria-expanded="false">•••</button><div class="viewerCreatorMenu" hidden>' + (isViewerOwner ? viewerOwnerMenu : '<button data-creator-profile="' + esc(authorHandle) + '" type="button">' + esc(t("post.viewProfile")) + '</button><button data-creator-message="' + esc(authorHandle) + '" type="button">' + esc(t("post.message")) + '</button><button data-not-interested="' + item.id + '" type="button">' + esc(t("post.notInterested")) + '</button><button data-report="' + item.id + '" type="button">' + esc(t("post.report")) + '</button>') + '</div></div></div>' + (item.caption ? expandableCaptionMarkup(captionWithTagsMarkup(item.caption), { className: "viewerCaptionBlock", t, esc }) + captionTranslationButtonMarkup({ language: item.language, locale: interfaceLocale, esc }) : '') + soundCreditMarkup + '</footer>';
+    const viewerVideo = viewer.querySelector("#viewerStage>video");
+    const viewerAudio = viewer.querySelector("#viewerStage .jamendoSound audio");
+    if (viewerVideo && viewerAudio) synchronizeReelSound(viewerVideo, viewerAudio, externalAudio);
     document.getElementById("viewerActionRail").innerHTML = [
       '<button class="viewerRailAvatar" data-creator-profile="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.viewProfile") + " " + authorName) + '"><i>' + creatorAvatar + '</i></button>',
       '<button data-viewer-reactions="' + item.id + '" data-reaction-display="compact" type="button" class="' + (item.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("viewer.chooseReaction")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, item.reactions?.viewer_reaction) + '</button>',
@@ -6961,6 +6979,8 @@ function openComposer(mode = "post", options = {}) {
   const composerClass = ["premiumComposer", storyMode ? "storyComposer" : "", tweetMode ? "tweetComposer" : "", mediaFirst ? "mediaFirstComposer" : "textFirstComposer"].filter(Boolean).join(" ");
   const captionMax = tweetMode || storyMode ? 500 : 2000;
   const captionPlaceholder = tweetMode ? "Scrie un tweet Nexus…" : storyMode ? "Adaugă un text…" : "Ce se întâmplă?";
+  let selectedJamendoTrack = null;
+  let stopAutoSound = () => {};
   vp.innerHTML = [
     '<div class="screen scrollScreen composerScreen"><div class="composer ' + composerClass + '" data-composer-source="' + esc(options.source || (storyMode ? "story" : "post")) + '">',
     '<header class="composerHead"><button id="closeComposer" type="button" aria-label="' + esc(t("composer.close")) + '">‹</button><span><small>' + esc(t("create.eyebrow")) + ' · <bdi dir="ltr">' + esc(state.persona.toUpperCase()) + '</bdi></small><b>' + (storyMode ? "Story" : (options.source === "clip" ? "Clip" : esc(t("composer.mixedTitle")))) + '</b><em>' + esc(sourceLabel) + '</em></span></header>',
@@ -6983,6 +7003,7 @@ function openComposer(mode = "post", options = {}) {
       '<div class="studioTimeline" id="studioTimeline" hidden><label>' + esc(t("studio.start")) + '<input name="trim_start" type="number" min="0" max="179.9" step="0.1" value="0" /></label><label>' + esc(t("studio.end")) + '<input name="trim_end" type="number" min="0.1" max="180" step="0.1" value="180" /></label><label>' + esc(t("studio.speed")) + '<select name="playback_rate"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><label class="studioCheck"><input name="mute_original" type="checkbox" /> ' + esc(t("studio.muteOriginal")) + '</label></div>',
       '<div class="studioGrid"><label>' + esc(t("studio.overlayText")) + '<input name="overlay_text" maxlength="120" placeholder="' + esc(t("studio.overlayPlaceholder")) + '" /></label><label>' + esc(t("studio.position")) + '<select name="overlay_position"><option value="TOP">' + esc(t("studio.top")) + '</option><option value="CENTER">' + esc(t("studio.center")) + '</option><option value="BOTTOM" selected>' + esc(t("studio.bottom")) + '</option></select></label><label>' + esc(t("studio.color")) + '<select name="overlay_color"><option value="WHITE">' + esc(t("studio.white")) + '</option><option value="BLACK">' + esc(t("studio.black")) + '</option><option value="TEAL">' + esc(t("studio.teal")) + '</option><option value="YELLOW">' + esc(t("studio.yellow")) + '</option></select></label></div>',
       '<div class="studioAudio"><label>' + esc(t("studio.addAudio")) + '<input name="audio_file" type="file" accept="audio/mpeg,audio/wav,audio/ogg" /></label><span id="studioAudioStatus">' + esc(t("studio.audioFormats")) + '</span><div class="studioGrid"><label>' + esc(t("studio.rights")) + '<select name="audio_rights"><option value="">' + esc(t("studio.chooseRights")) + '</option><option value="ORIGINAL_OWNED">' + esc(t("studio.ownOriginal")) + '</option><option value="LICENSED_WITH_PERMISSION">' + esc(t("studio.licensed")) + '</option></select></label><label>' + esc(t("studio.attribution")) + '<input name="audio_attribution" maxlength="120" placeholder="' + esc(t("studio.attributionPlaceholder")) + '" /></label></div></div>',
+      '<section class="reelAutoSound" id="reelAutoSound" hidden></section>',
       '<p class="studioTruth">' + esc(t("studio.truth")) + '</p></section>',
     ].join("") : '',
     '<div class="uploadProgress" id="uploadProgress" hidden><div><b>' + esc(t("upload.initial")) + '</b><span>0%</span></div><progress max="100" value="0"></progress><small>' + esc(t("upload.flow")) + '</small><button id="cancelUpload" type="button" hidden>' + esc(t("upload.cancel")) + '</button></div>',
@@ -7092,6 +7113,7 @@ function openComposer(mode = "post", options = {}) {
         audio_ext: creatorAudio && creatorAudio.ext,
         audio_rights: creatorAudio ? fd.get("audio_rights") : null,
         audio_attribution: creatorAudio ? fd.get("audio_attribution") : "",
+        jamendo_selection_token: !creatorAudio && selectedJamendoTrack?.selection_token || undefined,
       };
       setUploadProgress(88, t("publish.moderating"));
       const storyIntent = storyMode ? await prepareStoryPublishIntent(body, publishKey) : null;
@@ -7108,7 +7130,8 @@ function openComposer(mode = "post", options = {}) {
           && JSON.stringify(r.post.creator_studio.manifest) === JSON.stringify(studioManifest)
           && /^[a-f0-9]{64}$/.test(String(r.post.creator_studio.manifest_hash || ""))))
         && (!creatorAudio || (r.post?.audio?.hash === creatorAudio.hash && r.post?.audio?.ext === creatorAudio.ext
-          && r.post?.audio_rights === fd.get("audio_rights") && r.post?.audio_attribution === String(fd.get("audio_attribution") || "").trim()));
+          && r.post?.audio_rights === fd.get("audio_rights") && r.post?.audio_attribution === String(fd.get("audio_attribution") || "").trim()))
+        && (!selectedJamendoTrack || r.post?.external_audio?.id === selectedJamendoTrack.id);
       if (validStoryResult || validPostResult) {
         composerExit = null;
         if (storyIntent) clearStoryPublishIntent(storyIntent);
@@ -7176,6 +7199,7 @@ function openComposer(mode = "post", options = {}) {
   sourceInput.addEventListener("change", async (e) => {
     if (!isCurrent()) return;
     const file = e.target.files[0];
+    stopAutoSound(); selectedJamendoTrack = null;
     if (!file) { if (studioPanel) studioPanel.hidden = true; document.getElementById("preview").innerHTML = ""; if (options.pick || options.camera) picker.cancel(); return; }
     if (!CREATOR_MEDIA_MIMES.has(file.type)) {
       e.target.value = "";
@@ -7201,12 +7225,26 @@ function openComposer(mode = "post", options = {}) {
         sourceInput.form.elements.trim_end.value = Math.max(.1, Math.min(180, video.duration || 180)).toFixed(1);
       }, { once: true });
       applyCreatorPreview();
+      if (isVideo && video) {
+        stopAutoSound = mountReelAutoSound({
+          panel: document.getElementById("reelAutoSound"), video, file, api, isCurrent,
+          onSelection: (track) => {
+            selectedJamendoTrack = track;
+            const audioInput = sourceInput.form.elements.audio_file;
+            if (track && audioInput?.files?.length) {
+              audioInput.value = "";
+              document.getElementById("studioAudioStatus").textContent = t("studio.audioFormats");
+            }
+          },
+        });
+      }
     }
   });
   studioPanel?.querySelectorAll("input,select").forEach((control) => control.addEventListener("input", applyCreatorPreview));
   document.querySelector('#creatorStudio input[name="audio_file"]')?.addEventListener("change", (event) => {
     const audio = event.target.files[0];
     const status = document.getElementById("studioAudioStatus");
+    if (audio) { stopAutoSound(); selectedJamendoTrack = null; }
     if (!audio) status.textContent = t("studio.audioFormats");
     else if (!CREATOR_AUDIO_MIMES.has(audio.type)) status.textContent = t("studio.invalidAudioType");
     else if (audio.size > 20 * 1024 * 1024) status.textContent = t("studio.audioTooLarge");
