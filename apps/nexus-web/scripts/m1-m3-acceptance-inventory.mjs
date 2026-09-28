@@ -42,7 +42,7 @@ const checks = {
     ["search_privacy", "test/p1-comments-profiles.test.js", "Social search pagination is bounded, duplicate-free"],
     ["ranking_exploration", "test/p1-cold-start-exploration.test.js", "receive deterministic organic exploration"],
     ["moderation_transparency", "test/p0-moderation-transparency-ui.test.js", "instead of presenting a truth score"],
-    ["responsive_contract", "test/p3-mobile-layout.test.js", "phone shell is full bleed"],
+    ["responsive_contract", "test/p3-mobile-layout.test.js", "phone shell is bounded by the dynamic viewport, safe areas and one rounded silhouette"],
     ["accessibility_contract", "test/p3-accessibility-modal.test.js", "all modal markup has an accessible name"],
   ],
 };

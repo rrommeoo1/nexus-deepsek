@@ -10,7 +10,7 @@ const checks = {
     ["trusted_https_contract", "test/p0-m4-local-productization.test.js", "production configuration accepts the local default"],
     ["mobile_manifest_no_private_cache", "test/p0-m4-local-productization.test.js", "installable metadata without caching protected responses"],
     ["realtime_push_truth", "test/p0-m4-local-productization.test.js", "realtime and push gates remain truthful and profile-bound"],
-    ["responsive_safe_area", "test/p3-mobile-layout.test.js", "full bleed and bounded by dynamic viewport plus safe areas"],
+    ["responsive_safe_area", "test/p3-mobile-layout.test.js", "bounded by the dynamic viewport, safe areas and one rounded silhouette"],
     ["protected_media_no_store", "test/p0-offline-private-cache.test.js", "protected media responses stay private"],
     ["deployment_contract", "test/p0-deployment-contract.test.js", "environment, health and explicit release gates"],
   ],

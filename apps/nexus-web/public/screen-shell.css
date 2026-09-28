@@ -1,0 +1,74 @@
+/* The mobile web app should read as one physical screen on every route.
+   This file is intentionally loaded last: older module styles still own their
+   layouts, while this layer owns only the outer screen shape and clipping. */
+:root {
+  --nexus-screen-gutter: 3px;
+  --nexus-screen-radius: clamp(20px, 6vw, 28px);
+}
+
+@media (max-width: 760px) {
+  html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden !important;
+    background: #000 !important;
+  }
+
+  body {
+    width: 100%;
+    height: var(--nx-viewport-height, 100dvh);
+    min-height: var(--nx-viewport-height, 100dvh);
+    margin: 0 !important;
+    overflow: hidden !important;
+    background: #000 !important;
+    border-radius: var(--nexus-screen-radius) !important;
+    -webkit-clip-path: inset(var(--nexus-screen-gutter) round var(--nexus-screen-radius));
+    clip-path: inset(var(--nexus-screen-gutter) round var(--nexus-screen-radius));
+  }
+
+  #app,
+  .app,
+  .nexusDemo,
+  .demoStage,
+  .phone,
+  .phoneMetal,
+  .phoneScreen {
+    border-radius: var(--nexus-screen-radius) !important;
+  }
+
+  .phone,
+  .phoneMetal,
+  .phoneScreen {
+    overflow: hidden !important;
+  }
+
+  .phoneScreen::before,
+  .phoneScreen::after {
+    border-radius: inherit !important;
+  }
+
+  /* Full-screen viewers are mounted directly under body, outside .phoneScreen.
+     They must obey the same screen silhouette as every routed page. */
+  body > .mediaViewer,
+  body > .reelViewer,
+  body > .storyViewer,
+  body > [role="dialog"] {
+    border-radius: var(--nexus-screen-radius) !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (max-width: 960px) and (max-height: 500px) and (orientation: landscape) {
+  :root {
+    --nexus-screen-radius: 18px;
+  }
+
+  body,
+  .phone,
+  .phoneMetal,
+  .phoneScreen,
+  .reelViewer,
+  .storyViewer {
+    border-radius: var(--nexus-screen-radius) !important;
+  }
+}

@@ -18,6 +18,7 @@ const modalAccessibility = await readFile(new URL("../public/modal-accessibility
 const interfaceLocale = await readFile(new URL("../public/interface-locale.js", import.meta.url), "utf8");
 const client = await readFile(new URL("../public/client.js", import.meta.url), "utf8");
 const styles = await readFile(new URL("../public/styles.css", import.meta.url), "utf8");
+const screenShell = await readFile(new URL("../public/screen-shell.css", import.meta.url), "utf8");
 // Wave 14: the feed's own surface (three modes, the shelf, the switch, the voice-note player) lives in
 // its own module and its own stylesheet, the way the profile and the post page do.
 const feedSurface = await readFile(new URL("../public/feed-surface.js", import.meta.url), "utf8");
@@ -323,7 +324,8 @@ test("mobile Social shell returns Home from the logo and gives the clip most of 
   assert.equal(app.includes("bindStoryRailAutoHide"), false);
   assert.equal(feedSurface.includes("scrollTop > 18"), false);
   assert.match(styles, /\.clipsScreen\.storiesCollapsed\{--story-rail-height:0px!important/);
-  assert.match(styles, /\.phone,\.phoneMetal,\.phoneScreen\{[\s\S]*border-radius:0!important/);
+  // The legacy full-bleed reset remains module-local, but the final global shell owns the visible edge.
+  assert.match(screenShell, /\.phone,\s*\n\s*\.phoneMetal,\s*\n\s*\.phoneScreen\s*\{[\s\S]*?border-radius:\s*var\(--nexus-screen-radius\)\s*!important/);
   assert.match(styles, /\.clipStage\[data-video-aspect="landscape"\] video\.media\{[\s\S]*object-fit:cover!important/);
   assert.match(styles, /\.post\.clipPost>\.reactionBar\.expanded.*display:grid!important/s);
   assert.match(styles, /grid-template-columns:repeat\(4,minmax\(0,1fr\)\)!important/);
