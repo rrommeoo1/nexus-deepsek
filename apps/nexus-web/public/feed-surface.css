@@ -3172,11 +3172,11 @@ body .reelViewer.viewerCommentsOpen .viewerActionRail{
    cards from reading like full-width panels while preserving identical thread geometry. */
 .clipCommentsDrawer>.clist,
 .reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{
-  padding:5px 28px 8px!important;
+  padding:5px 28px 8px!important;align-content:start!important;grid-auto-rows:max-content!important;
 }
 .clipCommentsDrawer .commentThread,
 .reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentThread{
-  width:100%!important;max-width:480px!important;margin:0 auto 4px!important;
+  width:100%!important;max-width:480px!important;margin:0 auto 4px!important;align-self:start!important;
 }
 .clipCommentsDrawer .commentRow,
 .reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow{
