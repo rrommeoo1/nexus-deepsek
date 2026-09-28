@@ -19,7 +19,7 @@ import {
   handleCallState, handleCallSignal, restoreCurrentCalls, endCurrentCall,
 } from "./call-client.js?v=20260906-p2decrypt1";
 import { initializeModalAccessibility as initializeSharedModalAccessibility } from "./modal-accessibility.js";
-import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260927-comments19";
+import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260928-comments20";
 import {
   FEED_MODE_CONTRACT, nextFeedMode, feedModeSwitchMarkup,
   feedHeaderActionsMarkup, feedDrawerEndMarkup, bindFeedModeRail, clipCreatorAvatarMarkup,
@@ -29,9 +29,9 @@ import {
 } from "./feed-surface.js?v=20260926-source2";
 import { createFeedHub } from "./feed-hub.js?v=20260923-wave14i";
 import { NAV_LABEL_KEYS, navFaceMarkup, navIconMarkup } from "./nav-marks.js?v=20260923-wave14i";
-import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260927-comments19";
+import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260928-comments20";
 import { expandableCaptionMarkup, bindExpandableCaptions } from "./reel-caption.js?v=20260923-wave14i";
-import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260927-comments19";
+import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260928-comments20";
 import { bindCaptionTranslations, captionTranslationButtonMarkup } from "./caption-translation.js?v=20260925-dynamic1";
 import { createLatestRequestGate, createSingleFlightGate } from "./latest-request.js?v=20260904-p1locale3";
 import { planDraftEvictions, localDraftId } from "./draft-policy.js?v=20260912-camera3";
@@ -42,12 +42,12 @@ import { renderDatingWorkspace, renderPriveGate } from "./dating-module.js?v=202
 import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
-import { createPostDetailSurface } from "./post-detail.js?v=20260927-comments19";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20260927-comments19";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260927-comments19";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260927-comments19";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260927-comments19";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20260927-comments19";
+import { createPostDetailSurface } from "./post-detail.js?v=20260928-comments20";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-comments20";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-comments20";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-comments20";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-comments20";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20260928-comments20";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -3646,7 +3646,7 @@ function commentPostActionsMarkup(post) {
   const repostLabel = t(post?.kind === "text" ? "post.retweet" : "post.repost");
   return '<div class="commentPostActions" aria-label="' + esc(t("post.actions")) + '">'
     + '<button type="button" data-reaction-toggle="' + id + '" data-reaction-display="compact" class="' + (post?.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("post.openReactions")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, post?.reactions?.viewer_reaction) + '</button>'
-    + '<span aria-label="' + esc(t("comments.title")) + '"><i>' + solidViewerIcon("comment") + '</i><small>' + Number(post?.comment_count || 0) + '</small></span>'
+    + '<span data-comment-count-post="' + id + '" aria-label="' + esc(t("comments.title")) + '"><i>' + solidViewerIcon("comment") + '</i><small>' + Number(post?.comment_count || 0) + '</small></span>'
     + '<button type="button" data-repost="' + id + '" class="' + (post?.reposted_by_me ? 'on' : '') + '" aria-label="' + esc(repostLabel) + '"><i>' + solidViewerIcon("repost") + '</i><small>' + Number(post?.reposts || 0) + '</small></button>'
     + '<button type="button" data-save="' + id + '" class="' + (post?.saved_by_me ? 'on' : '') + '" aria-label="' + esc(t("post.save")) + '"><i>' + solidViewerIcon("save") + '</i></button>'
     + (SOCIAL_SHARING_ENABLED ? '<button type="button" data-share="' + id + '" aria-label="' + esc(t("post.share")) + '"><i>' + solidViewerIcon("share") + '</i></button>' : '') + '</div>';
@@ -3656,9 +3656,8 @@ function commentSortMarkup() {
   return '<nav class="commentSort" aria-label="' + esc(t("comments.title")) + '"><button type="button" data-comment-sort="relevant" class="active">' + esc(t("comments.relevant")) + '</button><button type="button" data-comment-sort="newest">' + esc(t("comments.newest")) + '</button></nav>';
 }
 
-function commentComposerMarkup(postId, viewer = false) {
-  const attribute = viewer ? 'data-viewer-comment-form' : 'data-comment-form';
-  return '<form class="commentComposer" ' + attribute + '="' + Number(postId) + '"><input name="body" placeholder="' + esc(t("comments.input")) + '" autocomplete="off" /><button class="cancelReply" type="button" data-cancel-reply aria-label="' + esc(t("comments.cancelReply")) + '" hidden>×</button><button class="commentSend" type="submit" aria-label="' + esc(t("comments.send")) + '">➤</button></form>';
+function commentComposerMarkup(postId) {
+  return '<form class="commentComposer" data-comment-form="' + Number(postId) + '"><input name="body" placeholder="' + esc(t("comments.input")) + '" autocomplete="off" /><button class="cancelReply" type="button" data-cancel-reply aria-label="' + esc(t("comments.cancelReply")) + '" hidden>×</button><button class="commentSend" type="submit" aria-label="' + esc(t("comments.send")) + '">➤</button></form>';
 }
 
 function wireCommentReplyInputs(scope) {
@@ -3792,8 +3791,20 @@ function reactionPaletteMarkup(post, currentReaction = null) {
   return '<div class="reactionBar xPalette" aria-label="' + esc(t("post.chooseReaction")) + '" aria-hidden="true">' + REACTION_OPTIONS.map(([kind, icon, key]) => { const label = t(key); return '<button data-reaction="' + kind + '" data-post="' + post.id + '" class="' + (currentReaction === kind ? "on" : "") + '" title="' + esc(label) + '" aria-label="' + esc(label) + '"><span>' + icon + '</span><small>' + esc(label) + '</small></button>'; }).join("") + '</div>';
 }
 
+// Feed and full-screen render the very same conversation body. Only the containing sheet and
+// its close control differ, so comments, post reactions, sorting and composing cannot drift.
+function commentSurfaceMarkup(post, { closeAttribute = "data-close-comments", loading = false } = {}) {
+  const postId = Number(post?.id || 0);
+  const loadingMarkup = loading ? '<p class="commentLoading">' + esc(t("comments.loading")) + '</p>' : '';
+  return '<button class="commentBack" type="button" ' + closeAttribute + ' aria-label="' + esc(t("x.detail.back")) + '">←</button>'
+    + '<article class="commentSurfacePost">' + commentCreatorMarkup(post) + commentPostActionsMarkup(post) + reactionPaletteMarkup(post, post?.reactions?.viewer_reaction || null) + '</article>'
+    + commentSortMarkup()
+    + '<div class="clist" role="feed">' + loadingMarkup + '</div>'
+    + commentComposerMarkup(postId);
+}
+
 function commentsDrawerMarkup(post) {
-  return '<button class="commentsScrim hidden" type="button" data-comments-scrim="' + post.id + '" aria-label="' + esc(t("comments.close")) + '"></button><section class="comments clipCommentsDrawer hidden" id="comments-' + post.id + '" role="dialog" aria-modal="true" aria-label="Comments" tabindex="-1" data-comment-sort-active="relevant"><button class="commentBack" type="button" data-close-comments aria-label="' + esc(t("x.detail.back")) + '">←</button><article class="commentSurfacePost">' + commentCreatorMarkup(post) + commentPostActionsMarkup(post) + '</article>' + commentSortMarkup() + '<div class="clist" role="feed"></div>' + commentComposerMarkup(post.id) + '</section>';
+  return '<button class="commentsScrim hidden" type="button" data-comments-scrim="' + post.id + '" aria-label="' + esc(t("comments.close")) + '"></button><section class="comments clipCommentsDrawer hidden" id="comments-' + post.id + '" role="dialog" aria-modal="true" aria-label="Comments" tabindex="-1" data-comment-post-id="' + Number(post.id) + '" data-comment-sort-active="relevant">' + commentSurfaceMarkup(post) + '</section>';
 }
 
 function profileWhisperControls(post) {
@@ -6092,17 +6103,14 @@ async function submitComment(e) {
   const postId = Number(id);
   const normalizedParentId = parentId ? Number(parentId) : null;
   if (Number.isSafeInteger(postId) && postId < 0) {
-    const post = currentFeedPosts.find((item) => Number(item.id) === postId);
+    const post = currentFeedPosts.find((item) => Number(item.id) === postId)
+      || mediaViewerState?.items.find((item) => Number(item.id) === postId);
     if (!post) return toast(t("comments.saveError"));
     post.comment_preview = [...(post.comment_preview || []), { id: -Date.now(), handle: state.user.handle, display_name: activePersonaRecord().name || state.user.handle, body: body.trim(), parent_id: normalizedParentId, reactions: { counts: {} } }];
     post.comment_count = Number(post.comment_count || 0) + 1;
     e.target.reset();
-    e.target.closest(".comments")?.querySelector(".clist")?.replaceChildren();
-    const list = e.target.closest(".comments")?.querySelector(".clist");
-    if (list) {
-      renderDemoCommentSurface(e.target.closest(".comments"), postId);
-    }
-    document.querySelectorAll('[data-comments="' + postId + '"] small,[data-viewer-comments="' + postId + '"] small').forEach((label) => { label.textContent = String(post.comment_count); });
+    syncPostCommentCount(postId, post.comment_count);
+    await refreshOpenCommentSurfaces(postId);
     return;
   }
   const mutationScope = `comment-create:${postId}`;
@@ -6118,8 +6126,39 @@ async function submitComment(e) {
     delete input.dataset.parentId;
     input.placeholder = t("comments.input");
     e.target.querySelector("[data-cancel-reply]")?.setAttribute("hidden", "");
-    await loadCommentList(e.target.closest(".comments"), postId);
+    syncPostCommentCount(postId);
+    await refreshOpenCommentSurfaces(postId);
   } else toast(t("comments.saveError"));
+}
+
+function postRecordsForCommentSync(postId) {
+  const records = [...currentFeedPosts, ...(mediaViewerState?.items || [])]
+    .filter((post) => Number(post?.id) === Number(postId));
+  return [...new Set(records)];
+}
+
+function syncPostCommentCount(postId, exactCount = undefined) {
+  const records = postRecordsForCommentSync(postId);
+  const visibleCounts = [...document.querySelectorAll('[data-comments="' + postId + '"] small,[data-viewer-comments="' + postId + '"] small,[data-comment-count-post="' + postId + '"] small')]
+    .map((node) => Number(node.textContent)).filter(Number.isFinite);
+  const storedCounts = records.map((post) => Number(post.comment_count || 0)).filter(Number.isFinite);
+  const count = Number.isFinite(Number(exactCount))
+    ? Math.max(0, Number(exactCount))
+    : Math.max(0, ...visibleCounts, ...storedCounts) + 1;
+  records.forEach((post) => { post.comment_count = count; });
+  document.querySelectorAll('[data-comments="' + postId + '"] small,[data-viewer-comments="' + postId + '"] small,[data-comment-count-post="' + postId + '"] small')
+    .forEach((label) => { label.textContent = String(count); });
+  return count;
+}
+
+async function refreshOpenCommentSurfaces(postId) {
+  const scopes = [...document.querySelectorAll('.comments[data-comment-post-id="' + postId + '"]')]
+    .filter((scope) => scope.isConnected && !scope.classList.contains("hidden"));
+  if (postId < 0) {
+    scopes.forEach((scope) => renderDemoCommentSurface(scope, postId));
+    return;
+  }
+  await Promise.all(scopes.map((scope) => loadCommentList(scope, postId, 0, scope.dataset.commentSortActive)));
 }
 
 function syncCommentsMode() {
@@ -6569,7 +6608,7 @@ async function openViewerComments(postId) {
   const post = mediaViewerState?.items.find((item) => Number(item.id) === Number(postId));
   if (!post) return;
   const returnFocus = viewer.querySelector('[data-viewer-comments="' + Number(postId) + '"]');
-  viewer.insertAdjacentHTML("beforeend", '<section class="comments viewerCommentsPanel" role="region" aria-label="' + esc(t("comments.title")) + '" tabindex="-1" data-comment-sort-active="relevant"><button class="commentBack" type="button" data-close-viewer-comments aria-label="' + esc(t("x.detail.back")) + '">←</button><article class="commentSurfacePost">' + commentCreatorMarkup(post) + commentPostActionsMarkup(post) + reactionPaletteMarkup(post, post.reactions?.viewer_reaction || null) + '</article>' + commentSortMarkup() + '<div class="clist" role="feed"><p class="commentLoading">' + esc(t("comments.loading")) + '</p></div>' + commentComposerMarkup(postId, true) + '</section>');
+  viewer.insertAdjacentHTML("beforeend", '<section class="comments viewerCommentsPanel" role="region" aria-label="' + esc(t("comments.title")) + '" tabindex="-1" data-comment-post-id="' + Number(postId) + '" data-comment-sort-active="relevant">' + commentSurfaceMarkup(post, { closeAttribute: "data-close-viewer-comments", loading: true }) + '</section>');
   viewer.classList.add("viewerCommentsOpen");
   panel = viewer.querySelector(".viewerCommentsPanel");
   const viewerVideo = viewer.querySelector(".viewerStage>video");
@@ -6594,36 +6633,6 @@ async function openViewerComments(postId) {
     renderDemoCommentSurface(panel, postId);
   }
   else await loadCommentList(panel, postId);
-  panel.querySelector("form").addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const body = String(new FormData(event.currentTarget).get("body") || "").trim();
-    if (!body) return;
-    const input = event.currentTarget.querySelector('input[name="body"]');
-    const parentId = Number(input.dataset.parentId || 0) || null;
-    if (postId < 0) {
-      const post = currentFeedPosts.find((item) => Number(item.id) === postId) || mediaViewerState?.items.find((item) => Number(item.id) === postId);
-      if (!post) return toast(t("comments.saveError"));
-      post.comment_preview = [...(post.comment_preview || []), { id: -Date.now(), handle: state.user.handle, display_name: activePersonaRecord().name || state.user.handle, body, parent_id: parentId, reactions: { counts: {} } }];
-      post.comment_count = Number(post.comment_count || 0) + 1;
-      event.currentTarget.reset();
-      renderDemoCommentSurface(panel, postId);
-      document.querySelectorAll('[data-comments="' + postId + '"] small,[data-viewer-comments="' + postId + '"] small').forEach((label) => { label.textContent = String(post.comment_count); });
-      return;
-    }
-    const mutationScope = `viewer-comment-create:${postId}`;
-    const fingerprint = `${postId}:${state.user.id}:${state.persona}:${parentId || 0}:${body}`;
-    const intent = beginCommentMutation(mutationScope, fingerprint);
-    if (!intent) return;
-    const result = await api("/api/posts/" + postId + "/comments", { method: "POST", headers: { "Idempotency-Key": intent.key }, body: { body, parent_id: parentId } }).catch(() => null);
-    const exact = isSafeCommentResult(result, { postId, parentId, requireBody: true });
-    finishCommentMutation(mutationScope, intent, exact);
-    if (!exact) return toast(t("comments.saveError"));
-    event.currentTarget.reset();
-    delete input.dataset.parentId;
-    input.placeholder = t("comments.input");
-    event.currentTarget.querySelector("[data-cancel-reply]")?.setAttribute("hidden", "");
-    await loadCommentList(panel, postId);
-  });
 }
 
 function wireComposerCamera(sourceInput, openNativePicker) {

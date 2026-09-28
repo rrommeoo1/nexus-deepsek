@@ -12,7 +12,8 @@ test("feed comments are modal, toggle closed, and hide the primary dock", () => 
   assert.match(app, /registerCommentOverlay\(box, btn, \(\) => hideCommentsDrawer\(box\)\)/);
   assert.match(app, /nav\.inert = active/);
   assert.match(styles, /\.phoneScreen\.commentsModeActive \.appNav\{display:none!important/);
-  assert.match(app, /class="commentBack" type="button" data-close-comments/);
+  assert.match(app, /function commentSurfaceMarkup\(post, \{ closeAttribute = "data-close-comments", loading = false \} = \{\}\)/);
+  assert.match(app, /commentsDrawerMarkup\(post\)[\s\S]*?commentSurfaceMarkup\(post\)/);
   assert.doesNotMatch(app, /comments-heading-/);
 });
 
@@ -33,11 +34,11 @@ test("closing comments restores focus and fullscreen keeps its back control avai
   assert.match(app, /viewer\.querySelector\("\[data-viewer-back\]"\)\?\.addEventListener\("click", \(\) => \{[\s\S]*?dismissCommentOverlay\(\)/);
 });
 
-test("long comments disclose at six lines and can collapse again", () => {
+test("long comments disclose at three lines and can collapse again", () => {
   assert.match(app, /data-comment-expand aria-expanded="false" hidden/);
   assert.match(app, /row\.classList\.toggle\("commentExpanded", expanded\)/);
   assert.match(app, /post\.seeLess/);
-  assert.match(feedStyles, /max-height:108px!important;-webkit-line-clamp:6!important/);
+  assert.match(feedStyles, /max-height:54px!important;-webkit-line-clamp:3!important/);
   assert.match(feedStyles, /\.commentRow\.commentExpanded \.commentBody>p/);
 });
 
@@ -47,7 +48,10 @@ test("feed and fullscreen use one compact headerless conversation surface", () =
   assert.match(app, /openFeedMediaViewer\(Number\(id\), postCollection, \{ openComments: true \}\)/);
   assert.match(app, /if \(options\.openComments === true\)[\s\S]*?void openViewerComments\(postId\)/);
   assert.doesNotMatch(app, /class="viewerCommentMediaSlot"/);
-  assert.match(app, /class="commentBack" type="button" data-close-viewer-comments/);
+  assert.match(app, /commentSurfaceMarkup\(post, \{ closeAttribute: "data-close-viewer-comments", loading: true \}\)/);
+  assert.match(app, /wirePostActions\(panel, mediaViewerState\?\.items \|\| currentFeedPosts\)/);
+  assert.match(app, /root\.querySelectorAll\("\[data-comment-form\]"\)\.forEach\(\(f\) => f\.addEventListener\("submit", submitComment\)\)/);
+  assert.doesNotMatch(app, /data-viewer-comment-form|viewer-comment-create/);
   assert.match(feedStyles, /\.reelViewer\.viewerCommentsOpen \.viewerTopBar\{display:none!important\}/);
   assert.match(feedStyles, /\.clipCommentsDrawer:not\(\.hidden\),[\s\S]*?\.reelViewer\.viewerCommentsOpen \.viewerCommentsPanel\{[\s\S]*?grid-template-rows:auto auto minmax\(0,1fr\) auto!important/);
   assert.match(feedStyles, /\.reelViewer\.viewerCommentsOpen \.viewerCommentsPanel\{[\s\S]*?position:absolute!important;inset:34dvh 0 0!important/);
@@ -69,9 +73,10 @@ test("reply trees start collapsed and disclose one direct reply at a time", () =
 test("comment mode keeps controls quiet and cards compact", () => {
   assert.match(app, /viewerPlay\.hidden = viewer\.classList\.contains\("viewerCommentsOpen"\) \? true : !viewerVideo\?\.paused/);
   assert.match(feedStyles, /\.clipStage\.commentsOpen \.clipPlayState,[\s\S]*?\.reelViewer\.viewerCommentsOpen \.viewerPlayState\{display:none!important\}/);
-  assert.match(feedStyles, /\.clipCommentsDrawer>\.clist,[\s\S]*?padding:7px 14px 10px!important/);
-  assert.match(feedStyles, /grid-template-columns:40px minmax\(0,1fr\)!important;gap:9px!important/);
-  assert.match(feedStyles, /width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important/);
+  assert.match(feedStyles, /\.clipCommentsDrawer>\.clist,[\s\S]*?padding:7px 20px 10px!important/);
+  assert.match(feedStyles, /max-width:520px!important;margin:0 auto 5px!important/);
+  assert.match(feedStyles, /grid-template-columns:36px minmax\(0,1fr\)!important;gap:8px!important/);
+  assert.match(feedStyles, /width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important/);
   assert.match(feedStyles, /object-fit:cover!important;object-position:center!important;border-radius:50%!important/);
   assert.match(feedStyles, /width:30px!important;height:30px!important;min-width:30px!important;min-height:30px!important/);
   assert.match(feedStyles, /body \.reelViewer\.viewerCommentsOpen \.viewerActionRail\{[\s\S]*?opacity:1!important;visibility:visible!important/);

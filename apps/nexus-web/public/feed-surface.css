@@ -2775,7 +2775,7 @@ body .reelViewer .viewerActionRail :is(.viewerPrimaryReaction,.reactionMetric,.r
   margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
 }
 .commentBody>p{
-  min-height:18px!important;max-height:108px!important;-webkit-line-clamp:6!important;
+  min-height:18px!important;max-height:54px!important;-webkit-line-clamp:3!important;
   color:#f1f2f3!important;font-size:12px!important;line-height:18px!important;
 }
 .commentRow.commentExpanded .commentBody>p{
@@ -2897,9 +2897,9 @@ body .reelViewer.viewerCommentsOpen .viewerCommentsPanel .viewerStage>img{
   flex:0 0 auto!important;margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
 }
 .reelViewer.viewerCommentsOpen .commentBody>p{
-  min-height:18px!important;max-height:108px!important;margin:0!important;color:#f0f1f2!important;
+  min-height:18px!important;max-height:54px!important;margin:0!important;color:#f0f1f2!important;
   font-size:12px!important;line-height:18px!important;display:-webkit-box!important;
-  -webkit-box-orient:vertical!important;-webkit-line-clamp:6!important;overflow:hidden!important;
+  -webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;
 }
 .reelViewer.viewerCommentsOpen .commentBody>p .replyContext{display:inline!important;margin-inline-end:4px!important}
 .reelViewer.viewerCommentsOpen .commentRow.commentExpanded .commentBody>p{
@@ -3012,7 +3012,7 @@ body .reelViewer.viewerCommentsOpen .viewerCommentsPanel .viewerStage>img{
   margin-inline-start:auto!important;color:#777d84!important;font-size:9px!important;line-height:18px!important;
 }
 .reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentBody>p{
-  min-height:18px!important;max-height:108px!important;-webkit-line-clamp:6!important;
+  min-height:18px!important;max-height:54px!important;-webkit-line-clamp:3!important;
   color:#f1f2f3!important;font-size:12px!important;line-height:18px!important;
 }
 .reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow.commentExpanded .commentBody>p{
@@ -3166,5 +3166,31 @@ body .reelViewer.viewerCommentsOpen .viewerActionRail{
   .phoneScreen .pulsePosts.clipFirst .clipCard>.reactionBar.expanded.reactionPopoverAnchored{
     width:min(282px,calc(100vw - 70px))!important;padding-inline:3px!important;gap:1px!important;
   }
+}
+
+/* One compact comment-card measure for both entry points. The extra side breathing room prevents
+   cards from reading like full-width panels while preserving identical thread geometry. */
+.clipCommentsDrawer>.clist,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{
+  padding:7px 20px 10px!important;
+}
+.clipCommentsDrawer .commentThread,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentThread{
+  width:100%!important;max-width:520px!important;margin:0 auto 5px!important;
+}
+.clipCommentsDrawer .commentRow,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow{
+  min-height:70px!important;margin:0 0 5px!important;padding:7px 9px!important;
+  padding-inline-start:calc(9px + min(var(--reply-depth),3)*11px)!important;
+  grid-template-columns:36px minmax(0,1fr)!important;gap:8px!important;
+  border-radius:11px!important;
+}
+.clipCommentsDrawer .commentRow>.commentAvatar,
+.reelViewer.viewerCommentsOpen .viewerCommentsPanel .commentRow>.commentAvatar{
+  width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;
+}
+@media(max-width:360px){
+  .clipCommentsDrawer>.clist,
+  .reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{padding-inline:14px!important}
 }
 

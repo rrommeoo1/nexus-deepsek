@@ -40,9 +40,9 @@ const accountLifecycle = await readFile(new URL("../lib/account-lifecycle.js", i
 const accountPurge = await readFile(new URL("../scripts/account-purge.mjs", import.meta.url), "utf8");
 const operationalControls = await readFile(new URL("../lib/operational-controls.js", import.meta.url), "utf8");
 const incidentControl = await readFile(new URL("../scripts/incident-control.mjs", import.meta.url), "utf8");
-const appAssetVersion = "20260927-comments19";
+const appAssetVersion = "20260928-comments20";
 const appAssetPattern = new RegExp(`app\\.js\\?v=${appAssetVersion}`);
-const localeAssetPattern = /interface-locale\.js\?v=20260927-comments19/;
+const localeAssetPattern = /interface-locale\.js\?v=20260928-comments20/;
 const stylesAssetPattern = /styles\.css\?v=20260923-wave14i/;
 const backupRestore = await readFile(new URL("../lib/backup-restore.js", import.meta.url), "utf8");
 const recoveryDrill = await readFile(new URL("../scripts/backup-restore-drill.mjs", import.meta.url), "utf8");
