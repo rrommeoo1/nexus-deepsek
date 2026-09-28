@@ -484,7 +484,7 @@ test("the feed opens immersive on a phone while the optional card presentation r
   // A thread opened inside a card is a panel under the media, not a sheet floating over a screen.
   assert.match(css, /clipCard\.commentsExpanded>\.clipCommentsDrawer\{position:static!important;height:auto!important;max-height:52dvh!important/);
   // The surface ships its own stylesheet, tagged with the wave, the way the profile and the post page do.
-  assert.match(index, /feed-surface\.css\?v=20260928-comments23/);
+  assert.match(index, /feed-surface\.css\?v=20260928-comments24/);
   assert.match(css, /\.pulsePosts\.feedReels \.clipQuickActions>\.clipRailAvatar\{[\s\S]*margin-bottom:14px!important;/);
   assert.equal(app.includes("./feed-surface.js?v=20260926-source2"), true);
 });

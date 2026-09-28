@@ -19,7 +19,7 @@ import {
   handleCallState, handleCallSignal, restoreCurrentCalls, endCurrentCall,
 } from "./call-client.js?v=20260906-p2decrypt1";
 import { initializeModalAccessibility as initializeSharedModalAccessibility } from "./modal-accessibility.js";
-import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260928-comments20";
+import { applyInterfaceLocale, createInterfaceTranslator, resolveInterfaceLocale } from "./interface-locale.js?v=20260928-comments24";
 import {
   FEED_MODE_CONTRACT, nextFeedMode, feedModeSwitchMarkup,
   feedHeaderActionsMarkup, feedDrawerEndMarkup, bindFeedModeRail, clipCreatorAvatarMarkup,
@@ -29,9 +29,9 @@ import {
 } from "./feed-surface.js?v=20260926-source2";
 import { createFeedHub } from "./feed-hub.js?v=20260923-wave14i";
 import { NAV_LABEL_KEYS, navFaceMarkup, navIconMarkup } from "./nav-marks.js?v=20260923-wave14i";
-import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260928-comments20";
+import { reelsViewerHeaderMarkup, solidViewerIcon } from "./reels-reference.js?v=20260928-comments24";
 import { expandableCaptionMarkup, bindExpandableCaptions } from "./reel-caption.js?v=20260923-wave14i";
-import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260928-comments20";
+import { bindDoubleTapHeart, showDoubleTapHeart } from "./double-tap-heart.js?v=20260928-comments24";
 import { bindCaptionTranslations, captionTranslationButtonMarkup } from "./caption-translation.js?v=20260925-dynamic1";
 import { createLatestRequestGate, createSingleFlightGate } from "./latest-request.js?v=20260904-p1locale3";
 import { planDraftEvictions, localDraftId } from "./draft-policy.js?v=20260912-camera3";
@@ -42,12 +42,12 @@ import { renderDatingWorkspace, renderPriveGate } from "./dating-module.js?v=202
 import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
-import { createPostDetailSurface } from "./post-detail.js?v=20260928-comments20";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-comments20";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-comments20";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-comments20";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-comments20";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20260928-comments20";
+import { createPostDetailSurface } from "./post-detail.js?v=20260928-comments24";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-comments24";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-comments24";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-comments24";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-comments24";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20260928-comments24";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -3600,7 +3600,7 @@ function renderCommentLine(comment, postId = null, depth = 0, parentHandle = "")
   return '<article class="c commentRow ' + (depth ? "reply" : "") + '" data-comment-id="' + Number(comment.id || 0) + '" style="--reply-depth:' + Math.min(5, Math.max(0, Number(depth) || 0)) + '">'
     + '<button class="commentAvatar" type="button" data-creator-profile="' + esc(comment.handle || "user") + '" aria-label="' + esc(t("post.viewProfile") + " " + name) + '">' + avatar + '</button>'
     + '<div class="commentBody"><header><b><bdi dir="auto">' + esc(name) + '</bdi></b><small class="commentHandle"><bdi dir="ltr">@' + esc(comment.handle || "user") + '</bdi></small>' + (timestamp ? '<time>' + esc(timestamp) + '</time>' : '') + controls + '</header>'
-    + '<p>' + replyingTo + text + '</p>' + expandControl + commentActions + '</div></article>';
+    + '<div class="commentTextBlock"><p>' + replyingTo + text + '</p>' + expandControl + '</div>' + commentActions + '</div></article>';
 }
 
 function renderCommentThread(comments, postId = null) {
@@ -3727,7 +3727,7 @@ function wireCommentExpansions(scope) {
     if (button.dataset.commentExpandBound === "1") return;
     button.dataset.commentExpandBound = "1";
     const row = button.closest(".commentRow");
-    const paragraph = row?.querySelector(".commentBody>p");
+    const paragraph = row?.querySelector(".commentTextBlock>p");
     if (!row || !paragraph) return;
     requestAnimationFrame(() => {
       if (!button.isConnected || !paragraph.isConnected) return;
