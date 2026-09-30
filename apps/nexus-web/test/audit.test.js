@@ -152,7 +152,7 @@ test("browser resumable upload preserves idempotency across lost responses and f
 
 test("Social shell has one global create entry and a compact top-only mode switcher", () => {
   assert.match(app, /button data-slot/);
-  assert.match(app, /slot === "create"\) \{ openCreateHub\(\)/);
+  assert.match(app, /slot === "create"\) \{ openComposer\("post", \{ camera: true, source: "camera" \}\)/);
   assert.match(app, /modeBadge"\)\.addEventListener\("click", openProfileSwitcher\)/);
   assert.match(app, /if \(document\.getElementById\("profileSwitcherBackdrop"\)\) return closeProfileSwitcher\(\)/);
   assert.match(app, /closeSocialFeedSwitcher\(\);\s*closeSocialFriendsSwitcher\(\);/);

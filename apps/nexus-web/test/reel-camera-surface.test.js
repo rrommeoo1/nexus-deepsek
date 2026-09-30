@@ -8,7 +8,7 @@ const t = (key) => key;
 
 test("Reel camera exposes the requested capture modes and bounded tools", () => {
   const markup = reelCameraMarkup({ esc, t, clipMode: true });
-  for (const token of ["cameraAddSound", 'data-camera-duration="600"', 'data-camera-duration="60"', 'data-camera-duration="15"', 'data-camera-mode="photo"', 'data-camera-mode="text"', "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", 'data-camera-destination="live"']) {
+  for (const token of ["cameraAddSound", 'data-camera-duration="600"', 'data-camera-duration="60"', 'data-camera-duration="15"', 'data-camera-mode="photo"', 'data-camera-mode="text"', "cameraSpeed", "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraToolsMore", 'data-camera-destination="live"']) {
     assert.match(markup, new RegExp(token));
   }
   assert.match(markup, /cameraCountdown/);

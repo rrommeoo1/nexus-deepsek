@@ -2072,7 +2072,7 @@ function navigate(slot) {
     activeConversationId = null;
   }
   activeSlot = slot;
-  if (slot === "create") { openCreateHub(); return; }
+  if (slot === "create") { openComposer("post", { camera: true, source: "camera" }); return; }
   if (slot === "primary") { goHome(); return; }
   renderNav();
   if (slot === "inbox") { inboxBox = "inbox"; inboxFilter = state.persona; activeConversationId = null; selectModule("chat"); }
@@ -6787,8 +6787,21 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     event.currentTarget.setAttribute("aria-pressed", String(Boolean(timerSeconds)));
     event.currentTarget.querySelector("small").textContent = timerSeconds ? `${timerSeconds}s` : "Timer";
   });
+  document.getElementById("cameraSpeed")?.addEventListener("click", (event) => {
+    const current = Number(event.currentTarget.dataset.speed || 1);
+    const next = current === 1 ? .5 : current === .5 ? 2 : 1;
+    event.currentTarget.dataset.speed = String(next);
+    event.currentTarget.querySelector("i").textContent = `${next}×`;
+    if (form?.elements?.playback_rate) form.elements.playback_rate.value = String(next);
+  });
   document.getElementById("cameraBeauty")?.addEventListener("click", (event) => {
     beauty = !beauty; event.currentTarget.setAttribute("aria-pressed", String(beauty)); applyFilter();
+  });
+  document.getElementById("cameraToolsMore")?.addEventListener("click", (event) => {
+    const tools = event.currentTarget.closest(".reelCameraTools");
+    const collapsed = tools.classList.toggle("collapsed");
+    event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
+    event.currentTarget.querySelector("i").textContent = collapsed ? "⌃" : "⌄";
   });
   document.getElementById("cameraLayout")?.addEventListener("click", (event) => {
     camera.classList.toggle("layoutOn"); event.currentTarget.setAttribute("aria-pressed", String(camera.classList.contains("layoutOn")));
