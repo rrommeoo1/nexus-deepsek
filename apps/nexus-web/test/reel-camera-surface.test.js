@@ -12,6 +12,11 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
     assert.match(markup, new RegExp(token));
   }
   assert.match(markup, /cameraCountdown/);
+  assert.match(markup, /reelCameraCapture[\s\S]*reelCameraGallery[\s\S]*reelCameraModes/);
+  assert.doesNotMatch(markup, /reelCameraCapture"><button[^>]+cameraGallery/);
+  const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
+  assert.match(styles, /reelCamera > video[^}]+height:\s*calc\(100% - 96px\)/);
+  assert.match(styles, /reelCamera #cameraGallery[^}]+bottom:\s*max\(17px/);
 });
 
 test("sound catalogue keeps discovery, search, trim, favorites and recent on one surface", () => {
