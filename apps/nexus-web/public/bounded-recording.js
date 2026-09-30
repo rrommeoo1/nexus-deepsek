@@ -6,7 +6,7 @@ export function createCameraRecorder(stream, Recorder = MediaRecorder) {
 export function cameraRecovery(camera, stopCamera, notify, message) {
   stopCamera();
   camera.querySelector('.cameraRecovery').hidden = false;
-  camera.querySelector('small').textContent = message;
+  (camera.querySelector('.reelCameraStatus') || camera.querySelector('small')).textContent = message;
   notify(message);
 }
 

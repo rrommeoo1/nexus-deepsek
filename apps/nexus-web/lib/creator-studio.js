@@ -6,6 +6,7 @@ export const CREATOR_FILTERS = Object.freeze(["NONE", "VIVID", "WARM", "COOL", "
 export const CREATOR_OVERLAY_POSITIONS = Object.freeze(["TOP", "CENTER", "BOTTOM"]);
 export const CREATOR_OVERLAY_COLORS = Object.freeze(["WHITE", "BLACK", "TEAL", "YELLOW"]);
 export const CREATOR_AUDIO_RIGHTS = Object.freeze(["ORIGINAL_OWNED", "LICENSED_WITH_PERMISSION"]);
+export const CREATOR_VIDEO_MAX_MS = 600_000;
 
 const MANIFEST_KEYS = ["version", "aspect", "filter", "intensity", "trimStartMs", "trimEndMs", "playbackRate", "muteOriginal", "overlay"];
 const OVERLAY_KEYS = ["text", "position", "color"];
@@ -31,7 +32,7 @@ export function normalizeCreatorStudio(input, { mediaKind } = {}) {
   if (input == null) {
     input = {
       version: CREATOR_STUDIO_VERSION, aspect: "ORIGINAL", filter: "NONE", intensity: 0,
-      trimStartMs: 0, trimEndMs: mediaKind === "video" ? 180_000 : 0,
+      trimStartMs: 0, trimEndMs: mediaKind === "video" ? CREATOR_VIDEO_MAX_MS : 0,
       playbackRate: 1, muteOriginal: false,
       overlay: { text: "", position: "BOTTOM", color: "WHITE" },
     };
@@ -50,8 +51,8 @@ export function normalizeCreatorStudio(input, { mediaKind } = {}) {
     if (input.trimStartMs !== 0 || input.trimEndMs !== 0 || input.playbackRate !== 1 || input.muteOriginal) {
       throw new Error("CREATOR_STUDIO_IMAGE_TIMELINE_INVALID");
     }
-  } else if (!boundedInteger(input.trimStartMs, 0, 179_999)
-    || !boundedInteger(input.trimEndMs, 1, 180_000)
+  } else if (!boundedInteger(input.trimStartMs, 0, CREATOR_VIDEO_MAX_MS - 1)
+    || !boundedInteger(input.trimEndMs, 1, CREATOR_VIDEO_MAX_MS)
     || input.trimStartMs >= input.trimEndMs) {
     throw new Error("CREATOR_STUDIO_VIDEO_TIMELINE_INVALID");
   }

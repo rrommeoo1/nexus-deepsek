@@ -81,7 +81,7 @@ test('factory preserves WebM upload contract and recovery restores a usable came
   assert.equal(recorder.stream, stream);
   assert.equal(recorder.options.mimeType, 'video/webm;codecs=vp8,opus');
   const recovery = { hidden: true }, status = { textContent: '' }, actions = [];
-  cameraRecovery({ querySelector: (selector) => selector === 'small' ? status : recovery }, () => actions.push('stop'), (message) => actions.push(message), 'Încearcă din nou');
+  cameraRecovery({ querySelector: (selector) => selector === '.cameraRecovery' ? recovery : status }, () => actions.push('stop'), (message) => actions.push(message), 'Încearcă din nou');
   assert.deepEqual(actions, ['stop', 'Încearcă din nou']);
   assert.equal(recovery.hidden, false);
   assert.equal(status.textContent, 'Încearcă din nou');

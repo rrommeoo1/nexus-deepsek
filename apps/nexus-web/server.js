@@ -79,7 +79,7 @@ function createApp({ db, repo, sse }) {
     res.setHeader("Origin-Agent-Cluster", "?1");
     res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
     res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(self)");
-    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: https://*.jamendo.com; font-src 'self'; connect-src 'self' https://*.multiversx.com https://*.walletconnect.com wss://*.walletconnect.com; worker-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
+    res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.jamendo.com; media-src 'self' blob: https://*.jamendo.com; font-src 'self'; connect-src 'self' https://*.multiversx.com https://*.walletconnect.com wss://*.walletconnect.com; worker-src 'none'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'");
     if (process.env.NODE_ENV === "production") {
       res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
     }

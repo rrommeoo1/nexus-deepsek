@@ -4,7 +4,7 @@ import { classifyBrightness, classifyMotion, reelSoundProfile } from "../public/
 import { buildJamendoTracksUrl, jamendoProfile, normalizeJamendoTrack, signJamendoSelection, verifyJamendoSelection } from "../lib/jamendo.js";
 import { openDb } from "../lib/db.js";
 import { createRepo } from "../lib/repo.js";
-import { normalizeCreatorStudio } from "../lib/creator-studio.js";
+import { CREATOR_VIDEO_MAX_MS, normalizeCreatorStudio } from "../lib/creator-studio.js";
 import { handleRequest } from "../lib/api.js";
 import { issueSession } from "../lib/security.js";
 
@@ -39,15 +39,23 @@ test("Jamendo request stays on the free read API and enforces permissive CC filt
   assert.equal(segment, 60);
 });
 
+test("the 10 minute camera mode is accepted end to end but remains strictly bounded", () => {
+  const base = { version: 1, aspect: "VERTICAL_9_16", filter: "NONE", intensity: 0, trimStartMs: 0, trimEndMs: CREATOR_VIDEO_MAX_MS, playbackRate: 1, muteOriginal: false, overlay: { text: "", position: "BOTTOM", color: "WHITE" } };
+  assert.equal(normalizeCreatorStudio(base, { mediaKind: "video" }).trimEndMs, 600_000);
+  assert.throws(() => normalizeCreatorStudio({ ...base, trimEndMs: 600_001 }, { mediaKind: "video" }), /TIMELINE_INVALID/);
+});
+
 test("only Jamendo HTTPS audio with CC BY is accepted and the selection token is tamper evident", () => {
   const track = normalizeJamendoTrack({
     id: "123", name: "Clear Sky", artist_name: "Ada", duration: 180,
     audio: "https://prod-100.storage.jamendo.com/?trackid=123&format=mp31",
+    image: "https://usercontent.jamendo.com?type=album&id=123&width=300",
     shareurl: "https://www.jamendo.com/track/123/clear-sky",
     license_ccurl: "http://creativecommons.org/licenses/by/3.0/",
   }, 30);
   assert.equal(track.license, "CC BY");
   assert.equal(track.license_url, "https://creativecommons.org/licenses/by/3.0/");
+  assert.match(track.image_url, /^https:\/\/usercontent\.jamendo\.com/);
   const token = signJamendoSelection(track, "test-secret", 1_000);
   assert.deepEqual(verifyJamendoSelection(token, "test-secret", 2_000), track);
   assert.equal(verifyJamendoSelection(token + "x", "test-secret", 2_000), null);
@@ -63,7 +71,7 @@ test("a Reel persists only the Jamendo reference and keeps it inside the post co
     repo.ensurePersona(author.id, "social", { visibility: "public" });
     const media = repo.insertMedia({ hash: "d".repeat(64), ext: "mp4", mime: "video/mp4", detectedMime: "video/mp4", kind: "video", size: 20, uploadedBy: author.id, purpose: "social_post", scanStatus: "ready_local_validation", scanReason: "fixture" });
     const manifest = normalizeCreatorStudio({ version: 1, aspect: "VERTICAL_9_16", filter: "NONE", intensity: 0, trimStartMs: 0, trimEndMs: 30_000, playbackRate: 1, muteOriginal: true, overlay: { text: "", position: "BOTTOM", color: "WHITE" } }, { mediaKind: "video" });
-    const externalAudio = normalizeJamendoTrack({ id: "77", name: "Open Air", artist_name: "Mara", duration: 180, audio: "https://prod-100.storage.jamendo.com/?trackid=77&format=mp31", shareurl: "https://www.jamendo.com/track/77/open-air", license_ccurl: "https://creativecommons.org/licenses/by/4.0/" }, 30);
+    const externalAudio = { ...normalizeJamendoTrack({ id: "77", name: "Open Air", artist_name: "Mara", duration: 180, audio: "https://prod-100.storage.jamendo.com/?trackid=77&format=mp31", shareurl: "https://www.jamendo.com/track/77/open-air", license_ccurl: "https://creativecommons.org/licenses/by/4.0/" }, 30), preview_offset: 45 };
     const post = repo.createPost({ userId: author.id, persona: "social", kind: "video", caption: "Reel", mediaId: media.id, mediaEdit: manifest, externalAudio });
     assert.deepEqual(post.external_audio, externalAudio);
     assert.equal(post.audio, null);

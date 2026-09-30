@@ -585,6 +585,7 @@ export function createRepo(db) {
       const normalizedExternalAudio = externalAudio && externalAudio.provider === "jamendo" ? {
         provider: "jamendo", id: String(externalAudio.id), name: String(externalAudio.name), artist: String(externalAudio.artist),
         duration: Number(externalAudio.duration), audio_url: String(externalAudio.audio_url), share_url: String(externalAudio.share_url),
+        image_url: String(externalAudio.image_url || ""),
         license_url: String(externalAudio.license_url), license: String(externalAudio.license), attribution: String(externalAudio.attribution),
         segment_seconds: Number(externalAudio.segment_seconds), preview_offset: Number(externalAudio.preview_offset || 0),
       } : null;
@@ -666,9 +667,9 @@ export function createRepo(db) {
             const value = JSON.parse(row.external_audio_json);
             const normalized = normalizeJamendoTrack({
               id: value?.id, name: value?.name, artist_name: value?.artist, duration: value?.duration,
-              audio: value?.audio_url, shareurl: value?.share_url, license_ccurl: value?.license_url,
+              audio: value?.audio_url, shareurl: value?.share_url, license_ccurl: value?.license_url, image: value?.image_url,
             }, value?.segment_seconds);
-            return normalized?.id === String(value?.id) ? normalized : null;
+            return normalized?.id === String(value?.id) ? { ...normalized, preview_offset: Number(value?.preview_offset || 0) } : null;
           } catch { return null; }
         })(),
       };

@@ -63,12 +63,21 @@ function isJamendoShareUrl(value) {
   } catch { return false; }
 }
 
+function isJamendoImageUrl(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(String(value));
+    return url.protocol === "https:" && (url.hostname === "jamendo.com" || url.hostname.endsWith(".jamendo.com"));
+  } catch { return false; }
+}
+
 export function normalizeJamendoTrack(track, segmentSeconds) {
   const id = String(track?.id || "");
   const name = String(track?.name || "").trim().slice(0, 160);
   const artist = String(track?.artist_name || "").trim().slice(0, 160);
   const audio = String(track?.audio || "");
   const shareUrl = String(track?.shareurl || track?.shorturl || "");
+  const imageUrl = String(track?.image || track?.album_image || "");
   const licenseUrl = String(track?.license_ccurl || "").replace(/^http:\/\//i, "https://");
   const duration = Math.round(Number(track?.duration || 0));
   if (!/^\d{1,18}$/.test(id) || !name || !artist || duration < 15 || !isJamendoAudioUrl(audio) || !isJamendoShareUrl(shareUrl) || !isPermissiveCcAttribution(licenseUrl)) return null;
@@ -76,6 +85,7 @@ export function normalizeJamendoTrack(track, segmentSeconds) {
   const previewOffset = Math.max(0, Math.min(15, duration - segment));
   return {
     provider: "jamendo", id, name, artist, duration, audio_url: audio, share_url: shareUrl,
+    image_url: isJamendoImageUrl(imageUrl) ? imageUrl : "",
     license_url: licenseUrl, license: "CC BY", attribution: `${name} — ${artist}`,
     segment_seconds: segment, preview_offset: previewOffset,
   };
@@ -104,7 +114,7 @@ export function verifyJamendoSelection(token, secret, now = Date.now()) {
     const track = parsed.track;
     return track?.provider === "jamendo" && normalizeJamendoTrack({
       id: track.id, name: track.name, artist_name: track.artist, duration: track.duration,
-      audio: track.audio_url, shareurl: track.share_url, license_ccurl: track.license_url,
+      audio: track.audio_url, shareurl: track.share_url, license_ccurl: track.license_url, image: track.image_url,
     }, track.segment_seconds) ? track : null;
   } catch { return null; }
 }

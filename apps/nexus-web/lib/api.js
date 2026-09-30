@@ -3560,10 +3560,17 @@ export async function handleRequest(req, res, ctx) {
       audioMediaId = audio.id;
     }
     if (audioMediaId && kind === "text") return json(res, 400, { ok: false, error: "creator audio requires image or video" });
-    const externalAudio = body.jamendo_selection_token
+    const verifiedExternalAudio = body.jamendo_selection_token
       ? verifyJamendoSelection(sanitizeText(body.jamendo_selection_token, 4096), sessionSecret())
       : null;
-    if (body.jamendo_selection_token && !externalAudio) return json(res, 400, { ok: false, error: "Jamendo selection invalid or expired" });
+    if (body.jamendo_selection_token && !verifiedExternalAudio) return json(res, 400, { ok: false, error: "Jamendo selection invalid or expired" });
+    const requestedPreviewOffset = Number(body.jamendo_preview_offset);
+    const externalAudio = verifiedExternalAudio ? {
+      ...verifiedExternalAudio,
+      preview_offset: Number.isFinite(requestedPreviewOffset)
+        ? Math.max(0, Math.min(Math.floor(requestedPreviewOffset), Math.max(0, verifiedExternalAudio.duration - verifiedExternalAudio.segment_seconds)))
+        : verifiedExternalAudio.preview_offset,
+    } : null;
     if (externalAudio && kind !== "video") return json(res, 400, { ok: false, error: "Jamendo audio requires a video" });
     if (externalAudio && audioMediaId) return json(res, 400, { ok: false, error: "choose one audio source" });
     let studioManifest;

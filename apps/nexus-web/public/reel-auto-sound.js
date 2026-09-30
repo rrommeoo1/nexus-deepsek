@@ -145,7 +145,7 @@ function button(label, className = "") {
   return element;
 }
 
-export function mountReelAutoSound({ panel, video, file, api, onSelection, isCurrent = () => true }) {
+export function mountReelAutoSound({ panel, video, file, api, onSelection, isCurrent = () => true, preferredTrack = null }) {
   if (!panel || !video || !file) return () => {};
   let alive = true;
   let tracks = [];
@@ -212,7 +212,7 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
       option.onclick = () => choose(track);
       alternatives.append(option);
     }
-    if (tracks.length) choose(tracks[0]);
+    if (tracks.length) choose(tracks.find((track) => track.id === preferredTrack?.id) || tracks[0]);
   };
   let analysis;
   const request = async (query = "") => {
@@ -236,11 +236,12 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
     paintTracks(result.tracks);
   };
   search.addEventListener("submit", (event) => { event.preventDefault(); const query = searchInput.value.trim(); if (query) request(query).catch(() => { if (alive) status.textContent = "Căutarea nu a reușit. Încearcă din nou."; }); });
+  if (preferredTrack) paintTracks([preferredTrack]);
   analyzeReelVideo(file).then((value) => {
     if (!alive || !isCurrent()) return;
     analysis = value;
     status.textContent = `${value.motion === "dynamic" ? "Dinamic" : value.motion === "static" ? "Static" : "Mișcare moderată"} · ${value.brightness === "bright" ? "luminos" : value.brightness === "dark" ? "întunecat" : "lumină echilibrată"}`;
-    return request();
+    return preferredTrack ? undefined : request();
   }).catch(() => { if (alive) status.textContent = "Clipul nu a putut fi analizat; poți adăuga audio manual."; });
   return () => { alive = false; clearSelection(); panel.hidden = true; };
 }
