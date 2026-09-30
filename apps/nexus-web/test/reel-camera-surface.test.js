@@ -17,6 +17,18 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
   assert.match(styles, /reelCamera > video[^}]+height:\s*calc\(100% - 96px\)/);
   assert.match(styles, /reelCamera #cameraGallery[^}]+bottom:\s*max\(17px/);
+  assert.doesNotMatch(markup, /cameraGalleryRecovery/);
+});
+
+test("global Create opens the rear live camera and media import stays explicit", () => {
+  const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+  assert.match(source, /slot === "create"[^\n]+openComposer\("post", \{ camera: true, source: "camera" \}\)/);
+  assert.match(source, /const selfieFirst = options\.facing === "user"/);
+  const start = source.slice(source.indexOf("async function startComposerCamera("), source.indexOf("async function openViewerComments("));
+  assert.match(start, /facingMode = "environment"/);
+  assert.match(start, /getUserMedia\(\{ video: \{ facingMode \}, audio: false \}\)/);
+  assert.doesNotMatch(start, /\.click\(\)|openNativePicker/);
+  assert.match(source, /cameraGallery"\)\?\.addEventListener\("click", openGallery\)/);
 });
 
 test("sound catalogue keeps discovery, search, trim, favorites and recent on one surface", () => {

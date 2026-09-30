@@ -6578,7 +6578,7 @@ function stopComposerCamera({ discardRecording = true } = {}) {
   if (stop) stop.hidden = true;
 }
 
-async function startComposerCamera(sourceInput, facingMode = "environment", openNativePicker = () => sourceInput.click()) {
+async function startComposerCamera(sourceInput, facingMode = "environment") {
   const camera = document.getElementById("composerCamera");
   const video = document.getElementById("composerCameraVideo");
   if (!camera || !video) return;
@@ -6586,14 +6586,12 @@ async function startComposerCamera(sourceInput, facingMode = "environment", open
   const request = composerCameraRequestGate.begin();
   if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
     if (!request.isCurrent() || !sourceInput.isConnected) return;
-    sourceInput.setAttribute("capture", facingMode === "user" ? "user" : "environment");
-    openNativePicker();
-    camera.querySelector(".reelCameraStatus").textContent = t("camera.nativeFallback");
+    camera.querySelector(".reelCameraStatus").textContent = t("camera.unavailable");
     camera.querySelector(".cameraRecovery")?.removeAttribute("hidden");
     return;
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
     if (!request.isCurrent() || !camera.isConnected || !video.isConnected || !sourceInput.isConnected) {
       stream.getTracks().forEach((track) => track.stop());
       return;
@@ -6699,7 +6697,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     output.hidden = true;
     return action();
   };
-  startComposerCamera(sourceInput, camera.dataset.facing || "user", openNativePicker);
+  startComposerCamera(sourceInput, camera.dataset.facing || "environment");
   updateCaptureMode();
   capture.addEventListener("click", () => withCountdown(() => {
     if (!video.videoWidth) return toast(t("camera.notReady"));
@@ -6718,10 +6716,17 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
       camera.hidden = true;
     }, "image/jpeg", .92);
   }));
-  record.addEventListener("click", () => withCountdown(() => {
+  record.addEventListener("click", () => withCountdown(async () => {
     if (!activeComposerStream || typeof MediaRecorder === "undefined") return toast(t("camera.recordUnsupported"));
     if (activeRecorder) return;
     const stream = activeComposerStream;
+    if (!stream.getAudioTracks().length) {
+      try {
+        const microphone = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        if (!camera.isConnected || activeComposerStream !== stream) { microphone.getTracks().forEach((track) => track.stop()); return; }
+        microphone.getAudioTracks().forEach((track) => stream.addTrack(track));
+      } catch { /* A Reel can still be recorded silently or receive a selected sound. */ }
+    }
     const recover = (message) => cameraRecovery(camera, stopComposerCamera, toast, message);
     let recorder;
     try { recorder = createCameraRecorder(stream); }
@@ -6747,11 +6752,10 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     stop.onclick = recording.stop;
     status.textContent = t("camera.recording");
   }));
-  document.getElementById("switchCamera").addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing === "user" ? "environment" : "user", openNativePicker));
-  document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment", openNativePicker));
+  document.getElementById("switchCamera").addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing === "user" ? "environment" : "user"));
+  document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment"));
   const openGallery = () => { stopComposerCamera(); sourceInput.removeAttribute("capture"); openNativePicker(); };
   document.getElementById("cameraGallery")?.addEventListener("click", openGallery);
-  document.getElementById("cameraGalleryRecovery")?.addEventListener("click", openGallery);
   document.getElementById("cameraClose")?.addEventListener("click", () => { stopComposerCamera(); onClose(); });
   document.getElementById("cameraAddSound")?.addEventListener("click", () => openReelSoundCatalogue({
     api, owner, current: currentSound(), onSelect: (track) => {
@@ -7090,7 +7094,7 @@ function openComposer(mode = "post", options = {}) {
   const selectedPersona = state.persona;
   const socialMode = selectedPersona === "social";
   const storyMode = socialMode && mode === "story";
-  const selfieFirst = socialMode && Boolean(options.camera);
+  const selfieFirst = options.facing === "user";
   const tweetMode = socialMode && !storyMode && options.source === "tweet";
   const mediaFirst = Boolean(options.camera || options.pick || storyMode || options.source === "clip");
   const sourceLabel = t(options.source === "camera" ? "composer.sourceCamera" : options.source === "story_camera" ? "composer.sourceStoryCamera" : options.source === "clip_camera" ? "composer.sourceClipCamera" : options.source === "gallery" ? "composer.sourceGallery" : options.source === "clip" ? "composer.sourceClip" : storyMode ? "composer.sourceStory" : "composer.sourceDefault");

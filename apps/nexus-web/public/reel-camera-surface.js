@@ -26,7 +26,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     '<button class="reelCameraGallery" id="cameraGallery" type="button" aria-label="' + esc(t('camera.gallery')) + '"><i>▧</i><b>+</b></button>',
     '<nav class="reelCameraModes" aria-label="Mod creare"><button type="button" data-camera-destination="camera" class="active">CAMERA</button><button type="button" data-camera-destination="create">CREATE</button><button type="button" data-camera-destination="live">LIVE</button></nav>',
     '<div class="cameraActiveBadge"><i></i><span>' + esc(t('camera.activeBadge')) + '</span></div>',
-    '<div class="cameraRecovery" hidden><button id="retryCamera" type="button">' + esc(t('camera.retry')) + '</button><button id="cameraGalleryRecovery" type="button">' + esc(t('camera.gallery')) + '</button></div>',
+    '<div class="cameraRecovery" hidden><button id="retryCamera" type="button">' + esc(t('camera.retry')) + '</button></div>',
     '<small class="reelCameraStatus">' + esc(t('camera.instruction')) + '</small>',
     '</section>',
   ].join('');
