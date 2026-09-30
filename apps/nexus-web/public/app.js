@@ -6791,13 +6791,6 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     event.currentTarget.setAttribute("aria-pressed", String(Boolean(timerSeconds)));
     event.currentTarget.querySelector("small").textContent = timerSeconds ? `${timerSeconds}s` : "Timer";
   });
-  document.getElementById("cameraSpeed")?.addEventListener("click", (event) => {
-    const current = Number(event.currentTarget.dataset.speed || 1);
-    const next = current === 1 ? .5 : current === .5 ? 2 : 1;
-    event.currentTarget.dataset.speed = String(next);
-    event.currentTarget.querySelector("i").textContent = `${next}×`;
-    if (form?.elements?.playback_rate) form.elements.playback_rate.value = String(next);
-  });
   document.getElementById("cameraBeauty")?.addEventListener("click", (event) => {
     beauty = !beauty; event.currentTarget.setAttribute("aria-pressed", String(beauty)); applyFilter();
   });
@@ -6807,11 +6800,25 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     event.currentTarget.setAttribute("aria-expanded", String(!collapsed));
     event.currentTarget.querySelector("i").textContent = collapsed ? "⌃" : "⌄";
   });
+  const layoutMenu = document.getElementById("cameraLayoutMenu");
   document.getElementById("cameraLayout")?.addEventListener("click", (event) => {
-    camera.classList.toggle("layoutOn"); event.currentTarget.setAttribute("aria-pressed", String(camera.classList.contains("layoutOn")));
+    layoutMenu.hidden = !layoutMenu.hidden;
+    event.currentTarget.setAttribute("aria-expanded", String(!layoutMenu.hidden));
   });
+  layoutMenu?.querySelectorAll("[data-camera-layout]").forEach((button) => button.addEventListener("click", () => {
+    const layout = button.dataset.cameraLayout;
+    camera.dataset.layout = layout;
+    layoutMenu.querySelectorAll("[data-camera-layout]").forEach((entry) => entry.classList.toggle("active", entry === button));
+    layoutMenu.hidden = true;
+    const trigger = document.getElementById("cameraLayout");
+    trigger?.setAttribute("aria-expanded", "false");
+    trigger?.setAttribute("aria-pressed", String(layout !== "off"));
+  }));
   document.getElementById("cameraExpand")?.addEventListener("click", (event) => {
     camera.classList.toggle("fitContain"); event.currentTarget.setAttribute("aria-pressed", String(camera.classList.contains("fitContain")));
+  });
+  document.getElementById("cameraFilters")?.addEventListener("click", (event) => {
+    const rail = document.getElementById("cameraEffectRail"); rail.hidden = !rail.hidden; event.currentTarget.setAttribute("aria-expanded", String(!rail.hidden));
   });
   document.getElementById("cameraFlash")?.addEventListener("click", async (event) => {
     const track = activeComposerStream?.getVideoTracks?.()[0];

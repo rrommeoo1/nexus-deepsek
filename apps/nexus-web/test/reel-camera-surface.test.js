@@ -8,9 +8,10 @@ const t = (key) => key;
 
 test("Reel camera exposes the requested capture modes and bounded tools", () => {
   const markup = reelCameraMarkup({ esc, t, clipMode: true });
-  for (const token of ["cameraAddSound", 'data-camera-duration="600"', 'data-camera-duration="60"', 'data-camera-duration="15"', 'data-camera-mode="photo"', 'data-camera-mode="text"', "cameraSpeed", "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraToolsMore", 'data-camera-destination="live"']) {
+  for (const token of ["cameraAddSound", 'data-camera-duration="600"', 'data-camera-duration="60"', 'data-camera-duration="15"', 'data-camera-mode="photo"', 'data-camera-mode="text"', "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraFilters", "cameraToolsMore", 'data-camera-layout="grid-four"', 'data-camera-layout="grid-six"', 'data-camera-destination="live"']) {
     assert.match(markup, new RegExp(token));
   }
+  assert.doesNotMatch(markup, /cameraSpeed/);
   assert.match(markup, /cameraCountdown/);
   assert.match(markup, /reelCameraCapture[\s\S]*reelCameraGallery[\s\S]*reelCameraModes/);
   assert.doesNotMatch(markup, /reelCameraCapture"><button[^>]+cameraGallery/);
@@ -36,4 +37,7 @@ test("sound catalogue keeps discovery, search, trim, favorites and recent on one
   for (const token of ["Hot", "For You", "Favorites", "Recent", "reelCatalogueSearch", "reelSoundTrim", "reelSoundFavorite", "preview_offset"]) {
     assert.match(source, new RegExp(token));
   }
+  const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
+  assert.match(styles, /reelSoundCatalogue[^}]+height:min\(70dvh,680px\)/);
+  assert.match(styles, /reelSoundCatalogueList[^}]+flex:1/);
 });

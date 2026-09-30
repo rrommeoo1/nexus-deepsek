@@ -12,13 +12,15 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('switchCamera', '↻', t('camera.switch')),
     button('cameraFlash', 'ϟ', 'Flash', 'aria-pressed="false" hidden'),
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
-    button('cameraSpeed', '1×', 'Speed', 'data-speed="1"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
-    button('cameraLayout', '▦', 'Layout', 'aria-pressed="false"'),
-    button('cameraExpand', '⤢', 'Expand', 'aria-pressed="false"'),
-    button('cameraBeauty', '✣', 'Beauty', 'aria-pressed="false"'),
+    button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
+    button('cameraExpand', '⤢', 'Ratio', 'aria-pressed="false"'),
+    button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
+    button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),
     '</nav>',
+    '<div class="reelCameraLayoutMenu" id="cameraLayoutMenu" role="menu" aria-label="Layout" hidden><button type="button" data-camera-layout="off" class="active"><i>Off</i></button><button type="button" data-camera-layout="split-horizontal" aria-label="Două cadre orizontale"><i>▭</i></button><button type="button" data-camera-layout="split-vertical" aria-label="Două cadre verticale"><i>▯</i></button><button type="button" data-camera-layout="three-horizontal" aria-label="Trei cadre"><i>☰</i></button><button type="button" data-camera-layout="grid-four" aria-label="Patru cadre"><i>⊞</i></button><button type="button" data-camera-layout="grid-six" aria-label="Șase cadre"><i>▦</i></button></div>',
+    '<div class="reelCameraLayoutGuide" aria-hidden="true"></div>',
     '<div class="reelCameraEffects" id="cameraEffectRail" hidden><button type="button" data-camera-filter="none" class="active"><i></i><span>Normal</span></button><button type="button" data-camera-filter="vivid"><i></i><span>Vivid</span></button><button type="button" data-camera-filter="warm"><i></i><span>Warm</span></button><button type="button" data-camera-filter="mono"><i></i><span>Mono</span></button></div>',
     '<div class="reelCameraDuration" role="tablist" aria-label="Durată"><button type="button" data-camera-duration="600">10m</button><button type="button" data-camera-duration="60" class="' + (clipMode ? 'active' : '') + '">60s</button><button type="button" data-camera-duration="15">15s</button><button type="button" data-camera-mode="photo" class="' + (clipMode ? '' : 'active') + '">PHOTO</button><button type="button" data-camera-mode="text">TEXT</button></div>',
     '<div class="reelCameraCapture"><button id="capturePhoto" type="button" class="reelShutter" aria-label="' + esc(t('camera.photo')) + '"><i></i></button><button id="recordClip" type="button" class="reelShutter reelRecord" aria-label="' + esc(t('camera.clip')) + '"><i></i></button><button id="stopRecording" type="button" class="reelShutter reelStop" aria-label="' + esc(t('camera.stop')) + '" hidden><i>■</i></button><div class="reelCameraFaces" aria-label="Efecte rapide"><button type="button" data-camera-filter="vivid">✦</button><button type="button" data-camera-filter="warm">☀</button><button type="button" data-camera-filter="mono">◐</button></div></div>',
@@ -67,6 +69,7 @@ export function openReelSoundCatalogue({ api, owner, current = null, onSelect })
     if (active === 'Favorites' && exists) paint(readTracks('favorites', owner));
   };
   const paint = (items) => {
+    list.className = 'reelSoundCatalogueList';
     tracks = items.slice(0, 12); list.replaceChildren();
     if (!tracks.length) { const empty = document.createElement('p'); empty.textContent = active === 'Favorites' ? 'Nu ai sunete favorite încă.' : 'Nu am găsit sunete.'; list.append(empty); return; }
     const favoriteIds = new Set(readTracks('favorites', owner).map((item) => item.id));
@@ -84,19 +87,19 @@ export function openReelSoundCatalogue({ api, owner, current = null, onSelect })
     }
   };
   const load = async (tab = active, query = '') => {
-    active = tab; [...nav.children].forEach((entry) => entry.classList.toggle('active', entry.dataset.tab === active)); list.textContent = 'Se caută sunete…';
+    active = tab; [...nav.children].forEach((entry) => entry.classList.toggle('active', entry.dataset.tab === active)); list.className = 'reelSoundCatalogueList loading'; list.textContent = 'Se caută sunete…';
     if (tab === 'Favorites' || tab === 'Recent') return paint(readTracks(tab.toLowerCase(), owner));
     const profile = tab === 'Hot' ? { motion: 'dynamic', brightness: 'bright' } : { motion: 'moderate', brightness: 'balanced' };
     const params = new URLSearchParams({ ...profile, duration: '30', ...(query ? { q: query } : {}) });
     const result = await api(`/api/reels/sound-suggestions?${params}`).catch(() => null);
     if (!backdrop.isConnected) return;
-    if (!result?.ok) { list.textContent = result?.code === 'JAMENDO_NOT_CONFIGURED' ? 'Jamendo trebuie configurat pentru a căuta sunete.' : 'Sunetele nu sunt disponibile momentan.'; return; }
+    if (!result?.ok) { list.className = 'reelSoundCatalogueList error'; list.textContent = result?.code === 'JAMENDO_NOT_CONFIGURED' ? 'Catalogul Jamendo nu este configurat încă.' : 'Sunetele nu sunt disponibile momentan.'; return; }
     paint(result.tracks || []);
   };
   for (const label of tabs) { const entry = document.createElement('button'); entry.type = 'button'; entry.dataset.tab = label; entry.textContent = label; entry.classList.toggle('active', label === active); entry.onclick = () => load(label); nav.append(entry); }
   nav.append(searchButton); searchButton.onclick = () => { search.hidden = !search.hidden; if (!search.hidden) input.focus(); };
   search.onsubmit = (event) => { event.preventDefault(); if (input.value.trim()) load('For You', input.value.trim()); };
-  sheet.append(grab, nav, search, list, player); backdrop.append(sheet); document.body.append(backdrop);
+  sheet.append(grab, nav, search, list, player); backdrop.append(sheet); (document.querySelector('.phoneScreen') || document.body).append(backdrop);
   backdrop.addEventListener('click', (event) => { if (event.target === backdrop) close(); });
   sheet.addEventListener('keydown', (event) => { if (event.key === 'Escape') close(); });
   load(); sheet.focus();
