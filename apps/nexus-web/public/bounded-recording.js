@@ -1,6 +1,18 @@
-export function createCameraRecorder(stream, Recorder = MediaRecorder) {
+export function cameraRecordingProfile(durationSeconds, maxBytes = 20 * 1024 * 1024) {
+  const seconds = Math.max(15, Math.min(600, Number(durationSeconds) || 60));
+  const totalBitsPerSecond = Math.floor((maxBytes * 8 * .84) / seconds);
+  const audioBitsPerSecond = Math.max(24_000, Math.min(64_000, Math.floor(totalBitsPerSecond * .12)));
+  const videoBitsPerSecond = Math.max(120_000, Math.min(2_800_000, totalBitsPerSecond - audioBitsPerSecond));
+  return Object.freeze({ durationSeconds: seconds, audioBitsPerSecond, videoBitsPerSecond });
+}
+
+export function createCameraRecorder(stream, Recorder = MediaRecorder, profile = {}) {
   const mimeType = Recorder.isTypeSupported?.('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' : 'video/webm';
-  return new Recorder(stream, { mimeType });
+  return new Recorder(stream, {
+    mimeType,
+    ...(Number(profile.videoBitsPerSecond) > 0 ? { videoBitsPerSecond: Number(profile.videoBitsPerSecond) } : {}),
+    ...(Number(profile.audioBitsPerSecond) > 0 ? { audioBitsPerSecond: Number(profile.audioBitsPerSecond) } : {}),
+  });
 }
 
 export function cameraRecovery(camera, stopCamera, notify, message) {

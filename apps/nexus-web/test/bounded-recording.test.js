@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { startBoundedRecording, createCameraRecorder, cameraRecovery } from '../public/bounded-recording.js';
+import { startBoundedRecording, createCameraRecorder, cameraRecordingProfile, cameraRecovery } from '../public/bounded-recording.js';
 
 function setup(overrides = {}) {
   const results = [], scheduled = new Map();
@@ -85,4 +85,15 @@ test('factory preserves WebM upload contract and recovery restores a usable came
   assert.deepEqual(actions, ['stop', 'Încearcă din nou']);
   assert.equal(recovery.hidden, false);
   assert.equal(status.textContent, 'Încearcă din nou');
+});
+
+test('15 second, 60 second and 10 minute camera profiles stay inside the retained upload budget', () => {
+  for (const seconds of [15, 60, 600]) {
+    const profile = cameraRecordingProfile(seconds, 20 * 1024 * 1024);
+    assert.equal(profile.durationSeconds, seconds);
+    assert.ok(profile.videoBitsPerSecond >= 120_000);
+    assert.ok(profile.audioBitsPerSecond >= 24_000);
+    const projectedBytes = ((profile.videoBitsPerSecond + profile.audioBitsPerSecond) * seconds) / 8;
+    assert.ok(projectedBytes <= 20 * 1024 * 1024 * .86);
+  }
 });

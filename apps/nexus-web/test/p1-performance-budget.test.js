@@ -76,7 +76,9 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // Jamendo audio is implemented in its own module. The camera creator wave adds the bounded
   // hardware controller glue: duration, timer, torch, filter persistence and Live handoff. The
   // sizeable camera catalogue/markup stays in reel-camera-surface.js rather than this entrypoint.
-  assert.equal(sizes.app <= 626_000, true, `app.js budget exceeded: ${sizes.app}`);
+  // The capture-recovery patch adds the bounded photo/video review transition, retake action and
+  // adaptive 15s/60s/10m recorder wiring; keep that named repair within the next 2 KB only.
+  assert.equal(sizes.app <= 628_000, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance

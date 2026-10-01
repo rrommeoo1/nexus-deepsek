@@ -18,7 +18,17 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
   assert.match(styles, /reelCamera > video[^}]+height:\s*calc\(100% - 96px\)/);
   assert.match(styles, /reelCamera #cameraGallery[^}]+bottom:\s*max\(17px/);
+  assert.match(styles, /reelCamera\[hidden\][^}]+display:\s*none\s*!important/);
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
+});
+
+test("captured camera media enters a dedicated review surface with retake and continue controls", () => {
+  const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+  assert.match(source, /cameraReviewActions/);
+  assert.match(source, /retakeCamera/);
+  assert.match(source, /continueCameraPost/);
+  assert.match(source, /classList\.add\("cameraReview"\)/);
+  assert.match(source, /camera\.hidden = false; startComposerCamera/);
 });
 
 test("global Create opens the rear live camera and media import stays explicit", () => {

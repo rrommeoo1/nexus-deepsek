@@ -3,6 +3,19 @@
 .cameraComposer:has(.reelCamera:not([hidden])) > .composerIntent,
 .cameraComposer:has(.reelCamera:not([hidden])) > form > :not(.reelCamera) { display: none !important; }
 .cameraComposer .reelCamera { position: absolute; z-index: 30; inset: 0 !important; display: block; width: 100% !important; max-width: none; height: 100% !important; max-height: none; padding: 0; overflow: hidden; border: 0 !important; border-radius: 0 !important; background: #000; color: #fff; }
+.cameraComposer .reelCamera[hidden] { display: none !important; }
+.cameraComposer.cameraReview { min-height: 100%; padding: 0; overflow-y: auto; border: 0; border-radius: 0; background: #05090d; }
+.cameraComposer.cameraReview > .composerHead,
+.cameraComposer.cameraReview > .composerIntent,
+.cameraComposer.cameraReview > form > .mediaFirstHint,
+.cameraComposer.cameraReview > form > .field:has(input[type="file"]) { display: none !important; }
+.cameraComposer.cameraReview > form { display: flex; flex-direction: column; min-height: 100%; padding: 0 12px max(14px,env(safe-area-inset-bottom)); }
+.cameraComposer.cameraReview #preview { order: -3; margin: 0 -12px 10px; }
+.cameraComposer.cameraReview #preview .previewStage { width: 100%; min-height: min(58dvh,560px); max-height: 64dvh; border-radius: 0 0 24px 24px; }
+.cameraReviewActions { order: -2; display: grid; grid-template-columns: 1fr 1.35fr; gap: 9px; margin: 0 0 10px; }
+.cameraReviewActions[hidden] { display: none !important; }
+.cameraReviewActions button { min-height: 44px; border: 1px solid #31505a; border-radius: 18px; background: #10232c; color: #dffbf8; font-weight: 750; }
+.cameraReviewActions button:last-child { border-color: #9a68ff; background: linear-gradient(135deg,#6940c9,#963cff); color: #fff; }
 .reelCamera > video { position: absolute; inset: 4px 4px 92px; display: block; width: calc(100% - 8px) !important; height: calc(100% - 96px) !important; min-height: 0 !important; border-radius: 24px !important; object-fit: cover !important; transform: scaleX(1); transition: filter .2s, object-fit .2s; }
 .reelCamera[data-facing="user"] > video { transform: scaleX(-1); }
 .reelCamera.fitContain > video { object-fit: contain; }
