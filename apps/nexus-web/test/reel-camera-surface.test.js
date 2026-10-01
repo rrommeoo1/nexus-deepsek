@@ -9,7 +9,7 @@ const t = (key) => key;
 
 test("Reel camera exposes only Photo and Video capture modes with bounded tools", () => {
   const markup = reelCameraMarkup({ esc, t, clipMode: true });
-  for (const token of ["cameraAddSound", 'data-camera-mode="photo"', 'data-camera-mode="clip"', ">PHOTO<", ">VIDEO<", "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraFilters", "cameraToolsMore", 'data-camera-layout="grid-four"', 'data-camera-layout="grid-six"', 'data-camera-destination="live"']) {
+  for (const token of ["cameraAddSound", 'data-camera-mode="photo"', 'data-camera-mode="clip"', ">PHOTO<", ">VIDEO<", "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraFilters", "cameraToolsMore", "cameraLayoutGuide", "finishLayout", 'data-camera-layout="grid-four"', 'data-camera-layout="grid-six"', 'data-camera-destination="live"']) {
     assert.match(markup, new RegExp(token));
   }
   assert.doesNotMatch(markup, /<button[^>]+data-camera-duration|>15s<|>60s<|>10m<|>TEXT</);
@@ -44,7 +44,7 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.doesNotMatch(source, /querySelectorAll\("\[data-camera-duration\]"\)/);
   assert.doesNotMatch(source, /recordingProfile\.durationSeconds\}s max/);
   const markup = reelCameraReviewMarkup();
-  for (const token of ['data-review-tool="settings"', 'data-review-tool="text"', 'data-review-tool="stickers"', 'data-review-tool="effects"', 'data-review-tool="filters"', 'cameraReviewDraft']) assert.match(markup, new RegExp(token));
+  for (const token of ['data-review-tool="settings"', 'data-review-tool="text"', 'data-review-tool="stickers"', 'data-review-tool="location"', 'data-review-tool="effects"', 'data-review-tool="filters"', 'data-sticker-search', 'data-location-gps', 'data-location-search', 'cameraReviewDraft']) assert.match(markup, new RegExp(token));
   assert.doesNotMatch(markup, /<form/);
   assert.match(source, /createComposerPreviewUrl\(file\)/);
   assert.match(source, /setCameraComposerState\("processing-recording"\)/);

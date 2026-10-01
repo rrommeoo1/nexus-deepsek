@@ -47,6 +47,9 @@ const AUTH_ATTEMPTS = new Map(); // hashed scope+subject -> timestamps (local ad
 const AUTH_ATTEMPT_MAX_BUCKETS = 10_000;
 const JAMENDO_CACHE = new Map();
 const JAMENDO_CACHE_TTL_MS = 10 * 60 * 1000;
+const LOCATION_CACHE = new Map();
+const LOCATION_CACHE_TTL_MS = 15 * 60 * 1000;
+let LOCATION_LAST_UPSTREAM_AT = 0;
 
 const WORK_AVAILABILITY = new Set(["open", "not_looking", "hiring"]);
 const WORKPLACE_TYPES = new Set(["onsite", "hybrid", "remote"]);
@@ -1626,6 +1629,58 @@ export async function handleRequest(req, res, ctx) {
   if (!auth) {
     // Everything below requires auth.
     return json(res, 401, { ok: false, error: "not signed in" });
+  }
+
+  if (method === "GET" && path === "/api/location/suggestions") {
+    const rate = enforceAuthRate(req, res, "location-suggestions", String(auth.user.id), { limit: 24, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const kind = String(url.searchParams.get("kind") || "");
+    if (!new Set(["reverse", "search", "restaurant", "hotel", "attraction"]).has(kind)) return json(res, 400, { ok: false, code: "LOCATION_KIND_INVALID", error: "tip locație invalid" });
+    const lat = Number(url.searchParams.get("lat")); const lon = Number(url.searchParams.get("lon"));
+    const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180;
+    const query = sanitizeText(url.searchParams.get("q") || "", 120);
+    if (kind === "reverse" && !hasCoordinates) return json(res, 400, { ok: false, code: "LOCATION_COORDINATES_INVALID", error: "coordonate invalide" });
+    if (kind === "search" && query.length < 2) return json(res, 400, { ok: false, code: "LOCATION_QUERY_INVALID", error: "adresa este prea scurtă" });
+    if (new Set(["restaurant", "hotel", "attraction"]).has(kind) && !hasCoordinates) return json(res, 400, { ok: false, code: "LOCATION_COORDINATES_INVALID", error: "activează GPS" });
+    const roundedLat = hasCoordinates ? lat.toFixed(4) : ""; const roundedLon = hasCoordinates ? lon.toFixed(4) : "";
+    const cacheKey = `${kind}:${roundedLat}:${roundedLon}:${query.toLowerCase()}`;
+    const cached = LOCATION_CACHE.get(cacheKey);
+    if (cached?.expiresAt > Date.now()) return json(res, 200, cached.payload);
+    if (Date.now() - LOCATION_LAST_UPSTREAM_AT < 1100) return json(res, 429, { ok: false, code: "LOCATION_RETRY", error: "așteaptă o secundă și încearcă din nou" });
+    let base;
+    try {
+      base = new URL(String(process.env.NEXUS_GEOCODER_BASE_URL || "https://nominatim.openstreetmap.org/"));
+      if (base.protocol !== "https:" || base.username || base.password) throw new Error("invalid");
+    } catch { return json(res, 503, { ok: false, code: "LOCATION_PROVIDER_INVALID", error: "serviciul de locație nu este configurat" }); }
+    const upstreamUrl = new URL(kind === "reverse" ? "reverse" : "search", base);
+    upstreamUrl.searchParams.set("format", "jsonv2"); upstreamUrl.searchParams.set("addressdetails", "1"); upstreamUrl.searchParams.set("accept-language", String(req.headers["accept-language"] || "ro,en").slice(0, 80));
+    if (kind === "reverse") { upstreamUrl.searchParams.set("lat", String(lat)); upstreamUrl.searchParams.set("lon", String(lon)); upstreamUrl.searchParams.set("zoom", "18"); }
+    else {
+      const terms = { restaurant: "restaurant", hotel: "hotel", attraction: "tourist attraction" };
+      upstreamUrl.searchParams.set("q", kind === "search" ? query : `${terms[kind]} near ${roundedLat},${roundedLon}`);
+      upstreamUrl.searchParams.set("limit", "5");
+      if (hasCoordinates) { const delta = .035; upstreamUrl.searchParams.set("viewbox", `${lon - delta},${lat + delta},${lon + delta},${lat - delta}`); upstreamUrl.searchParams.set("bounded", "1"); }
+    }
+    const controller = new AbortController(); const timeout = setTimeout(() => controller.abort(), 7000); LOCATION_LAST_UPSTREAM_AT = Date.now();
+    let upstream;
+    try { upstream = await fetcher(upstreamUrl, { headers: { accept: "application/json", "user-agent": "Nexus-Reels/1.0 (location sticker; contact via application owner)" }, signal: controller.signal }); }
+    catch { return json(res, 502, { ok: false, code: "LOCATION_UNAVAILABLE", error: "serviciul de locație nu răspunde" }); }
+    finally { clearTimeout(timeout); }
+    if (!upstream?.ok) return json(res, 502, { ok: false, code: "LOCATION_UNAVAILABLE", error: "serviciul de locație nu răspunde" });
+    let raw;
+    try { raw = await upstream.json(); } catch { return json(res, 502, { ok: false, code: "LOCATION_RESPONSE_INVALID", error: "răspuns locație invalid" }); }
+    const rows = kind === "reverse" ? [raw] : Array.isArray(raw) ? raw.slice(0, 5) : [];
+    const suggestions = [];
+    const add = (label, type) => { const value = sanitizeText(label || "", 120); if (value && !suggestions.some((item) => item.label === value)) suggestions.push({ label: value, type }); };
+    rows.forEach((row) => {
+      const address = row?.address || {}; const city = address.city || address.town || address.village || address.municipality; const area = address.suburb || address.neighbourhood || address.city_district || address.county;
+      if (kind === "reverse") { add([address.road, address.house_number, area, city].filter(Boolean).join(", "), "exact"); add([area, city].filter(Boolean).join(", "), "area"); add(city, "city"); }
+      else add(row?.display_name || row?.name, kind);
+    });
+    const payload = { ok: true, provider: "nominatim", attribution: "© OpenStreetMap contributors, ODbL", precise_location_stored: false, suggestions: suggestions.slice(0, 8) };
+    LOCATION_CACHE.set(cacheKey, { expiresAt: Date.now() + LOCATION_CACHE_TTL_MS, payload });
+    if (LOCATION_CACHE.size > 300) LOCATION_CACHE.delete(LOCATION_CACHE.keys().next().value);
+    return json(res, 200, payload);
   }
 
   if (method === "GET" && path === "/api/reels/sound-suggestions") {

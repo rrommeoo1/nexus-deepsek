@@ -1,3 +1,5 @@
+import { bindLocationSticker, bindStickerCatalogue } from './reel-editor-overlays.js?v=20261001-camera10';
+
 export function reelCameraReviewMarkup() {
   return [
     '<section class="cameraReviewActions" id="cameraReviewActions" hidden aria-label="Preview editor">',
@@ -6,12 +8,14 @@ export function reelCameraReviewMarkup() {
     '<button type="button" data-review-tool="settings"><i>⚙</i><span>Settings</span></button>',
     '<button type="button" data-review-tool="text"><i>Aa</i><span>Text</span></button>',
     '<button type="button" data-review-tool="stickers"><i>☺</i><span>Stickers</span></button>',
+    '<button type="button" data-review-tool="location"><i>⌖</i><span>Location</span></button>',
     '<button type="button" data-review-tool="effects"><i>✦</i><span>Effects</span></button>',
     '<button type="button" data-review-tool="filters"><i>◉</i><span>Filters</span></button>',
     '</nav>',
     '<section class="cameraReviewPanel" data-review-panel="settings" hidden><header><b>Settings</b><button type="button" data-review-close>×</button></header><label>Who can view<select data-review-visibility><option value="public">Everyone</option><option value="friends">Friends</option><option value="private">Only you</option></select></label><label>Content disclosure<select data-review-provenance><option value="NOT_DECLARED">Not declared</option><option value="CAMERA_CAPTURED_DECLARED">Created by me</option><option value="AI_ASSISTED">AI-assisted</option><option value="AI_GENERATED">AI-generated</option></select></label></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="text" hidden><header><b>Add text</b><button type="button" data-review-close>×</button></header><div class="cameraReviewText" data-review-text-form><input data-review-text maxlength="120" placeholder="Write on the video…"><button type="button" data-review-text-apply>Apply</button></div></section>',
-    '<section class="cameraReviewPanel compact" data-review-panel="stickers" hidden><header><b>Stickers & GIFs</b><button type="button" data-review-close>×</button></header><div class="cameraStickerGrid"><button type="button" data-review-sticker="clock">07:26<small>Clock</small></button><button type="button" data-review-sticker="location">📍<small>Location</small></button><button type="button" data-review-sticker="mood">✨<small>GIF</small></button></div></section>',
+    '<section class="cameraReviewPanel cameraStickerPanel" data-review-panel="stickers" hidden><header><b>Stickers & GIFs</b><button type="button" data-review-close>×</button></header><input class="stickerSearch" data-sticker-search type="search" placeholder="Caută stickere"><nav class="stickerCategories" data-sticker-categories aria-label="Categorii stickere"></nav><div class="cameraStickerGrid" data-sticker-grid></div><button class="stickerMore" data-sticker-more type="button">Mai multe</button><small class="stickerSource">Catalog Nexus Emoji · încărcare paginată</small></section>',
+    '<section class="cameraReviewPanel cameraLocationPanel" data-review-panel="location" hidden><header><b>Location</b><button type="button" data-review-close>×</button></header><p data-location-status>GPS-ul pornește numai dacă apeși butonul.</p><button class="locationGps" data-location-gps type="button">⌖ Folosește locația mea</button><nav class="locationPrecision" aria-label="Precizia locației"><button type="button" data-location-precision="exact">Loc exact</button><button type="button" class="active" data-location-precision="area">Zonă</button><button type="button" data-location-precision="city">Oraș</button></nav><div class="locationNearby"><button type="button" data-location-nearby="restaurant">Restaurante</button><button type="button" data-location-nearby="hotel">Hoteluri</button><button type="button" data-location-nearby="attraction">Atracții</button></div><div class="locationManual"><input data-location-manual maxlength="120" placeholder="Caută sau scrie o adresă"><button type="button" data-location-search>Caută</button><button type="button" data-location-add>Folosește textul</button></div><div class="locationResults" data-location-results></div><small>Rezultate geocodare © OpenStreetMap contributors, ODbL. Poți folosi întotdeauna text manual.</small></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="effects" hidden><header><b>Effects</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="VIVID">Glow</button><button type="button" data-review-filter="HIGH_CONTRAST">Drama</button><button type="button" data-review-filter="WARM">Sunrise</button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="filters" hidden><header><b>Filters</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="NONE">Original</button><button type="button" data-review-filter="VIVID">Vivid</button><button type="button" data-review-filter="WARM">Warm</button><button type="button" data-review-filter="MONO">Mono</button></div></section>',
     '<footer class="cameraReviewFooter"><button id="cameraReviewDraft" type="button">Save draft</button><button id="continueCameraPost" type="button">Next</button></footer>',
@@ -19,11 +23,15 @@ export function reelCameraReviewMarkup() {
   ].join('');
 }
 
-const CAMERA_STATES = new Set(['camera-loading', 'camera-ready', 'recording', 'processing-recording', 'review', 'publishing-details', 'error']);
+const CAMERA_STATES = new Set(['camera-loading', 'camera-ready', 'photo-capture', 'layout-capturing', 'layout-complete', 'recording', 'processing', 'processing-recording', 'review', 'publishing-details', 'error']);
 const CAMERA_TRANSITIONS = Object.freeze({
   'camera-loading': new Set(['camera-ready', 'error']),
-  'camera-ready': new Set(['recording', 'processing-recording', 'publishing-details', 'error']),
-  recording: new Set(['processing-recording', 'error']),
+  'camera-ready': new Set(['photo-capture', 'layout-capturing', 'recording', 'processing', 'processing-recording', 'publishing-details', 'error']),
+  'photo-capture': new Set(['layout-capturing', 'layout-complete', 'processing', 'error']),
+  'layout-capturing': new Set(['photo-capture', 'layout-complete', 'camera-ready', 'error']),
+  'layout-complete': new Set(['layout-capturing', 'processing', 'camera-ready', 'error']),
+  processing: new Set(['review', 'camera-ready', 'error']),
+  recording: new Set(['processing-recording', 'processing', 'error']),
   'processing-recording': new Set(['review', 'camera-ready', 'error']),
   review: new Set(['camera-loading', 'publishing-details', 'error']),
   'publishing-details': new Set(['camera-loading', 'review', 'error']),
@@ -60,7 +68,7 @@ export function setCameraReviewMode(visible) {
   return setCameraComposerState(visible ? 'review' : 'publishing-details', { force: true });
 }
 
-export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview }) {
+export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview, api }) {
   const root = document.querySelector('.cameraComposer');
   const form = input?.form;
   const closePanels = () => document.querySelectorAll('[data-review-panel]').forEach((panel) => { panel.hidden = true; });
@@ -89,10 +97,8 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
     const value = document.querySelector('[data-review-text]')?.value.trim();
     if (form?.elements?.overlay_text && value) { form.elements.overlay_text.value = value; applyPreview?.(); closePanels(); }
   });
-  document.querySelectorAll('[data-review-sticker]').forEach((button) => button.addEventListener('click', () => {
-    const values = { clock: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), location: '📍 Location', mood: '✨' };
-    if (form?.elements?.overlay_text) { form.elements.overlay_text.value = values[button.dataset.reviewSticker] || ''; applyPreview?.(); closePanels(); }
-  }));
+  bindStickerCatalogue({ form, applyPreview });
+  bindLocationSticker({ form, applyPreview, api });
   document.querySelectorAll('[data-review-filter]').forEach((button) => button.addEventListener('click', () => {
     if (form?.elements?.studio_filter) { form.elements.studio_filter.value = button.dataset.reviewFilter; form.elements.studio_intensity.value = button.dataset.reviewFilter === 'NONE' ? '0' : '70'; applyPreview?.(); closePanels(); }
   }));
