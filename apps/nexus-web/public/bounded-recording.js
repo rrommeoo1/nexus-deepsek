@@ -47,7 +47,13 @@ export function startBoundedRecording(recorder, {
     if (!failure) {
       if (!bytes) failure = 'EMPTY_RECORDING';
       else {
-        try { blob = new Blob(chunks, { type: recorder.mimeType || 'video/webm' }); }
+        try {
+          // MediaRecorder commonly reports `video/webm;codecs=vp8,opus`. A File's
+          // MIME is an admission boundary in the composer, so keep the container
+          // type canonical while the WebM bytes retain their codec metadata.
+          const containerType = String(recorder.mimeType || 'video/webm').split(';', 1)[0].trim().toLowerCase() || 'video/webm';
+          blob = new Blob(chunks, { type: containerType });
+        }
         catch { failure = 'RECORDING_FAILED'; }
       }
     }

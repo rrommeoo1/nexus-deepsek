@@ -32,6 +32,13 @@ test('successful recording includes exactly accepted chunks at the byte boundary
   assert.equal(x.results.length, 1);
 });
 
+test('recorded WebM codec parameters are normalized to the admitted container MIME', () => {
+  const x = setup({ recorder: { mimeType: 'video/webm;codecs=vp8,opus' } });
+  x.chunk(5); x.job.stop();
+  assert.equal(x.results[0].blob.type, 'video/webm');
+  assert.equal(x.results[0].blob.size, 5);
+});
+
 test('oversize is stopped before retaining the excess chunk, never silently publishes a partial clip', () => {
   const x = setup(); x.chunk(6); x.chunk(5);
   assert.equal(x.recorder.stops, 1);

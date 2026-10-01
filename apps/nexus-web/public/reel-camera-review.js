@@ -10,7 +10,7 @@ export function reelCameraReviewMarkup() {
     '<button type="button" data-review-tool="filters"><i>◉</i><span>Filters</span></button>',
     '</nav>',
     '<section class="cameraReviewPanel" data-review-panel="settings" hidden><header><b>Settings</b><button type="button" data-review-close>×</button></header><label>Who can view<select data-review-visibility><option value="public">Everyone</option><option value="friends">Friends</option><option value="private">Only you</option></select></label><label>Content disclosure<select data-review-provenance><option value="NOT_DECLARED">Not declared</option><option value="CAMERA_CAPTURED_DECLARED">Created by me</option><option value="AI_ASSISTED">AI-assisted</option><option value="AI_GENERATED">AI-generated</option></select></label></section>',
-    '<section class="cameraReviewPanel compact" data-review-panel="text" hidden><header><b>Add text</b><button type="button" data-review-close>×</button></header><form data-review-text-form><input data-review-text maxlength="120" placeholder="Write on the video…"><button>Apply</button></form></section>',
+    '<section class="cameraReviewPanel compact" data-review-panel="text" hidden><header><b>Add text</b><button type="button" data-review-close>×</button></header><div class="cameraReviewText" data-review-text-form><input data-review-text maxlength="120" placeholder="Write on the video…"><button type="button" data-review-text-apply>Apply</button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="stickers" hidden><header><b>Stickers & GIFs</b><button type="button" data-review-close>×</button></header><div class="cameraStickerGrid"><button type="button" data-review-sticker="clock">07:26<small>Clock</small></button><button type="button" data-review-sticker="location">📍<small>Location</small></button><button type="button" data-review-sticker="mood">✨<small>GIF</small></button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="effects" hidden><header><b>Effects</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="VIVID">Glow</button><button type="button" data-review-filter="HIGH_CONTRAST">Drama</button><button type="button" data-review-filter="WARM">Sunrise</button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="filters" hidden><header><b>Filters</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="NONE">Original</button><button type="button" data-review-filter="VIVID">Vivid</button><button type="button" data-review-filter="WARM">Warm</button><button type="button" data-review-filter="MONO">Mono</button></div></section>',
@@ -19,36 +19,60 @@ export function reelCameraReviewMarkup() {
   ].join('');
 }
 
-export function setCameraReviewMode(visible) {
+const CAMERA_STATES = new Set(['camera-loading', 'camera-ready', 'recording', 'processing-recording', 'review', 'publishing-details', 'error']);
+const CAMERA_TRANSITIONS = Object.freeze({
+  'camera-loading': new Set(['camera-ready', 'error']),
+  'camera-ready': new Set(['recording', 'processing-recording', 'publishing-details', 'error']),
+  recording: new Set(['processing-recording', 'error']),
+  'processing-recording': new Set(['review', 'camera-ready', 'error']),
+  review: new Set(['camera-loading', 'publishing-details', 'error']),
+  'publishing-details': new Set(['camera-loading', 'review', 'error']),
+  error: new Set(['camera-loading', 'camera-ready']),
+});
+
+export function setCameraComposerState(next, { force = false } = {}) {
   const root = document.querySelector('.cameraComposer');
+  if (!root || !CAMERA_STATES.has(next)) return false;
+  const current = root.dataset.cameraState || 'camera-loading';
+  if (!force && current !== next && !CAMERA_TRANSITIONS[current]?.has(next)) return false;
   const surface = document.getElementById('cameraReviewActions');
-  root?.classList.toggle('cameraReview', Boolean(visible));
-  if (surface) surface.hidden = !visible;
+  const camera = document.getElementById('composerCamera');
+  const reviewing = next === 'review';
+  root.dataset.cameraState = next;
+  root.classList.toggle('cameraReview', reviewing);
+  root.classList.toggle('cameraPublishing', next === 'publishing-details');
+  if (surface) surface.hidden = !reviewing;
+  if (camera) camera.hidden = reviewing || next === 'publishing-details';
   const video = document.querySelector('#preview video');
   if (video) {
-    video.controls = !visible; video.loop = Boolean(visible); video.muted = Boolean(visible);
-    if (visible) video.play().catch(() => {});
+    video.controls = !reviewing; video.loop = reviewing; video.muted = reviewing;
+    if (reviewing) video.play().catch(() => {});
   }
-  if (visible) {
+  if (reviewing) {
     const sound = document.querySelector('#cameraAddSound span')?.textContent || 'Add sound';
     const label = document.getElementById('cameraReviewSound');
     if (label) label.textContent = `♫ ${sound}`;
   }
+  return true;
 }
 
-export function bindCameraReview({ input, studio, caption, restart, applyPreview }) {
+export function setCameraReviewMode(visible) {
+  return setCameraComposerState(visible ? 'review' : 'publishing-details', { force: true });
+}
+
+export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview }) {
   const root = document.querySelector('.cameraComposer');
   const form = input?.form;
   const closePanels = () => document.querySelectorAll('[data-review-panel]').forEach((panel) => { panel.hidden = true; });
   const next = () => {
-    closePanels(); setCameraReviewMode(false);
+    closePanels(); setCameraComposerState('publishing-details');
     caption?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     caption?.focus({ preventScroll: true });
   };
   document.getElementById('retakeCamera')?.addEventListener('click', () => {
-    input.value = ''; document.getElementById('preview')?.replaceChildren();
+    releasePreview?.(); input.value = ''; document.getElementById('preview')?.replaceChildren();
     if (studio) studio.hidden = true;
-    closePanels(); setCameraReviewMode(false); restart?.();
+    closePanels(); setCameraComposerState('camera-loading', { force: true }); restart?.();
   });
   document.getElementById('continueCameraPost')?.addEventListener('click', next);
   document.getElementById('cameraReviewDraft')?.addEventListener('click', () => document.getElementById('saveDraft')?.click());
@@ -61,8 +85,8 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
   const provenance = document.querySelector('[data-review-provenance]');
   if (visibility && form?.elements?.visibility) { visibility.value = form.elements.visibility.value; visibility.addEventListener('change', () => { form.elements.visibility.value = visibility.value; }); }
   if (provenance && form?.elements?.provenance) { provenance.value = form.elements.provenance.value; provenance.addEventListener('change', () => { form.elements.provenance.value = provenance.value; }); }
-  document.querySelector('[data-review-text-form]')?.addEventListener('submit', (event) => {
-    event.preventDefault(); const value = document.querySelector('[data-review-text]')?.value.trim();
+  document.querySelector('[data-review-text-apply]')?.addEventListener('click', () => {
+    const value = document.querySelector('[data-review-text]')?.value.trim();
     if (form?.elements?.overlay_text && value) { form.elements.overlay_text.value = value; applyPreview?.(); closePanels(); }
   });
   document.querySelectorAll('[data-review-sticker]').forEach((button) => button.addEventListener('click', () => {
@@ -75,17 +99,21 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
   return () => { root?.classList.remove('cameraReview'); closePanels(); };
 }
 
-export function startRecordingDial(camera, durationSeconds) {
+export function startRecordingDial(camera, durationSeconds, clock = {}) {
   const dial = document.getElementById('stopRecording');
   const elapsed = document.getElementById('cameraRecordingElapsed');
   const duration = Math.max(1, Number(durationSeconds) || 60);
-  const started = performance.now();
-  camera?.classList.add('recording'); if (elapsed) elapsed.hidden = false;
-  const paint = () => {
-    const seconds = Math.min(duration, (performance.now() - started) / 1000);
+  const now = clock.now || (() => performance.now());
+  const requestFrame = clock.requestFrame || ((callback) => requestAnimationFrame(callback));
+  const cancelFrame = clock.cancelFrame || ((id) => cancelAnimationFrame(id));
+  const started = now(); let frame = 0; let stopped = false;
+  camera?.classList.add('recording'); if (elapsed) elapsed.hidden = true;
+  const paint = (timestamp = now()) => {
+    if (stopped) return;
+    const seconds = Math.min(duration, (timestamp - started) / 1000);
     dial?.style.setProperty('--record-progress', `${Math.min(360, seconds / duration * 360)}deg`);
-    if (elapsed) elapsed.textContent = `${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(Math.floor(seconds % 60)).padStart(2,'0')} / ${String(Math.floor(duration / 60)).padStart(2,'0')}:${String(duration % 60).padStart(2,'0')}`;
+    if (seconds < duration) frame = requestFrame(paint);
   };
-  paint(); const timer = setInterval(paint, 100);
-  return () => { clearInterval(timer); camera?.classList.remove('recording'); dial?.style.removeProperty('--record-progress'); if (elapsed) elapsed.hidden = true; };
+  paint(started);
+  return () => { stopped = true; if (frame) cancelFrame(frame); camera?.classList.remove('recording'); dial?.style.removeProperty('--record-progress'); if (elapsed) elapsed.hidden = true; };
 }
