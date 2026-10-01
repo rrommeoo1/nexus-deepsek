@@ -7,11 +7,12 @@ import { reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } fr
 const esc = (value) => String(value);
 const t = (key) => key;
 
-test("Reel camera exposes the requested capture modes and bounded tools", () => {
+test("Reel camera exposes only Photo and Video capture modes with bounded tools", () => {
   const markup = reelCameraMarkup({ esc, t, clipMode: true });
-  for (const token of ["cameraAddSound", 'data-camera-duration="600"', 'data-camera-duration="60"', 'data-camera-duration="15"', 'data-camera-mode="photo"', 'data-camera-mode="text"', "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraFilters", "cameraToolsMore", 'data-camera-layout="grid-four"', 'data-camera-layout="grid-six"', 'data-camera-destination="live"']) {
+  for (const token of ["cameraAddSound", 'data-camera-mode="photo"', 'data-camera-mode="clip"', ">PHOTO<", ">VIDEO<", "cameraTimer", "cameraFlash", "cameraLayout", "cameraBeauty", "cameraFilters", "cameraToolsMore", 'data-camera-layout="grid-four"', 'data-camera-layout="grid-six"', 'data-camera-destination="live"']) {
     assert.match(markup, new RegExp(token));
   }
+  assert.doesNotMatch(markup, /<button[^>]+data-camera-duration|>15s<|>60s<|>10m<|>TEXT</);
   assert.doesNotMatch(markup, /cameraSpeed/);
   assert.match(markup, /cameraCountdown/);
   assert.match(markup, /reelCameraCapture[\s\S]*reelCameraGallery[\s\S]*reelCameraModes/);
@@ -39,7 +40,8 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.match(source, /setCameraComposerState\("review"\)/);
   assert.match(source, /restart:\s*\(\)\s*=>[^}]+startComposerCamera\(sourceInput/);
   assert.match(source, /startRecordingDial\(camera, recordingProfile\.durationSeconds\)/);
-  assert.match(source, /camera\.classList\.contains\("ready"\)\) record\.click\(\)/);
+  assert.match(source, /data-camera-mode="clip"/);
+  assert.doesNotMatch(source, /querySelectorAll\("\[data-camera-duration\]"\)/);
   assert.doesNotMatch(source, /recordingProfile\.durationSeconds\}s max/);
   const markup = reelCameraReviewMarkup();
   for (const token of ['data-review-tool="settings"', 'data-review-tool="text"', 'data-review-tool="stickers"', 'data-review-tool="effects"', 'data-review-tool="filters"', 'cameraReviewDraft']) assert.match(markup, new RegExp(token));

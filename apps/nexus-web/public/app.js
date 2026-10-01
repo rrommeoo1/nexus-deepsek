@@ -43,14 +43,14 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-camera8";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-camera9";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20260928-jamendo1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-camera8";
-import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera8";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-camera8";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-camera8";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-camera8";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-camera8";
+import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-camera9";
+import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera9";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-camera9";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-camera9";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-camera9";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-camera9";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -6793,20 +6793,25 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
       if (label) label.textContent = `${track.name} · ${track.artist}`;
     },
   }));
-  camera.querySelectorAll("[data-camera-duration]").forEach((button) => button.addEventListener("click", () => {
+  camera.querySelector('[data-camera-mode="clip"]')?.addEventListener("click", (event) => {
     camera.dataset.cameraMode = "clip";
-    camera.dataset.cameraDuration = button.dataset.cameraDuration;
-    camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => entry.classList.toggle("active", entry === button));
-    updateCaptureMode();
-    if (!activeRecorder && camera.classList.contains("ready")) record.click();
-  }));
-  camera.querySelector('[data-camera-mode="photo"]')?.addEventListener("click", (event) => {
-    camera.dataset.cameraMode = "photo";
-    camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => entry.classList.toggle("active", entry === event.currentTarget));
+    camera.dataset.cameraDuration = "600";
+    camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => {
+      const selected = entry === event.currentTarget;
+      entry.classList.toggle("active", selected);
+      entry.setAttribute("aria-selected", String(selected));
+    });
     updateCaptureMode();
   });
-  camera.querySelector('[data-camera-mode="text"]')?.addEventListener("click", () => {
-    stopComposerCamera(); setCameraComposerState("publishing-details", { force: true }); form?.querySelector('textarea[name="caption"]')?.focus();
+  camera.querySelector('[data-camera-mode="photo"]')?.addEventListener("click", (event) => {
+    camera.dataset.cameraMode = "photo";
+    camera.dataset.cameraDuration = "0";
+    camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => {
+      const selected = entry === event.currentTarget;
+      entry.classList.toggle("active", selected);
+      entry.setAttribute("aria-selected", String(selected));
+    });
+    updateCaptureMode();
   });
   camera.querySelectorAll("[data-camera-filter]").forEach((button) => button.addEventListener("click", () => {
     activeFilter = button.dataset.cameraFilter || "none";

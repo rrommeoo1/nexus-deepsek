@@ -77,7 +77,7 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // hardware controller glue: duration, timer, torch, filter persistence and Live handoff. The
   // sizeable camera catalogue/markup stays in reel-camera-surface.js rather than this entrypoint.
   // The capture-recovery patch adds the bounded photo/video review transition, retake action and
-  // adaptive 15s/60s/10m recorder wiring. The follow-up replaces the broken data-URL handoff
+  // bounded Photo/Video recorder wiring. The follow-up replaces the broken data-URL handoff
   // with a revocable object URL and an explicit camera state machine; keep that repair under 630 KB.
   assert.equal(sizes.app <= 630_000, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new

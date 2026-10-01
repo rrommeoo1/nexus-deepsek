@@ -332,7 +332,7 @@ test("the four languages carry the drawer, the band and the new panels", () => {
   }
   assert.equal((locale.match(/"profile\.followers":/g) || []).length, 4);
   // Every module the wave added is served under the wave's own asset tag.
-  assert.match(index, /\/app\.js\?v=20261001-camera8/);
+  assert.match(index, /\/app\.js\?v=20261001-camera9/);
   for (const module of ["profile-menu.js", "profile-ticker.js", "notification-preferences.js", "profile-settings-panels.js", "profile-experience.js"]) {
     assert.equal(app.includes(`./${module}?v=20260923-wave14i`), true, module);
   }
