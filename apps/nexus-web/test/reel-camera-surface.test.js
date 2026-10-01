@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { reelCameraMarkup } from "../public/reel-camera-surface.js";
+import { reelCameraReviewMarkup } from "../public/reel-camera-review.js";
 
 const esc = (value) => String(value);
 const t = (key) => key;
@@ -29,6 +30,8 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.match(source, /setCameraReviewMode\(true\)/);
   assert.match(source, /camera\.hidden = false; startComposerCamera/);
   assert.match(source, /startRecordingDial\(camera, recordingProfile\.durationSeconds\)/);
+  const markup = reelCameraReviewMarkup();
+  for (const token of ['data-review-tool="settings"', 'data-review-tool="text"', 'data-review-tool="stickers"', 'data-review-tool="effects"', 'data-review-tool="filters"', 'cameraReviewDraft']) assert.match(markup, new RegExp(token));
 });
 
 test("global Create opens the rear live camera and media import stays explicit", () => {

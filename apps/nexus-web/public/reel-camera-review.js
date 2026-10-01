@@ -14,7 +14,7 @@ export function reelCameraReviewMarkup() {
     '<section class="cameraReviewPanel compact" data-review-panel="stickers" hidden><header><b>Stickers & GIFs</b><button type="button" data-review-close>×</button></header><div class="cameraStickerGrid"><button type="button" data-review-sticker="clock">07:26<small>Clock</small></button><button type="button" data-review-sticker="location">📍<small>Location</small></button><button type="button" data-review-sticker="mood">✨<small>GIF</small></button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="effects" hidden><header><b>Effects</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="VIVID">Glow</button><button type="button" data-review-filter="HIGH_CONTRAST">Drama</button><button type="button" data-review-filter="WARM">Sunrise</button></div></section>',
     '<section class="cameraReviewPanel compact" data-review-panel="filters" hidden><header><b>Filters</b><button type="button" data-review-close>×</button></header><div class="cameraChoiceRail"><button type="button" data-review-filter="NONE">Original</button><button type="button" data-review-filter="VIVID">Vivid</button><button type="button" data-review-filter="WARM">Warm</button><button type="button" data-review-filter="MONO">Mono</button></div></section>',
-    '<footer class="cameraReviewFooter"><button id="cameraReviewStory" type="button">Your Story</button><button id="continueCameraPost" type="button">Next</button></footer>',
+    '<footer class="cameraReviewFooter"><button id="cameraReviewDraft" type="button">Save draft</button><button id="continueCameraPost" type="button">Next</button></footer>',
     '</section>',
   ].join('');
 }
@@ -35,8 +35,7 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
   const root = document.querySelector('.cameraComposer');
   const form = input?.form;
   const closePanels = () => document.querySelectorAll('[data-review-panel]').forEach((panel) => { panel.hidden = true; });
-  const next = (story = false) => {
-    if (story && form?.elements?.visibility) form.elements.visibility.value = 'followers';
+  const next = () => {
     closePanels(); setCameraReviewMode(false);
     caption?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     caption?.focus({ preventScroll: true });
@@ -46,8 +45,8 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
     if (studio) studio.hidden = true;
     closePanels(); setCameraReviewMode(false); restart?.();
   });
-  document.getElementById('continueCameraPost')?.addEventListener('click', () => next(false));
-  document.getElementById('cameraReviewStory')?.addEventListener('click', () => next(true));
+  document.getElementById('continueCameraPost')?.addEventListener('click', next);
+  document.getElementById('cameraReviewDraft')?.addEventListener('click', () => document.getElementById('saveDraft')?.click());
   document.querySelectorAll('[data-review-tool]').forEach((button) => button.addEventListener('click', () => {
     const panel = document.querySelector(`[data-review-panel="${button.dataset.reviewTool}"]`);
     const opening = panel?.hidden; closePanels(); if (panel) panel.hidden = !opening;
