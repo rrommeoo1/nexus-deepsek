@@ -20,6 +20,9 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
   assert.match(styles, /reelCamera > video[^}]+height:\s*calc\(100% - 96px\)/);
   assert.match(styles, /reelCamera #cameraGallery[^}]+bottom:\s*max\(17px/);
   assert.match(styles, /reelCamera\[hidden\][^}]+display:\s*none\s*!important/);
+  assert.match(styles, /cameraComposer:has\(\.reelCamera:not\(\[hidden\]\)\) > :not\(form\)[^}]+display:\s*none\s*!important/);
+  assert.match(styles, /cameraComposer:has\(\.reelCamera:not\(\[hidden\]\)\) > form[^}]+position:\s*absolute\s*!important[^}]+height:\s*100%\s*!important/);
+  assert.match(styles, /cameraComposer \.reelCamera[^}]+position:\s*absolute\s*!important/);
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
 });
 
