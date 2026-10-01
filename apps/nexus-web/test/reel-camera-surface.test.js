@@ -24,7 +24,9 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
   assert.match(styles, /cameraComposer\[data-camera-state\][^\{]+> form[^}]+position:\s*absolute\s*!important[^}]+height:\s*100%\s*!important/);
   assert.match(styles, /cameraComposer \.reelCamera[^}]+position:\s*absolute\s*!important/);
   assert.match(styles, /reelCamera\.recording :is\([^}]+opacity:\s*0/);
-  assert.match(styles, /cameraRecordingElapsed[^}]+display:\s*none\s*!important/);
+  assert.match(styles, /cameraRecordingElapsed[^}]+bottom:\s*calc\(202px/);
+  assert.match(styles, /cameraRecordingElapsed\[hidden\][^}]+display:\s*none\s*!important/);
+  assert.match(markup, /finishRecording/);
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
 });
 
@@ -37,6 +39,8 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.match(source, /setCameraComposerState\("review"\)/);
   assert.match(source, /restart:\s*\(\)\s*=>[^}]+startComposerCamera\(sourceInput/);
   assert.match(source, /startRecordingDial\(camera, recordingProfile\.durationSeconds\)/);
+  assert.match(source, /camera\.classList\.contains\("ready"\)\) record\.click\(\)/);
+  assert.doesNotMatch(source, /recordingProfile\.durationSeconds\}s max/);
   const markup = reelCameraReviewMarkup();
   for (const token of ['data-review-tool="settings"', 'data-review-tool="text"', 'data-review-tool="stickers"', 'data-review-tool="effects"', 'data-review-tool="filters"', 'cameraReviewDraft']) assert.match(markup, new RegExp(token));
   assert.doesNotMatch(markup, /<form/);
@@ -44,7 +48,7 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.match(source, /setCameraComposerState\("processing-recording"\)/);
 });
 
-test("recording dial expresses elapsed time only through the shutter circumference", () => {
+test("recording dial expresses progress around the shutter and elapsed time above it", () => {
   const originalDocument = globalThis.document;
   const values = new Map(); const queued = []; const cancelled = [];
   const dial = { style: { setProperty: (key, value) => values.set(key, value), removeProperty: (key) => values.delete(key) } };
@@ -60,8 +64,8 @@ test("recording dial expresses elapsed time only through the shutter circumferen
     assert.equal(values.get("--record-progress"), "0deg");
     queued.shift()(7_500);
     assert.equal(values.get("--record-progress"), "180deg");
-    assert.equal(elapsed.hidden, true);
-    assert.equal(elapsed.textContent, "must stay empty");
+    assert.equal(elapsed.hidden, false);
+    assert.equal(elapsed.textContent, "00:07");
     assert.equal(classes.has("recording"), true);
     stop();
     assert.equal(values.has("--record-progress"), false);

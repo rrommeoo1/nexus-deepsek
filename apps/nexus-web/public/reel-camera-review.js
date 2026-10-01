@@ -107,11 +107,16 @@ export function startRecordingDial(camera, durationSeconds, clock = {}) {
   const requestFrame = clock.requestFrame || ((callback) => requestAnimationFrame(callback));
   const cancelFrame = clock.cancelFrame || ((id) => cancelAnimationFrame(id));
   const started = now(); let frame = 0; let stopped = false;
-  camera?.classList.add('recording'); if (elapsed) elapsed.hidden = true;
+  camera?.classList.add('recording');
+  if (elapsed) { elapsed.hidden = false; elapsed.textContent = '00:00'; }
   const paint = (timestamp = now()) => {
     if (stopped) return;
     const seconds = Math.min(duration, (timestamp - started) / 1000);
     dial?.style.setProperty('--record-progress', `${Math.min(360, seconds / duration * 360)}deg`);
+    if (elapsed) {
+      const whole = Math.floor(seconds);
+      elapsed.textContent = `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
+    }
     if (seconds < duration) frame = requestFrame(paint);
   };
   paint(started);

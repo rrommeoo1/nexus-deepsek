@@ -43,14 +43,14 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-camera7";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-camera8";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20260928-jamendo1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20260928-camera1";
-import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera6";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-camera7";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-camera7";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-camera7";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-camera7";
+import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-camera8";
+import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera8";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-camera8";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-camera8";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-camera8";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-camera8";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -6586,9 +6586,10 @@ function stopComposerCamera({ discardRecording = true } = {}) {
   camera?.classList.remove("ready");
   const preview = camera?.querySelector("video");
   if (preview) preview.srcObject = null;
-  const record = document.getElementById("recordClip"), stop = document.getElementById("stopRecording");
+  const record = document.getElementById("recordClip"), stop = document.getElementById("stopRecording"), finish = document.getElementById("finishRecording");
   if (record) record.hidden = camera?.dataset?.cameraMode ? camera.dataset.cameraMode !== "clip" : false;
   if (stop) stop.hidden = true;
+  if (finish) finish.hidden = true;
 }
 
 async function startComposerCamera(sourceInput, facingMode = "environment") {
@@ -6681,6 +6682,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   const capture = document.getElementById("capturePhoto");
   const record = document.getElementById("recordClip");
   const stop = document.getElementById("stopRecording");
+  const finish = document.getElementById("finishRecording");
   const form = sourceInput.form;
   let timerSeconds = 0;
   let activeFilter = "none";
@@ -6690,6 +6692,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     capture.hidden = clip;
     record.hidden = !clip;
     stop.hidden = true;
+    finish.hidden = true;
   };
   const applyFilter = () => {
     const filters = { none: "", vivid: "saturate(1.35) contrast(1.08)", warm: "sepia(.18) saturate(1.2)", mono: "grayscale(1)" };
@@ -6773,8 +6776,10 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     stopRecordingDial = startRecordingDial(camera, recordingProfile.durationSeconds);
     record.hidden = true;
     stop.hidden = false;
+    finish.hidden = false;
     stop.onclick = recording.stop;
-    status.textContent = `${t("camera.recording")} · ${recordingProfile.durationSeconds}s max`;
+    finish.onclick = recording.stop;
+    status.textContent = t("camera.recording");
   }));
   document.getElementById("switchCamera").addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing === "user" ? "environment" : "user"));
   document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment"));
@@ -6793,6 +6798,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     camera.dataset.cameraDuration = button.dataset.cameraDuration;
     camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => entry.classList.toggle("active", entry === button));
     updateCaptureMode();
+    if (!activeRecorder && camera.classList.contains("ready")) record.click();
   }));
   camera.querySelector('[data-camera-mode="photo"]')?.addEventListener("click", (event) => {
     camera.dataset.cameraMode = "photo";
