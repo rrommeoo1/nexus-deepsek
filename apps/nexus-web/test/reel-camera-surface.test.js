@@ -24,11 +24,11 @@ test("Reel camera exposes the requested capture modes and bounded tools", () => 
 
 test("captured camera media enters a dedicated review surface with retake and continue controls", () => {
   const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(source, /cameraReviewActions/);
-  assert.match(source, /retakeCamera/);
-  assert.match(source, /continueCameraPost/);
-  assert.match(source, /classList\.add\("cameraReview"\)/);
+  const review = readFileSync(new URL("../public/reel-camera-review.js", import.meta.url), "utf8");
+  for (const token of ["cameraReviewActions", "retakeCamera", "continueCameraPost", "Settings", "Text", "Stickers", "Effects", "Filters", "startRecordingDial"]) assert.match(review, new RegExp(token));
+  assert.match(source, /setCameraReviewMode\(true\)/);
   assert.match(source, /camera\.hidden = false; startComposerCamera/);
+  assert.match(source, /startRecordingDial\(camera, recordingProfile\.durationSeconds\)/);
 });
 
 test("global Create opens the rear live camera and media import stays explicit", () => {

@@ -46,6 +46,7 @@ import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
 import { clipSubtitlesMarkup } from "./clip-options.js?v=20260928-name1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20260928-jamendo1";
 import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20260928-camera1";
+import { bindCameraReview, reelCameraReviewMarkup, setCameraReviewMode, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera5";
 import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20260928-name1";
 import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20260928-name1";
 import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20260928-name1";
@@ -6733,12 +6734,14 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     try { recorder = createCameraRecorder(stream, MediaRecorder, recordingProfile); }
     catch { return recover(t("camera.recordUnsupported")); }
     activeRecorder = recorder;
+    let stopRecordingDial = () => {};
     const recording = startBoundedRecording(recorder, {
       maxBytes: DRAFT_FILE_LIMIT,
       maxDurationMs: recordingProfile.durationSeconds * 1000,
       tracks: stream.getTracks(),
       isCurrent: () => activeRecorder === recorder && activeComposerStream === stream && !discardedComposerRecorders.has(recorder) && sourceInput.isConnected && state.persona === selectedPersona,
       onResult: ({ blob, error }) => {
+        stopRecordingDial();
         if (error) return recover(error === "UPLOAD_TOO_LARGE" ? uploadErrorMessage(new UploadClientError(error)) : t("camera.unavailable"));
         persistFilter();
         const attached = setInputFile(sourceInput, new File([blob], "nexus-clip-" + Date.now() + ".webm", { type: blob.type }));
@@ -6748,6 +6751,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
       },
     });
     if (recording.settled) return;
+    stopRecordingDial = startRecordingDial(camera, recordingProfile.durationSeconds);
     record.hidden = true;
     stop.hidden = false;
     stop.onclick = recording.stop;
@@ -7125,7 +7129,7 @@ function openComposer(mode = "post", options = {}) {
     socialMode && !storyMode ? '<div class="field"><label>Proveniența conținutului<select name="provenance"><option value="NOT_DECLARED">Nu declar</option><option value="CAMERA_CAPTURED_DECLARED">Creat de mine / cameră (declarație)</option><option value="AI_ASSISTED">Asistat de AI</option><option value="AI_GENERATED">Generat cu AI</option></select><small>Nexus afișează declarația, dar nu pretinde că a verificat-o independent.</small></label></div>' : '',
     storyMode ? '<div class="storyLifecycle"><label><input type="checkbox" name="persistent" /> Păstrează până arhivez eu</label><label>Durată (ore)<input type="number" name="duration_hours" min="1" max="8760" value="24" /></label></div>' : '',
     '<div class="media-preview" id="preview"></div>',
-    options.camera ? '<div class="cameraReviewActions" id="cameraReviewActions" hidden><button id="retakeCamera" type="button">Refă captura</button><button id="continueCameraPost" type="button">Continuă</button></div>' : '',
+    options.camera ? reelCameraReviewMarkup() : '',
     socialMode && !storyMode ? [
       '<section class="creatorStudio" id="creatorStudio" hidden><header><span><b>' + esc(t("studio.title")) + '</b><small>' + esc(t("studio.localNonDestructive")) + '</small></span><em id="studioKind">' + esc(t("studio.media")) + '</em></header>',
       '<div class="studioGrid"><label>' + esc(t("studio.format")) + '<select name="studio_aspect"><option value="ORIGINAL">' + esc(t("studio.original")) + '</option><option value="VERTICAL_9_16">' + esc(t("studio.vertical")) + '</option><option value="SQUARE_1_1">' + esc(t("studio.square")) + '</option><option value="PORTRAIT_4_5">' + esc(t("studio.portrait")) + '</option><option value="LANDSCAPE_16_9">' + esc(t("studio.landscape")) + '</option></select></label>',
@@ -7333,7 +7337,7 @@ function openComposer(mode = "post", options = {}) {
     const cameraSound = options.camera ? selectedJamendoTrack : null;
     const file = e.target.files[0];
     stopAutoSound(); selectedJamendoTrack = cameraSound;
-    if (!file) { document.querySelector(".cameraComposer")?.classList.remove("cameraReview"); document.getElementById("cameraReviewActions")?.setAttribute("hidden", ""); if (studioPanel) studioPanel.hidden = true; document.getElementById("preview").innerHTML = ""; if (options.pick || options.camera) picker.cancel(); return; }
+    if (!file) { if (options.camera) setCameraReviewMode(false); if (studioPanel) studioPanel.hidden = true; document.getElementById("preview").innerHTML = ""; if (options.pick || options.camera) picker.cancel(); return; }
     if (!CREATOR_MEDIA_MIMES.has(file.type)) {
       e.target.value = "";
       if (studioPanel) studioPanel.hidden = true;
@@ -7348,10 +7352,7 @@ function openComposer(mode = "post", options = {}) {
     document.getElementById("preview").innerHTML = '<div class="previewStage studioMedia aspectOriginal">' + (isVideo
       ? '<video class="studioAsset" src="' + dataUrl + '" controls playsinline></video>'
       : '<img class="studioAsset" src="' + dataUrl + '" alt="' + esc(t("studio.previewAlt")) + '" />') + '</div>';
-    if (options.camera) {
-      document.querySelector(".cameraComposer")?.classList.add("cameraReview");
-      document.getElementById("cameraReviewActions")?.removeAttribute("hidden");
-    }
+    if (options.camera) setCameraReviewMode(true);
     if (studioPanel) {
       studioPanel.hidden = false;
       document.getElementById("studioKind").textContent = t(isVideo ? "studio.video" : "studio.photo");
@@ -7394,21 +7395,7 @@ function openComposer(mode = "post", options = {}) {
     owner: state.user.id,
     onClose: goHome,
   });
-  if (options.camera) {
-    document.getElementById("retakeCamera")?.addEventListener("click", () => {
-      sourceInput.value = "";
-      document.getElementById("preview").replaceChildren();
-      if (studioPanel) studioPanel.hidden = true;
-      document.getElementById("cameraReviewActions")?.setAttribute("hidden", "");
-      document.querySelector(".cameraComposer")?.classList.remove("cameraReview");
-      const camera = document.getElementById("composerCamera");
-      if (camera) { camera.hidden = false; startComposerCamera(sourceInput, camera.dataset.facing || "environment"); }
-    });
-    document.getElementById("continueCameraPost")?.addEventListener("click", () => {
-      captionBox?.scrollIntoView({ behavior: "smooth", block: "center" });
-      captionBox?.focus({ preventScroll: true });
-    });
-  }
+  if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, restart: () => { const camera = document.getElementById("composerCamera"); if (camera) { camera.hidden = false; startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } } });
   if (options.draft) {
     Object.entries(options.draft.fields || {}).forEach(([name, value]) => {
       const control = document.getElementById("composerForm").elements[name];
