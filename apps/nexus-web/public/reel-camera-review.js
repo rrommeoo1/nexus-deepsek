@@ -24,6 +24,11 @@ export function setCameraReviewMode(visible) {
   const surface = document.getElementById('cameraReviewActions');
   root?.classList.toggle('cameraReview', Boolean(visible));
   if (surface) surface.hidden = !visible;
+  const video = document.querySelector('#preview video');
+  if (video) {
+    video.controls = !visible; video.loop = Boolean(visible); video.muted = Boolean(visible);
+    if (visible) video.play().catch(() => {});
+  }
   if (visible) {
     const sound = document.querySelector('#cameraAddSound span')?.textContent || 'Add sound';
     const label = document.getElementById('cameraReviewSound');

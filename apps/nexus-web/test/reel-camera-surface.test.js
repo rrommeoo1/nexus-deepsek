@@ -27,6 +27,8 @@ test("captured camera media enters a dedicated review surface with retake and co
   const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
   const review = readFileSync(new URL("../public/reel-camera-review.js", import.meta.url), "utf8");
   for (const token of ["cameraReviewActions", "retakeCamera", "continueCameraPost", "Settings", "Text", "Stickers", "Effects", "Filters", "startRecordingDial"]) assert.match(review, new RegExp(token));
+  assert.match(review, /video\.controls = !visible/);
+  assert.match(review, /video\.loop = Boolean\(visible\)/);
   assert.match(source, /setCameraReviewMode\(true\)/);
   assert.match(source, /camera\.hidden = false; startComposerCamera/);
   assert.match(source, /startRecordingDial\(camera, recordingProfile\.durationSeconds\)/);

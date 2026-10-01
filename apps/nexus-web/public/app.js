@@ -7328,7 +7328,11 @@ function openComposer(mode = "post", options = {}) {
     }
     document.getElementById("studioIntensity").textContent = form.elements.studio_intensity.value + "%";
     if (asset.tagName === "VIDEO") {
-      asset.muted = form.elements.mute_original.checked;
+      const reviewing = document.querySelector(".cameraComposer")?.classList.contains("cameraReview");
+      asset.muted = reviewing || form.elements.mute_original.checked;
+      asset.controls = !reviewing;
+      asset.loop = Boolean(reviewing);
+      if (reviewing) asset.play().catch(() => {});
       asset.playbackRate = Number(form.elements.playback_rate.value);
     }
   };
