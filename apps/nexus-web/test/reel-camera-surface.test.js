@@ -50,6 +50,17 @@ test("captured camera media enters a dedicated review surface with retake and co
   assert.match(source, /setCameraComposerState\("processing-recording"\)/);
 });
 
+test("review editor exposes visual stickers, dynamic tags, direct text styling and a video timeline", () => {
+  const markup = reelCameraReviewMarkup();
+  for (const token of ["Search GIFs and stickers", "data-functional-sticker=\"mention\"", "data-functional-sticker=\"location\"", "data-functional-sticker=\"live-time\"", "data-functional-sticker=\"digital-clock\"", "data-functional-sticker=\"date\"", "data-text-style=\"neon\"", "data-text-style=\"retro\"", "data-text-color", "data-text-done", "decorationTimeline", "data-decoration-start-range", "data-decoration-end-range", "data-location-style=\"pill-dark\""]) assert.match(markup, new RegExp(token));
+  const overlays = readFileSync(new URL("../public/reel-editor-overlays.js", import.meta.url), "utf8");
+  for (const token of ["pointerdown", "pointermove", "pointercancel", "setPointerCapture", "decorationTrash", "nexus:edit-decoration", "locationPrecision", "precise_location_stored"]) if (token !== "precise_location_stored") assert.match(overlays, new RegExp(token));
+  const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
+  assert.match(styles, /cameraStickerPanel[^}]+background:#29292b/);
+  assert.match(styles, /cameraTextEditor[^}]+inset:0/);
+  assert.match(styles, /cameraStickerGrid[^}]+repeat\(4/);
+});
+
 test("recording dial expresses progress around the shutter and elapsed time above it", () => {
   const originalDocument = globalThis.document;
   const values = new Map(); const queued = []; const cancelled = [];

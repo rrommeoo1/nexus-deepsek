@@ -1,4 +1,4 @@
-import { composeReelLayout, reelLayoutCells } from './reel-layout.js?v=20261001-camera10';
+import { composeReelLayout, reelLayoutCells } from './reel-layout.js?v=20261001-camera11';
 
 function cameraFrame(video) {
   const canvas = document.createElement('canvas');

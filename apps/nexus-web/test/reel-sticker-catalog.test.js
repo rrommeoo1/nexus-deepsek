@@ -9,6 +9,7 @@ test('local sticker catalogue provides thousands of categorized options without 
     const result = stickerCatalogPage({ category, pageSize: 24 });
     assert.equal(result.items.length, 24);
     assert.ok(result.items.every((item) => item.category === category));
+    assert.ok(result.items.every((item) => item.image.startsWith('data:image/svg+xml')));
   }
 });
 
@@ -16,5 +17,5 @@ test('sticker search and pagination are deterministic and non-overlapping', () =
   const first = stickerCatalogPage({ category: 'Funny', page: 0, pageSize: 48 });
   const second = stickerCatalogPage({ category: 'Funny', page: 1, pageSize: 48 });
   assert.equal(first.items.some((item) => second.items.some((candidate) => candidate.id === item.id)), false);
-  assert.ok(stickerCatalogPage({ category: 'All', query: 'LOL', pageSize: 72 }).items.every((item) => item.content.includes('LOL')));
+  assert.ok(stickerCatalogPage({ category: 'All', query: 'LOL', pageSize: 72 }).items.every((item) => item.label.includes('LOL')));
 });

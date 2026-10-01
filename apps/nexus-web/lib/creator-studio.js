@@ -10,7 +10,9 @@ export const CREATOR_VIDEO_MAX_MS = 600_000;
 
 const MANIFEST_KEYS = ["version", "aspect", "filter", "intensity", "trimStartMs", "trimEndMs", "playbackRate", "muteOriginal", "overlay"];
 const OVERLAY_KEYS = ["text", "position", "color"];
-const DECORATION_KEYS = ["id", "type", "text", "x", "y", "scale", "rotation", "startMs", "endMs"];
+const LEGACY_DECORATION_KEYS = ["id", "type", "text", "x", "y", "scale", "rotation", "startMs", "endMs"];
+const DECORATION_KEYS = ["id", "type", "assetId", "text", "x", "y", "scale", "rotation", "zIndex", "opacity", "style", "align", "color", "background", "animation", "startMs", "endMs", "timezone", "locationPrecision", "dynamic"];
+const DECORATION_TYPES = new Set(["STICKER", "GIF", "LOCATION", "TIME", "DATE", "TEXT", "HASHTAG", "MENTION", "POLL", "DONATION", "WEATHER"]);
 const PLAYBACK_RATES = new Set([0.5, 1, 1.5, 2]);
 
 function exactKeys(value, keys) {
@@ -53,13 +55,17 @@ export function normalizeCreatorStudio(input, { mediaKind } = {}) {
   if (hasDecorations) {
     if (!Array.isArray(input.decorations) || input.decorations.length > 12) throw new Error("CREATOR_STUDIO_DECORATIONS_INVALID");
     decorations = input.decorations.map((item) => {
-      if (!exactKeys(item, DECORATION_KEYS) || !/^[a-z0-9-]{8,80}$/i.test(String(item.id || ""))
-        || !new Set(["STICKER", "LOCATION"]).has(item.type) || typeof item.text !== "string" || item.text.length < 1 || item.text.length > 120
-        || !boundedInteger(item.x, 0, 100) || !boundedInteger(item.y, 0, 100)
-        || typeof item.scale !== "number" || item.scale < .4 || item.scale > 3
-        || !boundedInteger(item.rotation, 0, 359) || !boundedInteger(item.startMs, 0, CREATOR_VIDEO_MAX_MS)
-        || !boundedInteger(item.endMs, 0, CREATOR_VIDEO_MAX_MS) || item.endMs < item.startMs) throw new Error("CREATOR_STUDIO_DECORATIONS_INVALID");
-      return Object.freeze({ id: item.id, type: item.type, text: item.text.normalize("NFKC").replace(/\s+/g, " ").trim(), x: item.x, y: item.y, scale: item.scale, rotation: item.rotation, startMs: item.startMs, endMs: item.endMs });
+      const legacy = exactKeys(item, LEGACY_DECORATION_KEYS); const full = exactKeys(item, DECORATION_KEYS);
+      if ((!legacy && !full) || !/^[a-z0-9-]{8,80}$/i.test(String(item.id || "")) || !DECORATION_TYPES.has(item.type)
+        || typeof item.text !== "string" || item.text.length > 120 || (!item.text.trim() && !new Set(["STICKER", "GIF", "TIME", "DATE"]).has(item.type))
+        || !boundedInteger(item.x, 0, 100) || !boundedInteger(item.y, 0, 100) || typeof item.scale !== "number" || item.scale < .4 || item.scale > 3
+        || !boundedInteger(item.rotation, 0, 359) || !boundedInteger(item.startMs, 0, CREATOR_VIDEO_MAX_MS) || !boundedInteger(item.endMs, 0, CREATOR_VIDEO_MAX_MS) || item.endMs < item.startMs) throw new Error("CREATOR_STUDIO_DECORATIONS_INVALID");
+      const expanded = legacy ? { assetId: "", zIndex: 1, opacity: 1, style: "classic", align: "center", color: "#ffffff", background: "transparent", animation: "none", timezone: "UTC", locationPrecision: "area", dynamic: false, ...item } : item;
+      if (!/^(?:|[a-z]+-\d+)$/.test(expanded.assetId) || !boundedInteger(expanded.zIndex, 0, 20) || typeof expanded.opacity !== "number" || expanded.opacity < .2 || expanded.opacity > 1
+        || !/^[a-z0-9-]{1,24}$/i.test(expanded.style) || !new Set(["left", "center", "right"]).has(expanded.align) || !/^#[0-9a-f]{6}$/i.test(expanded.color) || !/^(?:transparent|#[0-9a-f]{6}(?:[0-9a-f]{2})?)$/i.test(expanded.background)
+        || !new Set(["none", "pulse"]).has(expanded.animation) || typeof expanded.timezone !== "string" || expanded.timezone.length > 64
+        || !new Set(["exact", "area", "city"]).has(expanded.locationPrecision) || typeof expanded.dynamic !== "boolean") throw new Error("CREATOR_STUDIO_DECORATIONS_INVALID");
+      return Object.freeze({ ...expanded, text: expanded.text.normalize("NFKC").replace(/\s+/g, " ").trim() });
     });
   }
   if (mediaKind === "image") {
