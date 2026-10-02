@@ -29,7 +29,8 @@ function waitFor(target, event, rejectEvent = "error") {
   return new Promise((resolve, reject) => {
     const done = () => { cleanup(); resolve(); };
     const failed = () => { cleanup(); reject(new Error("VIDEO_ANALYSIS_FAILED")); };
-    const cleanup = () => { target.removeEventListener(event, done); target.removeEventListener(rejectEvent, failed); };
+    const cleanup = () => { clearTimeout(timer); target.removeEventListener(event, done); target.removeEventListener(rejectEvent, failed); };
+    const timer = setTimeout(failed, 3000);
     target.addEventListener(event, done, { once: true });
     target.addEventListener(rejectEvent, failed, { once: true });
   });
@@ -125,8 +126,9 @@ export function synchronizeReelSound(video, audio, track) {
   video.addEventListener("seeking", sync);
   video.addEventListener("timeupdate", sync);
   video.addEventListener("ended", ended);
-  video.muted = true;
+  // The editor/player owns original-sound volume and mute preferences.
   sync();
+  if(!video.paused)play();
   return () => {
     video.removeEventListener("play", play);
     video.removeEventListener("pause", pause);
@@ -162,9 +164,9 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
   head.append(title, badge);
   const current = document.createElement("div"); current.className = "reelSoundCurrent"; current.hidden = true;
   const alternatives = document.createElement("div"); alternatives.className = "reelSoundAlternatives"; alternatives.hidden = true;
-  const search = document.createElement("form"); search.className = "reelSoundSearch"; search.hidden = true;
+  const search = document.createElement("div"); search.className = "reelSoundSearch"; search.hidden = true;
   const searchInput = document.createElement("input"); searchInput.type = "search"; searchInput.maxLength = 80; searchInput.placeholder = "Caută piesă sau artist"; searchInput.setAttribute("aria-label", searchInput.placeholder);
-  const searchButton = button("Caută"); searchButton.type = "submit";
+  const searchButton = button("Caută");
   search.append(searchInput, searchButton);
   const truth = document.createElement("p"); truth.className = "reelSoundTruth"; truth.textContent = "Se redă un segment de 15–60 secunde direct de la Jamendo. Nexus nu stochează melodia.";
   const audio = document.createElement("audio"); audio.preload = "metadata"; audio.hidden = true;
@@ -181,7 +183,8 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
     selected = track;
     audio.src = track.audio_url;
     audio.load();
-    stopSync = synchronizeReelSound(video, audio, track);
+    if(file.type.startsWith('video/'))stopSync = synchronizeReelSound(video, audio, track);
+    else {audio.currentTime=Number(track.preview_offset||0);audio.play().catch(()=>{});const limit=()=>{if(audio.currentTime>=Number(track.preview_offset||0)+Number(track.segment_seconds||30))audio.currentTime=Number(track.preview_offset||0);};audio.addEventListener('timeupdate',limit);stopSync=()=>{audio.pause();audio.removeEventListener('timeupdate',limit);};}
     onSelection(track);
     current.replaceChildren(); current.hidden = false;
     const info = document.createElement("span");
@@ -214,12 +217,12 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
     }
     if (tracks.length) choose(tracks.find((track) => track.id === preferredTrack?.id) || tracks[0]);
   };
-  let analysis;
-  const request = async (query = "") => {
+  let analysis = {motion:'moderate',brightness:'balanced',segmentSeconds:30};
+  const request = async (query = "", trackId = "") => {
     status.textContent = query ? "Căutăm în catalogul Jamendo…" : "Căutăm un sunet potrivit…";
     const params = new URLSearchParams({
       motion: analysis.motion, brightness: analysis.brightness,
-      duration: String(analysis.segmentSeconds), ...(query ? { q: query } : {}),
+      duration: String(analysis.segmentSeconds), ...(query ? { q: query } : {}), ...(trackId ? {track_id:trackId} : {}),
     });
     const result = await api(`/api/reels/sound-suggestions?${params}`);
     if (!alive || !isCurrent()) return;
@@ -235,13 +238,18 @@ export function mountReelAutoSound({ panel, video, file, api, onSelection, isCur
     }
     paintTracks(result.tracks);
   };
-  search.addEventListener("submit", (event) => { event.preventDefault(); const query = searchInput.value.trim(); if (query) request(query).catch(() => { if (alive) status.textContent = "Căutarea nu a reușit. Încearcă din nou."; }); });
+  searchButton.addEventListener('click',()=>{const query=searchInput.value.trim();if(query)request(query).catch(()=>{if(alive)status.textContent='Căutarea nu a reușit. Încearcă din nou.';});});
+  searchInput.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchButton.click();}});
   if (preferredTrack) paintTracks([preferredTrack]);
-  analyzeReelVideo(file).then((value) => {
+  (file.type.startsWith('video/')?analyzeReelVideo(file):Promise.resolve({motion:'static',brightness:'balanced',segmentSeconds:30})).then((value) => {
     if (!alive || !isCurrent()) return;
     analysis = value;
     status.textContent = `${value.motion === "dynamic" ? "Dinamic" : value.motion === "static" ? "Static" : "Mișcare moderată"} · ${value.brightness === "bright" ? "luminos" : value.brightness === "dark" ? "întunecat" : "lumină echilibrată"}`;
-    return preferredTrack ? undefined : request();
-  }).catch(() => { if (alive) status.textContent = "Clipul nu a putut fi analizat; poți adăuga audio manual."; });
-  return () => { alive = false; clearSelection(); panel.hidden = true; };
+    return preferredTrack ? request('',preferredTrack.id) : request();
+  }).catch(async () => { if (!alive || !isCurrent()) return; try { if (!preferredTrack) await request(); } catch { status.textContent = 'Sunetul nu este disponibil. Poți continua editarea.'; search.hidden=false; } });
+  const root=panel.closest('.cameraComposer');
+  const stageWatcher=new MutationObserver(()=>{if(root?.dataset.cameraState!=='review')audio.pause();else if(selected)audio.play().catch(()=>{});});
+  if(root)stageWatcher.observe(root,{attributes:true,attributeFilter:['data-camera-state']});
+  const removed=new MutationObserver(()=>{if(!panel.isConnected){alive=false;stopSync();audio.pause();removed.disconnect();stageWatcher.disconnect();}});removed.observe(document.body,{childList:true,subtree:true});
+  return () => { alive = false; removed.disconnect();stageWatcher.disconnect();clearSelection(); panel.hidden = true; };
 }

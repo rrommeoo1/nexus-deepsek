@@ -86,6 +86,7 @@ export function normalizeJamendoTrack(track, segmentSeconds) {
   return {
     provider: "jamendo", id, name, artist, duration, audio_url: audio, share_url: shareUrl,
     image_url: isJamendoImageUrl(imageUrl) ? imageUrl : "",
+    download_allowed: track.audiodownload_allowed === true,
     license_url: licenseUrl, license: "CC BY", attribution: `${name} — ${artist}`,
     segment_seconds: segment, preview_offset: previewOffset,
   };

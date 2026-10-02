@@ -1,4 +1,10 @@
 import { api, toast } from "./client.js?v=20260831-p1e2eeattach2";
+import { creatorStudioMarkup } from './creator-studio-markup.js?v=20261001-publish1';
+import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261001-publish1';
+import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261001-publish1';
+import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
+import { downloadPublishedPost } from './creator-export.js?v=20261001-publish1';
+import { publishingCaption, applyPublishedEdits, wireImageSound } from './published-presentation.js?v=20261001-publish1';
 import { digestHexOf } from "./sha256.js?v=20260923-wave14i";
 import { bindComposerPicker, setInputFile } from "./composer-picker.js?v=20260912-camera3";
 import { bindComposerExit } from "./composer-exit.js?v=20260912-camera3";
@@ -43,17 +49,17 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-camera11";
-import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20260928-jamendo1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-camera11";
-import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-camera11";
-import { canvasBlob } from "./reel-layout.js?v=20261001-camera11";
-import { createReelLayoutController } from "./reel-layout-controller.js?v=20261001-camera11";
-import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-camera11";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-camera11";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-camera11";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-camera11";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-camera11";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-publish1";
+import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
+import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-publish1";
+import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-publish1";
+import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
+import { createReelLayoutController } from "./reel-layout-controller.js?v=20261001-publish1";
+import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-publish1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-publish1";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-publish1";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-publish1";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-publish1";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -406,7 +412,7 @@ function writeSocialMuted(muted) {
 }
 
 function applySocialMuted(root, muted) {
-  root.querySelectorAll("video.media,.viewerStage>video").forEach((media) => { media.muted = muted || Boolean(media.closest?.(".clipStage,.mediaViewer")?.querySelector?.(".jamendoSound audio")); });
+  root.querySelectorAll("video.media,.viewerStage>video").forEach((media) => { media.muted = muted || (media.dataset?.originalVolume!=null?Number(media.dataset.originalVolume)===0:Boolean(media.closest?.(".clipStage,.mediaViewer")?.querySelector?.(".jamendoSound audio"))); });
   root.querySelectorAll(".studioSound audio").forEach((media) => { media.muted = muted; });
   document.querySelectorAll("[data-clip-sound],[data-viewer-sound]").forEach((button) => {
     const stage = button.closest('.clipStage,.mediaViewer');
@@ -3088,6 +3094,7 @@ function wireSocialFeedContinuation(container) {
 }
 
 function wireClipPlayback(container) {
+  wireImageSound(container,readSocialMuted());
   const videos = [...container.querySelectorAll("video.media")];
   const images = [...container.querySelectorAll("article.clipPost img.media")];
   if (!videos.length && !images.length) return;
@@ -3103,6 +3110,7 @@ function wireClipPlayback(container) {
     });
   }, { root: scrollRoot, threshold: [.15, .65, .9] });
   videos.forEach((video) => {
+    if(video.dataset.originalVolume!=null)video.volume=Number(video.dataset.originalVolume);
     const jamendoAudio = video.closest(".clipStage")?.querySelector(".jamendoSound audio");
     if (jamendoAudio && !jamendoAudio.dataset.syncBound) {
       jamendoAudio.dataset.syncBound = "true";
@@ -3112,7 +3120,7 @@ function wireClipPlayback(container) {
         preview_offset: Number(jamendoAudio.dataset.jamendoOffset),
       });
     }
-    video.muted = readSocialMuted();
+    video.muted = readSocialMuted() || Number(video.dataset.originalVolume)===0;
     video.loop = true;
     video.playsInline = true;
     video.controls = false;
@@ -3427,14 +3435,7 @@ function advanceStoryViewer(direction) {
 }
 
 function studioFilterCss(manifest) {
-  if (!manifest) return "none";
-  const amount = Math.max(0, Math.min(100, Number(manifest.intensity || 0))) / 100;
-  if (manifest.filter === "VIVID") return "saturate(" + (1 + amount * .8).toFixed(2) + ") contrast(" + (1 + amount * .18).toFixed(2) + ")";
-  if (manifest.filter === "WARM") return "sepia(" + (amount * .35).toFixed(2) + ") saturate(" + (1 + amount * .45).toFixed(2) + ")";
-  if (manifest.filter === "COOL") return "hue-rotate(" + Math.round(amount * 12) + "deg) saturate(" + (1 + amount * .25).toFixed(2) + ")";
-  if (manifest.filter === "MONO") return "grayscale(" + amount.toFixed(2) + ")";
-  if (manifest.filter === "HIGH_CONTRAST") return "contrast(" + (1 + amount * .8).toFixed(2) + ")";
-  return "none";
+  return creatorFilterCss(manifest);
 }
 
 function studioAspectClass(aspect) {
@@ -3475,7 +3476,7 @@ function renderStudioMedia(post, mediaUrl) {
   if (!studio) return post.media.kind === "video"
     ? '<video class="media" src="' + esc(mediaUrl) + '" playsinline muted loop preload="metadata">' + captionTrackMarkup(post) + '</video>'
     : '<img class="media" src="' + esc(mediaUrl) + '" alt="media" />';
-  const filter = studioFilterCss(studio);
+  const filter = studioFilterCss(studio) + ';' + transformCss(studio.transform);
   const overlay = studio.overlay?.text
     ? '<span class="studioOverlay overlay' + esc(studio.overlay.position) + ' color' + esc(studio.overlay.color) + '">' + esc(studio.overlay.text) + '</span>'
     : "";
@@ -3484,7 +3485,7 @@ function renderStudioMedia(post, mediaUrl) {
   if (post.media.kind === "video") {
     const start = Number(studio.trimStartMs || 0) / 1000;
     const end = Number(studio.trimEndMs || 600000) / 1000;
-    media = '<video class="media studioAsset" src="' + esc(mediaUrl) + '#t=' + start + ',' + end + '" playsinline loop preload="metadata" style="filter:' + filter + '" data-trim-start="' + start + '" data-trim-end="' + end + '" data-playback-rate="' + Number(studio.playbackRate || 1) + '" ' + (studio.muteOriginal ? "muted" : "") + '>' + captionTrackMarkup(post) + '</video>';
+    media = '<video class="media studioAsset" data-original-volume="'+Number(studio.muteOriginal?0:studio.transform?.originalVolume??1)+'" src="' + esc(mediaUrl) + '#t=' + start + ',' + end + '" playsinline loop preload="metadata" style="filter:' + filter + '" data-trim-start="' + start + '" data-trim-end="' + end + '" data-playback-rate="' + Number(studio.playbackRate || 1) + '" ' + (studio.muteOriginal ? "muted" : "") + '>' + captionTrackMarkup(post) + '</video>';
   } else {
     media = '<img class="media studioAsset" src="' + esc(mediaUrl) + '" alt="' + esc(t("studio.previewAlt")) + '" style="filter:' + filter + '" />';
   }
@@ -3493,7 +3494,7 @@ function renderStudioMedia(post, mediaUrl) {
   const audio = audioUrl
     ? '<div class="studioSound' + (external ? ' jamendoSound' : '') + '"><b>♫ ' + esc(external ? external.name : t("studio.audioCreator")) + '</b><span>' + esc(external ? external.artist : (post.audio_attribution || t("studio.untitled"))) + '</span><small>' + (external ? '<a href="' + esc(external.share_url) + '" target="_blank" rel="noopener noreferrer">' + esc(external.license + " · Jamendo") + '</a>' : esc(t(post.audio_rights === "ORIGINAL_OWNED" ? "studio.declaredOriginal" : "studio.declaredLicense"))) + '</small><audio src="' + esc(audioUrl) + '" preload="metadata"' + (external ? ' data-jamendo-duration="' + Number(external.duration) + '" data-jamendo-segment="' + Number(external.segment_seconds) + '" data-jamendo-offset="' + Number(external.preview_offset || 0) + '"' : ' controls') + '></audio></div>'
     : "";
-  return '<div class="studioMedia ' + studioAspectClass(studio.aspect) + '">' + media + overlay + decorations + '</div>' + audio;
+  return '<div class="studioMedia ' + studioAspectClass(studio.aspect) + '" style="'+(studio.transform?.ratio?'aspect-ratio:'+Number(studio.transform.ratio):'')+'" data-music-volume="'+Number(studio.transform?.musicVolume??.7)+'">' + media + overlay + decorations + '</div>' + audio;
 }
 
 function demoCommentsForPost(postId) {
@@ -4240,6 +4241,7 @@ function postCard(post) {
     isOwner ? '' : '<button data-follow="' + post.user_id + '" data-active="' + (post.following_me ? 1 : 0) + '" data-pending="' + (post.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followLabel) + '</button>',
     '</div></div>',
     post.caption ? expandableCaptionMarkup(captionWithTagsMarkup(post.caption), { t, esc }) : '',
+    publishingCaption(post,esc),
     post.caption ? captionTranslationButtonMarkup({ language: post.language, locale: interfaceLocale, esc }) : '',
     '<div class="clipContext">' + trustControl + '</div>',
     noteChip,
@@ -4253,6 +4255,7 @@ function postCard(post) {
     clipMode ? '' : trustControl,
     clipMode ? '' : rankingReason,
     !clipMode && post.caption ? '<p class="caption">' + captionWithTagsMarkup(post.caption) + '</p>' : '',
+    !clipMode ? publishingCaption(post,esc) : '',
     clipMode ? '' : noteChip,
     clipMode ? '<div class="clipStage ' + (locked ? "curiosityLockedStage" : "") + '">' + mediaBlock + curiosityOverlay + clipOverlay + clipActions + clipSubtitlesMarkup(post, { esc, t }) + '</div>' : mediaArea + curiosityOverlay,
     reactionPaletteMarkup(post, currentReaction),
@@ -4953,12 +4956,15 @@ function openMediaViewer(items, initialIndex = 0, options = {}) {
     const soundCreditMarkup = externalAudio ? '<a class="viewerSoundCredit" href="' + esc(externalAudio.share_url) + '" target="_blank" rel="noopener noreferrer">♫ ' + esc(externalAudio.attribution + " · " + externalAudio.license) + '</a>' : '';
     document.getElementById("viewerStage").innerHTML = (item.media.kind === "video"
       ? '<video src="' + esc(url) + '" autoplay loop playsinline' + (readSocialMuted() || externalAudio ? ' muted' : '') + ' aria-label="' + esc(t("viewer.videoAria")) + '"></video>' + externalAudioMarkup
-      : '<img src="' + esc(url) + '" alt="' + esc(t("viewer.imageBy")) + ' @' + esc(authorHandle) + '" />') +
+      : '<img src="' + esc(url) + '" alt="' + esc(t("viewer.imageBy")) + ' @' + esc(authorHandle) + '" />' + externalAudioMarkup) +
       '<button class="viewerPlayState" type="button" aria-label="' + esc(t("viewer.play")) + '" hidden>▶</button>' +
       '<footer class="viewerCreatorOverlay"><div class="viewerCreatorRow"><button class="viewerCreatorIdentity" data-creator-story="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.openStory") + " " + authorName) + '"><i>' + creatorAvatar + '</i><span>' + usernameSigil(author, item.persona || state.persona) + '<b><bdi dir="auto">' + esc(authorName) + '</bdi></b><small><bdi dir="ltr">@' + esc(authorHandle) + '</bdi></small></span></button><div class="viewerCreatorInline">' + (isViewerOwner ? '' : '<button data-follow="' + Number(author.id || item.user_id) + '" data-active="' + (item.following_me ? 1 : 0) + '" data-pending="' + (item.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followButtonLabel({ active: item.following_me, pending: item.follow_request_pending })) + '</button>') + '<button class="viewerCreatorMore" data-viewer-creator-menu type="button" aria-label="' + esc(t("post.moreCreator")) + '" aria-expanded="false">•••</button><div class="viewerCreatorMenu" hidden>' + (isViewerOwner ? viewerOwnerMenu : '<button data-creator-profile="' + esc(authorHandle) + '" type="button">' + esc(t("post.viewProfile")) + '</button><button data-creator-message="' + esc(authorHandle) + '" type="button">' + esc(t("post.message")) + '</button><button data-not-interested="' + item.id + '" type="button">' + esc(t("post.notInterested")) + '</button><button data-report="' + item.id + '" type="button">' + esc(t("post.report")) + '</button>') + '</div></div></div>' + (item.caption ? expandableCaptionMarkup(captionWithTagsMarkup(item.caption), { className: "viewerCaptionBlock", t, esc }) + captionTranslationButtonMarkup({ language: item.language, locale: interfaceLocale, esc }) : '') + soundCreditMarkup + '</footer>';
     const initialViewerVideo = viewer.querySelector("#viewerStage>video");
+    applyPublishedEdits(document.getElementById('viewerStage'),item);
+    document.querySelector('#viewerStage .viewerCreatorOverlay')?.insertAdjacentHTML('beforeend',publishingCaption(item,esc));
     const viewerAudio = viewer.querySelector("#viewerStage .jamendoSound audio");
     if (initialViewerVideo && viewerAudio) synchronizeReelSound(initialViewerVideo, viewerAudio, externalAudio);
+    wireImageSound(document.getElementById('viewerStage'),readSocialMuted());
     document.getElementById("viewerActionRail").innerHTML = [
       '<button class="viewerRailAvatar" data-creator-profile="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.viewProfile") + " " + authorName) + '"><i>' + creatorAvatar + '</i></button>',
       '<button data-viewer-reactions="' + item.id + '" data-reaction-display="compact" type="button" class="' + (item.reactions?.viewer_reaction ? 'on' : '') + '" aria-label="' + esc(t("viewer.chooseReaction")) + '" aria-expanded="false">' + viewerReactionSummaryMarkup(reactions, item.reactions?.viewer_reaction) + '</button>',
@@ -6370,29 +6376,18 @@ const DRAFT_QUOTA_BYTES_PER_PROFILE = 100 * 1024 * 1024;
 const DRAFT_PERSONAS = new Set(["social", "work", "dating", "travel", "market"]);
 const DRAFT_FIELDS = new Set(["caption", "visibility", "language", "provenance", "persistent", "duration_hours",
   "studio_aspect", "studio_filter", "studio_intensity", "trim_start", "trim_end", "playback_rate", "mute_original",
-  "overlay_text", "overlay_position", "overlay_color", "audio_rights", "audio_attribution"]);
+  "overlay_text", "overlay_position", "overlay_color", "audio_rights", "audio_attribution", "title", "studio_decorations", "publishing_json", "jamendo_track", "studio_transform"]);
 
 function draftScopeKey(owner, persona) {
   return String(Number(owner)) + ":" + String(persona);
 }
 
 function safeDraftRecord(draft, owner = state?.user?.id, persona = state?.persona) {
-  if (!draft || typeof draft !== "object" || Array.isArray(draft)
-    || Number(draft.owner) !== Number(owner) || draft.persona !== persona || !DRAFT_PERSONAS.has(draft.persona)
-    || draft.ownerPersona !== draftScopeKey(owner, persona)
-    || !/^(?:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|draft-[a-z0-9-]{8,70})$/.test(String(draft.id || ""))
-    || !new Set(["post", "story"]).has(draft.mode)
-    || !Number.isSafeInteger(Number(draft.updatedAt)) || Number(draft.updatedAt) < 1 || Number(draft.updatedAt) > Date.now() + 60_000
-    || !draft.fields || typeof draft.fields !== "object" || Array.isArray(draft.fields)) return false;
-  const fields = Object.entries(draft.fields);
-  if (fields.length > DRAFT_FIELDS.size || fields.some(([key, value]) => !DRAFT_FIELDS.has(key)
-    || !new Set(["string", "boolean", "number"]).has(typeof value) || (typeof value === "string" && value.length > 2_000))) return false;
-  const safeFile = (file, mimes) => file == null || (file instanceof Blob && file.size > 0 && file.size <= DRAFT_FILE_LIMIT && mimes.has(file.type));
-  return safeFile(draft.sourceFile, CREATOR_MEDIA_MIMES) && safeFile(draft.audioFile, CREATOR_AUDIO_MIMES);
+  return validDraft(draft,{owner,persona,personas:DRAFT_PERSONAS,fields:DRAFT_FIELDS,mediaMimes:CREATOR_MEDIA_MIMES,audioMimes:CREATOR_AUDIO_MIMES,maxFileBytes:DRAFT_FILE_LIMIT});
 }
 
 function draftRecordBytes(draft) {
-  return Number(draft?.sourceFile?.size || 0) + Number(draft?.audioFile?.size || 0);
+  return draftMediaBytes(draft);
 }
 
 function draftDatabase() {
@@ -6462,6 +6457,8 @@ async function getDraft(id, owner = state.user.id, persona = state.persona) {
 async function deleteDraft(id) {
   const draft = await getDraft(id);
   if (!draft) return false;
+  const removed = await api('/api/creator/drafts/'+encodeURIComponent(id),{method:'DELETE'});
+  if (!removed.ok) throw new Error('Draft deletion failed');
   await draftTransaction("readwrite", (store) => store.delete(id));
   return true;
 }
@@ -6518,7 +6515,7 @@ function formatDraftBytes(value) {
   return `${megabytes < 10 ? megabytes.toFixed(1) : Math.round(megabytes)} MB`;
 }
 
-async function saveComposerDraft(form, mode) {
+async function saveComposerDraft(form, mode, { localOnly = false } = {}) {
   const owner = Number(state.user.id);
   const persona = state.persona;
   if (!Number.isSafeInteger(owner) || owner <= 0 || !DRAFT_PERSONAS.has(persona) || !new Set(["post", "story"]).has(mode)) throw new Error("invalid draft scope");
@@ -6530,15 +6527,19 @@ async function saveComposerDraft(form, mode) {
   });
   const sourceFile = form.elements.file?.files?.[0] || null;
   const audioFile = form.elements.audio_file?.files?.[0] || null;
+  form.dataset.draftId ||= localDraftId();
   const record = {
     id: form.dataset.draftId || localDraftId(), owner, ownerPersona: draftScopeKey(owner, persona),
-    persona, mode, updatedAt: Date.now(), fields, sourceFile, audioFile,
+    persona, mode, updatedAt: Date.now(), fields, sourceFile, audioFile, sourceFiles: [...(form.elements.file?.files || [])],
   };
   if (!safeDraftRecord(record, owner, persona)) throw new Error("draft validation failed");
+  if(draftRecordBytes(record)>DRAFT_QUOTA_BYTES_PER_PROFILE)throw new Error('draft quota exceeded');
   await draftTransaction("readwrite", (store) => store.put(record));
   const quota = await enforceDraftQuota(owner, persona, record.id);
   if (Number(state.user.id) !== owner || state.persona !== persona || !form.isConnected) return record.id;
   form.dataset.draftId = record.id;
+  if (localOnly) return record.id;
+  await syncCreatorDraft({form,record,mode,fields,audioFile,uploadMediaResumable,isCurrent:()=>Number(state.user.id)===owner&&state.persona===persona&&form.isConnected});
   toast(quota.evicted.length ? `${t("draft.saved")} · ${quota.evicted.length} ${t("draft.evicted")}` : t("draft.saved"));
   return record.id;
 }
@@ -6553,6 +6554,9 @@ async function openDraftLibrary() {
   let drafts = [];
   let loadFailed = false;
   try { drafts = await listDrafts(owner, persona); } catch { loadFailed = true; }
+  const remote=await api('/api/creator/drafts');
+  if(remote.ok&&Number(remote.owner_id)===owner&&remote.owner_persona===persona)vp.querySelector('.draftPrivacy').textContent='Drafturi din cont + copii locale · '+persona;
+  if(remote.ok && Number(remote.owner_id)===Number(owner) && remote.owner_persona===persona){loadFailed=false;const merged=new Map(drafts.map(d=>[d.id,d]));for(const entry of remote.drafts||[])if(!merged.has(entry.id)||merged.get(entry.id).updatedAt<entry.updatedAt)merged.set(entry.id,{...entry,remote:true,owner,persona,ownerPersona:draftScopeKey(owner,persona)});drafts=[...merged.values()].sort((a,b)=>b.updatedAt-a.updatedAt);}
   const list = document.getElementById("draftList");
   if (!list?.isConnected || Number(state.user.id) !== owner || state.persona !== persona) return;
   if (loadFailed) {
@@ -6564,13 +6568,15 @@ async function openDraftLibrary() {
   const usedBytes = drafts.reduce((total, draft) => total + draftRecordBytes(draft), 0);
   list.innerHTML = '<div class="draftQuota" role="status"><span>' + esc(t("draft.quota")) + '</span><b>' + esc(formatDraftBytes(usedBytes)) + ' / ' + esc(formatDraftBytes(DRAFT_QUOTA_BYTES_PER_PROFILE)) + '</b><progress max="' + DRAFT_QUOTA_BYTES_PER_PROFILE + '" value="' + usedBytes + '"></progress></div>' + drafts.map((draft) => '<article class="draftCard" data-draft-card="' + esc(draft.id) + '"><div>' + (draft.sourceFile?.type?.startsWith("video/") ? "▶" : draft.sourceFile ? "▧" : "≡") + '</div><span><b>' + esc(draft.fields?.caption || t(draft.mode === "story" ? "draft.storyNoText" : "draft.postNoText")) + '</b><small>' + new Date(draft.updatedAt).toLocaleString(interfaceLocale) + ' · <bdi dir="ltr">' + esc(draft.mode) + '</bdi> · ' + esc(formatDraftBytes(draftRecordBytes(draft))) + '</small></span><button data-open-draft="' + esc(draft.id) + '" type="button">' + esc(t("draft.edit")) + '</button><button data-delete-draft="' + esc(draft.id) + '" type="button" aria-label="' + esc(t("draft.delete")) + '">×</button></article>').join("");
   list.querySelectorAll("[data-open-draft]").forEach((button) => button.addEventListener("click", async () => {
-    const draft = await getDraft(button.dataset.openDraft, owner, persona);
+    let draft = drafts.find(entry=>entry.id===button.dataset.openDraft);
+    if(draft?.remote){try{draft=await hydrateRemoteDraft(draft);}catch{return toast(t('draft.openError'));}}
+    if(!draft)draft=await getDraft(button.dataset.openDraft,owner,persona);
     if (!draft || Number(state.user.id) !== owner || state.persona !== persona) return toast(t("draft.unavailable"));
     openComposer(draft.mode, { draft });
   }));
   list.querySelectorAll("[data-delete-draft]").forEach((button) => button.addEventListener("click", async () => {
     let deleted = false;
-    try { deleted = await deleteDraft(button.dataset.deleteDraft); } catch { return toast(t("draft.deleteError")); }
+    try { const entry=drafts.find(d=>d.id===button.dataset.deleteDraft);deleted=entry?.remote?(await api('/api/creator/drafts/'+entry.id,{method:'DELETE'})).ok:await deleteDraft(button.dataset.deleteDraft); } catch { return toast(t("draft.deleteError")); }
     if (!deleted) return toast(t("draft.unavailable"));
     button.closest("article").remove();
     if (!list.querySelector("article")) list.innerHTML = '<div class="draftEmpty"><i>▤</i><b>' + esc(t("draft.empty")) + '</b></div>';
@@ -7143,6 +7149,9 @@ function openComposer(mode = "post", options = {}) {
   const storyMode = socialMode && mode === "story";
   const selfieFirst = options.facing === "user";
   const tweetMode = socialMode && !storyMode && options.source === "tweet";
+  const liveCamera = Boolean(options.camera);
+  const modernFlow = socialMode && !storyMode && !tweetMode;
+  if (modernFlow) options = { ...options, camera: true };
   const mediaFirst = Boolean(options.camera || options.pick || storyMode || options.source === "clip");
   const sourceLabel = t(options.source === "camera" ? "composer.sourceCamera" : options.source === "story_camera" ? "composer.sourceStoryCamera" : options.source === "clip_camera" ? "composer.sourceClipCamera" : options.source === "gallery" ? "composer.sourceGallery" : options.source === "clip" ? "composer.sourceClip" : storyMode ? "composer.sourceStory" : "composer.sourceDefault");
   const composerClass = ["premiumComposer", storyMode ? "storyComposer" : "", tweetMode ? "tweetComposer" : "", mediaFirst ? "mediaFirstComposer" : "textFirstComposer", options.camera ? "cameraComposer" : ""].filter(Boolean).join(" ");
@@ -7165,18 +7174,7 @@ function openComposer(mode = "post", options = {}) {
     storyMode ? '<div class="storyLifecycle"><label><input type="checkbox" name="persistent" /> Păstrează până arhivez eu</label><label>Durată (ore)<input type="number" name="duration_hours" min="1" max="8760" value="24" /></label></div>' : '',
     '<div class="media-preview" id="preview"></div>',
     options.camera ? reelCameraReviewMarkup() : '',
-    socialMode && !storyMode ? [
-      '<section class="creatorStudio" id="creatorStudio" hidden><header><span><b>' + esc(t("studio.title")) + '</b><small>' + esc(t("studio.localNonDestructive")) + '</small></span><em id="studioKind">' + esc(t("studio.media")) + '</em></header>',
-      '<div class="studioGrid"><label>' + esc(t("studio.format")) + '<select name="studio_aspect"><option value="ORIGINAL">' + esc(t("studio.original")) + '</option><option value="VERTICAL_9_16">' + esc(t("studio.vertical")) + '</option><option value="SQUARE_1_1">' + esc(t("studio.square")) + '</option><option value="PORTRAIT_4_5">' + esc(t("studio.portrait")) + '</option><option value="LANDSCAPE_16_9">' + esc(t("studio.landscape")) + '</option></select></label>',
-      '<label>' + esc(t("studio.filter")) + '<select name="studio_filter"><option value="NONE">' + esc(t("studio.none")) + '</option><option value="VIVID">' + esc(t("studio.vivid")) + '</option><option value="WARM">' + esc(t("studio.warm")) + '</option><option value="COOL">' + esc(t("studio.cool")) + '</option><option value="MONO">' + esc(t("studio.mono")) + '</option><option value="HIGH_CONTRAST">' + esc(t("studio.contrast")) + '</option></select></label></div>',
-      '<label class="studioRange">' + esc(t("studio.intensity")) + ' <output id="studioIntensity">0%</output><input name="studio_intensity" type="range" min="0" max="100" value="0" /></label>',
-      '<div class="studioTimeline" id="studioTimeline" hidden><label>' + esc(t("studio.start")) + '<input name="trim_start" type="number" min="0" max="599.9" step="0.1" value="0" /></label><label>' + esc(t("studio.end")) + '<input name="trim_end" type="number" min="0.1" max="600" step="0.1" value="600" /></label><label>' + esc(t("studio.speed")) + '<select name="playback_rate"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label><label class="studioCheck"><input name="mute_original" type="checkbox" /> ' + esc(t("studio.muteOriginal")) + '</label></div>',
-      '<div class="studioGrid"><label>' + esc(t("studio.overlayText")) + '<input name="overlay_text" maxlength="120" placeholder="' + esc(t("studio.overlayPlaceholder")) + '" /></label><label>' + esc(t("studio.position")) + '<select name="overlay_position"><option value="TOP">' + esc(t("studio.top")) + '</option><option value="CENTER">' + esc(t("studio.center")) + '</option><option value="BOTTOM" selected>' + esc(t("studio.bottom")) + '</option></select></label><label>' + esc(t("studio.color")) + '<select name="overlay_color"><option value="WHITE">' + esc(t("studio.white")) + '</option><option value="BLACK">' + esc(t("studio.black")) + '</option><option value="TEAL">' + esc(t("studio.teal")) + '</option><option value="YELLOW">' + esc(t("studio.yellow")) + '</option></select></label></div>',
-      '<input name="studio_decorations" type="hidden" value="[]" />',
-      '<div class="studioAudio"><label>' + esc(t("studio.addAudio")) + '<input name="audio_file" type="file" accept="audio/mpeg,audio/wav,audio/ogg" /></label><span id="studioAudioStatus">' + esc(t("studio.audioFormats")) + '</span><div class="studioGrid"><label>' + esc(t("studio.rights")) + '<select name="audio_rights"><option value="">' + esc(t("studio.chooseRights")) + '</option><option value="ORIGINAL_OWNED">' + esc(t("studio.ownOriginal")) + '</option><option value="LICENSED_WITH_PERMISSION">' + esc(t("studio.licensed")) + '</option></select></label><label>' + esc(t("studio.attribution")) + '<input name="audio_attribution" maxlength="120" placeholder="' + esc(t("studio.attributionPlaceholder")) + '" /></label></div></div>',
-      '<section class="reelAutoSound" id="reelAutoSound" hidden></section>',
-      '<p class="studioTruth">' + esc(t("studio.truth")) + '</p></section>',
-    ].join("") : '',
+    socialMode && !storyMode ? creatorStudioMarkup({esc,t}) : '',
     '<div class="uploadProgress" id="uploadProgress" hidden><div><b>' + esc(t("upload.initial")) + '</b><span>0%</span></div><progress max="100" value="0"></progress><small>' + esc(t("upload.flow")) + '</small><button id="cancelUpload" type="button" hidden>' + esc(t("upload.cancel")) + '</button></div>',
     '<div class="composerActions"><button class="btn ghost" id="saveDraft" type="button">Salvează draft</button><button class="btn" type="submit">' + (storyMode ? "Publică story" : "Publică") + '</button></div>',
     '</form></div></div>',
@@ -7194,6 +7192,7 @@ function openComposer(mode = "post", options = {}) {
     const form = e.currentTarget;
     const submit = e.submitter || form.querySelector('button[type="submit"]');
     if (submit?.disabled) return;
+    if (modernFlow && form.closest('.cameraComposer')?.dataset.cameraState !== 'publishing-details') return;
     const publishKey = form.dataset.publishKey;
     // Read values before disabling.
     const fd = new FormData(form);
@@ -7263,6 +7262,7 @@ function openComposer(mode = "post", options = {}) {
         muteOriginal: media.kind === "video" ? fd.get("mute_original") === "on" : false,
         overlay: { text: String(fd.get("overlay_text") || ""), position: fd.get("overlay_position"), color: fd.get("overlay_color") },
         decorations: readStudioDecorations(form),
+        ...(modernFlow ? {transform:readTransform(form)} : {}),
       } : null;
       const body = storyMode ? {
         caption: fd.get("caption"),
@@ -7280,6 +7280,7 @@ function openComposer(mode = "post", options = {}) {
         visibility: fd.get("visibility") || "public",
         language: fd.get("language") || null,
         provenance: fd.get("provenance") || "NOT_DECLARED",
+        publishing: modernFlow ? readPublishing(form) : undefined,
         studio_manifest: studioManifest,
         audio_hash: creatorAudio && creatorAudio.hash,
         audio_ext: creatorAudio && creatorAudio.ext,
@@ -7306,6 +7307,8 @@ function openComposer(mode = "post", options = {}) {
           && r.post?.audio_rights === fd.get("audio_rights") && r.post?.audio_attribution === String(fd.get("audio_attribution") || "").trim()))
         && (!selectedJamendoTrack || r.post?.external_audio?.id === selectedJamendoTrack.id);
       if (validStoryResult || validPostResult) {
+        if(validPostResult && readPublishing(form).saveToDevice)downloadPublishedPost(r.post,{notify:toast}).catch(error=>toast(error.message));
+        stopAutoSound();
         composerExit = null;
         clearComposerPreviewUrl();
         if (storyIntent) clearStoryPublishIntent(storyIntent);
@@ -7374,10 +7377,14 @@ function openComposer(mode = "post", options = {}) {
       if (reviewing) asset.play().catch(() => {});
       asset.playbackRate = Number(form.elements.playback_rate.value);
     }
+    if(modernFlow)applyTransform(stage,asset,readTransform(form));
   };
+  if (modernFlow) bindPublishingDetails({form:sourceInput.form,api,toast,applyPreview:applyCreatorPreview,openDrafts:openDraftLibrary});
   sourceInput.addEventListener("change", async (e) => {
     if (!isCurrent()) return;
-    const cameraSound = options.camera ? selectedJamendoTrack : null;
+    let savedTrack = null;
+    try { savedTrack = JSON.parse(sourceInput.form.elements.jamendo_track?.value || 'null'); } catch {}
+    const cameraSound = options.camera ? selectedJamendoTrack || savedTrack : null;
     const file = e.target.files[0];
     stopAutoSound(); selectedJamendoTrack = cameraSound;
     if (!file) { clearComposerPreviewUrl(); if (options.camera) setCameraComposerState("camera-ready", { force: true }); if (studioPanel) studioPanel.hidden = true; document.getElementById("preview").innerHTML = ""; if (options.pick || options.camera) picker.cancel(); return; }
@@ -7420,11 +7427,15 @@ function openComposer(mode = "post", options = {}) {
         sourceInput.form.elements.trim_end.value = Math.max(.1, Math.min(600, video.duration || 600)).toFixed(1);
       }, { once: true });
       applyCreatorPreview();
-      if (isVideo && video) {
+      if (isVideo && video || modernFlow) {
         stopAutoSound = mountReelAutoSound({
-          panel: document.getElementById("reelAutoSound"), video, file, api, isCurrent, preferredTrack: cameraSound,
+          panel: document.getElementById("reelAutoSound"), video:video||document.querySelector('#preview img'), file, api, isCurrent, preferredTrack: cameraSound,
           onSelection: (track) => {
             selectedJamendoTrack = track;
+            if (sourceInput.form.elements.jamendo_track) sourceInput.form.elements.jamendo_track.value = track ? JSON.stringify(track) : '';
+            const soundLabel=document.getElementById('cameraReviewSound');if(soundLabel)soundLabel.textContent=track?`♫ ${track.name} · ${track.artist}`:'♫ Add sound';
+            const soundtrack=document.querySelector('#reelAutoSound audio');if(soundtrack)soundtrack.volume=readTransform(sourceInput.form).musicVolume;
+            sourceInput.form.dispatchEvent(new Event('input',{bubbles:true}));
             const audioInput = sourceInput.form.elements.audio_file;
             if (track && audioInput?.files?.length) {
               audioInput.value = "";
@@ -7446,20 +7457,22 @@ function openComposer(mode = "post", options = {}) {
     else status.textContent = audio.name + " · " + t("studio.rightsStatus");
   });
   document.getElementById("saveDraft").onclick = () => composerExit.saveOnly().catch(() => toast(t("draft.saveError")));
-  if (options.camera) wireComposerCamera(sourceInput, launchNativePicker, {
+  if (liveCamera) wireComposerCamera(sourceInput, launchNativePicker, {
     onSoundSelection: (track) => { selectedJamendoTrack = track; },
     currentSound: () => selectedJamendoTrack,
     owner: state.user.id,
     onClose: goHome,
   });
-  if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, releasePreview: clearComposerPreviewUrl, api, restart: () => { const camera = document.getElementById("composerCamera"); if (camera) startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } });
+  if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, releasePreview: clearComposerPreviewUrl, api, beforeRetake:()=>saveComposerDraft(sourceInput.form,mode,{localOnly:true}), restart: () => { const camera = document.getElementById("composerCamera"); if (camera) startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } });
+  if(modernFlow)bindTransformEditor(sourceInput.form,applyCreatorPreview);
   if (options.draft) {
     Object.entries(options.draft.fields || {}).forEach(([name, value]) => {
       const control = document.getElementById("composerForm").elements[name];
       if (!control) return;
       if (control.type === "checkbox") control.checked = Boolean(value); else control.value = value;
     });
-    if (options.draft.sourceFile && setInputFile(sourceInput, options.draft.sourceFile)) { /* preview dispatched */ }
+    if(options.draft.sourceFiles?.length>1){const transfer=new DataTransfer();options.draft.sourceFiles.forEach(file=>transfer.items.add(file));sourceInput.files=transfer.files;sourceInput.dispatchEvent(new Event('change',{bubbles:true}));}
+    else if (options.draft.sourceFile && setInputFile(sourceInput, options.draft.sourceFile)) { /* preview dispatched */ }
     const audioInput = document.querySelector('#composerForm input[name="audio_file"]');
     if (audioInput && options.draft.audioFile) setInputFile(audioInput, options.draft.audioFile);
   } else if (options.pick) {
@@ -7471,6 +7484,7 @@ function openComposer(mode = "post", options = {}) {
     save: () => saveComposerDraft(form, mode), busy: () => activeRecorder || form.querySelector('[type="submit"]').disabled,
     onBusy: () => toast(t("exit.busy")), translate: t, isCurrent,
   });
+  if(modernFlow)bindDraftBackup(form,isCurrent,()=>saveComposerDraft(form,mode,{localOnly:true}));
 }
 
 async function renderMarket(vp) { return renderMarketWorkspace(vp, { api, toast, state }); }

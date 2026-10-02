@@ -1,0 +1,38 @@
+import { api } from './client.js?v=20260831-p1e2eeattach2';
+import { stickerById } from './reel-sticker-catalog.js?v=20261001-publish1';
+import { defaultTransform, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
+const load=(element,event)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Media nu poate fi încărcată pentru export.')),15000);element.addEventListener(event,()=>{clearTimeout(timer);resolve();},{once:true});element.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Media indisponibilă.'));},{once:true});});
+const filterCss=creatorFilterCss;
+export async function downloadPublishedPost(post,{notify=()=>{}}={}){
+  const permission=await api(`/api/posts/${post.id}/download-permission`);
+  if(!permission.ok)throw new Error(permission.error||'Descărcarea nu este permisă.');
+  const m=post.creator_studio?.manifest||{},t={...defaultTransform(),...m.transform},isVideo=post.media.kind==='video';
+  const asset=document.createElement(isVideo?'video':'img');asset.crossOrigin='anonymous';if(isVideo){asset.playsInline=true;asset.preload='auto';}const ready=load(asset,isVideo?'loadeddata':'load');asset.src=`/media/${post.media.hash}.${post.media.ext}`;await ready;
+  const sw=asset.videoWidth||asset.naturalWidth,sh=asset.videoHeight||asset.naturalHeight;
+  const ratio=t.ratio||({VERTICAL_9_16:9/16,SQUARE_1_1:1,PORTRAIT_4_5:4/5,LANDSCAPE_16_9:16/9})[m.aspect]||sw/sh;
+  const canvas=document.createElement('canvas');canvas.width=Math.round(Math.min(1080,1080*ratio)/2)*2;canvas.height=Math.round(canvas.width/ratio/2)*2;const ctx=canvas.getContext('2d');
+  const images=new Map();await Promise.all((m.decorations||[]).map(async d=>{const entry=stickerById(d.assetId);if(entry){const img=new Image();const ready=load(img,'load');img.src=entry.image;await ready;images.set(d.id,img);}}));
+  const paint=()=>{const w=canvas.width,h=canvas.height;ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);ctx.save();ctx.translate(w/2,h/2);ctx.rotate(t.rotation*Math.PI/180);ctx.scale(t.zoom,t.zoom);const scale=Math.max(w/sw,h/sh);const dw=sw*scale,dh=sh*scale;ctx.filter=filterCss(m);ctx.drawImage(asset,-w/2-(dw-w)*t.x/100,-h/2-(dh-h)*t.y/100,dw,dh);ctx.restore();ctx.filter='none';
+    const overlays=[...(m.decorations||[]),...(m.overlay?.text?[{text:m.overlay.text,x:50,y:m.overlay.position==='TOP'?10:m.overlay.position==='CENTER'?50:88,scale:1,color:'#fff'}]:[])];
+    for(const d of overlays){const time=isVideo?asset.currentTime*1000:0;if(isVideo&&(time<(d.startMs||0)||time>(d.endMs||600000)))continue;ctx.save();ctx.translate(w*d.x/100,h*d.y/100);ctx.rotate((d.rotation||0)*Math.PI/180);ctx.scale(d.scale||1,d.scale||1);ctx.globalAlpha=d.opacity||1;const img=images.get(d.id);if(img)ctx.drawImage(img,-w*.12,-w*.12,w*.24,w*.24);else{const size=Math.round(w*(d.type==='LOCATION'?.043:.065));ctx.font=`700 ${size}px ${d.style==='elegance'?'Georgia':d.style==='retro'?'monospace':'sans-serif'}`;const text=d.type==='TIME'?new Date().toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit',timeZone:d.timezone||'UTC'}):d.type==='DATE'?new Date().toLocaleDateString('ro-RO'):d.text||'';const measure=Math.min(w*.9,ctx.measureText(text).width);if(d.background&&d.background!=='transparent'){ctx.fillStyle=d.background;ctx.fillRect(-measure/2-10,-size/2-8,measure+20,size+16);}ctx.fillStyle=d.color||'#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.shadowColor='#0008';ctx.shadowBlur=4;ctx.fillText(text,0,0,w*.9);}ctx.restore();}
+    if(permission.watermark){ctx.save();ctx.font=`700 ${Math.round(w*.04)}px sans-serif`;ctx.textAlign='right';ctx.fillStyle='white';ctx.shadowColor='#000';ctx.shadowBlur=7;ctx.fillText('N E X U S',w-22,h-56);ctx.font=`${Math.round(w*.027)}px sans-serif`;ctx.fillText('@'+permission.username,w-22,h-24);ctx.restore();}
+    if(music){ctx.save();ctx.fillStyle='#000a';ctx.fillRect(0,0,w,68);ctx.fillStyle='white';ctx.font=`${Math.round(w*.023)}px sans-serif`;ctx.fillText(post.external_audio.attribution,12,22,w-24);ctx.fillText(post.external_audio.share_url,12,42,w-24);ctx.fillText(post.external_audio.license_url+' · segment / mix',12,61,w-24);ctx.restore();}};
+  let blob,extension='jpg',audioContext,stream,music,recorder,frame,watchdog;
+  try{
+    if(!isVideo){paint();blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.94));}
+    else{
+      if(!canvas.captureStream||!globalThis.MediaRecorder)throw new Error('Acest browser nu poate exporta clipul editat.');
+      stream=canvas.captureStream(30);audioContext=new AudioContext();const destination=audioContext.createMediaStreamDestination();const source=audioContext.createMediaElementSource(asset),gain=audioContext.createGain();gain.gain.value=m.muteOriginal?0:t.originalVolume;source.connect(gain).connect(destination);
+      if(post.external_audio?.audio_url && post.external_audio.download_allowed===true){music=new Audio();music.crossOrigin='anonymous';const ready=load(music,'canplay');music.src=post.external_audio.audio_url;await ready;const musicSource=audioContext.createMediaElementSource(music),musicGain=audioContext.createGain();musicGain.gain.value=t.musicVolume;musicSource.connect(musicGain).connect(destination);music.currentTime=Number(post.external_audio.preview_offset||0);}
+      destination.stream.getAudioTracks().forEach(track=>stream.addTrack(track));await audioContext.resume();
+      const mime=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/mp4'].find(value=>MediaRecorder.isTypeSupported(value));if(!mime)throw new Error('Formatul de export nu este disponibil.');extension=mime.includes('mp4')?'mp4':'webm';
+      recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:2500000});const chunks=[];let bytes=0;
+      const start=(m.trimStartMs||0)/1000,end=Math.min(asset.duration,(m.trimEndMs||600000)/1000);asset.currentTime=start;
+      const result=new Promise((resolve,reject)=>{watchdog=setTimeout(()=>reject(new Error('Exportul s-a oprit. Ține aplicația deschisă și reîncearcă.')),Math.min(660000,(Number.isFinite(end)?end-start:600)*1000+30000));recorder.ondataavailable=e=>{bytes+=e.data.size;if(bytes>200*1024*1024){reject(new Error('Exportul depășește limita dispozitivului.'));if(recorder.state==='recording')recorder.stop();}else if(e.data.size)chunks.push(e.data);};recorder.onerror=()=>reject(new Error('Exportul video a eșuat.'));recorder.onstop=()=>{cancelAnimationFrame(frame);resolve(new Blob(chunks,{type:mime}));};});
+      result.catch(()=>{});
+      const draw=()=>{paint();if(music&&music.currentTime>Number(post.external_audio.preview_offset||0)+Number(post.external_audio.segment_seconds||30))music.currentTime=Number(post.external_audio.preview_offset||0);if(asset.currentTime>=end||asset.ended){if(recorder.state==='recording')recorder.stop();return;}frame=requestAnimationFrame(draw);};
+      notify('Se exportă clipul. Păstrează aplicația deschisă.');recorder.start(1000);await asset.play();if(music)await music.play();draw();blob=await result;
+    }
+    if(!blob?.size)throw new Error('Exportul este gol.');const url=URL.createObjectURL(blob),anchor=document.createElement('a');anchor.href=url;anchor.download=`Nexus-${post.id}.${extension}`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),60000);notify(post.external_audio&&!music?'Fișier pregătit fără muzica Jamendo (export audio nepermis sau fotografie).':'Fișierul este pregătit pentru salvare.');
+  }finally{clearTimeout(watchdog);cancelAnimationFrame(frame);if(recorder?.state==='recording')recorder.stop();if(isVideo)asset.pause();music?.pause();stream?.getTracks().forEach(track=>track.stop());await audioContext?.close();asset.removeAttribute('src');}
+}

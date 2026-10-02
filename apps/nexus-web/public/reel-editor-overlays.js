@@ -1,4 +1,4 @@
-import { STICKER_CATEGORIES, stickerById, stickerCatalogPage } from './reel-sticker-catalog.js?v=20261001-camera11';
+import { STICKER_CATEGORIES, stickerById, stickerCatalogPage } from './reel-sticker-catalog.js?v=20261001-publish1';
 
 const MAX_DECORATIONS = 12;
 const FONT_STYLES = Object.freeze({ classic:'system-ui,sans-serif', elegance:'Georgia,serif', neon:'Arial Black,sans-serif', retro:'Courier New,monospace', comic:'Comic Sans MS,cursive', typewriter:'Courier New,monospace', bold:'Arial Black,sans-serif', outline:'system-ui,sans-serif', handwriting:'cursive' });

@@ -41,7 +41,7 @@ const accountLifecycle = await readFile(new URL("../lib/account-lifecycle.js", i
 const accountPurge = await readFile(new URL("../scripts/account-purge.mjs", import.meta.url), "utf8");
 const operationalControls = await readFile(new URL("../lib/operational-controls.js", import.meta.url), "utf8");
 const incidentControl = await readFile(new URL("../scripts/incident-control.mjs", import.meta.url), "utf8");
-const appAssetVersion = "20261001-camera11";
+const appAssetVersion = "20261001-publish1";
 const appAssetPattern = new RegExp(`app\\.js\\?v=${appAssetVersion}`);
 const localeAssetPattern = /interface-locale\.js\?v=20260928-name1/;
 const stylesAssetPattern = /styles\.css\?v=20260923-wave14i/;
@@ -107,7 +107,8 @@ test("moderation dialogs are keyboard bounded and restore focus", () => {
   assert.doesNotMatch(app, /output\.textContent = result\.error/);
 });
 
-test("Creator Studio is truthful, rights-gated and never auto-publishes a revision", () => {
+test("Creator Studio is truthful, rights-gated and never auto-publishes a revision", async () => {
+  const app = await readFile(new URL('../public/app.js',import.meta.url),'utf8') + await readFile(new URL('../public/creator-studio-markup.js',import.meta.url),'utf8');
   assert.match(app, /t\("studio\.title"\)/);
   assert.match(app, /t\("studio\.localNonDestructive"\)/);
   assert.match(app, /social_audio/);

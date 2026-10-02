@@ -1,4 +1,6 @@
 import { URL } from "node:url";
+import { normalizePublishing } from './post-publishing.js';
+import { handleCreatorDrafts } from './creator-drafts.js';
 import {
   json, send, redirect, parseCookies, setCookie, clearCookie, readBody, readJson, sanitizeText,
 } from "./transport.js";
@@ -1698,6 +1700,8 @@ export async function handleRequest(req, res, ctx) {
     let request;
     try { request = buildJamendoTracksUrl({ clientId, motion, brightness, duration, query }); }
     catch { return json(res, 503, { ok: false, code: "JAMENDO_NOT_CONFIGURED", error: "Jamendo nu este configurat." }); }
+    const trackId=url.searchParams.get('track_id');
+    if(trackId){if(!/^[1-9][0-9]{0,11}$/.test(trackId))return json(res,400,{ok:false,error:'Track invalid'});for(const key of ['fuzzytags','speed','search'])request.url.searchParams.delete(key);request.url.searchParams.set('id',trackId);}
     const cacheKey = request.url.toString().replace(clientId, "[client]");
     const cached = JAMENDO_CACHE.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return json(res, 200, cached.payload);
@@ -1715,6 +1719,7 @@ export async function handleRequest(req, res, ctx) {
     const tracks = (Array.isArray(data?.results) ? data.results : [])
       .map((track) => normalizeJamendoTrack(track, request.segment))
       .filter(Boolean)
+      .filter(track=>!trackId||String(track.id)===trackId)
       .slice(0, 5)
       .map((track) => ({ ...track, selection_token: signJamendoSelection(track, sessionSecret()) }));
     const payload = { ok: true, provider: "jamendo", catalog_mode: "configured_free", analysis: { motion, brightness, segment_seconds: request.segment, profile: request.profile }, tracks };
@@ -1797,6 +1802,14 @@ export async function handleRequest(req, res, ctx) {
   }
 
   // ---- M5: Work, jobs, business pages and Beauty appointments ----
+  if (await handleCreatorDrafts({req,res,method,path,repo,auth})) return;
+  const downloadMatch = /^\/api\/posts\/(\d+)\/download-permission$/.exec(path);
+  if (method === 'GET' && downloadMatch) {
+    const post = repo.getPostById(Number(downloadMatch[1]));
+    if (!post || !repo.canViewPost(auth.user.id,auth.persona,post)) return json(res,404,{ok:false});
+    if (post.publishing?.allowDownload === false && post.user_id !== auth.user.id) return json(res,403,{ok:false,error:'Autorul nu permite descărcarea'});
+    return json(res,200,{ok:true,post_id:post.id,watermark:post.publishing?.watermark !== false,username:post.author.handle});
+  }
   // Every route is bound to the active Work persona. Business pages are an
   // explicitly public professional surface; personal profile privacy remains
   // isolated in the persona/privacy matrix.
@@ -3626,11 +3639,14 @@ export async function handleRequest(req, res, ctx) {
         ? Math.max(0, Math.min(Math.floor(requestedPreviewOffset), Math.max(0, verifiedExternalAudio.duration - verifiedExternalAudio.segment_seconds)))
         : verifiedExternalAudio.preview_offset,
     } : null;
-    if (externalAudio && kind !== "video") return json(res, 400, { ok: false, error: "Jamendo audio requires a video" });
+    if (externalAudio && !['image','video'].includes(kind)) return json(res, 400, { ok: false, error: "Jamendo audio requires media" });
     if (externalAudio && audioMediaId) return json(res, 400, { ok: false, error: "choose one audio source" });
     let studioManifest;
     let creatorAudio;
+    let publishing;
     try {
+      publishing = body.publishing == null ? null : normalizePublishing(body.publishing);
+      if (publishing?.taggedUserIds.some(id => !repo.getUserById(id) || repo.isAccountBlockedBetween(auth.user.id, id))) throw new Error('PUBLISHING_TAGS_INVALID');
       studioManifest = normalizeCreatorStudio(body.studio_manifest ?? null, { mediaKind: kind });
       creatorAudio = normalizeCreatorAudio({
         audioMediaId,
@@ -3660,7 +3676,7 @@ export async function handleRequest(req, res, ctx) {
       const post = repo.createPost({
         userId: auth.user.id, persona, kind, caption, mediaId, visibility, language, regionCode, provenance,
         mediaEdit: studioManifest, audioMediaId: creatorAudio.audioMediaId,
-        audioRights: creatorAudio.rights, audioAttribution: creatorAudio.attribution, externalAudio,
+        audioRights: creatorAudio.rights, audioAttribution: creatorAudio.attribution, externalAudio, publishing,
       });
       // The gallery and the tags belong to the same write as the post: a post can never claim
       // a tag or a media item it does not really have.
@@ -3947,6 +3963,7 @@ export async function handleRequest(req, res, ctx) {
     try {
       comment = repo.addSocialComment({ userId: auth.user.id, actorPersona: auth.persona, postId: id, body: commentBody, parentId });
     } catch (error) {
+      if (error?.message === 'POST_COMMENTS_DISABLED') return json(res, 403, { ok: false, error: 'Comentariile sunt oprite pentru această postare' });
       if (error?.message === "SOCIAL_COMMENT_PARENT_INVALID") return json(res, 400, { ok: false, error: "parent comment invalid" });
       throw error;
     }
@@ -4383,6 +4400,7 @@ export async function handleRequest(req, res, ctx) {
     if (!repo.canViewPost(auth.user.id, auth.persona, post)) return json(res, 404, { ok: false, error: "post not found" });
     const body = await readJson(req);
     const active = body.active !== false;
+    if (active && post.publishing?.allowRepost === false) return json(res, 403, { ok: false, error: 'Autorul a dezactivat repostarea' });
     const summary = repo.setPostRepost(auth.user.id, auth.persona, id, active);
     return json(res, 200, {
       ok: true, post_id: id, actor_id: auth.user.id, actor_persona: auth.persona,

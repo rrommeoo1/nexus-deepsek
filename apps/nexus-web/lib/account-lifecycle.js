@@ -50,8 +50,10 @@ export function buildAccountExport(db, userId, generatedAt = Math.floor(Date.now
       private_access_currency, private_access_duration_days, updated_at
       FROM personas WHERE user_id = ? ORDER BY persona`, userId),
     posts: many(db, `SELECT id, persona, kind, caption, media_id, visibility, status, language,
-      region_code, provenance, audio_media_id, audio_rights, audio_attribution, external_audio_json, edited_at,
+      region_code, provenance, audio_media_id, audio_rights, audio_attribution, external_audio_json, publishing_json, edited_at,
       withdrawn_at, devnet_tx, created_at FROM posts WHERE user_id = ? ORDER BY id`, userId),
+    creator_drafts: many(db, `SELECT id, persona, mode, fields_json, media_json, updated_at
+      FROM creator_drafts WHERE user_id = ? ORDER BY updated_at`, userId),
     comments: many(db, `SELECT id, post_id, actor_persona, parent_id, body, status, edited_at,
       withdrawn_at, version, pinned_at, created_at FROM comments WHERE user_id = ? ORDER BY id`, userId),
     stories: many(db, `SELECT id, persona, media_id, caption, visibility, status, expires_at,

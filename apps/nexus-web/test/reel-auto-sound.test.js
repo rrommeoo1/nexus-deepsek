@@ -103,6 +103,12 @@ test("authenticated suggestions keep the Jamendo client id server-side and retur
     assert.match(body.tracks[0].selection_token, /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
     assert.match(calledUrl, /client_id=free-client-123/);
     assert.doesNotMatch(res.body, /free-client-123/);
+    assert.equal(body.tracks[0].download_allowed,false);
+    const refreshed=apiResponse();
+    await handleRequest(apiRequest('/api/reels/sound-suggestions?track_id=88&duration=30',`nexus_session=${session.token}`),refreshed,{db,repo,sse:{},fetcher});
+    assert.equal(JSON.parse(refreshed.body).tracks[0].id,'88');
+    assert.equal(new URL(calledUrl).searchParams.get('id'),'88');
+    assert.equal(new URL(calledUrl).searchParams.has('fuzzytags'),false);
   } finally {
     db.close();
     if (previous === undefined) delete process.env.JAMENDO_CLIENT_ID; else process.env.JAMENDO_CLIENT_ID = previous;

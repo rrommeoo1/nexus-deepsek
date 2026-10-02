@@ -1,4 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
+import { initializeCreatorDrafts } from './creator-drafts.js';
 import { mkdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { dirname, join, resolve } from "node:path";
@@ -2044,6 +2045,7 @@ function migrateSocialTables(db) {
     audio_rights: "audio_rights TEXT",
     audio_attribution: "audio_attribution TEXT NOT NULL DEFAULT ''",
     external_audio_json: "external_audio_json TEXT",
+    publishing_json: "publishing_json TEXT",
     content_commitment: "content_commitment TEXT",
     version: "version INTEGER NOT NULL DEFAULT 1",
     edited_at: "edited_at INTEGER",
@@ -2266,6 +2268,7 @@ export function openDb(path = DB_PATH) {
   migrateWalletsTable(db);
   migrateSessionSchema(db);
   migrateSocialTables(db);
+  initializeCreatorDrafts(db);
   migrateMessagingTables(db);
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_users_mvx_address ON users(mvx_address) WHERE mvx_address IS NOT NULL AND mvx_address <> ''`);
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_users_linked_wallet ON users(linked_wallet) WHERE linked_wallet IS NOT NULL AND linked_wallet <> ''`);

@@ -1,4 +1,5 @@
 import { openDb } from "./db.js";
+import { normalizePublishing, publishingFromRow } from './post-publishing.js';
 import { createHash, randomBytes } from "node:crypto";
 import { sha256Hex } from "./security.js";
 import { inspectStoredMedia, purgeStoredMedia } from "./media.js";
@@ -116,6 +117,7 @@ function canonicalPostCommitment(row) {
     audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
   };
   if (row.external_audio_json) payload.externalAudio = row.external_audio_json;
+  if (row.publishing_json) payload.publishing = row.publishing_json;
   return sha256Hex(JSON.stringify(payload));
 }
 
@@ -572,7 +574,7 @@ export function createRepo(db) {
     },
 
     // ---- posts ----
-    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null }) {
+    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null, publishing = null }) {
       persona = normalizePersona(persona);
       const safeVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : "public";
       // A media-less video placeholder is valid feed state, but it must not
@@ -586,11 +588,12 @@ export function createRepo(db) {
         provider: "jamendo", id: String(externalAudio.id), name: String(externalAudio.name), artist: String(externalAudio.artist),
         duration: Number(externalAudio.duration), audio_url: String(externalAudio.audio_url), share_url: String(externalAudio.share_url),
         image_url: String(externalAudio.image_url || ""),
+        download_allowed: externalAudio.download_allowed === true,
         license_url: String(externalAudio.license_url), license: String(externalAudio.license), attribution: String(externalAudio.attribution),
         segment_seconds: Number(externalAudio.segment_seconds), preview_offset: Number(externalAudio.preview_offset || 0),
       } : null;
       if (normalizedAudio.audioMediaId && normalizedExternalAudio) throw new Error("CREATOR_AUDIO_SOURCE_CONFLICT");
-      if (normalizedExternalAudio && kind !== "video") throw new Error("CREATOR_EXTERNAL_AUDIO_REQUIRES_VIDEO");
+      if (normalizedExternalAudio && !['image','video'].includes(kind)) throw new Error("CREATOR_EXTERNAL_AUDIO_REQUIRES_VIDEO");
       const sourceMedia = mediaId ? this.getMediaById(mediaId) : null;
       if (normalizedStudio && (!sourceMedia || sourceMedia.kind !== kind || !this.hasMediaUploadGrant(mediaId, userId, "social_post", persona))) {
         throw new Error("CREATOR_STUDIO_SOURCE_MEDIA_INVALID");
@@ -610,14 +613,16 @@ export function createRepo(db) {
         audioAttribution: normalizedAudio.attribution,
       };
       if (externalAudioJson) commitmentPayload.externalAudio = externalAudioJson;
+      const publishingJson = publishing ? JSON.stringify(normalizePublishing(publishing)) : null;
+      if (publishingJson) commitmentPayload.publishing = publishingJson;
       const commitment = sha256Hex(JSON.stringify(commitmentPayload));
       const info = this.db.prepare(
         `INSERT INTO posts (user_id, persona, kind, caption, media_id, visibility, language, region_code, provenance,
-                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx, publishing_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(userId, persona, kind, caption, mediaId, safeVisibility, language, regionCode, provenance,
         normalizedStudio ? JSON.stringify(normalizedStudio) : null, mediaEditHash, normalizedAudio.audioMediaId,
-        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null);
+        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null, publishingJson);
       this.db.prepare(`INSERT INTO post_versions (post_id, version, caption, visibility, status, content_commitment)
         VALUES (?, 1, ?, ?, 'active', ?)`).run(Number(info.lastInsertRowid), caption, safeVisibility, commitment);
       return this.getPostById(Number(info.lastInsertRowid));
@@ -642,6 +647,7 @@ export function createRepo(db) {
       }
       return {
         ...row,
+        publishing: publishingFromRow(row),
         author: author ? {
           id: author.id,
           handle: author.handle,
@@ -2159,11 +2165,13 @@ export function createRepo(db) {
           AND actor.traffic_class = 'HUMAN_ORGANIC'`).get(postId).count);
     },
     addComment(userId, postId, body) {
+      if (!publishingFromRow(this.getPostById(postId)).allowComments) throw new Error('POST_COMMENTS_DISABLED');
       const commitment = sha256Hex(JSON.stringify({ userId, postId, body }));
       const info = this.db.prepare(`INSERT INTO comments (post_id, user_id, actor_persona, body, content_commitment) VALUES (?, ?, 'social', ?, ?)`).run(postId, userId, body, commitment);
       return this.getCommentById(Number(info.lastInsertRowid));
     },
     addSocialComment({ userId, actorPersona = "social", postId, body, parentId = null }) {
+      if (!publishingFromRow(this.getPostById(postId)).allowComments) throw new Error('POST_COMMENTS_DISABLED');
       const parent = parentId ? this.getCommentById(parentId) : null;
       if (parentId && (!parent || parent.post_id !== postId)) throw new Error("SOCIAL_COMMENT_PARENT_INVALID");
       const commitment = sha256Hex(JSON.stringify({ userId, actorPersona, postId, parentId, body }));
@@ -2836,6 +2844,7 @@ export function createRepo(db) {
       }));
     },
     setPostRepost(userId, actorPersona, postId, active = true) {
+      if (active && !publishingFromRow(this.getPostById(postId)).allowRepost) throw new Error('POST_REPOST_DISABLED');
       actorPersona = normalizePersona(actorPersona);
       if (active) {
         const exists = this.db.prepare(`SELECT 1 FROM post_shares WHERE user_id = ? AND actor_persona = ? AND post_id = ? AND channel = 'repost' LIMIT 1`).get(userId, actorPersona, postId);

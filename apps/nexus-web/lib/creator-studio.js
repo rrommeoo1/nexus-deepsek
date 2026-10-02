@@ -41,7 +41,10 @@ export function normalizeCreatorStudio(input, { mediaKind } = {}) {
     };
   }
   const hasDecorations = Object.prototype.hasOwnProperty.call(input, "decorations");
-  if (!exactKeys(input, hasDecorations ? [...MANIFEST_KEYS, "decorations"] : MANIFEST_KEYS) || input.version !== CREATOR_STUDIO_VERSION) throw new Error("CREATOR_STUDIO_MANIFEST_INVALID");
+  const hasTransform = Object.prototype.hasOwnProperty.call(input, 'transform');
+  if (!exactKeys(input, [...MANIFEST_KEYS,...(hasDecorations?['decorations']:[]),...(hasTransform?['transform']:[])]) || input.version !== CREATOR_STUDIO_VERSION) throw new Error("CREATOR_STUDIO_MANIFEST_INVALID");
+  let transform;
+  if(hasTransform){transform=input.transform;if(!exactKeys(transform,['rotation','zoom','x','y','ratio','originalVolume','musicVolume'])||![0,90,180,270].includes(transform.rotation)||Object.values(transform).some(value=>typeof value!=='number'||!Number.isFinite(value))||transform.zoom<1||transform.zoom>3||transform.x<0||transform.x>100||transform.y<0||transform.y>100||transform.ratio<0||transform.ratio>3||transform.originalVolume<0||transform.originalVolume>1||transform.musicVolume<0||transform.musicVolume>1)throw new Error('CREATOR_TRANSFORM_INVALID');}
   if (!CREATOR_ASPECTS.includes(input.aspect) || !CREATOR_FILTERS.includes(input.filter)) throw new Error("CREATOR_STUDIO_MANIFEST_INVALID");
   if (!boundedInteger(input.intensity, 0, 100) || typeof input.muteOriginal !== "boolean" || !PLAYBACK_RATES.has(input.playbackRate)) {
     throw new Error("CREATOR_STUDIO_MANIFEST_INVALID");
@@ -88,6 +91,7 @@ export function normalizeCreatorStudio(input, { mediaKind } = {}) {
     muteOriginal: input.muteOriginal,
     overlay: Object.freeze({ text: overlayText, position: input.overlay.position, color: input.overlay.color }),
     ...(hasDecorations ? { decorations: Object.freeze(decorations) } : {}),
+    ...(hasTransform ? { transform: Object.freeze({...transform}) } : {}),
   });
 }
 

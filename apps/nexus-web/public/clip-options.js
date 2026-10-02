@@ -1,3 +1,5 @@
+import { api } from './client.js?v=20260831-p1e2eeattach2';
+import { downloadPublishedPost } from './creator-export.js?v=20261001-publish1';
 // Nexus clip options — the per-clip panel: captions, speed, auto-advance, data saver, download and
 // offline. Every switch does something real on this device: nothing here is offered that the build
 // cannot do, nothing is generated that the author did not upload, and where the platform refuses
@@ -211,17 +213,12 @@ export function bindClipOptions(root, context) {
     save();
     root.querySelectorAll(".clipOptionsPanel").forEach((panel) => syncPanel(root, panel.dataset.clipOptions, preferences));
   }));
-  root.querySelectorAll("[data-clip-download]").forEach((button) => button.addEventListener("click", (event) => {
+  root.querySelectorAll("[data-clip-download]").forEach((button) => button.addEventListener("click", async (event) => {
     event.stopPropagation();
     const url = mediaUrlFor?.(Number(button.dataset.clipDownload));
     if (!url || typeof document === "undefined") return toast?.(label("x.clip.downloadFailed"));
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = String(url).split("/").pop() || "nexus-clip";
-    anchor.rel = "noopener";
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
+    button.disabled=true;
+    try{const response=await api('/api/posts/'+Number(button.dataset.clipDownload));if(!response.ok)throw new Error(label('x.clip.downloadFailed'));await downloadPublishedPost(response.post,{notify:toast});}catch(error){toast?.(error.message);}finally{button.disabled=false;}
   }));
   // Auto-advance: when the switch is on, a finished clip rolls into the next one on screen. Loop has
   // to be off for that, which is why the switch states the trade-off in the panel.

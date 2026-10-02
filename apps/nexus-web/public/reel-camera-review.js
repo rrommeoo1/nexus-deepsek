@@ -1,9 +1,9 @@
-import { bindLocationSticker, bindStickerCatalogue, bindTextEditor } from './reel-editor-overlays.js?v=20261001-camera11';
+import { bindLocationSticker, bindStickerCatalogue, bindTextEditor } from './reel-editor-overlays.js?v=20261001-publish1';
 
 export function reelCameraReviewMarkup() {
   return [
     '<section class="cameraReviewActions" id="cameraReviewActions" hidden aria-label="Preview editor">',
-    '<header class="cameraReviewTop"><button id="retakeCamera" type="button" aria-label="Refă captura">‹</button><span id="cameraReviewSound">♫ Add sound</span></header>',
+    '<header class="cameraReviewTop"><button id="retakeCamera" type="button" aria-label="Înapoi">‹</button><button id="cameraReviewSound" type="button">♫ Add sound</button></header>',
     '<nav class="cameraReviewTools" aria-label="Instrumente preview">',
     '<button type="button" data-review-tool="settings"><i>⚙</i><span>Settings</span></button>',
     '<button type="button" data-review-tool="text"><i>Aa</i><span>Text</span></button>',
@@ -68,22 +68,28 @@ export function setCameraReviewMode(visible) {
   return setCameraComposerState(visible ? 'review' : 'publishing-details', { force: true });
 }
 
-export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview, api }) {
+export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview, api, beforeRetake }) {
   const root = document.querySelector('.cameraComposer');
   const form = input?.form;
   const closePanels = () => document.querySelectorAll('[data-review-panel]').forEach((panel) => { panel.hidden = true; });
   const next = () => {
     closePanels(); setCameraComposerState('publishing-details');
-    caption?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    caption?.focus({ preventScroll: true });
+    document.querySelector('#preview video')?.pause();
   };
-  document.getElementById('retakeCamera')?.addEventListener('click', () => {
+  document.getElementById('retakeCamera')?.addEventListener('click', async () => {
+    if(input.files?.length && !window.confirm('Revii la cameră? Captura și editările rămân în draft.'))return;
+    try { await beforeRetake?.(); } catch { window.alert('Draftul nu a putut fi salvat. Captura rămâne în preview.'); return; }
+    if(!form.isConnected)return;
+    delete form.dataset.draftId;
     releasePreview?.(); input.value = ''; document.getElementById('preview')?.replaceChildren();
     if (studio) studio.hidden = true;
     closePanels(); setCameraComposerState('camera-loading', { force: true }); restart?.();
   });
   document.getElementById('continueCameraPost')?.addEventListener('click', next);
   document.getElementById('cameraReviewDraft')?.addEventListener('click', () => document.getElementById('saveDraft')?.click());
+  const soundPanel=document.createElement('section');soundPanel.className='cameraReviewPanel';soundPanel.dataset.reviewPanel='sound';soundPanel.hidden=true;soundPanel.innerHTML='<header><b>Sunet</b><button type="button" data-review-close>×</button></header>';
+  const autoSound=document.getElementById('reelAutoSound');if(autoSound)soundPanel.append(autoSound);document.getElementById('cameraReviewActions')?.append(soundPanel);
+  document.getElementById('cameraReviewSound')?.addEventListener('click',()=>{closePanels();soundPanel.hidden=false;});
   document.querySelectorAll('[data-review-tool]').forEach((button) => button.addEventListener('click', () => {
     const panel = document.querySelector(`[data-review-panel="${button.dataset.reviewTool}"]`);
     const opening = panel?.hidden; closePanels(); if (panel) panel.hidden = !opening;
@@ -91,8 +97,8 @@ export function bindCameraReview({ input, studio, caption, restart, applyPreview
   document.querySelectorAll('[data-review-close]').forEach((button) => button.addEventListener('click', closePanels));
   const visibility = document.querySelector('[data-review-visibility]');
   const provenance = document.querySelector('[data-review-provenance]');
-  if (visibility && form?.elements?.visibility) { visibility.value = form.elements.visibility.value; visibility.addEventListener('change', () => { form.elements.visibility.value = visibility.value; }); }
-  if (provenance && form?.elements?.provenance) { provenance.value = form.elements.provenance.value; provenance.addEventListener('change', () => { form.elements.provenance.value = provenance.value; }); }
+  if (visibility && form?.elements?.visibility) { visibility.value = form.elements.visibility.value; visibility.addEventListener('change', () => { form.elements.visibility.value = visibility.value; form.dispatchEvent(new Event('input',{bubbles:true})); }); }
+  if (provenance && form?.elements?.provenance) { provenance.value = form.elements.provenance.value; provenance.addEventListener('change', () => { form.elements.provenance.value = provenance.value; form.dispatchEvent(new Event('input',{bubbles:true})); }); }
   bindStickerCatalogue({ form, applyPreview });
   bindTextEditor({ form, applyPreview });
   bindLocationSticker({ form, applyPreview, api });
