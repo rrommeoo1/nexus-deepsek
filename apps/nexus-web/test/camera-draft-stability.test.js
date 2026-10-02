@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { cameraVideoConstraints } from '../public/reel-camera-quality.js';
+import { cameraShapedConstraints, cameraVideoConstraints, requestCameraStream, widenCameraTrack } from '../public/reel-camera-quality.js';
 import { bindDraftBackup, serializeDraftWrite } from '../public/creator-draft-sync.js';
 import { reelCameraMarkup } from '../public/reel-camera-surface.js';
 
@@ -22,6 +22,62 @@ test('camera requests a detailed portrait or landscape stream without exact-devi
   assert.doesNotMatch(controller, /context\.filter = video\.style\.filter/);
   assert.match(controller, /coverSourceRect\(video\.videoWidth, video\.videoHeight, aspect \* 1000, 1000\)/);
   assert.match(source('../public/post-publishing.css'), /clipStage \.studioMedia\.aspectOriginal \.studioAsset\{object-fit:contain/);
+});
+
+test('the preview asks for a stream shaped like the screen and resets a zoomed track', () => {
+  // The owner reported on 2 octombrie 2026, from his phone, that "the camera opens zoomed" when he taps "+",
+  // in PHOTO and in VIDEO. Both modes read this one track, and the preview fills a tall surface with
+  // `object-fit: cover`, so the wider mode the browser handed back was cropped hard. The shaped request fixes
+  // the source of the zoom instead of hiding it with `contain`, which would have stopped matching the photo.
+  const shaped = cameraShapedConstraints('environment', true, 390 / 844);
+  assert.equal(shaped.resizeMode, 'crop-and-scale');
+  assert.equal(shaped.aspectRatio.ideal, 390 / 844);
+  assert.equal(shaped.width.ideal, 1080);
+  assert.equal(shaped.height.ideal, 1920);
+  // The plain request stays exactly as it was: it is the fallback for a phone that refuses the shaped one.
+  assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'resizeMode'), false);
+  assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'aspectRatio'), false);
+  // A portrait screen asks with its own ratio, and an unknown ratio falls back to 9:16 rather than to 0.
+  assert.equal(cameraShapedConstraints('user', true, 0).aspectRatio.ideal, 9 / 16);
+  const quality = source('../public/reel-camera-quality.js');
+  assert.match(quality, /export async function requestCameraStream\(facingMode, portrait, aspect, media = navigator\.mediaDevices\)/);
+  assert.match(quality, /media\.getUserMedia\(\{ video: cameraVideoConstraints\(facingMode, portrait\), audio: false \}\)/);
+  assert.match(quality, /export async function widenCameraTrack\(track\)/);
+  assert.match(quality, /applyConstraints\(\{ advanced: \[\{ zoom: range\.min \}\] \}\)/);
+  // app.js stays inside its own transfer budget: the camera request lives in the module, not in the entry file,
+  // and the entry file only says which surface is being filled.
+  const app = source('../public/app.js');
+  assert.match(app, /await requestCameraStream\(facingMode, portrait, camera\.clientWidth \/ Math\.max\(1, camera\.clientHeight\)\)/);
+  assert.match(app, /await widenCameraTrack\(videoTrack\)/);
+});
+
+test('the stream request falls back to the plain constraints when the phone refuses the shaped ones', async () => {
+  const calls = [];
+  const media = {
+    getUserMedia: async (constraints) => {
+      calls.push(constraints);
+      if (calls.length === 1) { const error = new Error('refuzat'); error.name = 'OverconstrainedError'; throw error; }
+      return 'stream';
+    },
+  };
+  assert.equal(await requestCameraStream('environment', true, 390 / 844, media), 'stream');
+  assert.equal(calls.length, 2, 'the shaped request is retried once, plainly');
+  assert.equal(calls[0].video.resizeMode, 'crop-and-scale');
+  assert.equal(calls[0].video.aspectRatio.ideal, 390 / 844);
+  assert.equal(Object.hasOwn(calls[1].video, 'resizeMode'), false, 'the fallback is the request of every phone');
+  // A refused permission is not swallowed by the fallback: the camera screen still has to say what happened.
+  const denied = { getUserMedia: async () => { const error = new Error('permisiune refuzată'); error.name = 'NotAllowedError'; throw error; } };
+  await assert.rejects(() => requestCameraStream('environment', true, 1, denied), /permisiune refuzată/);
+});
+
+test('a track that already carries a digital zoom is widened before the preview starts', async () => {
+  const applied = [];
+  const zoomed = { getCapabilities: () => ({ zoom: { min: 1, max: 8, step: 0.1 } }), applyConstraints: async (value) => { applied.push(value); } };
+  await widenCameraTrack(zoomed);
+  assert.deepEqual(applied, [{ advanced: [{ zoom: 1 }] }]);
+  // A track without zoom support is left exactly as it is, and a missing track does not throw.
+  await widenCameraTrack({ getCapabilities: () => ({}), applyConstraints: async () => { throw new Error('nu se cheamă'); } });
+  await widenCameraTrack(undefined);
 });
 
 test('video mode favors usable bitrate over a hidden ten-minute recording profile', () => {
