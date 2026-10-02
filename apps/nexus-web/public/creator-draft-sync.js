@@ -40,7 +40,7 @@ export function bindDraftBackup(form, isCurrent, save, { delay = 250, setTimer =
   };
   form.addEventListener('input', changedField);
   form.addEventListener('change', changedField);
-  return Object.freeze({ flush });
+  return Object.freeze({ flush, hasPending: () => isCurrent() && (changed || Boolean(inFlight) || failed) });
 }
 export async function hydrateRemoteDraft(draft){
   const files=[];

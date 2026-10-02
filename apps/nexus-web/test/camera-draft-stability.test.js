@@ -54,11 +54,13 @@ test('captured media saves immediately; later edits are retained after an in-fli
   form.emit('change', { type: 'file' });
   await Promise.resolve(); await Promise.resolve();
   assert.deepEqual(writes, [1]);
+  assert.equal(backup.hasPending(), true);
   form.emit('input', { type: 'text' });
   release();
   assert.equal(await backup.flush(), true);
   assert.deepEqual(writes, [1, 2]);
   assert.equal(form.status.textContent, 'Draft salvat pe acest dispozitiv.');
+  assert.equal(backup.hasPending(), false);
   assert.equal(timers.size, 0);
 });
 
@@ -68,8 +70,10 @@ test('failed draft writes remain visibly unsaved and can be retried', async () =
   form.emit('input', { type: 'text' });
   await assert.rejects(backup.flush(), /quota/);
   assert.match(form.status.textContent, /nu a fost salvat/);
+  assert.equal(backup.hasPending(), true);
   assert.equal(await backup.flush(), true);
   assert.equal(attempts, 2);
+  assert.equal(backup.hasPending(), false);
 });
 
 test('draft writes for one editor execute in order even when requested together', async () => {
@@ -88,4 +92,11 @@ test('description thumbnail is not an exit target; leaving preview waits for dra
   assert.match(publishing, /<div class="publishThumbnail"/);
   assert.doesNotMatch(publishing, /<button[^>]+class="publishThumbnail"[^>]+data-return-preview/);
   assert.match(review, /beforeNext && !await beforeNext\(\)/);
+});
+
+test('reload warns while creator changes are unsaved and backgrounding starts a flush', () => {
+  const app = source('../public/app.js');
+  assert.match(app, /window\.addEventListener\('beforeunload', \(event\) => \{[\s\S]{0,180}activeDraftBackup\.hasPending\(\)/);
+  assert.match(app, /event\.preventDefault\(\);\s*event\.returnValue = ''/);
+  assert.match(app, /document\.hidden && activeDraftBackup\?\.hasPending\(\)\) activeDraftBackup\.flush\(\)/);
 });

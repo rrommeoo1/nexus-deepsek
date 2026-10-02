@@ -205,6 +205,15 @@ let profileSectionSwitcher = null;
 let profileScreenRefresher = null;
 let presenceHeartbeatTimer = null;
 let composerExit = null;
+let activeDraftBackup = null;
+window.addEventListener('beforeunload', (event) => {
+  if (!(activeDraftBackup ? activeDraftBackup.hasPending() : composerExit?.dirty())) return;
+  event.preventDefault();
+  event.returnValue = '';
+});
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && activeDraftBackup?.hasPending()) activeDraftBackup.flush().catch(() => {});
+});
 let activeComposerPreviewUrl = null;
 function clearComposerPreviewUrl() {
   if (!activeComposerPreviewUrl) return;
@@ -7142,6 +7151,7 @@ async function uploadMediaResumable(file, purpose, onProgress = () => {}, cancel
 
 function openComposer(mode = "post", options = {}) {
   if (composerExit?.request(() => openComposer(mode, options))) return;
+  activeDraftBackup = null;
   stopComposerCamera();
   clearComposerPreviewUrl();
   const vp = document.getElementById("screenViewport");
@@ -7486,7 +7496,7 @@ function openComposer(mode = "post", options = {}) {
     save: () => saveComposerDraft(form, mode), busy: () => activeRecorder || form.querySelector('[type="submit"]').disabled,
     onBusy: () => toast(t("exit.busy")), translate: t, isCurrent,
   });
-  if(modernFlow)draftBackup=bindDraftBackup(form,isCurrent,()=>saveComposerDraft(form,mode,{localOnly:true}));
+  if(modernFlow)activeDraftBackup=draftBackup=bindDraftBackup(form,isCurrent,()=>saveComposerDraft(form,mode,{localOnly:true}));
 }
 
 async function renderMarket(vp) { return renderMarketWorkspace(vp, { api, toast, state }); }

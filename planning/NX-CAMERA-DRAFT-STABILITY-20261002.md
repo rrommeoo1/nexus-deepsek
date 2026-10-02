@@ -7,6 +7,7 @@ Scope: creator camera preview/capture parity and protection against losing a pos
 - Request a high-detail camera stream with soft `ideal` constraints so unsupported devices can still open the camera. Show the full camera frame, without crop or selfie mirror, in capture and review. Store the filter once in the edit manifest instead of baking it into the photograph and applying it again.
 - Improve JPEG capture quality. The web upload cap remains 20 MB; the hidden video recording duration is now 60 seconds rather than 10 minutes so its bitrate does not collapse under that cap.
 - Save selected media immediately, serialize draft writes, display save/failure state, and require a successful local save before moving from preview to publication details. A full draft quota no longer silently deletes earlier drafts.
+- When the browser is hidden, start a best-effort flush of pending edits. A manual reload/navigation warns while a draft write is pending or has failed; the browser may limit this warning on some phones.
 - Make the publication thumbnail non-interactive. The explicit back/preview controls remain available, and the details fields remain in the same form.
 
 ## Verification
