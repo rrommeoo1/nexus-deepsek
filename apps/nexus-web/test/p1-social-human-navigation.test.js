@@ -105,7 +105,10 @@ test("the main logo prints the version of the deployed build", () => {
   // The owner's rule (2 octombrie 2026): every deploy stamps its version on the main logo, starting at 1.01.
   // The badge is decorative for assistive tech - the logo button keeps its own home label - but it is visible.
   const version = (app.match(/const NEXUS_BUILD_VERSION = "([0-9]+\.[0-9]+)";/) || [])[1];
-  assert.equal(version, "1.01", "the build version is a plain major.minor and starts at 1.01");
+  // The number itself changes on every deploy (the owner's rule), so the test pins the shape of the series and
+  // its starting point, not one build's number.
+  assert.match(version || "", /^[0-9]+\.[0-9]+$/, "the build version is a plain major.minor");
+  assert.notEqual(version, "1.00", "the series starts at 1.01");
   assert.match(app, /<i class="wordmarkBuild" aria-hidden="true">' \+ NEXUS_BUILD_VERSION/);
   assert.match(css, /\.wordmark \.wordmarkBuild\{[^}]*position:absolute/);
 });
