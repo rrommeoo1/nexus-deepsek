@@ -42,7 +42,7 @@ export function coverSourceRect(sourceWidth, sourceHeight, destinationWidth, des
 
 export function composeReelLayout(layout, frames, { width, height, createCanvas = () => document.createElement('canvas') } = {}) {
   const cells = reelLayoutCells(layout);
-  if (layout === 'off' || frames.length !== cells.length || frames.some((frame) => !frame)) throw new Error('LAYOUT_INCOMPLETE');
+  if (layout === 'off' || frames.length !== cells.length || !cells.every((_, index) => Boolean(frames[index]))) throw new Error('LAYOUT_INCOMPLETE');
   const output = createCanvas(); output.width = Math.max(1, Math.round(Number(width) || frames[0].width)); output.height = Math.max(1, Math.round(Number(height) || frames[0].height));
   const context = output.getContext('2d');
   if (!context) throw new Error('CANVAS_UNAVAILABLE');

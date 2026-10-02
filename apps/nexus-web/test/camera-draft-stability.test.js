@@ -14,11 +14,13 @@ test('camera requests a detailed portrait or landscape stream without exact-devi
   assert.equal(cameraVideoConstraints('user', false).width.ideal, 1920);
   assert.equal(cameraVideoConstraints('user', false).facingMode.ideal, 'user');
   const css = source('../public/reel-camera-surface.css');
-  assert.match(css, /\.reelCamera > video[^}]+object-fit: contain !important/);
+  assert.match(css, /\.reelCamera > video[^}]+object-fit: cover !important/);
+  assert.match(css, /\.reelCamera\[data-camera-fit="fit"\]:not\(\.layoutActive\) > video[^}]+object-fit: contain !important/);
   assert.match(css, /cameraReview #preview \.studioAsset[^}]+object-fit:contain/);
   assert.doesNotMatch(css, /reelCamera\[data-facing="user"\] > video[^}]+scaleX\(-1\)/);
   const controller = source('../public/reel-layout-controller.js');
   assert.doesNotMatch(controller, /context\.filter = video\.style\.filter/);
+  assert.match(controller, /coverSourceRect\(video\.videoWidth, video\.videoHeight, aspect \* 1000, 1000\)/);
   assert.match(source('../public/post-publishing.css'), /clipStage \.studioMedia\.aspectOriginal \.studioAsset\{object-fit:contain/);
 });
 
@@ -74,6 +76,24 @@ test('failed draft writes remain visibly unsaved and can be retried', async () =
   assert.equal(await backup.flush(), true);
   assert.equal(attempts, 2);
   assert.equal(backup.hasPending(), false);
+});
+
+test('explicit discard suspends queued automatic draft writes', async () => {
+  const form = fakeForm(); let writes = 0; const timers = new Map(); let nextId = 0;
+  const backup = bindDraftBackup(form, () => true, async () => { writes++; }, {
+    setTimer(fn) { timers.set(++nextId, fn); return nextId; },
+    clearTimer(id) { timers.delete(id); },
+  });
+  form.emit('input', { type: 'text' });
+  assert.equal(timers.size, 1);
+  backup.suspend();
+  assert.equal(timers.size, 0);
+  assert.equal(await backup.flush(), false);
+  assert.equal(writes, 0);
+  backup.resume();
+  assert.equal(timers.size, 1);
+  assert.equal(await backup.flush(), true);
+  assert.equal(writes, 1);
 });
 
 test('draft writes for one editor execute in order even when requested together', async () => {

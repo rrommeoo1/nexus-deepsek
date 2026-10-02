@@ -18,7 +18,8 @@ test("Reel camera exposes only Photo and Video capture modes with bounded tools"
   assert.match(markup, /reelCameraCapture[\s\S]*reelCameraGallery[\s\S]*reelCameraModes/);
   assert.doesNotMatch(markup, /reelCameraCapture"><button[^>]+cameraGallery/);
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
-  assert.match(styles, /reelCamera > video[^}]+height:\s*calc\(100% - 96px\)/);
+  assert.match(styles, /reelCamera > video[^}]+height:\s*100% !important/);
+  assert.match(styles, /reelCamera > \.reelCameraLayoutGuide[^}]+inset:0 !important/);
   assert.match(styles, /reelCamera #cameraGallery[^}]+bottom:\s*max\(17px/);
   assert.match(styles, /reelCamera\[hidden\][^}]+display:\s*none\s*!important/);
   assert.match(styles, /cameraComposer\[data-camera-state\][^\{]+> :not\(form\)[^}]+display:\s*none\s*!important/);

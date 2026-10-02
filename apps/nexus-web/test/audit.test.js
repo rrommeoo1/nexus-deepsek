@@ -41,7 +41,7 @@ const accountLifecycle = await readFile(new URL("../lib/account-lifecycle.js", i
 const accountPurge = await readFile(new URL("../scripts/account-purge.mjs", import.meta.url), "utf8");
 const operationalControls = await readFile(new URL("../lib/operational-controls.js", import.meta.url), "utf8");
 const incidentControl = await readFile(new URL("../scripts/incident-control.mjs", import.meta.url), "utf8");
-const appAssetVersion = "20261002-stability1";
+const appAssetVersion = "20261002-layout1";
 const appAssetPattern = new RegExp(`app\\.js\\?v=${appAssetVersion}`);
 const localeAssetPattern = /interface-locale\.js\?v=20260928-name1/;
 const stylesAssetPattern = /styles\.css\?v=20260923-wave14i/;
@@ -77,7 +77,7 @@ test("no secrets hard-coded without env override", () => {
 });
 
 test("phone Social experience has a final readability and interaction contract", () => {
-  assert.match(index, /social-human-ux\.css\?v=20260914-sound1/);
+  assert.match(index, /social-human-ux\.css\?v=20261002-layout1/);
   assert.match(socialHumanUx, /\.reactionSummaryGlyphs \.reactionMetric b/);
   assert.match(socialHumanUx, /font-size:15px!important/);
   assert.match(socialHumanUx, /\.presentation-cards/);

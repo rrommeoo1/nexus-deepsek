@@ -16,12 +16,12 @@ export function serializeDraftWrite(form, write) {
   return task;
 }
 export function bindDraftBackup(form, isCurrent, save, { delay = 250, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
-  let timer, changed = false, inFlight = null, failed = false;
+  let timer, changed = false, inFlight = null, failed = false, suspended = false;
   const status = () => form.querySelector('[data-draft-status]');
   const label = (value) => { const node = status(); if (node) node.textContent = value; };
   const flush = async () => {
     clearTimer(timer); timer = null;
-    if (!isCurrent()) return false;
+    if (!isCurrent() || suspended) return false;
     if (inFlight) await inFlight.catch(() => {});
     if (!changed) return !failed;
     if (form.querySelector('[type="submit"]')?.disabled) return false;
@@ -33,14 +33,19 @@ export function bindDraftBackup(form, isCurrent, save, { delay = 250, setTimer =
   };
   const schedule = () => { clearTimer(timer); timer = setTimer(() => { flush().catch(() => {}); }, delay); };
   const changedField = (event) => {
-    if (!isCurrent()) return;
+    if (!isCurrent() || suspended) return;
     changed = true; failed = false; label('Modificări nesalvate…');
     if (event.target?.type === 'file') flush().catch(() => {});
     else schedule();
   };
   form.addEventListener('input', changedField);
   form.addEventListener('change', changedField);
-  return Object.freeze({ flush, hasPending: () => isCurrent() && (changed || Boolean(inFlight) || failed) });
+  return Object.freeze({
+    flush,
+    hasPending: () => isCurrent() && (changed || Boolean(inFlight) || failed),
+    suspend: () => { suspended = true; clearTimer(timer); timer = null; },
+    resume: () => { suspended = false; if (changed) schedule(); },
+  });
 }
 export async function hydrateRemoteDraft(draft){
   const files=[];

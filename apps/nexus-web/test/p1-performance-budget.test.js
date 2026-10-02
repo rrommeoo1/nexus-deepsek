@@ -80,7 +80,9 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // bounded Photo/Video recorder wiring. The follow-up replaces the broken data-URL handoff
   // with a revocable object URL and an explicit camera state machine. The multi-frame layout
   // engine and sticker/location editor stay extracted; their bounded integration glue gets 1 KB.
-  assert.equal(sizes.app <= 631_000, true, `app.js budget exceeded: ${sizes.app}`);
+  // Camera layout and explicit exit/discard add bounded navigation and draft cleanup glue;
+  // frame composition and the dialog UI remain in their own modules.
+  assert.equal(sizes.app <= 636_000, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance

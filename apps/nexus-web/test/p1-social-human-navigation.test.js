@@ -53,7 +53,7 @@ test("header switchers are non-modal navigation surfaces and never disable Home 
   assert.equal(hub.includes('data-feed-door-panel'), false, "the four-door panel left the feed with the doors");
   assert.match(app, /feedHub = mountFeedHub\(\);/);
   assert.doesNotMatch(app, /socialFeedSheet" role="dialog"/);
-  assert.match(app, /function navigate\(slot\) \{\s+if \(composerExit\?\.request\(\(\) => navigate\(slot\)\)\) return;\s+feedHub\?\.close\(\);\s+closeSocialFeedSwitcher\(\);\s+closeSocialFriendsSwitcher\(\);\s+closeProfileSwitcher\(\)/);
+  assert.match(app, /function navigate\(slot\) \{\s+if \(requestActiveCameraExit\(\)\) return;\s+if \(composerExit\?\.request\(\(\) => navigate\(slot\)\)\) return;\s+feedHub\?\.close\(\);\s+closeSocialFeedSwitcher\(\);\s+closeSocialFriendsSwitcher\(\);\s+closeProfileSwitcher\(\)/);
   assert.match(app, /if \(slot === "primary"\) \{ goHome\(\); return; \}/);
 });
 

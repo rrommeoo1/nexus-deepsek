@@ -1,7 +1,8 @@
 import { api, toast } from "./client.js?v=20260831-p1e2eeattach2";
 import { creatorStudioMarkup } from './creator-studio-markup.js?v=20261001-publish1';
-import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, serializeDraftWrite, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261002-stability1';
+import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, serializeDraftWrite, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261002-layout1';
 import { cameraVideoConstraints } from './reel-camera-quality.js?v=20261002-stability1';
+import { openCameraExitDialog } from './creator-camera-exit.js?v=20261002-layout1';
 import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261002-stability1';
 import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
 import { downloadPublishedPost } from './creator-export.js?v=20261001-publish1';
@@ -50,17 +51,17 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-stability1";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-layout1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261002-stability1";
+import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261002-layout1";
 import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
-import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-stability1";
+import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-layout1";
 import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-publish1";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261002-stability1";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261002-stability1";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261002-stability1";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261002-stability1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261002-layout1";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261002-layout1";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261002-layout1";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261002-layout1";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -206,11 +207,24 @@ let profileScreenRefresher = null;
 let presenceHeartbeatTimer = null;
 let composerExit = null;
 let activeDraftBackup = null;
+let activeCameraExit = null;
+function requestActiveCameraExit() {
+  const camera = document.getElementById('composerCamera');
+  if (!activeCameraExit || !camera?.isConnected || camera.hidden) return false;
+  activeCameraExit();
+  return true;
+}
+const committedComposerDrafts = new WeakMap();
+const remoteComposerDraftAttempts = new WeakSet();
 window.addEventListener('beforeunload', (event) => {
-  if (!(activeDraftBackup ? activeDraftBackup.hasPending() : composerExit?.dirty())) return;
+  if (!(requestCameraUnloadWarning() || (activeDraftBackup ? activeDraftBackup.hasPending() : composerExit?.dirty()))) return;
   event.preventDefault();
   event.returnValue = '';
 });
+function requestCameraUnloadWarning() {
+  const camera = document.getElementById('composerCamera');
+  return Boolean(activeCameraExit && camera?.isConnected && !camera.hidden);
+}
 document.addEventListener('visibilitychange', () => {
   if (document.hidden && activeDraftBackup?.hasPending()) activeDraftBackup.flush().catch(() => {});
 });
@@ -1453,6 +1467,7 @@ function socialFeedLabel() {
 }
 
 function activateSocialFeed(feed) {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(() => activateSocialFeed(feed))) return;
   if (!new Set(["for-you", "photos", "local", "global", "friends", "following", "private", "breaking", "tweets", "search"]).has(feed)) return;
   stopComposerCamera();
@@ -2009,7 +2024,9 @@ function openProfileSwitcher() {
 }
 
 function goHome() {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(goHome)) return;
+  activeCameraExit = null;
   dismissCommentOverlay({ fromHistory: true, restoreFocus: false });
   closeMediaViewer({ fromHistory: true });
   closeSocialFeedSwitcher();
@@ -2080,6 +2097,7 @@ function renderInfoPanel() {
 }
 
 function selectModule(id) {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(() => selectModule(id))) return;
   if (id === 'chat' && activeModule !== 'chat') inboxFilter = state.persona;
   stopLiveMedia();
@@ -2093,6 +2111,7 @@ function selectModule(id) {
 }
 
 function navigate(slot) {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(() => navigate(slot))) return;
   feedHub?.close();
   closeSocialFeedSwitcher();
@@ -6527,7 +6546,7 @@ function saveComposerDraft(form, mode, options = {}) {
 }
 
 async function writeComposerDraft(form, mode, { localOnly = false } = {}) {
-  if (!form.isConnected) throw new Error('draft editor closed');
+  if (!form.isConnected || form.dataset.discarding) throw new Error('draft editor closed');
   const owner = Number(state.user.id);
   const persona = state.persona;
   if (!Number.isSafeInteger(owner) || owner <= 0 || !DRAFT_PERSONAS.has(persona) || !new Set(["post", "story"]).has(mode)) throw new Error("invalid draft scope");
@@ -6551,12 +6570,32 @@ async function writeComposerDraft(form, mode, { localOnly = false } = {}) {
   if (Number(state.user.id) !== owner || state.persona !== persona || !form.isConnected) return record.id;
   form.dataset.draftId = record.id;
   if (localOnly) return record.id;
+  remoteComposerDraftAttempts.add(form);
   await syncCreatorDraft({form,record,mode,fields,audioFile,uploadMediaResumable,isCurrent:()=>Number(state.user.id)===owner&&state.persona===persona&&form.isConnected});
+  committedComposerDrafts.set(form, record);
   toast(t("draft.saved"));
   return record.id;
 }
 
+function discardComposerSessionDraft(form) {
+  const id = form.dataset.draftId;
+  const baseline = committedComposerDrafts.get(form);
+  const owner = Number(state.user.id), persona = state.persona;
+  return serializeDraftWrite(form, async () => {
+    if (!form.isConnected || Number(state.user.id) !== owner || state.persona !== persona) throw new Error('Sesiunea s-a schimbat. Reîncearcă.');
+    if (id && !baseline && remoteComposerDraftAttempts.has(form)) {
+      const response = await api('/api/creator/drafts/' + encodeURIComponent(id), { method: 'DELETE' });
+      if (!response.ok) throw new Error('Draftul online nu a putut fi eliminat. Reîncearcă.');
+    }
+    if (id) await draftTransaction('readwrite', (store) => {
+      if (baseline && baseline.id === id && safeDraftRecord(baseline, owner, persona)) store.put(baseline);
+      else store.delete(id);
+    });
+  });
+}
+
 async function openDraftLibrary() {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(openDraftLibrary)) return;
   const owner = Number(state.user.id);
   const persona = state.persona;
@@ -6807,7 +6846,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment"));
   const openGallery = () => { stopComposerCamera(); sourceInput.removeAttribute("capture"); openNativePicker(); };
   document.getElementById("cameraGallery")?.addEventListener("click", openGallery);
-  document.getElementById("cameraClose")?.addEventListener("click", onClose);
+  document.getElementById("cameraClose")?.addEventListener("click", () => onClose(layoutController));
   document.getElementById("cameraAddSound")?.addEventListener("click", () => openReelSoundCatalogue({
     api, owner, current: currentSound(), onSelect: (track) => {
       onSoundSelection(track);
@@ -6852,6 +6891,14 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   document.getElementById("cameraBeauty")?.addEventListener("click", (event) => {
     beauty = !beauty; event.currentTarget.setAttribute("aria-pressed", String(beauty)); applyFilter();
   });
+  document.getElementById('cameraFit')?.addEventListener('click', (event) => {
+    if (layoutController.selected() !== 'off') return;
+    const fit = camera.dataset.cameraFit !== 'fit';
+    camera.dataset.cameraFit = fit ? 'fit' : 'fill';
+    event.currentTarget.setAttribute('aria-pressed', String(fit));
+    event.currentTarget.setAttribute('aria-label', fit ? 'Umple ecranul' : 'Încadrează complet');
+    event.currentTarget.querySelector('small').textContent = fit ? 'Umple' : 'Încadrează';
+  });
   document.getElementById("cameraToolsMore")?.addEventListener("click", (event) => {
     const tools = event.currentTarget.closest(".reelCameraTools");
     const collapsed = tools.classList.toggle("collapsed");
@@ -6882,11 +6929,14 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     catch { toast(t("camera.unavailable")); }
   });
   camera.querySelector('[data-camera-destination="create"]')?.addEventListener("click", () => {
+    if (layoutController.hasFrames()) return toast('Finalizează layoutul sau ieși prin X înainte să schimbi modul.');
     stopComposerCamera(); setCameraComposerState("publishing-details", { force: true }); form?.querySelector('textarea[name="caption"]')?.focus();
   });
   camera.querySelector('[data-camera-destination="live"]')?.addEventListener("click", () => {
+    if (requestActiveCameraExit()) return;
     stopComposerCamera(); activeSlot = "utility"; renderNav(); renderSocialLive(document.getElementById("screenViewport")).then(() => openLiveSetupSheet());
   });
+  return layoutController;
 }
 
 function setUploadProgress(value, label) {
@@ -7150,7 +7200,9 @@ async function uploadMediaResumable(file, purpose, onProgress = () => {}, cancel
 }
 
 function openComposer(mode = "post", options = {}) {
+  if (requestActiveCameraExit()) return;
   if (composerExit?.request(() => openComposer(mode, options))) return;
+  activeCameraExit = null;
   activeDraftBackup = null;
   stopComposerCamera();
   clearComposerPreviewUrl();
@@ -7467,14 +7519,38 @@ function openComposer(mode = "post", options = {}) {
     else if (audio.size > 20 * 1024 * 1024) status.textContent = t("studio.audioTooLarge");
     else status.textContent = audio.name + " · " + t("studio.rightsStatus");
   });
+  let draftBackup;
+  function confirmCameraExit(layoutController) {
+    return openCameraExitDialog({
+      save: async () => {
+        if (activeRecorder) throw new Error('Finalizează înregistrarea înainte să salvezi draftul.');
+        if (layoutController.hasFrames() && !layoutController.isComplete()) throw new Error('Finalizează toate cadrele layoutului înainte să salvezi draftul.');
+        if (layoutController.isComplete() && !sourceInput.files.length && !await layoutController.complete()) throw new Error('Fotografia compusă nu a putut fi salvată.');
+        await saveComposerDraft(form, mode);
+        composerExit = null; activeCameraExit = null; goHome();
+      },
+      discard: async () => {
+        form.dataset.discarding = 'true';
+        draftBackup?.suspend();
+        stopComposerCamera();
+        try { await discardComposerSessionDraft(form); composerExit = null; activeCameraExit = null; goHome(); }
+        catch (error) {
+          delete form.dataset.discarding;
+          draftBackup?.resume();
+          if (sourceInput.isConnected) startComposerCamera(sourceInput, document.getElementById('composerCamera')?.dataset.facing || 'environment');
+          throw error;
+        }
+      },
+    });
+  }
   document.getElementById("saveDraft").onclick = () => composerExit.saveOnly().catch(() => toast(t("draft.saveError")));
-  if (liveCamera) wireComposerCamera(sourceInput, launchNativePicker, {
+  const cameraLayoutController = liveCamera ? wireComposerCamera(sourceInput, launchNativePicker, {
     onSoundSelection: (track) => { selectedJamendoTrack = track; },
     currentSound: () => selectedJamendoTrack,
     owner: state.user.id,
-    onClose: goHome,
-  });
-  let draftBackup;
+    onClose: confirmCameraExit,
+  }) : null;
+  if (cameraLayoutController) activeCameraExit = () => confirmCameraExit(cameraLayoutController);
   if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, releasePreview: clearComposerPreviewUrl, api, beforeRetake:()=>saveComposerDraft(sourceInput.form,mode,{localOnly:true}), beforeNext:()=>modernFlow ? draftBackup?.flush() : true, restart: () => { const camera = document.getElementById("composerCamera"); if (camera) startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } });
   if(modernFlow)bindTransformEditor(sourceInput.form,applyCreatorPreview);
   if (options.draft) {
@@ -7492,6 +7568,7 @@ function openComposer(mode = "post", options = {}) {
     launchNativePicker();
   }
   const form = sourceInput.form;
+  if (options.draft) committedComposerDrafts.set(form, options.draft);
   composerExit = bindComposerExit(form, {
     save: () => saveComposerDraft(form, mode), busy: () => activeRecorder || form.querySelector('[type="submit"]').disabled,
     onBusy: () => toast(t("exit.busy")), translate: t, isCurrent,

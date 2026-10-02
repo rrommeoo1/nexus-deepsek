@@ -78,7 +78,7 @@ test('pressing Messages from Activity resets the route and opens the inbox inste
     state: { persona: 'dating' },
     // Wave 14g: navigate() also closes the drawer of the feed bar when the reader leaves the feed.
     feedHub: null,
-    composerExit: null, closeSocialFeedSwitcher() {}, closeSocialFriendsSwitcher() {}, closeProfileSwitcher() {},
+    composerExit: null, requestActiveCameraExit: () => false, closeSocialFeedSwitcher() {}, closeSocialFriendsSwitcher() {}, closeProfileSwitcher() {},
     renderNav() {}, selectModule: (module) => selected.push(module),
   });
   assert.equal(result.inboxBox, 'inbox');
