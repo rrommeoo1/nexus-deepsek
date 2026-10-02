@@ -3242,3 +3242,19 @@ body .reelViewer.viewerCommentsOpen .viewerActionRail{
   .reelViewer.viewerCommentsOpen .viewerCommentsPanel>.clist{padding-inline:14px!important}
 }
 
+
+/* The owner's rule (2 octombrie 2026): each deployed build prints its version on the main logo, so he can see
+   which build he is looking at. It sits in the logo's own corner and takes no part in the bar's grid. */
+.wordmark .wordmarkBuild{
+  position:absolute!important;
+  left:0!important;
+  bottom:-1px!important;
+  font:700 9px/1 Arial,Helvetica,sans-serif!important;
+  letter-spacing:.6px!important;
+  color:#9fb4c1!important;
+  background:#0b1a22d9!important;
+  border:1px solid #ffffff2e!important;
+  border-radius:5px!important;
+  padding:1px 4px!important;
+  pointer-events:none!important;
+}

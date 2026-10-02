@@ -4,6 +4,18 @@ import { readFileSync } from 'node:fs';
 import { createReelLayoutController } from '../public/reel-layout-controller.js';
 import { openCameraExitDialog } from '../public/creator-camera-exit.js';
 
+test('the import button clears the camera mode row instead of covering its first chip', () => {
+  const css = readFileSync(new URL('../public/reel-camera-surface.css', import.meta.url), 'utf8');
+  // Measured on 390x844 at :5000 (2 octombrie 2026): the mode row (CAMERA / CREATE / LIVE / DRAFTS) is
+  // 34px tall and sits at `bottom: max(12px, env(safe-area-inset-bottom))`, while the 52px import button
+  // used to sit at `bottom: max(17px, ...)` - its box 775..827 crossed the row 798..832 and hid the left
+  // half of the first chip. The fix keeps the button on the left, one row above: row height 34px plus a
+  // 12px gap. Both numbers are in the same rule, so a regression to the old single `bottom` fails here.
+  assert.match(css, /\.reelCameraModes \{[^}]+bottom: max\(12px,env\(safe-area-inset-bottom\)\)/);
+  assert.match(css, /\.reelCamera #cameraGallery \{[^}]+bottom: calc\(max\(12px,env\(safe-area-inset-bottom\)\) \+ 46px\)/);
+  assert.doesNotMatch(css, /\.reelCamera #cameraGallery \{[^}]+bottom: max\(17px/);
+});
+
 test('legacy camera rules do not turn the layout chooser into a left strip', () => {
   const legacy = readFileSync(new URL('../public/social-human-ux.css', import.meta.url), 'utf8');
   const modern = readFileSync(new URL('../public/reel-camera-surface.css', import.meta.url), 'utf8');

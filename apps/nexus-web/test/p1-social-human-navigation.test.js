@@ -99,3 +99,14 @@ test("the bottom bar is the owner's marks with Home in front of them, icons only
   assert.match(css, /\.screenViewport\{height:calc\(100% - 132px\)!important\}/);
   assert.match(css, /\.phoneScreen:has\(\.inboxScreen\) \.screenViewport,\.phoneScreen:has\(\.accountScreen\) \.screenViewport\{height:calc\(100% - var\(--nav-h,86px\)\)!important\}/);
 });
+
+test("the main logo prints the version of the deployed build", () => {
+  const css = readFileSync(new URL("../public/feed-surface.css", import.meta.url), "utf8");
+  // The owner's rule (2 octombrie 2026): every deploy stamps its version on the main logo, starting at 1.01.
+  // The badge is decorative for assistive tech - the logo button keeps its own home label - but it is visible.
+  const version = (app.match(/const NEXUS_BUILD_VERSION = "([0-9]+\.[0-9]+)";/) || [])[1];
+  assert.equal(version, "1.01", "the build version is a plain major.minor and starts at 1.01");
+  assert.match(app, /<i class="wordmarkBuild" aria-hidden="true">' \+ NEXUS_BUILD_VERSION/);
+  assert.match(css, /\.wordmark \.wordmarkBuild\{[^}]*position:absolute/);
+});
+
