@@ -68,11 +68,13 @@ export function setCameraReviewMode(visible) {
   return setCameraComposerState(visible ? 'review' : 'publishing-details', { force: true });
 }
 
-export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview, api, beforeRetake }) {
+export function bindCameraReview({ input, studio, caption, restart, applyPreview, releasePreview, api, beforeRetake, beforeNext }) {
   const root = document.querySelector('.cameraComposer');
   const form = input?.form;
   const closePanels = () => document.querySelectorAll('[data-review-panel]').forEach((panel) => { panel.hidden = true; });
-  const next = () => {
+  const next = async () => {
+    try { if (beforeNext && !await beforeNext()) throw new Error('Draft not saved'); }
+    catch { window.alert('Draftul nu a putut fi salvat. Captura rămâne în preview.'); return; }
     closePanels(); setCameraComposerState('publishing-details');
     document.querySelector('#preview video')?.pause();
   };

@@ -9,7 +9,39 @@ export function validDraft(draft,{owner,persona,personas,fields:allowed,mediaMim
   return safe(draft.sourceFile,mediaMimes)&&safe(draft.audioFile,audioMimes)&&(draft.sourceFiles==null || (Array.isArray(draft.sourceFiles)&&draft.sourceFiles.length<=10&&draft.sourceFiles.every(file=>file&&safe(file,mediaMimes))));
 }
 export function draftMediaBytes(draft){return (draft?.sourceFiles?.length?draft.sourceFiles.reduce((sum,file)=>sum+Number(file?.size||0),0):Number(draft?.sourceFile?.size||0))+Number(draft?.audioFile?.size||0);}
-export function bindDraftBackup(form,isCurrent,save){let timer;const backup=()=>{clearTimeout(timer);timer=setTimeout(()=>{if(isCurrent()&&!form.querySelector('[type="submit"]').disabled)save().catch(()=>{});},900);};form.addEventListener('input',backup);form.addEventListener('change',backup);}
+const draftWrites = new WeakMap();
+export function serializeDraftWrite(form, write) {
+  const task = (draftWrites.get(form) || Promise.resolve()).catch(() => {}).then(write);
+  draftWrites.set(form, task);
+  return task;
+}
+export function bindDraftBackup(form, isCurrent, save, { delay = 250, setTimer = setTimeout, clearTimer = clearTimeout } = {}) {
+  let timer, changed = false, inFlight = null, failed = false;
+  const status = () => form.querySelector('[data-draft-status]');
+  const label = (value) => { const node = status(); if (node) node.textContent = value; };
+  const flush = async () => {
+    clearTimer(timer); timer = null;
+    if (!isCurrent()) return false;
+    if (inFlight) await inFlight.catch(() => {});
+    if (!changed) return !failed;
+    if (form.querySelector('[type="submit"]')?.disabled) return false;
+    changed = false; label('Se salvează draftul…');
+    inFlight = Promise.resolve().then(save);
+    try { await inFlight; failed = false; label('Draft salvat pe acest dispozitiv.'); return !changed; }
+    catch (error) { failed = true; changed = true; label('Draftul nu a fost salvat. Reîncearcă înainte să ieși.'); throw error; }
+    finally { inFlight = null; }
+  };
+  const schedule = () => { clearTimer(timer); timer = setTimer(() => { flush().catch(() => {}); }, delay); };
+  const changedField = (event) => {
+    if (!isCurrent()) return;
+    changed = true; failed = false; label('Modificări nesalvate…');
+    if (event.target?.type === 'file') flush().catch(() => {});
+    else schedule();
+  };
+  form.addEventListener('input', changedField);
+  form.addEventListener('change', changedField);
+  return Object.freeze({ flush });
+}
 export async function hydrateRemoteDraft(draft){
   const files=[];
   for(const media of draft.media||[]){

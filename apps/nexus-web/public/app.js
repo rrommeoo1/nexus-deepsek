@@ -1,7 +1,8 @@
 import { api, toast } from "./client.js?v=20260831-p1e2eeattach2";
 import { creatorStudioMarkup } from './creator-studio-markup.js?v=20261001-publish1';
-import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261001-publish1';
-import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261001-publish1';
+import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, serializeDraftWrite, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261002-stability1';
+import { cameraVideoConstraints } from './reel-camera-quality.js?v=20261002-stability1';
+import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261002-stability1';
 import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
 import { downloadPublishedPost } from './creator-export.js?v=20261001-publish1';
 import { publishingCaption, applyPublishedEdits, wireImageSound } from './published-presentation.js?v=20261001-publish1';
@@ -49,17 +50,17 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261001-publish1";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-stability1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261001-publish1";
-import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261001-publish1";
+import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261002-stability1";
+import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
-import { createReelLayoutController } from "./reel-layout-controller.js?v=20261001-publish1";
+import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-stability1";
 import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-publish1";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261001-publish1";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261001-publish1";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261001-publish1";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261001-publish1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261002-stability1";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261002-stability1";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261002-stability1";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261002-stability1";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -6494,20 +6495,17 @@ async function clearCurrentUserDeviceCache() {
   return true;
 }
 
-async function enforceDraftQuota(owner, persona, preserveId) {
+async function enforceDraftQuota(owner, persona, record) {
   const scoped = await listDrafts(owner, persona, { includeOverflow: true });
-  const plan = planDraftEvictions(scoped, {
+  const plan = planDraftEvictions([...scoped.filter((item) => item.id !== record.id), record], {
     maxCount: DRAFT_LIMIT_PER_PROFILE,
     maxBytes: DRAFT_QUOTA_BYTES_PER_PROFILE,
-    preserveId,
+    preserveId: record.id,
     sizeOf: draftRecordBytes,
   });
-  for (const id of plan.evictIds) await draftTransaction("readwrite", (store) => store.delete(id));
-  if (plan.overQuota) {
-    await draftTransaction("readwrite", (store) => store.delete(preserveId));
-    throw new Error("draft quota exceeded");
-  }
-  return { evicted: plan.evictIds, totalBytes: plan.retainedBytes, limitBytes: DRAFT_QUOTA_BYTES_PER_PROFILE };
+  // Autosave must never silently delete an older draft to make room for a new one.
+  if (plan.overQuota || plan.evictIds.length) throw new Error("draft quota exceeded");
+  return { totalBytes: plan.retainedBytes, limitBytes: DRAFT_QUOTA_BYTES_PER_PROFILE };
 }
 
 function formatDraftBytes(value) {
@@ -6515,7 +6513,12 @@ function formatDraftBytes(value) {
   return `${megabytes < 10 ? megabytes.toFixed(1) : Math.round(megabytes)} MB`;
 }
 
-async function saveComposerDraft(form, mode, { localOnly = false } = {}) {
+function saveComposerDraft(form, mode, options = {}) {
+  return serializeDraftWrite(form, () => writeComposerDraft(form, mode, options));
+}
+
+async function writeComposerDraft(form, mode, { localOnly = false } = {}) {
+  if (!form.isConnected) throw new Error('draft editor closed');
   const owner = Number(state.user.id);
   const persona = state.persona;
   if (!Number.isSafeInteger(owner) || owner <= 0 || !DRAFT_PERSONAS.has(persona) || !new Set(["post", "story"]).has(mode)) throw new Error("invalid draft scope");
@@ -6534,13 +6537,13 @@ async function saveComposerDraft(form, mode, { localOnly = false } = {}) {
   };
   if (!safeDraftRecord(record, owner, persona)) throw new Error("draft validation failed");
   if(draftRecordBytes(record)>DRAFT_QUOTA_BYTES_PER_PROFILE)throw new Error('draft quota exceeded');
+  await enforceDraftQuota(owner, persona, record);
   await draftTransaction("readwrite", (store) => store.put(record));
-  const quota = await enforceDraftQuota(owner, persona, record.id);
   if (Number(state.user.id) !== owner || state.persona !== persona || !form.isConnected) return record.id;
   form.dataset.draftId = record.id;
   if (localOnly) return record.id;
   await syncCreatorDraft({form,record,mode,fields,audioFile,uploadMediaResumable,isCurrent:()=>Number(state.user.id)===owner&&state.persona===persona&&form.isConnected});
-  toast(quota.evicted.length ? `${t("draft.saved")} · ${quota.evicted.length} ${t("draft.evicted")}` : t("draft.saved"));
+  toast(t("draft.saved"));
   return record.id;
 }
 
@@ -6619,7 +6622,8 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     return;
   }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode }, audio: false });
+    const portrait = camera.clientHeight > camera.clientWidth;
+    const stream = await navigator.mediaDevices.getUserMedia({ video: cameraVideoConstraints(facingMode, portrait), audio: false });
     if (!request.isCurrent() || !camera.isConnected || !video.isConnected || !sourceInput.isConnected) {
       stream.getTracks().forEach((track) => track.stop());
       return;
@@ -6704,7 +6708,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   const attachPhotoCanvas = async (canvas, name = "nexus-photo") => {
     try {
       setCameraComposerState("processing", { force: true }); persistFilter();
-      const blob = await canvasBlob(canvas);
+      const blob = await canvasBlob(canvas, 'image/jpeg', .96);
       if (!sourceInput.isConnected || state.persona !== selectedPersona) return;
       const attached = setInputFile(sourceInput, new File([blob], `${name}-${Date.now()}.jpg`, { type: "image/jpeg" }));
       stopComposerCamera(); if (!attached) return toast(t("camera.attachError")); camera.hidden = true;
@@ -6774,7 +6778,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
         if (error) { setCameraComposerState("error", { force: true }); return recover(error === "UPLOAD_TOO_LARGE" ? uploadErrorMessage(new UploadClientError(error)) : t("camera.unavailable")); }
         setCameraComposerState("processing-recording");
         persistFilter();
-        const attached = setInputFile(sourceInput, new File([blob], "nexus-clip-" + Date.now() + ".webm", { type: blob.type }));
+        const attached = setInputFile(sourceInput, new File([blob], "nexus-clip-" + Date.now() + (blob.type === 'video/mp4' ? '.mp4' : '.webm'), { type: blob.type }));
         stopComposerCamera({ discardRecording: false });
         if (!attached) return recover(t("camera.attachError"));
         camera.hidden = true;
@@ -6794,7 +6798,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment"));
   const openGallery = () => { stopComposerCamera(); sourceInput.removeAttribute("capture"); openNativePicker(); };
   document.getElementById("cameraGallery")?.addEventListener("click", openGallery);
-  document.getElementById("cameraClose")?.addEventListener("click", () => { stopComposerCamera(); onClose(); });
+  document.getElementById("cameraClose")?.addEventListener("click", onClose);
   document.getElementById("cameraAddSound")?.addEventListener("click", () => openReelSoundCatalogue({
     api, owner, current: currentSound(), onSelect: (track) => {
       onSoundSelection(track);
@@ -6805,7 +6809,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   camera.querySelector('[data-camera-mode="clip"]')?.addEventListener("click", (event) => {
     if (!layoutController.select("off", "Schimbarea în modul Video va șterge cadrele fotografiate. Continui?")) return;
     camera.dataset.cameraMode = "clip";
-    camera.dataset.cameraDuration = "600";
+    camera.dataset.cameraDuration = "60";
     camera.querySelectorAll(".reelCameraDuration button").forEach((entry) => {
       const selected = entry === event.currentTarget;
       entry.classList.toggle("active", selected);
@@ -6859,9 +6863,6 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     trigger?.setAttribute("aria-expanded", "false");
     trigger?.setAttribute("aria-pressed", String(layout !== "off"));
   }));
-  document.getElementById("cameraExpand")?.addEventListener("click", (event) => {
-    camera.classList.toggle("fitContain"); event.currentTarget.setAttribute("aria-pressed", String(camera.classList.contains("fitContain")));
-  });
   document.getElementById("cameraFilters")?.addEventListener("click", (event) => {
     const rail = document.getElementById("cameraEffectRail"); rail.hidden = !rail.hidden; event.currentTarget.setAttribute("aria-expanded", String(!rail.hidden));
   });
@@ -7463,7 +7464,8 @@ function openComposer(mode = "post", options = {}) {
     owner: state.user.id,
     onClose: goHome,
   });
-  if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, releasePreview: clearComposerPreviewUrl, api, beforeRetake:()=>saveComposerDraft(sourceInput.form,mode,{localOnly:true}), restart: () => { const camera = document.getElementById("composerCamera"); if (camera) startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } });
+  let draftBackup;
+  if (options.camera) bindCameraReview({ input: sourceInput, studio: studioPanel, caption: captionBox, applyPreview: applyCreatorPreview, releasePreview: clearComposerPreviewUrl, api, beforeRetake:()=>saveComposerDraft(sourceInput.form,mode,{localOnly:true}), beforeNext:()=>modernFlow ? draftBackup?.flush() : true, restart: () => { const camera = document.getElementById("composerCamera"); if (camera) startComposerCamera(sourceInput, camera.dataset.facing || "environment"); } });
   if(modernFlow)bindTransformEditor(sourceInput.form,applyCreatorPreview);
   if (options.draft) {
     Object.entries(options.draft.fields || {}).forEach(([name, value]) => {
@@ -7484,7 +7486,7 @@ function openComposer(mode = "post", options = {}) {
     save: () => saveComposerDraft(form, mode), busy: () => activeRecorder || form.querySelector('[type="submit"]').disabled,
     onBusy: () => toast(t("exit.busy")), translate: t, isCurrent,
   });
-  if(modernFlow)bindDraftBackup(form,isCurrent,()=>saveComposerDraft(form,mode,{localOnly:true}));
+  if(modernFlow)draftBackup=bindDraftBackup(form,isCurrent,()=>saveComposerDraft(form,mode,{localOnly:true}));
 }
 
 async function renderMarket(vp) { return renderMarketWorkspace(vp, { api, toast, state }); }

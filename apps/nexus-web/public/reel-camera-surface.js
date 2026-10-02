@@ -3,7 +3,7 @@ const tabs = ["Hot", "For You", "Favorites", "Recent"];
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
-    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-duration="' + (clipMode ? '600' : '0') + '">',
+    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
     '<button class="reelCameraClose" id="cameraClose" type="button" aria-label="Închide">×</button>',
@@ -14,7 +14,6 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
     button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
-    button('cameraExpand', '⤢', 'Ratio', 'aria-pressed="false"'),
     button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
     button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),

@@ -1,4 +1,4 @@
-import { setCameraComposerState } from './reel-camera-review.js?v=20261001-publish1';
+import { setCameraComposerState } from './reel-camera-review.js?v=20261002-stability1';
 
 export function readPublishing(form) {
   try { return JSON.parse(form.elements.publishing_json?.value || '{}'); } catch { return {}; }
@@ -11,7 +11,7 @@ export function bindPublishingDetails({form,api,toast,applyPreview,openDrafts}) 
   if(cameraModes&&openDrafts){const drafts=document.createElement('button');drafts.type='button';drafts.textContent='DRAFTS';drafts.onclick=openDrafts;cameraModes.append(drafts);}
   const page=document.createElement('section');page.className='publishingDetails';page.hidden=true;
   page.innerHTML=`<header class="publishHeader"><button type="button" data-return-preview aria-label="Înapoi la editare">‹</button><span>New post</span><button type="button" data-return-preview>Preview ↗</button></header>
-    <div class="publishWriting"><button type="button" class="publishThumbnail" data-return-preview aria-label="Editează preview"><span>Preview</span></button><label class="publishTitle"><span class="sr-only">Titlu</span><input name="title" maxlength="100" placeholder="Adaugă un titlu…"></label><div data-description-slot></div></div>
+    <div class="publishWriting"><div class="publishThumbnail" aria-label="Miniatura postării"><span>Preview</span></div><label class="publishTitle"><span class="sr-only">Titlu</span><input name="title" maxlength="100" placeholder="Adaugă un titlu…"></label><div data-description-slot></div></div>
     <div class="publishQuick"><button type="button" data-publish-sheet="tags"># Hashtags</button><button type="button" data-publish-sheet="people">@ People</button></div>
     <div class="publishRows">
       <button type="button" class="publishRow" data-publish-sheet="location"><i>⌖</i><span>Locație<small data-location-summary>Adaugă un loc</small></span><b>›</b></button>

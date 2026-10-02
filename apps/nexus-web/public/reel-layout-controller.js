@@ -5,7 +5,9 @@ function cameraFrame(video) {
   canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const context = canvas.getContext('2d');
   if (!context) return null;
-  context.filter = video.style.filter || 'none'; context.drawImage(video, 0, 0);
+  // Filter is stored in the edit manifest and applied once in review/published views.
+  // Baking it here made photos look different from the live camera (double filtering).
+  context.drawImage(video, 0, 0);
   return canvas;
 }
 

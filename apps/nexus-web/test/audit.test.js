@@ -41,7 +41,7 @@ const accountLifecycle = await readFile(new URL("../lib/account-lifecycle.js", i
 const accountPurge = await readFile(new URL("../scripts/account-purge.mjs", import.meta.url), "utf8");
 const operationalControls = await readFile(new URL("../lib/operational-controls.js", import.meta.url), "utf8");
 const incidentControl = await readFile(new URL("../scripts/incident-control.mjs", import.meta.url), "utf8");
-const appAssetVersion = "20261001-publish1";
+const appAssetVersion = "20261002-stability1";
 const appAssetPattern = new RegExp(`app\\.js\\?v=${appAssetVersion}`);
 const localeAssetPattern = /interface-locale\.js\?v=20260928-name1/;
 const stylesAssetPattern = /styles\.css\?v=20260923-wave14i/;
@@ -412,9 +412,9 @@ test("Create Hub exposes camera, gallery, story, clip, post and local drafts wit
   assert.match(app, /const DRAFT_QUOTA_BYTES_PER_PROFILE = 100 \* 1024 \* 1024/);
   assert.match(app, /safeDraftRecord/);
   assert.match(app, /store\.index\("owner_persona"\)\.getAll\(draftScopeKey\(owner, persona\)\)/);
-  assert.match(app, /enforceDraftQuota\(owner, persona, record\.id\)/);
-  assert.match(app, /planDraftEvictions\(scoped/);
-  assert.match(app, /quota\.evicted\.length/);
+  assert.match(app, /await enforceDraftQuota\(owner, persona, record\);\s*await draftTransaction\("readwrite", \(store\) => store\.put\(record\)\)/);
+  assert.match(app, /planDraftEvictions\(\[\.\.\.scoped\.filter/);
+  assert.match(app, /if \(plan\.overQuota \|\| plan\.evictIds\.length\) throw new Error\("draft quota exceeded"\)/);
   assert.match(app, /class="draftQuota" role="status"/);
   assert.match(app, /Number\(state\.user\.id\) !== owner \|\| state\.persona !== persona/);
   assert.match(app, /data-draft-retry/);

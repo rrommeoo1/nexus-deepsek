@@ -120,7 +120,7 @@ test("global Create opens the rear live camera and media import stays explicit",
   assert.match(source, /const selfieFirst = options\.facing === "user"/);
   const start = source.slice(source.indexOf("async function startComposerCamera("), source.indexOf("async function openViewerComments("));
   assert.match(start, /facingMode = "environment"/);
-  assert.match(start, /getUserMedia\(\{ video: \{ facingMode \}, audio: false \}\)/);
+  assert.match(start, /getUserMedia\(\{ video: cameraVideoConstraints\(facingMode, portrait\), audio: false \}\)/);
   assert.doesNotMatch(start, /\.click\(\)|openNativePicker/);
   assert.match(source, /cameraGallery"\)\?\.addEventListener\("click", openGallery\)/);
 });
