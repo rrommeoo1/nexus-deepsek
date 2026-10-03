@@ -38,10 +38,16 @@
    back made `cover` cut roughly two thirds of it - the owner photographed his own room and compared it with the
    native camera, which shows all of it. "Umple" stays one tap away as the deliberate full-bleed crop, and the
    captured photo follows whichever framing is on screen. */
-.reelCamera[data-camera-fit="fit"]:not(.layoutActive) > video { object-fit: contain !important; }
+.reelCamera[data-camera-fit="fit"]:not(.layoutActive) > video:not(.reelCameraBackdrop) { object-fit: contain !important; }
+/* Behind that whole picture a blurred copy of the same frame keeps the surface full, so nobody has to choose
+   between "the whole wall is in the shot" and "the camera looks like it fills the screen". */
+.reelCamera > .reelCameraBackdrop { display: block !important; object-fit: cover !important; filter: blur(26px) saturate(1.2) brightness(.82); transform: scale(1.14); }
+.reelCamera[data-camera-fit="fill"] > .reelCameraBackdrop, .reelCamera.layoutActive > .reelCameraBackdrop, .reelCamera.layoutComplete > .reelCameraBackdrop { display: none !important; }
+/* The sensor note the camera shows for a few seconds after opening, until the framing question is settled. */
+.reelCamera.ready.cameraNote .reelCameraStatus { opacity: 1; bottom: calc(300px + env(safe-area-inset-bottom)); }
 /* MediaRecorder records this track exactly as it arrives, with no canvas crop, so a clip is always the whole
    sensor frame: a cropped preview while recording would only surprise the creator after the take. */
-.reelCamera[data-camera-mode="clip"] > video { object-fit: contain !important; }
+.reelCamera[data-camera-mode="clip"] > video:not(.reelCameraBackdrop) { object-fit: contain !important; }
 .reelCamera[data-camera-mode="clip"] #cameraFit { display:none!important; }
 .reelCamera.layoutComplete > video { opacity:0; }
 .reelCamera > .reelCameraLayoutGuide { position:absolute; z-index:1; inset:0 !important; display:none !important; overflow:hidden; border-radius:0; pointer-events:none; }

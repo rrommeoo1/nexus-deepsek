@@ -53,7 +53,7 @@ import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspac
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
 import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-layout1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { openReelSoundCatalogue, reelCameraMarkup } from "./reel-camera-surface.js?v=20261002-layout1";
+import { openReelSoundCatalogue, reelCameraMarkup, showCameraSensorNote } from "./reel-camera-surface.js?v=20261003-whole1";
 import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
 import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-layout1";
@@ -1345,7 +1345,7 @@ function renderRail() {
 
 // The owner's rule (2 octombrie 2026): each deployed build prints its version on the main logo, so he can see
 // which build he is looking at. Bump the line below on every deploy; the series starts at 1.01.
-const NEXUS_BUILD_VERSION = "1.03";
+const NEXUS_BUILD_VERSION = "1.04";
 function nexusWordmarkMarkup() {
   return '<svg class="nexusWordmarkSvg" viewBox="0 0 132 34" role="img" aria-label="Nexus"><defs><linearGradient id="nexus-wordmark-x" x1="0" x2="1"><stop stop-color="#00efff"/><stop offset="1" stop-color="#a66cff"/></linearGradient></defs><text x="1" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">NE</text><text x="44" y="24" fill="url(#nexus-wordmark-x)" font-size="22" font-family="Arial,Helvetica,sans-serif">X</text><text x="61" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">US</text><path d="M91 8h27m-17 6h24m-31 6h30m-20 6h14" fill="none" stroke="#27dfe9" stroke-width="1" opacity=".65"/><circle cx="121" cy="8" r="1.6" fill="#9d72ff"/><circle cx="127" cy="14" r="1.6" fill="#27dfe9"/><circle cx="126" cy="20" r="1.6" fill="#9d72ff"/></svg><i class="wordmarkBuild" aria-hidden="true">' + NEXUS_BUILD_VERSION + '</i>';
 }
@@ -6649,8 +6649,10 @@ function stopComposerCamera({ discardRecording = true } = {}) {
   activeComposerStream = null;
   const camera = document.getElementById("composerCamera");
   camera?.classList.remove("ready");
-  const preview = camera?.querySelector("video");
+  const preview = camera?.querySelector("#composerCameraVideo");
   if (preview) preview.srcObject = null;
+  const backdrop = document.getElementById("composerCameraBackdrop");
+  if (backdrop) backdrop.srcObject = null;
   const record = document.getElementById("recordClip"), stop = document.getElementById("stopRecording"), finish = document.getElementById("finishRecording"), finishLayout = document.getElementById("finishLayout");
   if (record) record.hidden = camera?.dataset?.cameraMode ? camera.dataset.cameraMode !== "clip" : false;
   if (stop) stop.hidden = true;
@@ -6684,11 +6686,14 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     }
     activeComposerStream = stream;
     video.srcObject = stream;
+    const backdrop = document.getElementById("composerCameraBackdrop");
+    if (backdrop) backdrop.srcObject = stream;
     camera.dataset.facing = facingMode;
     camera.classList.add("ready");
     setCameraComposerState("camera-ready");
     camera.querySelector(".cameraRecovery")?.setAttribute("hidden", "");
     camera.querySelector(".reelCameraStatus").textContent = t("camera.active");
+    showCameraSensorNote(video, camera);
     const videoTrack = stream.getVideoTracks()[0];
     const flash = document.getElementById("cameraFlash");
     if (flash) flash.hidden = !(facingMode === "environment" && Boolean(videoTrack?.getCapabilities?.().torch));

@@ -43,6 +43,22 @@ test("the camera opens on the whole picture and a clip keeps that same frame", (
   // A clip is recorded from the track itself, with no canvas crop, so the preview has to show the whole frame.
   assert.match(styles, /reelCamera\[data-camera-mode="clip"\] > video[^}]+object-fit: contain !important/);
   assert.match(styles, /reelCamera\[data-camera-mode="clip"\] #cameraFit[^}]+display:\s*none\s*!important/);
+  // A blurred copy of the same frame stands behind the picture, so "the whole wall is in the shot" and "the
+  // camera looks like it fills the screen" stop being a choice, and the sensor note shows the phone's numbers.
+  const surface = readFileSync(new URL("../public/reel-camera-surface.js", import.meta.url), "utf8");
+  assert.match(markup, /id="composerCameraBackdrop"[^>]+aria-hidden="true"/);
+  assert.match(styles, /reelCamera > \.reelCameraBackdrop[^}]+object-fit: cover !important/);
+  assert.match(styles, /reelCamera\[data-camera-fit="fill"\] > \.reelCameraBackdrop[^}]+display: none !important/);
+  assert.match(styles, /reelCamera\.ready\.cameraNote \.reelCameraStatus[^}]+opacity: 1/);
+  assert.match(surface, /export function showCameraSensorNote\(video, camera, seconds = 8\)/);
+  // Cache-busting belongs to the release: the stylesheet and the module are asked for under a new version, and
+  // the entry file feeds the same stream to the backdrop and puts the sensor note on screen.
+  const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.match(html, /reel-camera-surface\.css\?v=20261003-whole1/);
+  const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-whole1/);
+  assert.match(app, /showCameraSensorNote\(video, camera\)/);
+  assert.match(app, /composerCameraBackdrop"\);[\s\S]{0,90}backdrop\.srcObject = stream/);
 });
 
 test("captured camera media enters a dedicated review surface with retake and continue controls", () => {

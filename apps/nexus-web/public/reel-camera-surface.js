@@ -1,5 +1,22 @@
 const tabs = ["Hot", "For You", "Favorites", "Recent"];
 
+// What the phone actually handed back, on the creator's own screen for a few seconds. The framing question was
+// argued from photos twice, so the numbers now show up in the camera itself while the phone answers them.
+export function showCameraSensorNote(video, camera, seconds = 8) {
+  const status = camera?.querySelector(".reelCameraStatus");
+  if (!status || !video) return;
+  const report = () => {
+    if (!video.videoWidth) return;
+    const stream = (video.videoWidth / video.videoHeight).toFixed(2);
+    const surface = (camera.clientWidth / Math.max(1, camera.clientHeight)).toFixed(2);
+    status.textContent = "senzor " + video.videoWidth + "×" + video.videoHeight + " (" + stream + ") · ecran "
+      + camera.clientWidth + "×" + camera.clientHeight + " (" + surface + ") · " + (camera.dataset.cameraFit || "fit");
+    camera.classList.add("cameraNote");
+    setTimeout(() => camera.classList.remove("cameraNote"), Math.max(0, seconds) * 1000);
+  };
+  if (video.videoWidth) report(); else video.addEventListener("loadedmetadata", report, { once: true });
+}
+
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
@@ -7,6 +24,9 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     // phone's wider stream was cropped about 2,9x by `cover` in fill, while the whole picture is what the native
     // camera he compared with shows. "Umple" is one tap away for anybody who wants the full-bleed crop.
     '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
+    // A blurred copy of the same frame stands behind the picture: the surface still reads as full screen while
+    // the creator keeps the whole field of view the phone hands back, instead of a crop of its middle.
+    '<video id="composerCameraBackdrop" class="reelCameraBackdrop" muted playsinline aria-hidden="true"></video>',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
     '<button class="reelCameraClose" id="cameraClose" type="button" aria-label="Închide">×</button>',
