@@ -17,6 +17,31 @@ export function showCameraSensorNote(video, camera, seconds = 8) {
   if (video.videoWidth) report(); else video.addEventListener("loadedmetadata", report, { once: true });
 }
 
+// The framing follows the stream the phone actually hands back: a portrait stream close to the screen shape fills
+// it crisply - what the native camera the owner compared against does - while a wider stream would only fill it by
+// cutting a large part of the picture away, so that one opens on the whole view with the blurred copy behind it.
+// Whichever way it opens, the creator's own tap wins for the rest of the session.
+export function applyCameraFraming(camera, fit) {
+  camera.dataset.cameraFit = fit ? "fit" : "fill";
+  const button = camera.querySelector("#cameraFit");
+  if (!button) return;
+  button.setAttribute("aria-pressed", String(Boolean(fit)));
+  button.setAttribute("aria-label", fit ? "Umple ecranul" : "Încadrează complet");
+  const label = button.querySelector("small");
+  if (label) label.textContent = fit ? "Umple" : "Încadrează";
+}
+
+export function syncCameraFraming(video, camera) {
+  const decide = () => {
+    if (!video.videoWidth) return;
+    const stream = video.videoWidth / video.videoHeight;
+    const surface = camera.clientWidth / Math.max(1, camera.clientHeight);
+    const kept = stream < surface ? stream / surface : surface / stream;
+    applyCameraFraming(camera, 1 / kept > 2);
+  };
+  if (video.videoWidth) decide(); else video.addEventListener("loadedmetadata", decide, { once: true });
+}
+
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [

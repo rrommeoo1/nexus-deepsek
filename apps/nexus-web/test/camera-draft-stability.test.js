@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { cameraShapedConstraints, cameraVideoConstraints, requestCameraStream, widenCameraTrack } from '../public/reel-camera-quality.js';
+import { cameraVideoConstraints, requestCameraStream, widenCameraTrack } from '../public/reel-camera-quality.js';
 import { bindDraftBackup, serializeDraftWrite } from '../public/creator-draft-sync.js';
-import { reelCameraMarkup } from '../public/reel-camera-surface.js';
+import { applyCameraFraming, reelCameraMarkup, syncCameraFraming } from '../public/reel-camera-surface.js';
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
@@ -24,50 +24,57 @@ test('camera requests a detailed portrait or landscape stream without exact-devi
   assert.match(source('../public/post-publishing.css'), /clipStage \.studioMedia\.aspectOriginal \.studioAsset\{object-fit:contain/);
 });
 
-test('the preview asks for a stream shaped like the screen and resets a zoomed track', () => {
-  // The owner reported on 2 octombrie 2026, from his phone, that "the camera opens zoomed" when he taps "+",
-  // in PHOTO and in VIDEO. Both modes read this one track, and the preview fills a tall surface with
-  // `object-fit: cover`, so the wider mode the browser handed back was cropped hard. The shaped request fixes
-  // the source of the zoom instead of hiding it with `contain`, which would have stopped matching the photo.
-  const shaped = cameraShapedConstraints('environment', true, 390 / 844);
-  assert.equal(shaped.resizeMode, 'crop-and-scale');
-  assert.equal(shaped.aspectRatio.ideal, 390 / 844);
-  assert.equal(shaped.width.ideal, 1080);
-  assert.equal(shaped.height.ideal, 1920);
-  // The plain request stays exactly as it was: it is the fallback for a phone that refuses the shaped one.
+test('the camera request stays plain, so no constraint can crop the sensor away', () => {
+  // 1.02-1.04 asked for the screen's own aspect with `resizeMode: "crop-and-scale"`. Measured on a 4:3 sensor that
+  // either crops the sensor to that sliver or is ignored - and a source crop cuts exactly the slice
+  // `object-fit: cover` cuts anyway, so it can never widen the field of view. Worse, when it is honoured the whole
+  // wall never reaches the preview at all. The request is plain again, and the framing decision moved into the
+  // preview, where the creator sees it, the sensor note reports it and one tap undoes it.
+  const quality = source('../public/reel-camera-quality.js');
+  // The comment in that file explains the removal, so the assertions read the code: no shaped constraint survives.
+  assert.doesNotMatch(quality, /export function cameraShapedConstraints/);
+  assert.doesNotMatch(quality, /cameraShapedConstraints\(facingMode/);
   assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'resizeMode'), false);
   assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'aspectRatio'), false);
-  // A portrait screen asks with its own ratio, and an unknown ratio falls back to 9:16 rather than to 0.
-  assert.equal(cameraShapedConstraints('user', true, 0).aspectRatio.ideal, 9 / 16);
-  const quality = source('../public/reel-camera-quality.js');
-  assert.match(quality, /export async function requestCameraStream\(facingMode, portrait, aspect, media = navigator\.mediaDevices\)/);
+  assert.deepEqual(cameraVideoConstraints('environment', true), {
+    facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30, max: 30 },
+  });
+  assert.equal(cameraVideoConstraints('user', false).width.ideal, 1920);
+  assert.equal(cameraVideoConstraints('user', false).facingMode.ideal, 'user');
+  assert.match(quality, /export async function requestCameraStream\(facingMode, portrait, media = navigator\.mediaDevices\)/);
   assert.match(quality, /media\.getUserMedia\(\{ video: cameraVideoConstraints\(facingMode, portrait\), audio: false \}\)/);
   assert.match(quality, /export async function widenCameraTrack\(track\)/);
   assert.match(quality, /applyConstraints\(\{ advanced: \[\{ zoom: range\.min \}\] \}\)/);
-  // app.js stays inside its own transfer budget: the camera request lives in the module, not in the entry file,
-  // and the entry file only says which surface is being filled.
+  // app.js stays inside its own transfer budget: the camera request and the framing rule live in modules, and the
+  // entry file only says which surface is being filled.
   const app = source('../public/app.js');
-  assert.match(app, /await requestCameraStream\(facingMode, portrait, camera\.clientWidth \/ Math\.max\(1, camera\.clientHeight\)\)/);
+  assert.match(app, /await requestCameraStream\(facingMode, portrait\)/);
   assert.match(app, /await widenCameraTrack\(videoTrack\)/);
+  assert.match(app, /syncCameraFraming\(video, camera\)/);
+  const css = source('../public/reel-camera-surface.css');
+  assert.match(css, /\.reelCamera > video[^}]+object-fit: cover !important/);
+  assert.match(css, /\.reelCamera\[data-camera-fit="fit"\]:not\(\.layoutActive\) > video[^}]+object-fit: contain !important/);
+  assert.match(css, /cameraReview #preview \.studioAsset[^}]+object-fit:contain/);
+  assert.doesNotMatch(css, /reelCamera\[data-facing="user"\] > video[^}]+scaleX\(-1\)/);
+  const controller = source('../public/reel-layout-controller.js');
+  assert.doesNotMatch(controller, /context\.filter = video\.style\.filter/);
+  assert.match(controller, /coverSourceRect\(video\.videoWidth, video\.videoHeight, aspect \* 1000, 1000\)/);
+  assert.match(source('../public/post-publishing.css'), /clipStage \.studioMedia\.aspectOriginal \.studioAsset\{object-fit:contain/);
 });
 
-test('the stream request falls back to the plain constraints when the phone refuses the shaped ones', async () => {
+test('a plain request asks for a portrait or landscape stream and never swallows a denial', async () => {
   const calls = [];
-  const media = {
-    getUserMedia: async (constraints) => {
-      calls.push(constraints);
-      if (calls.length === 1) { const error = new Error('refuzat'); error.name = 'OverconstrainedError'; throw error; }
-      return 'stream';
-    },
-  };
-  assert.equal(await requestCameraStream('environment', true, 390 / 844, media), 'stream');
-  assert.equal(calls.length, 2, 'the shaped request is retried once, plainly');
-  assert.equal(calls[0].video.resizeMode, 'crop-and-scale');
-  assert.equal(calls[0].video.aspectRatio.ideal, 390 / 844);
-  assert.equal(Object.hasOwn(calls[1].video, 'resizeMode'), false, 'the fallback is the request of every phone');
-  // A refused permission is not swallowed by the fallback: the camera screen still has to say what happened.
+  const media = { getUserMedia: async (constraints) => { calls.push(constraints); return 'stream'; } };
+  assert.equal(await requestCameraStream('environment', true, media), 'stream');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].video.width.ideal, 1080);
+  assert.equal(calls[0].video.height.ideal, 1920);
+  assert.equal(calls[0].video.facingMode.ideal, 'environment');
+  assert.equal(Object.hasOwn(calls[0].video, 'resizeMode'), false, 'nothing shapes or crops the sensor');
+  assert.equal(Object.hasOwn(calls[0].video, 'aspectRatio'), false);
+  // A refused permission is never retried behind the creator's back: the camera screen has to say what happened.
   const denied = { getUserMedia: async () => { const error = new Error('permisiune refuzată'); error.name = 'NotAllowedError'; throw error; } };
-  await assert.rejects(() => requestCameraStream('environment', true, 1, denied), /permisiune refuzată/);
+  await assert.rejects(() => requestCameraStream('environment', true, denied), /permisiune refuzată/);
 });
 
 test('a track that already carries a digital zoom is widened before the preview starts', async () => {

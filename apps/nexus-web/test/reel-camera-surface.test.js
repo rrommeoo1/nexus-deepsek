@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { reelCameraMarkup } from "../public/reel-camera-surface.js";
+import { applyCameraFraming, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
 import { reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "../public/reel-camera-review.js";
 
 const esc = (value) => String(value);
@@ -56,9 +56,49 @@ test("the camera opens on the whole picture and a clip keeps that same frame", (
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
   assert.match(html, /reel-camera-surface\.css\?v=20261003-whole1/);
   const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(app, /reel-camera-surface\.js\?v=20261003-whole1/);
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-whole2/);
   assert.match(app, /showCameraSensorNote\(video, camera\)/);
   assert.match(app, /composerCameraBackdrop"\);[\s\S]{0,90}backdrop\.srcObject = stream/);
+  assert.match(app, /syncCameraFraming\(video, camera\)/);
+});
+
+test("the framing follows the incoming stream instead of a fixed default", () => {
+  // Owner, 3 octombrie 2026: "după ce apas + vreau să văd imaginea full screen" - the picture as the native camera
+  // he compared against shows it. A portrait stream close to the screen shape fills it with a few percent cut,
+  // while a 4:3 or 16:9 stream would need a 2,9x-3,8x cut, so that one opens on the whole picture with the blurred
+  // copy behind it. Either way the tap of the creator wins for the rest of the session.
+  const makeCamera = (width, height) => {
+    const label = { textContent: "" };
+    const button = { attrs: {}, setAttribute(name, value) { this.attrs[name] = value; }, querySelector: () => label };
+    return { node: { clientWidth: width, clientHeight: height, dataset: {}, querySelector: () => button }, button, label };
+  };
+  const makeVideo = (videoWidth, videoHeight) => {
+    const listeners = {};
+    return { videoWidth, videoHeight, addEventListener(name, fn) { listeners[name] = fn; }, fire: (name) => listeners[name]?.() };
+  };
+  const portrait = makeCamera(390, 844);
+  syncCameraFraming(makeVideo(1080, 1920), portrait.node);
+  assert.equal(portrait.node.dataset.cameraFit, "fill", "a portrait stream fills the screen with a 1,22x cut");
+  assert.equal(portrait.button.attrs["aria-pressed"], "false");
+  assert.equal(portrait.label.textContent, "Încadrează");
+  const wide = makeCamera(390, 844);
+  syncCameraFraming(makeVideo(1440, 1080), wide.node);
+  assert.equal(wide.node.dataset.cameraFit, "fit", "a 4:3 stream would need a 2,9x cut to fill the screen");
+  assert.equal(wide.button.attrs["aria-pressed"], "true");
+  assert.equal(wide.label.textContent, "Umple");
+  // The stream size is known only after metadata, so the decision waits for it instead of guessing.
+  const late = makeCamera(390, 844);
+  const stream = makeVideo(0, 0);
+  syncCameraFraming(stream, late.node);
+  assert.equal(late.node.dataset.cameraFit, undefined);
+  stream.videoWidth = 1080; stream.videoHeight = 1920;
+  stream.fire("loadedmetadata");
+  assert.equal(late.node.dataset.cameraFit, "fill");
+  applyCameraFraming(wide.node, false);
+  assert.equal(wide.node.dataset.cameraFit, "fill");
+  applyCameraFraming(wide.node, true);
+  assert.equal(wide.node.dataset.cameraFit, "fit");
+  assert.equal(wide.label.textContent, "Umple");
 });
 
 test("captured camera media enters a dedicated review surface with retake and continue controls", () => {
@@ -150,7 +190,7 @@ test("global Create opens the rear live camera and media import stays explicit",
   assert.match(source, /const selfieFirst = options\.facing === "user"/);
   const start = source.slice(source.indexOf("async function startComposerCamera("), source.indexOf("async function openViewerComments("));
   assert.match(start, /facingMode = "environment"/);
-  assert.match(start, /await requestCameraStream\(facingMode, portrait, camera\.clientWidth \/ Math\.max\(1, camera\.clientHeight\)\)/);
+  assert.match(start, /await requestCameraStream\(facingMode, portrait\)/);
   assert.doesNotMatch(start, /\.click\(\)|openNativePicker/);
   assert.match(source, /cameraGallery"\)\?\.addEventListener\("click", openGallery\)/);
 });
