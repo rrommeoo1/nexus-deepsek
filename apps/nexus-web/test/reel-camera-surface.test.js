@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { applyCameraFraming, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
+import { applyCameraFraming, cameraSurfaceCut, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
 import { reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "../public/reel-camera-review.js";
 
 const esc = (value) => String(value);
@@ -32,41 +32,43 @@ test("Reel camera exposes only Photo and Video capture modes with bounded tools"
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
 });
 
-test("the camera opens on the whole picture and a clip keeps that same frame", () => {
-  // Owner photos, 2 octombrie 2026: the same room, one in the shipped "fill" default - where `cover` cut about
-  // 2,9x out of his phone's wider stream - and one against the native camera, which shows the whole picture.
-  // Fit is now the opening framing, and "Umple" stays the deliberate full-bleed crop.
+test("the camera opens full screen and the whole frame stays one tap away", () => {
+  // Owner, 3 octombrie 2026, the fourth time he asked: tapping "+" has to show the camera filling the screen the
+  // way the native camera he compares with does. His phone answered a portrait request with a 1920x1080 stream on
+  // a 469x860 screen, so the old rule ("a wide stream opens on the whole picture") left 69% of the screen black -
+  // measured in .ephemeral/camera-fill-probe.mjs on that same 469x860 surface. Fill is the opening framing now.
   const markup = reelCameraMarkup({ esc, t });
-  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fit"/);
-  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="true"[\s\S]{0,140}?<small>Umple<\/small>/);
+  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fill"/);
+  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="false"[\s\S]{0,140}?<small>Încadrează<\/small>/);
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
-  // A clip is recorded from the track itself, with no canvas crop, so the preview has to show the whole frame.
-  assert.match(styles, /reelCamera\[data-camera-mode="clip"\] > video[^}]+object-fit: contain !important/);
-  assert.match(styles, /reelCamera\[data-camera-mode="clip"\] #cameraFit[^}]+display:\s*none\s*!important/);
-  // A blurred copy of the same frame stands behind the picture, so "the whole wall is in the shot" and "the
-  // camera looks like it fills the screen" stop being a choice, and the sensor note shows the phone's numbers.
+  // A clip is framed like a photo: the preview fills the screen, the take is recorded from that same framed
+  // centre, and the framing button works in both modes.
+  assert.doesNotMatch(styles, /reelCamera\[data-camera-mode="clip"\] > video/);
+  assert.doesNotMatch(styles, /reelCamera\[data-camera-mode="clip"\] #cameraFit/);
+  // A blurred copy of the same frame stands behind the picture, so the whole frame is never black bands, and the
+  // sensor note reports what the phone handed back next to what was asked of it.
   const surface = readFileSync(new URL("../public/reel-camera-surface.js", import.meta.url), "utf8");
-  assert.match(markup, /id="composerCameraBackdrop"[^>]+aria-hidden="true"/);
+  assert.match(markup, /id="composerCameraBackdrop"[^>]+autoplay muted playsinline[^>]+aria-hidden="true"/);
   assert.match(styles, /reelCamera > \.reelCameraBackdrop[^}]+object-fit: cover !important/);
   assert.match(styles, /reelCamera\[data-camera-fit="fill"\] > \.reelCameraBackdrop[^}]+display: none !important/);
   assert.match(styles, /reelCamera\.ready\.cameraNote \.reelCameraStatus[^}]+opacity: 1/);
   assert.match(surface, /export function showCameraSensorNote\(video, camera, seconds = 8\)/);
+  assert.match(surface, /" · cerut " \+ camera\.dataset\.cameraRequest/);
   // Cache-busting belongs to the release: the stylesheet and the module are asked for under a new version, and
-  // the entry file feeds the same stream to the backdrop and puts the sensor note on screen.
+  // the entry file feeds the same stream to the backdrop, plays it and puts the sensor note on screen.
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /reel-camera-surface\.css\?v=20261003-whole1/);
+  assert.match(html, /reel-camera-surface\.css\?v=20261003-fill1/);
   const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(app, /reel-camera-surface\.js\?v=20261003-whole2/);
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-fill1/);
   assert.match(app, /showCameraSensorNote\(video, camera\)/);
-  assert.match(app, /composerCameraBackdrop"\);[\s\S]{0,90}backdrop\.srcObject = stream/);
+  assert.match(app, /composerCameraBackdrop"\)[\s\S]{0,120}backdrop\.play\?\.\(\)\.catch/);
   assert.match(app, /syncCameraFraming\(video, camera\)/);
 });
 
-test("the framing follows the incoming stream instead of a fixed default", () => {
-  // Owner, 3 octombrie 2026: "după ce apas + vreau să văd imaginea full screen" - the picture as the native camera
-  // he compared against shows it. A portrait stream close to the screen shape fills it with a few percent cut,
-  // while a 4:3 or 16:9 stream would need a 2,9x-3,8x cut, so that one opens on the whole picture with the blurred
-  // copy behind it. Either way the tap of the creator wins for the rest of the session.
+test("the framing fills the screen whatever the phone hands back, and the tap wins", () => {
+  // The opening framing is the owner's call, not the phone's: a 0,55 screen filled from a 1,78 stream costs a
+  // 3,24x cut and from a 0,56 stream about 1% (`cameraSurfaceCut` is the number the note prints), but both open
+  // filled. "Încadrează" is the deliberate whole-frame view for the rest of the session.
   const makeCamera = (width, height) => {
     const label = { textContent: "" };
     const button = { attrs: {}, setAttribute(name, value) { this.attrs[name] = value; }, querySelector: () => label };
@@ -76,29 +78,39 @@ test("the framing follows the incoming stream instead of a fixed default", () =>
     const listeners = {};
     return { videoWidth, videoHeight, addEventListener(name, fn) { listeners[name] = fn; }, fire: (name) => listeners[name]?.() };
   };
-  const portrait = makeCamera(390, 844);
+  const portrait = makeCamera(469, 860);
   syncCameraFraming(makeVideo(1080, 1920), portrait.node);
-  assert.equal(portrait.node.dataset.cameraFit, "fill", "a portrait stream fills the screen with a 1,22x cut");
+  assert.equal(portrait.node.dataset.cameraFit, "fill", "a portrait stream fills the screen with a 1,03x cut");
   assert.equal(portrait.button.attrs["aria-pressed"], "false");
   assert.equal(portrait.label.textContent, "Încadrează");
-  const wide = makeCamera(390, 844);
-  syncCameraFraming(makeVideo(1440, 1080), wide.node);
-  assert.equal(wide.node.dataset.cameraFit, "fit", "a 4:3 stream would need a 2,9x cut to fill the screen");
-  assert.equal(wide.button.attrs["aria-pressed"], "true");
-  assert.equal(wide.label.textContent, "Umple");
-  // The stream size is known only after metadata, so the decision waits for it instead of guessing.
-  const late = makeCamera(390, 844);
+  const wide = makeCamera(469, 860);
+  syncCameraFraming(makeVideo(1920, 1080), wide.node);
+  assert.equal(wide.node.dataset.cameraFit, "fill", "the owner's 1,78 stream fills the screen too - no black bands");
+  assert.equal(wide.button.attrs["aria-pressed"], "false");
+  assert.equal(wide.label.textContent, "Încadrează");
+  // The stream size is known only after metadata, so the surface is framed once the frame is really there.
+  const late = makeCamera(469, 860);
   const stream = makeVideo(0, 0);
   syncCameraFraming(stream, late.node);
   assert.equal(late.node.dataset.cameraFit, undefined);
-  stream.videoWidth = 1080; stream.videoHeight = 1920;
+  stream.videoWidth = 1920; stream.videoHeight = 1080;
   stream.fire("loadedmetadata");
   assert.equal(late.node.dataset.cameraFit, "fill");
-  applyCameraFraming(wide.node, false);
-  assert.equal(wide.node.dataset.cameraFit, "fill");
   applyCameraFraming(wide.node, true);
   assert.equal(wide.node.dataset.cameraFit, "fit");
   assert.equal(wide.label.textContent, "Umple");
+  applyCameraFraming(wide.node, false);
+  assert.equal(wide.node.dataset.cameraFit, "fill");
+});
+
+test("the sensor note reports the cut a screen shape costs the frame it was given", () => {
+  // The numbers the owner reads off his own phone: 1,03 for the portrait stream a native camera hands over, 3,26
+  // for the 1920x1080 his phone answered a 1080x1440 request with, and 2,44 for a 4:3 sensor on the same screen.
+  assert.equal(cameraSurfaceCut(1080 / 1920, 469 / 860), 1.03);
+  assert.equal(cameraSurfaceCut(1920 / 1080, 469 / 860), 3.26);
+  assert.equal(cameraSurfaceCut(1440 / 1080, 469 / 860), 2.44);
+  assert.equal(cameraSurfaceCut(1920 / 1080, 16 / 9), 1);
+  assert.equal(cameraSurfaceCut(0, 0), 0);
 });
 
 test("captured camera media enters a dedicated review surface with retake and continue controls", () => {

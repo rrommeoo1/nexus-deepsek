@@ -1,26 +1,40 @@
+import { cameraVideoConstraints } from "./reel-camera-quality.js?v=20261003-fill1";
+
 const tabs = ["Hot", "For You", "Favorites", "Recent"];
 
+// How much `cover` has to cut out of a frame to fill a surface of another shape: 1 means nothing is lost, 3,26
+// means two thirds of the width stay outside the screen. This is the number the camera prints, so the framing
+// question is settled with the phone's own answer instead of an argument.
+export function cameraSurfaceCut(streamAspect, surfaceAspect) {
+  const stream = Number(streamAspect), surface = Number(surfaceAspect);
+  if (!(stream > 0) || !(surface > 0)) return 0;
+  const kept = stream < surface ? stream / surface : surface / stream;
+  return Math.round((1 / kept) * 100) / 100;
+}
+
 // What the phone actually handed back, on the creator's own screen for a few seconds. The framing question was
-// argued from photos twice, so the numbers now show up in the camera itself while the phone answers them.
+// argued from photos twice, so the numbers now show up in the camera itself while the phone answers them: what the
+// sensor returned, what was asked for, how big the screen is, and how much the screen costs the picture.
 export function showCameraSensorNote(video, camera, seconds = 8) {
   const status = camera?.querySelector(".reelCameraStatus");
   if (!status || !video) return;
   const report = () => {
     if (!video.videoWidth) return;
-    const stream = (video.videoWidth / video.videoHeight).toFixed(2);
-    const surface = (camera.clientWidth / Math.max(1, camera.clientHeight)).toFixed(2);
-    status.textContent = "senzor " + video.videoWidth + "×" + video.videoHeight + " (" + stream + ") · ecran "
-      + camera.clientWidth + "×" + camera.clientHeight + " (" + surface + ") · " + (camera.dataset.cameraFit || "fit");
+    const stream = video.videoWidth / video.videoHeight;
+    const surface = camera.clientWidth / Math.max(1, camera.clientHeight);
+    const fit = camera.dataset.cameraFit === "fit";
+    status.textContent = "senzor " + video.videoWidth + "×" + video.videoHeight + " (" + stream.toFixed(2) + ")"
+      + (camera.dataset.cameraRequest ? " · cerut " + camera.dataset.cameraRequest : "")
+      + " · ecran " + camera.clientWidth + "×" + camera.clientHeight + " (" + surface.toFixed(2) + ") · "
+      + (fit ? "fit complet" : "umplut, taiat " + cameraSurfaceCut(stream, surface) + "×");
     camera.classList.add("cameraNote");
     setTimeout(() => camera.classList.remove("cameraNote"), Math.max(0, seconds) * 1000);
   };
   if (video.videoWidth) report(); else video.addEventListener("loadedmetadata", report, { once: true });
 }
 
-// The framing follows the stream the phone actually hands back: a portrait stream close to the screen shape fills
-// it crisply - what the native camera the owner compared against does - while a wider stream would only fill it by
-// cutting a large part of the picture away, so that one opens on the whole view with the blurred copy behind it.
-// Whichever way it opens, the creator's own tap wins for the rest of the session.
+// The framing the creator chooses with one tap, and the one the camera opens on. Both go through here, so the
+// button always says what the next tap will do and the surface always says what is on screen right now.
 export function applyCameraFraming(camera, fit) {
   camera.dataset.cameraFit = fit ? "fit" : "fill";
   const button = camera.querySelector("#cameraFit");
@@ -31,27 +45,43 @@ export function applyCameraFraming(camera, fit) {
   if (label) label.textContent = fit ? "Umple" : "Încadrează";
 }
 
+// How the phone is held: the screen decides, not the section. A section that is still being laid out (0x0) must
+// never be the reason a portrait phone is asked for a landscape frame - that is how the 1080x1920 request became
+// the owner's 1920x1080 answer in the first place.
+export function cameraSurfaceIsPortrait(camera) {
+  return (camera?.clientHeight || window.innerHeight) > (camera?.clientWidth || window.innerWidth);
+}
+
+// What was asked of the phone, kept on the surface so the sensor note can print request and answer side by side.
+export function markCameraRequest(camera, facingMode, portrait) {
+  const asked = cameraVideoConstraints(facingMode, portrait);
+  camera.dataset.cameraRequest = asked.width.ideal + "×" + asked.height.ideal + " (" + (asked.width.ideal / asked.height.ideal).toFixed(2) + ")";
+}
+
+// The camera opens full screen, the way the native camera the owner compares against does: the picture fills the
+// whole surface, with no black bands above or below it. The whole frame stays one tap away ("Încadrează"), where
+// the blurred copy of the same frame fills what the picture does not reach.
+//
+// This used to be decided from the incoming stream shape (a wide stream opened on "fit"), and that is exactly what
+// the owner saw and rejected four times: on his phone a 469x860 screen met a 1920x1080 stream, and the whole frame
+// letterboxed into that screen left 69% of it black. The opening framing is his call, not the phone's; the stream's
+// shape is answered by the request (the sensor itself, in the arrangement the phone is held) and by the sensor
+// note, not by an empty screen.
 export function syncCameraFraming(video, camera) {
-  const decide = () => {
-    if (!video.videoWidth) return;
-    const stream = video.videoWidth / video.videoHeight;
-    const surface = camera.clientWidth / Math.max(1, camera.clientHeight);
-    const kept = stream < surface ? stream / surface : surface / stream;
-    applyCameraFraming(camera, 1 / kept > 2);
-  };
-  if (video.videoWidth) decide(); else video.addEventListener("loadedmetadata", decide, { once: true });
+  const open = () => { if (video.videoWidth) applyCameraFraming(camera, false); };
+  if (video.videoWidth) open(); else video.addEventListener("loadedmetadata", open, { once: true });
 }
 
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
-    // Fit, not fill, is the opening framing: the owner photographed his own room on 2 octombrie 2026 and the
-    // phone's wider stream was cropped about 2,9x by `cover` in fill, while the whole picture is what the native
-    // camera he compared with shows. "Umple" is one tap away for anybody who wants the full-bleed crop.
-    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
-    // A blurred copy of the same frame stands behind the picture: the surface still reads as full screen while
-    // the creator keeps the whole field of view the phone hands back, instead of a crop of its middle.
-    '<video id="composerCameraBackdrop" class="reelCameraBackdrop" muted playsinline aria-hidden="true"></video>',
+    // Fill is the opening framing: the owner asked for the picture to fill the screen, the way the native camera he
+    // compares against does, and a full screen is what tapping "+" shows. "Încadrează" keeps the whole frame one
+    // tap away for whoever wants to see everything the sensor caught, blurred copy behind it.
+    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fill" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
+    // A blurred copy of the same frame stands behind the picture: on "Încadrează" the surface still reads as full
+    // screen while the creator keeps the whole field of view the phone hands back, instead of black bands.
+    '<video id="composerCameraBackdrop" class="reelCameraBackdrop" autoplay muted playsinline aria-hidden="true"></video>',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
     '<button class="reelCameraClose" id="cameraClose" type="button" aria-label="Închide">×</button>',
@@ -62,7 +92,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
     button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
-    button('cameraFit', '⤢', 'Umple', 'aria-pressed="true"'),
+    button('cameraFit', '⤢', 'Încadrează', 'aria-pressed="false"'),
     button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
     button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),

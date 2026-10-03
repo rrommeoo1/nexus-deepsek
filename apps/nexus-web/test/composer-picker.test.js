@@ -56,18 +56,21 @@ test('camera cleanup releases tracks and clears the visible active/recording sta
   const source = readFileSync(new URL('../public/app.js', import.meta.url), 'utf8');
   const start = source.indexOf('function stopComposerCamera(');
   const end = source.indexOf('async function startComposerCamera(', start);
-  const calls = { tracks: 0, stopped: 0, invalidated: 0, cleared: false };
+  const calls = { tracks: 0, stopped: 0, invalidated: 0, cleared: false, framedStopped: 0 };
   const recorder = { state: 'recording', stop: () => calls.stopped++ };
   const video = { srcObject: {} }, record = { hidden: true }, stop = { hidden: false };
   const camera = { classList: { remove: () => { calls.cleared = true; } }, querySelector: () => video };
   const context = {
     activeRecorder: recorder, activeComposerStream: { getTracks: () => [1, 2].map(() => ({ stop: () => calls.tracks++ })) },
+    activeFramedTake: { stop: () => { calls.framedStopped++; } },
     discardedComposerRecorders: new WeakSet(), composerCameraRequestGate: { invalidate: () => calls.invalidated++ },
     document: { getElementById: (id) => ({ composerCamera: camera, recordClip: record, stopRecording: stop })[id] },
   };
   runInNewContext(source.slice(start, end) + '\nstopComposerCamera();', context);
   assert.equal(calls.tracks, 2);
   assert.equal(calls.stopped, 1);
+  assert.equal(calls.framedStopped, 1);
+  assert.equal(context.activeFramedTake, null);
   assert.equal(calls.invalidated, 1);
   assert.equal(calls.cleared, true);
   assert.equal(video.srcObject, null);

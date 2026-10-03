@@ -34,10 +34,9 @@
 .cameraLocationPanel>p { color:#666; font-size:13px; }.locationGps { width:100%; min-height:48px; border:0; border-radius:24px; background:#161616; color:#fff; font-weight:800; }.locationPrecision,.locationNearby { display:flex; gap:7px; margin:10px 0; overflow-x:auto; }.locationPrecision button,.locationNearby button { flex:1 0 auto; min-height:38px; padding:7px 10px; border:1px solid #ddd; border-radius:19px; background:#fff; color:#333; }.locationPrecision button.active { border-color:#7e42e8; background:#eee6ff; color:#5c1dc9; }.locationManual { display:grid; grid-template-columns:1fr auto; gap:7px; }.locationManual input { min-width:0; }.locationManual button { min-height:44px; padding:8px 11px; border:0; border-radius:16px; background:#7e42e8; color:#fff; }.locationManual [data-location-add] { grid-column:1/-1; background:#202124; }.locationResults { display:grid; gap:6px; margin:10px 0; }.locationResults button { min-height:42px; padding:8px 12px; border:1px solid #ddd; border-radius:14px; background:#fff; color:#222; text-align:left; }
 .studioDecoration { position:absolute; z-index:4; display:inline-flex; align-items:center; max-width:78%; padding:5px 8px; border-radius:12px; color:#fff; background:#16161699; font-size:clamp(20px,7vw,38px); font-weight:800; line-height:1.05; text-align:center; text-shadow:0 2px 7px #000; white-space:nowrap; transform-origin:center; touch-action:none; user-select:none; }.studioDecoration.decorationLocation { max-width:86%; padding:8px 12px; border-radius:18px; background:#111c; font-size:clamp(12px,4vw,19px); }.studioDecoration:focus { outline:2px solid #ff315c; }.studioDecoration>button { position:absolute; display:none; width:27px; height:27px; min-height:27px; padding:0; border:2px solid #fff; border-radius:50%; background:#161616; color:#fff; font-size:15px; }.studioDecoration:focus>button,.studioDecoration:hover>button { display:grid; place-items:center; }.decorationDelete { left:-14px; top:-14px; }.decorationResize { right:-14px; bottom:-14px; }.decorationRotate { right:-14px; top:-14px; }
 .reelCamera > video { position: absolute; inset: 0 !important; display: block; width: 100% !important; height: 100% !important; min-height: 0 !important; border-radius: 0 !important; object-fit: cover !important; transform: none; transition: filter .2s, object-fit .2s; }
-/* The opening framing is the whole picture ("fit"): filling a 9:19,5 surface with the wider mode the phone hands
-   back made `cover` cut roughly two thirds of it - the owner photographed his own room and compared it with the
-   native camera, which shows all of it. "Umple" stays one tap away as the deliberate full-bleed crop, and the
-   captured photo follows whichever framing is on screen. */
+/* The opening framing fills the screen - that is the base rule above, `cover`. The owner asked for the camera to
+   open on a full screen the way the native camera he compares with does, so a wide stream is no longer met with
+   black bands: "Încadrează" is one tap away and shows the whole frame, and the session keeps that choice. */
 .reelCamera[data-camera-fit="fit"]:not(.layoutActive) > video:not(.reelCameraBackdrop) { object-fit: contain !important; }
 /* Behind that whole picture a blurred copy of the same frame keeps the surface full, so nobody has to choose
    between "the whole wall is in the shot" and "the camera looks like it fills the screen". */
@@ -45,10 +44,8 @@
 .reelCamera[data-camera-fit="fill"] > .reelCameraBackdrop, .reelCamera.layoutActive > .reelCameraBackdrop, .reelCamera.layoutComplete > .reelCameraBackdrop { display: none !important; }
 /* The sensor note the camera shows for a few seconds after opening, until the framing question is settled. */
 .reelCamera.ready.cameraNote .reelCameraStatus { opacity: 1; bottom: calc(300px + env(safe-area-inset-bottom)); }
-/* MediaRecorder records this track exactly as it arrives, with no canvas crop, so a clip is always the whole
-   sensor frame: a cropped preview while recording would only surprise the creator after the take. */
-.reelCamera[data-camera-mode="clip"] > video:not(.reelCameraBackdrop) { object-fit: contain !important; }
-.reelCamera[data-camera-mode="clip"] #cameraFit { display:none!important; }
+/* A clip is framed exactly like a photo: the preview fills the screen and the take is recorded from the framed
+   canvas, so what the creator framed is what the clip holds. The framing button works in both modes. */
 .reelCamera.layoutComplete > video { opacity:0; }
 .reelCamera > .reelCameraLayoutGuide { position:absolute; z-index:1; inset:0 !important; display:none !important; overflow:hidden; border-radius:0; pointer-events:none; }
 .reelCamera.layoutActive > .reelCameraLayoutGuide { display:block !important; }

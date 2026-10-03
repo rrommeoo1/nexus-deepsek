@@ -1,7 +1,7 @@
 import { api, toast } from "./client.js?v=20260831-p1e2eeattach2";
 import { creatorStudioMarkup } from './creator-studio-markup.js?v=20261001-publish1';
 import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, serializeDraftWrite, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261002-layout1';
-import { requestCameraStream, widenCameraTrack } from './reel-camera-quality.js?v=20261002-stability1';
+import { alignCameraTrack, requestCameraStream, widenCameraTrack } from './reel-camera-quality.js?v=20261003-fill1';
 import { openCameraExitDialog } from './creator-camera-exit.js?v=20261002-layout1';
 import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261002-stability1';
 import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
@@ -20,7 +20,7 @@ import { createThreadNavigation, messageWindowQuery, messageScrollPosition, moun
 import { attachProfileNavigation, bindCreatorDestinations, profileMediaPosts, syncAuthorFollow } from "./profile-navigation.js?v=20260924-profile2";
 const threadNavigation = createThreadNavigation();
 import { loadContactStories } from "./contact-stories.js?v=20260913-spaces1";
-import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery } from "./bounded-recording.js?v=20261001-camera6";
+import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery, framedCameraTake } from "./bounded-recording.js?v=20261003-fill1";
 import { ensureChatDevice, encryptChatAttachment, encryptChatText, decryptChatAttachment, decryptChatMessage, observeConversationSafety, verifyConversationSafety, validateConversationKeyMaterial, activateProvisionedRecoveryDevice, clearPendingRecoveryActivation, computeRecoveryAccountBinding, persistPendingRecoveryActivation, provisionRecoveryDevice, readPendingRecoveryActivation, restoreRecoveryDevice } from "./chat-crypto.js?v=20260906-p2decrypt1";
 import {
   configureCallClient, callCapability, startDirectCall, handleCallInvite,
@@ -53,7 +53,7 @@ import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspac
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
 import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-layout1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { applyCameraFraming, openReelSoundCatalogue, reelCameraMarkup, showCameraSensorNote, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-whole2";
+import { applyCameraFraming, cameraSurfaceIsPortrait, markCameraRequest, openReelSoundCatalogue, reelCameraMarkup, showCameraSensorNote, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-fill1";
 import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
 import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-layout1";
@@ -253,6 +253,7 @@ const typingMutationKeys = new Map();
 let chatDevicePromise = null;
 let activeComposerStream = null;
 let activeRecorder = null;
+let activeFramedTake = null;
 const discardedComposerRecorders = new WeakSet();
 const composerCameraRequestGate = createLatestRequestGate();
 let activeLiveStream = null;
@@ -1345,7 +1346,7 @@ function renderRail() {
 
 // The owner's rule (2 octombrie 2026): each deployed build prints its version on the main logo, so he can see
 // which build he is looking at. Bump the line below on every deploy; the series starts at 1.01.
-const NEXUS_BUILD_VERSION = "1.05";
+const NEXUS_BUILD_VERSION = "1.06";
 function nexusWordmarkMarkup() {
   return '<svg class="nexusWordmarkSvg" viewBox="0 0 132 34" role="img" aria-label="Nexus"><defs><linearGradient id="nexus-wordmark-x" x1="0" x2="1"><stop stop-color="#00efff"/><stop offset="1" stop-color="#a66cff"/></linearGradient></defs><text x="1" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">NE</text><text x="44" y="24" fill="url(#nexus-wordmark-x)" font-size="22" font-family="Arial,Helvetica,sans-serif">X</text><text x="61" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">US</text><path d="M91 8h27m-17 6h24m-31 6h30m-20 6h14" fill="none" stroke="#27dfe9" stroke-width="1" opacity=".65"/><circle cx="121" cy="8" r="1.6" fill="#9d72ff"/><circle cx="127" cy="14" r="1.6" fill="#27dfe9"/><circle cx="126" cy="20" r="1.6" fill="#9d72ff"/></svg><i class="wordmarkBuild" aria-hidden="true">' + NEXUS_BUILD_VERSION + '</i>';
 }
@@ -6645,6 +6646,8 @@ function stopComposerCamera({ discardRecording = true } = {}) {
     try { recorder.stop(); } catch { /* Release tracks even if recording failed. */ }
   }
   if (activeRecorder === recorder) activeRecorder = null;
+  activeFramedTake?.stop();
+  activeFramedTake = null;
   activeComposerStream?.getTracks().forEach((track) => track.stop());
   activeComposerStream = null;
   const camera = document.getElementById("composerCamera");
@@ -6675,10 +6678,11 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     return;
   }
   try {
-    const portrait = camera.clientHeight > camera.clientWidth;
-    // A plain, complete request: no aspect constraint can widen the field of view, so the framing that follows is
-    // decided from the stream that actually arrives (syncCameraFraming). PHOTO and VIDEO read this one track.
+    const portrait = cameraSurfaceIsPortrait(camera);
+    // A plain, complete request: the sensor itself, in the arrangement the phone is held (reel-camera-quality.js).
     const stream = await requestCameraStream(facingMode, portrait);
+    const videoTrack = stream.getVideoTracks()[0];
+    await alignCameraTrack(videoTrack, { portrait });
     if (!request.isCurrent() || !camera.isConnected || !video.isConnected || !sourceInput.isConnected) {
       stream.getTracks().forEach((track) => track.stop());
       return;
@@ -6686,15 +6690,15 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     activeComposerStream = stream;
     video.srcObject = stream;
     const backdrop = document.getElementById("composerCameraBackdrop");
-    if (backdrop) backdrop.srcObject = stream;
+    if (backdrop) { backdrop.srcObject = stream; backdrop.play?.().catch(() => {}); }
     camera.dataset.facing = facingMode;
+    markCameraRequest(camera, facingMode, portrait);
     camera.classList.add("ready");
     setCameraComposerState("camera-ready");
     camera.querySelector(".cameraRecovery")?.setAttribute("hidden", "");
     camera.querySelector(".reelCameraStatus").textContent = t("camera.active");
     syncCameraFraming(video, camera);
     showCameraSensorNote(video, camera);
-    const videoTrack = stream.getVideoTracks()[0];
     const flash = document.getElementById("cameraFlash");
     if (flash) flash.hidden = !(facingMode === "environment" && Boolean(videoTrack?.getCapabilities?.().torch));
     await widenCameraTrack(videoTrack);
@@ -6823,10 +6827,11 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     }
     const recover = (message) => cameraRecovery(camera, stopComposerCamera, toast, message);
     const recordingProfile = cameraRecordingProfile(camera.dataset.cameraDuration, DRAFT_FILE_LIMIT);
+    const framed = framedCameraTake(video, camera, stream);
     let recorder;
-    try { recorder = createCameraRecorder(stream, MediaRecorder, recordingProfile); }
-    catch { return recover(t("camera.recordUnsupported")); }
-    activeRecorder = recorder;
+    try { recorder = createCameraRecorder(framed?.stream || stream, MediaRecorder, recordingProfile); }
+    catch { framed?.stop(); return recover(t("camera.recordUnsupported")); }
+    activeRecorder = recorder; activeFramedTake = framed;
     let stopRecordingDial = () => {};
     const recording = startBoundedRecording(recorder, {
       maxBytes: DRAFT_FILE_LIMIT,
@@ -6835,6 +6840,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
       isCurrent: () => activeRecorder === recorder && activeComposerStream === stream && !discardedComposerRecorders.has(recorder) && sourceInput.isConnected && state.persona === selectedPersona,
       onResult: ({ blob, error }) => {
         stopRecordingDial();
+        activeFramedTake?.stop(); activeFramedTake = null;
         if (error) { setCameraComposerState("error", { force: true }); return recover(error === "UPLOAD_TOO_LARGE" ? uploadErrorMessage(new UploadClientError(error)) : t("camera.unavailable")); }
         setCameraComposerState("processing-recording");
         persistFilter();

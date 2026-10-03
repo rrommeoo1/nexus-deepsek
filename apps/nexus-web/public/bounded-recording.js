@@ -1,3 +1,5 @@
+import { coverSourceRect } from './reel-layout.js?v=20261003-fill1';
+
 export function cameraRecordingProfile(durationSeconds, maxBytes = 20 * 1024 * 1024) {
   const seconds = Math.max(15, Math.min(600, Number(durationSeconds) || 60));
   const totalBitsPerSecond = Math.floor((maxBytes * 8 * .84) / seconds);
@@ -13,6 +15,55 @@ export function createCameraRecorder(stream, Recorder = MediaRecorder, profile =
     ...(Number(profile.videoBitsPerSecond) > 0 ? { videoBitsPerSecond: Number(profile.videoBitsPerSecond) } : {}),
     ...(Number(profile.audioBitsPerSecond) > 0 ? { audioBitsPerSecond: Number(profile.audioBitsPerSecond) } : {}),
   });
+}
+
+// What the full-screen preview cuts out of the frame, in source pixels, or null when the frame already matches the
+// surface shape closely enough that a canvas would only cost frames: a 9:16 stream on a 9:19,5 screen loses about
+// three percent and is recorded as it arrives, a 3:4 or 4:3 or 16:9 frame is drawn from its framed centre. Same
+// `cover` arithmetic as the preview and the photo, so the three cannot disagree.
+export function framedCameraCrop(sourceWidth, sourceHeight, surfaceWidth, surfaceHeight) {
+  const sw = Math.max(0, Number(sourceWidth) || 0), sh = Math.max(0, Number(sourceHeight) || 0);
+  const dw = Math.max(0, Number(surfaceWidth) || 0), dh = Math.max(0, Number(surfaceHeight) || 0);
+  if (!sw || !sh || !dw || !dh) return null;
+  const streamAspect = sw / sh, surfaceAspect = dw / dh;
+  const kept = streamAspect < surfaceAspect ? streamAspect / surfaceAspect : surfaceAspect / streamAspect;
+  if (kept > .94) return null;
+  const crop = coverSourceRect(sw, sh, dw, dh);
+  return Object.freeze({ sx: Math.round(crop.sx), sy: Math.round(crop.sy), sw: Math.round(crop.sw), sh: Math.round(crop.sh) });
+}
+
+// The take the creator is looking at: the framed centre of the track, redrawn into a canvas at the frame's own
+// resolution and recorded from there, so a clip holds what the screen shows. Returns null when nothing has to be
+// cropped (the track is recorded as it arrives) or when the browser cannot draw one, so a missing canvas can never
+// cost a recording.
+export function createFramedCameraStream({
+  video, camera, fps = 30,
+  createCanvas = () => document.createElement('canvas'),
+  setInterval: every = setInterval, clearInterval: stopEvery = clearInterval,
+} = {}) {
+  if (!video || !camera) return null;
+  const crop = framedCameraCrop(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
+  if (!crop) return null;
+  const canvas = createCanvas();
+  canvas.width = crop.sw; canvas.height = crop.sh;
+  const context = canvas.getContext?.('2d');
+  if (!context || typeof canvas.captureStream !== 'function') return null;
+  const draw = () => {
+    if (!video.videoWidth) return;
+    context.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh);
+  };
+  draw();
+  const timer = every(draw, Math.max(15, Math.round(1000 / Math.max(1, fps))));
+  return Object.freeze({ stream: canvas.captureStream(Math.max(1, fps)), width: crop.sw, height: crop.sh, stop: () => stopEvery(timer) });
+}
+
+// The take the recorder should use: the framed canvas stream with the microphone already on it, or null when the
+// whole track is the picture anyway. One call site in the entry file, one rule shared with the preview.
+export function framedCameraTake(video, camera, stream, fps = 30) {
+  const framed = createFramedCameraStream({ video, camera, fps });
+  if (!framed) return null;
+  for (const track of stream?.getAudioTracks?.() || []) framed.stream.addTrack(track);
+  return framed;
 }
 
 export function cameraRecovery(camera, stopCamera, notify, message) {
