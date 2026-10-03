@@ -1,6 +1,7 @@
-import { cameraVideoConstraints } from "./reel-camera-quality.js?v=20261003-fill1";
+import { cameraVideoConstraints } from "./reel-camera-quality.js?v=20261003-lens1";
 
 const tabs = ["Hot", "For You", "Favorites", "Recent"];
+const framingListeners = new WeakMap();
 
 // How much `cover` has to cut out of a frame to fill a surface of another shape: 1 means nothing is lost, 3,26
 // means two thirds of the width stay outside the screen. This is the number the camera prints, so the framing
@@ -44,16 +45,32 @@ export function showCameraSensorNote(video, camera, seconds = 8) {
   if (video.videoWidth) report(); else video.addEventListener("loadedmetadata", report, { once: true });
 }
 
-// The framing the creator chooses with one tap, and the one the camera opens on. Both go through here, so the
-// button always says what the next tap will do and the surface always says what is on screen right now.
-export function applyCameraFraming(camera, fit) {
-  camera.dataset.cameraFit = fit ? "fit" : "fill";
+// The control offers the next preset. The current one is explicit and never silently switches to a crop.
+export function applyCameraPreset(camera, aspect = '9:16') {
+  camera.dataset.cameraAspect = aspect === '3:4' ? '3:4' : '9:16';
+  camera.dataset.cameraFit = 'fit';
+  const output = camera.querySelector('.cameraPresetStatus');
+  if (output) output.textContent = camera.dataset.cameraAspect === '3:4' ? '3:4 · pregătesc 1×' : '9:16 · pregătesc 0,7×';
   const button = camera.querySelector("#cameraFit");
   if (!button) return;
-  button.setAttribute("aria-pressed", String(Boolean(fit)));
-  button.setAttribute("aria-label", fit ? "Umple ecranul" : "Încadrează complet");
+  const wide = camera.dataset.cameraAspect === '9:16';
+  button.setAttribute('aria-pressed', String(!wide));
+  button.setAttribute('aria-label', wide ? 'Schimbă la 3:4, zoom 1×' : 'Schimbă la 9:16, zoom 0,7×');
+  button.setAttribute('title', wide ? '3:4 · 1×' : '9:16 · 0,7×');
   const label = button.querySelector("small");
-  if (label) label.textContent = fit ? "Umple" : "Încadrează";
+  if (label) label.textContent = wide ? '3:4 · 1×' : '9:16 · 0,7×';
+}
+
+export function showCameraPresetStatus(camera, { facingMode = 'environment', lens = 'default', zoom = {}, resizeMode } = {}) {
+  const output = camera.querySelector('.cameraPresetStatus');
+  if (!output) return;
+  const aspect = camera.dataset.cameraAspect || '9:16';
+  const target = aspect === '3:4' || facingMode === 'user' ? '1×' : '0,7×';
+  const label = lens === 'ultrawide' ? 'ultrawide' : zoom.matched ?
+    `${Number(zoom.actual).toFixed(1).replace('.', ',')}×` :
+    zoom.actual ? `${Number(zoom.actual).toFixed(1).replace('.', ',')}× · ${target} indisponibil` :
+    `${target} neconfirmat`;
+  output.textContent = `${aspect} · ${label}${resizeMode === 'crop-and-scale' ? ' · decupare browser' : ''}`;
 }
 
 // How the phone is held: the screen decides, not the section. A section that is still being laid out (0x0) must
@@ -65,30 +82,29 @@ export function cameraSurfaceIsPortrait(camera) {
 
 // What was asked of the phone, kept on the surface so the sensor note can print request and answer side by side.
 export function markCameraRequest(camera, facingMode, portrait) {
-  const asked = cameraVideoConstraints(facingMode, portrait);
+  const asked = cameraVideoConstraints(facingMode, portrait, camera.dataset.cameraAspect || '9:16');
   camera.dataset.cameraRequest = asked.width.ideal + "×" + asked.height.ideal + " (" + (asked.width.ideal / asked.height.ideal).toFixed(2) + ")";
 }
 
-// A native portrait stream can fill the surface with little loss. A browser that hands a landscape stream to a
-// portrait phone cannot: cover would discard most of the scene and look like digital zoom. Keep the whole frame
-// with a blurred continuation when the crop would exceed 20%; a deliberate tap can still choose full bleed.
+// The camera always uses the entire sensor answer. The 9:16 / 3:4 button changes the requested stream and export
+// canvas, not object-fit:cover; a landscape-only browser remains letterboxed over a blurred full-screen backdrop.
 export function syncCameraFraming(video, camera) {
-  const open = () => {
-    if (video.videoWidth && camera.dataset.cameraFramingManual !== 'true')
-      applyCameraFraming(camera, cameraNeedsFullFrame(video, camera));
-  };
+  const previous = framingListeners.get(video);
+  if (previous) {
+    video.removeEventListener?.('loadedmetadata', previous);
+    video.removeEventListener?.('resize', previous);
+  }
+  const open = () => { if (video.videoWidth) camera.dataset.cameraFit = 'fit'; };
   if (video.videoWidth) open(); else video.addEventListener("loadedmetadata", open, { once: true });
   video.addEventListener('resize', open);
+  framingListeners.set(video, open);
 }
 
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
-    // Fit is the safe initial state while metadata loads. Portrait streams that lose little are switched to fill;
-    // wide streams stay complete over a blurred full-screen continuation instead of silently cropping the subject.
-    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
-    // A blurred copy of the same frame stands behind the picture: on "Încadrează" the surface still reads as full
-    // screen while the creator keeps the whole field of view the phone hands back, instead of black bands.
+    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-aspect="9:16" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
+    // The blurred copy fills unused screen space if a browser returns a landscape stream to the portrait preset.
     '<video id="composerCameraBackdrop" class="reelCameraBackdrop" autoplay muted playsinline aria-hidden="true"></video>',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
@@ -100,7 +116,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
     button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
-    button('cameraFit', '⤢', 'Umple', 'aria-pressed="true"'),
+    button('cameraFit', '⤢', '3:4 · 1×', 'aria-pressed="false"'),
     button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
     button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),
@@ -115,6 +131,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     '<button class="reelCameraGallery" id="cameraGallery" type="button" aria-label="' + esc(t('camera.gallery')) + '"><i>▧</i><b>+</b></button>',
     '<nav class="reelCameraModes" aria-label="Mod creare"><button type="button" data-camera-destination="camera" class="active">CAMERA</button><button type="button" data-camera-destination="create">CREATE</button><button type="button" data-camera-destination="live">LIVE</button></nav>',
     '<div class="cameraActiveBadge"><i></i><span>' + esc(t('camera.activeBadge')) + '</span></div>',
+    '<output class="cameraPresetStatus" role="status" aria-live="polite">9:16 · pregătesc 0,7×</output>',
     '<div class="cameraRecovery" hidden><button id="retryCamera" type="button">' + esc(t('camera.retry')) + '</button></div>',
     '<small class="reelCameraStatus">' + esc(t('camera.instruction')) + '</small>',
     '</section>',

@@ -1,10 +1,12 @@
 import { composeReelLayout, coverSourceRect, reelLayoutCells } from './reel-layout.js?v=20261002-layout1';
 import { drawFittedCameraFrame, fittedCameraDimensions } from './reel-camera-framing.js?v=20261003-wide1';
+import { cameraFrameSize } from './reel-camera-quality.js?v=20261003-lens1';
 
 function cameraFrame(video, aspect = 0, camera = null) {
   const canvas = document.createElement('canvas');
   if (camera?.dataset.cameraFit === 'fit') {
-    const output = fittedCameraDimensions(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
+    const frame = cameraFrameSize(camera);
+    const output = frame && fittedCameraDimensions(video.videoWidth, video.videoHeight, frame.width, frame.height);
     if (!output) return null;
     canvas.width = output.width; canvas.height = output.height;
     if (!drawFittedCameraFrame(canvas.getContext('2d'), video, canvas.width, canvas.height, document.createElement('canvas'))) return null;

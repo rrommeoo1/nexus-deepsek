@@ -116,8 +116,12 @@ test('single photo follows fill crop or fits the whole sensor in a portrait comp
     assert.equal(env.completed[0].frame.height, 1080);
     env.camera.dataset.cameraFit = 'fit';
     await env.controller.capture();
-    assert.equal(env.completed[1].frame.width, 960);
+    assert.equal(env.completed[1].frame.width, 1080);
     assert.equal(env.completed[1].frame.height, 1920);
+    env.camera.dataset.cameraAspect = '3:4';
+    await env.controller.capture();
+    assert.equal(env.completed[2].frame.width, 1080);
+    assert.equal(env.completed[2].frame.height, 1440);
     const foreground = env.canvasCalls.at(-1);
     assert.deepEqual(foreground.slice(0, 5), [env.video, 0, 0, 1920, 1080]);
   } finally { env.restore(); }

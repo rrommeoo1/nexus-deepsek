@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { applyCameraFraming, cameraNeedsFullFrame, cameraSurfaceCut, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
+import { applyCameraPreset, cameraNeedsFullFrame, cameraSurfaceCut, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
 import { reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "../public/reel-camera-review.js";
 
 const esc = (value) => String(value);
@@ -34,8 +34,9 @@ test("Reel camera exposes only Photo and Video capture modes with bounded tools"
 
 test("camera surface opens safely, fills the viewport and avoids a close-up landscape crop", () => {
   const markup = reelCameraMarkup({ esc, t });
-  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fit"/);
-  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="true"[\s\S]{0,140}?<small>Umple<\/small>/);
+  assert.match(markup, /id="composerCamera"[^>]+data-camera-aspect="9:16" data-camera-fit="fit"/);
+  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="false"[\s\S]{0,140}?<small>3:4 · 1×<\/small>/);
+  assert.match(markup, /cameraPresetStatus/);
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
   // A clip and photo use the same framing choice, with the full frame retained when cover would crop too far.
   assert.doesNotMatch(styles, /reelCamera\[data-camera-mode="clip"\] > video/);
@@ -45,6 +46,8 @@ test("camera surface opens safely, fills the viewport and avoids a close-up land
   const surface = readFileSync(new URL("../public/reel-camera-surface.js", import.meta.url), "utf8");
   assert.match(markup, /id="composerCameraBackdrop"[^>]+autoplay muted playsinline[^>]+aria-hidden="true"/);
   assert.match(styles, /reelCamera > \.reelCameraBackdrop[^}]+object-fit: cover !important/);
+  assert.match(styles, /reelCamera:not\(\.layoutActive\) > #composerCameraVideo[^}]+aspect-ratio:9\/16/);
+  assert.match(styles, /reelCamera\[data-camera-aspect="3:4"\]:not\(\.layoutActive\) > #composerCameraVideo[^}]+aspect-ratio:3\/4/);
   assert.match(styles, /reelCamera\[data-camera-fit="fill"\] > \.reelCameraBackdrop[^}]+display: none !important/);
   assert.match(styles, /reelCamera\.ready\.cameraNote \.reelCameraStatus[^}]+opacity: 1/);
   assert.match(surface, /export function showCameraSensorNote\(video, camera, seconds = 8\)/);
@@ -52,34 +55,38 @@ test("camera surface opens safely, fills the viewport and avoids a close-up land
   // Cache-busting belongs to the release: the stylesheet and the module are asked for under a new version, and
   // the entry file feeds the same stream to the backdrop, plays it and puts the sensor note on screen.
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /reel-camera-surface\.css\?v=20261003-wide1/);
+  assert.match(html, /reel-camera-surface\.css\?v=20261003-lens1/);
   const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(app, /reel-camera-surface\.js\?v=20261003-wide1/);
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-lens1/);
   assert.match(app, /showCameraSensorNote\(video, camera\)/);
   assert.match(app, /composerCameraBackdrop"\)[\s\S]{0,120}backdrop\.play\?\.\(\)\.catch/);
   assert.match(app, /syncCameraFraming\(video, camera\)/);
 });
 
-test("automatic framing preserves a wide sensor and a manual choice wins", () => {
+test("9:16 opens without cropping; the control explicitly switches to 3:4", () => {
   const makeCamera = (width, height) => {
     const label = { textContent: "" };
     const button = { attrs: {}, setAttribute(name, value) { this.attrs[name] = value; }, querySelector: () => label };
-    return { node: { clientWidth: width, clientHeight: height, dataset: {}, querySelector: () => button }, button, label };
+    const status = { textContent: '' };
+    return { node: { clientWidth: width, clientHeight: height, dataset: {}, querySelector: (selector) => selector === '#cameraFit' ? button : status }, button, label, status };
   };
   const makeVideo = (videoWidth, videoHeight) => {
     const listeners = {};
     return { videoWidth, videoHeight, addEventListener(name, fn) { listeners[name] = fn; }, fire: (name) => listeners[name]?.() };
   };
   const portrait = makeCamera(469, 860);
+  applyCameraPreset(portrait.node);
   syncCameraFraming(makeVideo(1080, 1920), portrait.node);
-  assert.equal(portrait.node.dataset.cameraFit, "fill", "a portrait stream fills the screen with a 1,03x cut");
+  assert.equal(portrait.node.dataset.cameraFit, "fit", "even a portrait track is not digitally cropped");
+  assert.equal(portrait.node.dataset.cameraAspect, '9:16');
   assert.equal(portrait.button.attrs["aria-pressed"], "false");
-  assert.equal(portrait.label.textContent, "Încadrează");
+  assert.equal(portrait.label.textContent, "3:4 · 1×");
   const wide = makeCamera(469, 860);
+  applyCameraPreset(wide.node);
   syncCameraFraming(makeVideo(1920, 1080), wide.node);
   assert.equal(wide.node.dataset.cameraFit, "fit", "the 3.26x crop would remove most of the scene");
-  assert.equal(wide.button.attrs["aria-pressed"], "true");
-  assert.equal(wide.label.textContent, "Umple");
+  assert.equal(wide.button.attrs["aria-pressed"], "false");
+  assert.equal(wide.label.textContent, "3:4 · 1×");
   // The stream size is known only after metadata, so the surface is framed once the frame is really there.
   const late = makeCamera(469, 860);
   const stream = makeVideo(0, 0);
@@ -90,12 +97,14 @@ test("automatic framing preserves a wide sensor and a manual choice wins", () =>
   assert.equal(late.node.dataset.cameraFit, "fit");
   stream.videoWidth = 1080; stream.videoHeight = 1920;
   stream.fire('resize');
-  assert.equal(late.node.dataset.cameraFit, 'fill');
-  applyCameraFraming(wide.node, false);
-  assert.equal(wide.node.dataset.cameraFit, "fill");
-  wide.node.dataset.cameraFramingManual = 'true';
+  assert.equal(late.node.dataset.cameraFit, 'fit');
+  applyCameraPreset(wide.node, '3:4');
+  assert.equal(wide.node.dataset.cameraAspect, '3:4');
+  assert.equal(wide.node.dataset.cameraFit, 'fit');
+  assert.equal(wide.button.attrs['aria-pressed'], 'true');
+  assert.equal(wide.label.textContent, '9:16 · 0,7×');
   syncCameraFraming(makeVideo(1920, 1080), wide.node);
-  assert.equal(wide.node.dataset.cameraFit, 'fill', 'a deliberate fill selection is not overwritten');
+  assert.equal(wide.node.dataset.cameraFit, 'fit');
   assert.equal(cameraNeedsFullFrame(makeVideo(1440, 1920), wide.node), true);
   assert.equal(cameraNeedsFullFrame(makeVideo(1080, 1920), wide.node), false);
 });
@@ -199,7 +208,7 @@ test("global Create opens the rear live camera and media import stays explicit",
   assert.match(source, /const selfieFirst = options\.facing === "user"/);
   const start = source.slice(source.indexOf("async function startComposerCamera("), source.indexOf("async function openViewerComments("));
   assert.match(start, /facingMode = "environment"/);
-  assert.match(start, /await requestCameraStream\(facingMode, portrait\)/);
+  assert.match(start, /await openCameraPresetStream\(facingMode, portrait, preset\)/);
   assert.doesNotMatch(start, /\.click\(\)|openNativePicker/);
   assert.match(source, /cameraGallery"\)\?\.addEventListener\("click", openGallery\)/);
 });

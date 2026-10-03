@@ -1,17 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { cameraVideoConstraints, requestCameraStream, widenCameraTrack, alignCameraTrack } from '../public/reel-camera-quality.js';
+import { cameraVideoConstraints, requestCameraStream, widenCameraTrack, alignCameraTrack, cameraFrameSize, findUltraWideCamera, openCameraPresetStream, setCameraZoom } from '../public/reel-camera-quality.js';
 import { createFramedCameraStream, framedCameraCrop } from '../public/bounded-recording.js';
 import { bindDraftBackup, serializeDraftWrite } from '../public/creator-draft-sync.js';
-import { applyCameraFraming, reelCameraMarkup, syncCameraFraming } from '../public/reel-camera-surface.js';
+import { applyCameraPreset, reelCameraMarkup, syncCameraFraming } from '../public/reel-camera-surface.js';
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
 test('camera requests the sensor itself in the arrangement the phone is held, without exact-device rejection', () => {
   assert.deepEqual(cameraVideoConstraints('environment', true), {
-    facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1440 }, frameRate: { ideal: 30, max: 30 },
+    facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30, max: 30 }, resizeMode: 'none',
   });
+  assert.equal(cameraVideoConstraints('environment', true, '3:4').height.ideal, 1440);
   assert.equal(cameraVideoConstraints('user', false).width.ideal, 1920);
   assert.equal(cameraVideoConstraints('user', false).height.ideal, 1080);
   assert.equal(cameraVideoConstraints('user', false).facingMode.ideal, 'user');
@@ -26,39 +27,34 @@ test('camera requests the sensor itself in the arrangement the phone is held, wi
   assert.match(source('../public/post-publishing.css'), /clipStage \.studioMedia\.aspectOriginal \.studioAsset\{object-fit:contain/);
 });
 
-test('the camera request stays plain, so no constraint can crop the sensor away', () => {
-  // 1.02-1.04 asked for the screen's own aspect with `resizeMode: "crop-and-scale"`. Measured on a 4:3 sensor that
-  // either crops the sensor to that sliver or is ignored - and a source crop cuts exactly the slice
-  // `object-fit: cover` cuts anyway, so it can never widen the field of view. Worse, when it is honoured the whole
-  // wall never reaches the preview at all. The request is plain again: it asks for the sensor itself in the held
-  // arrangement (1080x1440, 3:4), which is wider than the 9:16 sliver on a phone that answers portrait and wider
-  // than a 16:9 slice on a phone that answers landscape anyway. The framing decision lives in the preview, where
-  // the creator sees it, the sensor note reports it and one tap undoes it.
+test('the camera request prefers native, uncropped modes without a hard aspect constraint', () => {
+  // Earlier releases used crop-and-scale. The new default requests 1080x1920 with resizeMode:none;
+  // 3:4 requests 1080x1440. A landscape-only answer stays whole over a blurred backdrop.
   const quality = source('../public/reel-camera-quality.js');
   // The comment in that file explains the removal, so the assertions read the code: no shaped constraint survives.
   assert.doesNotMatch(quality, /export function cameraShapedConstraints/);
   assert.doesNotMatch(quality, /cameraShapedConstraints\(facingMode/);
-  assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'resizeMode'), false);
+  assert.equal(cameraVideoConstraints('environment', true).resizeMode, 'none');
   assert.equal(Object.hasOwn(cameraVideoConstraints('environment', true), 'aspectRatio'), false);
   assert.deepEqual(cameraVideoConstraints('environment', true), {
-    facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1440 }, frameRate: { ideal: 30, max: 30 },
+    facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30, max: 30 }, resizeMode: 'none',
   });
+  assert.equal(cameraVideoConstraints('environment', true, '3:4').height.ideal, 1440);
   assert.equal(cameraVideoConstraints('user', false).width.ideal, 1920);
   assert.equal(cameraVideoConstraints('user', false).facingMode.ideal, 'user');
-  assert.match(quality, /export async function requestCameraStream\(facingMode, portrait, media = navigator\.mediaDevices\)/);
-  assert.match(quality, /media\.getUserMedia\(\{ video: cameraVideoConstraints\(facingMode, portrait\), audio: false \}\)/);
+  assert.match(quality, /export async function requestCameraStream\(facingMode, portrait, media = navigator\.mediaDevices, aspect = '9:16'\)/);
+  assert.match(quality, /media\.getUserMedia\(\{ video: cameraVideoConstraints\(facingMode, portrait, aspect\), audio: false \}\)/);
   assert.match(quality, /export async function widenCameraTrack\(track\)/);
-  assert.match(quality, /applyConstraints\(\{ advanced: \[\{ zoom: range\.min \}\] \}\)/);
+  assert.match(quality, /applyConstraints\(\{ advanced: \[\{ zoom: requested \}\] \}\)/);
   // A phone that answers a portrait request with a landscape mode is asked once more for the held arrangement, and
   // the mode it already had is put back when the phone cannot - the attempt can never cost resolution.
-  assert.match(quality, /export async function alignCameraTrack\(track, \{ portrait = false \} = \{\}\)/);
-  assert.match(quality, /track\.applyConstraints\(cameraVideoConstraints\(before\.facingMode \|\| "environment", true\)\)/);
+  assert.match(quality, /export async function alignCameraTrack\(track, \{ portrait = false, aspect = '9:16' \} = \{\}\)/);
+  assert.match(quality, /track\.applyConstraints\(cameraVideoConstraints\(before\.facingMode \|\| 'environment', true, aspect\)\)/);
   assert.match(quality, /applyConstraints\(\{ width: \{ ideal: before\.width \}, height: \{ ideal: before\.height \} \}\)/);
   // app.js stays inside its own transfer budget: the camera request and the framing rule live in modules, and the
   // entry file only says which surface is being filled.
   const app = source('../public/app.js');
-  assert.match(app, /await requestCameraStream\(facingMode, portrait\)/);
-  assert.match(app, /await alignCameraTrack\(videoTrack, \{ portrait \}\)/);
+  assert.match(app, /await openCameraPresetStream\(facingMode, portrait, preset\)/);
   assert.match(app, /const portrait = cameraSurfaceIsPortrait\(camera\)/);
   assert.match(app, /markCameraRequest\(camera, facingMode, portrait\)/);
   // The held arrangement and the request label live in the surface module: the section decides the first only when
@@ -67,7 +63,7 @@ test('the camera request stays plain, so no constraint can crop the sensor away'
   assert.match(surface, /export function cameraSurfaceIsPortrait\(camera\) \{[\s\S]{0,120}\(camera\?\.clientHeight \|\| window\.innerHeight\) > \(camera\?\.clientWidth \|\| window\.innerWidth\)/);
   assert.match(surface, /export function markCameraRequest\(camera, facingMode, portrait\)/);
   assert.match(surface, /camera\.dataset\.cameraRequest = asked\.width\.ideal/);
-  assert.match(app, /await widenCameraTrack\(videoTrack\)/);
+  assert.match(app, /showCameraPresetStatus\(camera, \{ facingMode, lens: opened\.lens, zoom: opened\.zoom, resizeMode:/);
   assert.match(app, /syncCameraFraming\(video, camera\)/);
   const css = source('../public/reel-camera-surface.css');
   assert.match(css, /\.reelCamera > video[^}]+object-fit: cover !important/);
@@ -86,9 +82,9 @@ test('a plain request asks for a portrait or landscape stream and never swallows
   assert.equal(await requestCameraStream('environment', true, media), 'stream');
   assert.equal(calls.length, 1);
   assert.equal(calls[0].video.width.ideal, 1080);
-  assert.equal(calls[0].video.height.ideal, 1440);
+  assert.equal(calls[0].video.height.ideal, 1920);
   assert.equal(calls[0].video.facingMode.ideal, 'environment');
-  assert.equal(Object.hasOwn(calls[0].video, 'resizeMode'), false, 'nothing shapes or crops the sensor');
+  assert.equal(calls[0].video.resizeMode, 'none', 'the browser is asked not to crop or scale the camera source');
   assert.equal(Object.hasOwn(calls[0].video, 'aspectRatio'), false);
   // A refused permission is never retried behind the creator's back: the camera screen has to say what happened.
   const denied = { getUserMedia: async () => { const error = new Error('permisiune refuzată'); error.name = 'NotAllowedError'; throw error; } };
@@ -110,19 +106,19 @@ test('a landscape answer to a portrait request is asked once more, and never at 
     getSettings: () => ({ ...mode }),
     applyConstraints: async (constraints) => {
       trace.push(constraints);
-      if (constraints.height?.ideal === 1440) { mode.width = 1080; mode.height = 1920; }
+      if (constraints.height?.ideal === 1920) { mode.width = 1080; mode.height = 1920; }
     },
   };
   assert.deepEqual(await alignCameraTrack(agrees, { portrait: true }), { width: 1080, height: 1920, facingMode: 'environment' });
   assert.equal(trace.length, 1, 'one polite question, no loop');
   assert.deepEqual(trace[0].width, { ideal: 1080 });
-  assert.deepEqual(trace[0].height, { ideal: 1440 });
+  assert.deepEqual(trace[0].height, { ideal: 1920 });
   // A portrait phone whose browser refuses: the mode it already had is put back, so nothing is lost.
   trace.length = 0;
   const refuses = { getSettings: () => ({ width: 1920, height: 1080 }), applyConstraints: async (constraints) => { trace.push(constraints); } };
   assert.equal(await alignCameraTrack(refuses, { portrait: true }), null);
   assert.deepEqual(trace, [
-    { facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1440 }, frameRate: { ideal: 30, max: 30 } },
+    { facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30, max: 30 }, resizeMode: 'none' },
     { width: { ideal: 1920 }, height: { ideal: 1080 } },
   ]);
   // A browser that throws is just as harmless.
@@ -160,11 +156,11 @@ test('a clip records the framed centre of the frame, and the whole track when no
     clearInterval: (id) => { timers.push('cleared:' + id); },
   });
   assert.equal(framed.stream, 'framed-stream');
-  assert.equal(framed.width, 589);
+  assert.equal(framed.width, 608);
   assert.equal(framed.height, 1080);
-  assert.equal(canvas.width, 589);
+  assert.equal(canvas.width, 608);
   assert.equal(canvas.height, 1080);
-  assert.deepEqual(drawn[0], [{ videoWidth: 1920, videoHeight: 1080 }, 666, 0, 589, 1080, 0, 0, 589, 1080]);
+  assert.deepEqual(drawn[0], [{ videoWidth: 1920, videoHeight: 1080 }, 656, 0, 608, 1080, 0, 0, 608, 1080]);
   assert.equal(timers[0], 33, 'thirty frames a second, the same as the track');
   framed.stop();
   assert.deepEqual(timers.slice(1), ['cleared:7']);
@@ -183,6 +179,89 @@ test('a track that already carries a digital zoom is widened before the preview 
   // A track without zoom support is left exactly as it is, and a missing track does not throw.
   await widenCameraTrack({ getCapabilities: () => ({}), applyConstraints: async () => { throw new Error('nu se cheamă'); } });
   await widenCameraTrack(undefined);
+});
+
+test('camera presets keep 9:16 at 0.7× and switch to 3:4 at 1× without cropping a source', async () => {
+  const surface = { clientWidth: 469, clientHeight: 860, dataset: { cameraAspect: '9:16' } };
+  const vertical = cameraFrameSize(surface);
+  assert.equal(vertical.width / vertical.height, 9 / 16);
+  surface.dataset.cameraAspect = '3:4';
+  const portrait = cameraFrameSize(surface);
+  assert.equal(portrait.width / portrait.height, 3 / 4);
+  const applied = [];
+  const zoomable = {
+    getCapabilities: () => ({ zoom: { min: .5, max: 8, step: .1 } }),
+    getSettings: () => ({ zoom: applied.at(-1)?.advanced[0].zoom }),
+    applyConstraints: async (value) => { applied.push(value); },
+  };
+  assert.deepEqual(await setCameraZoom(zoomable, .7), { target: .7, actual: .7, matched: true });
+  assert.deepEqual(await setCameraZoom(zoomable, 1), { target: 1, actual: 1, matched: true });
+  assert.deepEqual(applied.map((value) => value.advanced[0].zoom), [.7, 1]);
+  const standard = { ...zoomable, getCapabilities: () => ({ zoom: { min: 1, max: 4 } }) };
+  assert.deepEqual(await setCameraZoom(standard, .7), { target: .7, actual: 1, matched: false });
+  const unreported = { ...zoomable, getSettings: () => ({}) };
+  assert.deepEqual(await setCameraZoom(unreported, .7), { target: .7, actual: null, matched: false },
+    'a successful constraint is not proof that the browser changed the optical field of view');
+});
+
+test('0.7× uses an exposed ultrawide lens when the default track cannot provide it', async () => {
+  const stopped = [];
+  const track = (id) => ({
+    getSettings: () => ({ width: 1080, height: 1920, deviceId: id, zoom: 1 }),
+    getCapabilities: () => ({ zoom: { min: 1, max: 4 } }),
+    applyConstraints: async () => {}, stop: () => stopped.push(id),
+  });
+  const standard = track('main'), ultrawide = track('ultra');
+  const calls = [];
+  const media = {
+    getUserMedia: async (constraints) => {
+      calls.push(constraints);
+      const selected = constraints.video.deviceId?.exact === 'ultra' ? ultrawide : standard;
+      return { getVideoTracks: () => [selected], getTracks: () => [selected] };
+    },
+    enumerateDevices: async () => [
+      { kind: 'videoinput', deviceId: 'main', label: 'Back Camera' },
+      { kind: 'videoinput', deviceId: 'ultra', label: 'Back Ultra Wide Camera' },
+    ],
+  };
+  assert.equal(findUltraWideCamera(await media.enumerateDevices(), 'main').deviceId, 'ultra');
+  const opened = await openCameraPresetStream('environment', true, '9:16', media);
+  assert.equal(opened.track, ultrawide);
+  assert.equal(opened.lens, 'ultrawide');
+  assert.deepEqual(stopped, ['main']);
+  assert.equal(calls[0].video.height.ideal, 1920);
+  assert.equal(calls[1].video.deviceId.exact, 'ultra');
+  const standardOnly = await openCameraPresetStream('environment', true, '3:4', media);
+  assert.equal(standardOnly.track, standard);
+  assert.equal(standardOnly.lens, 'default');
+  assert.equal(calls[2].video.height.ideal, 1440);
+});
+
+test('a camera-busy ultrawide attempt restores a usable stream if the second lens fails', async () => {
+  let defaultOpen = 0, ultraOpen = 0, stopped = 0;
+  const makeTrack = () => ({
+    getSettings: () => ({ width: 1080, height: 1920, deviceId: 'main', zoom: 1 }),
+    getCapabilities: () => ({ zoom: { min: 1, max: 4 } }),
+    applyConstraints: async () => {}, stop: () => { stopped++; },
+  });
+  const media = {
+    getUserMedia: async ({ video }) => {
+      if (video.deviceId) {
+        ultraOpen++;
+        const error = new Error('ultrawide unavailable'); error.name = 'NotReadableError'; throw error;
+      }
+      defaultOpen++;
+      const current = makeTrack();
+      return { getVideoTracks: () => [current], getTracks: () => [current] };
+    },
+    enumerateDevices: async () => [{ kind: 'videoinput', deviceId: 'ultra', label: 'Rear Ultra Wide' }],
+  };
+  const opened = await openCameraPresetStream('environment', true, '9:16', media);
+  assert.equal(opened.lens, 'default');
+  assert.equal(opened.track.getSettings().deviceId, 'main');
+  assert.equal(defaultOpen, 2, 'the main camera is restored after the busy lens fails');
+  assert.equal(ultraOpen, 2);
+  assert.equal(stopped, 1);
 });
 
 test('video mode favors usable bitrate over a hidden ten-minute recording profile', () => {

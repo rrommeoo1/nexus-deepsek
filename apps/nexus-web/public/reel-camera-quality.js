@@ -1,55 +1,126 @@
-// Ask for the widest frame the phone has, arranged the way it is held, without a hard constraint that would reject
-// older phones. The recorded stream and the live preview use this same track.
-//
-// The owner's phone answered a 1080x1920 request with 1920x1080, read off his own screen on 3 octombrie 2026 from
-// the note the camera prints, so a phone held upright can still be answered with the sensor's own landscape mode.
-// Filling a 469x860 screen with that frame means cutting 3,26x out of the picture, while the same screen filled with a
-// portrait frame costs about one percent - and one percent is the native camera he compares against. The request
-// therefore asks for the sensor itself in the held arrangement (1080x1440, 3:4) and not for the 9:16 sliver of it:
-// a phone that answers portrait lands on the screen's own shape, and a phone that answers landscape anyway hands
-// back the whole sensor - a 16:9 mode has already thrown away its top and bottom.
-//
-// No aspect and no resize constraint is used. Measured on a 4:3 sensor, `aspectRatio: "exact"` crops the sensor to
-// that sliver, and `resizeMode: "crop-and-scale"` cuts exactly the slice `object-fit: cover` cuts anyway, so a
-// shaped request can never widen the field of view - it can only take the whole wall out of the preview.
-export function cameraVideoConstraints(facingMode, portrait) {
+export const CAMERA_ASPECTS = Object.freeze({ '9:16': 9 / 16, '3:4': 3 / 4 });
+
+export function cameraFrameSize(camera) {
+  const width = Number(camera?.clientWidth), height = Number(camera?.clientHeight);
+  if (!(width > 0) || !(height > 0)) return null;
+  const ratio = CAMERA_ASPECTS[camera.dataset?.cameraAspect] || CAMERA_ASPECTS['9:16'];
+  const frameWidth = Math.min(width, height * ratio);
+  return { width: frameWidth, height: frameWidth / ratio };
+}
+
+export function cameraVideoConstraints(facingMode, portrait, aspect = '9:16') {
+  const dimensions = portrait ? (aspect === '3:4' ? [1080, 1440] : [1080, 1920]) : [1920, 1080];
+  // A native, uncropped mode is preferable. An unsupported resizeMode is ignored by older browsers.
   return {
     facingMode: { ideal: facingMode },
-    width: { ideal: portrait ? 1080 : 1920 },
-    height: { ideal: portrait ? 1440 : 1080 },
+    width: { ideal: dimensions[0] }, height: { ideal: dimensions[1] },
     frameRate: { ideal: 30, max: 30 },
+    resizeMode: 'none',
   };
 }
 
-// The phone answers with a mode of its own, and no constraint widens the field of view: asking for the screen's
-// own aspect (1.02-1.04, `aspectRatio` + `resizeMode: "crop-and-scale"`) either makes the browser crop the sensor
-// to that sliver or is ignored, and a source crop cuts exactly the slice `object-fit: cover` cuts anyway. Worse,
-// a shaped request that *is* honoured hides the whole wall before the preview ever sees it. The request therefore
-// stays plain and complete, and the framing decision moved to the preview, where the creator can see it and undo
-// it with one tap ("Umple" / "Încadrează").
-export async function requestCameraStream(facingMode, portrait, media = navigator.mediaDevices) {
-  return media.getUserMedia({ video: cameraVideoConstraints(facingMode, portrait), audio: false });
+export async function requestCameraStream(facingMode, portrait, media = navigator.mediaDevices, aspect = '9:16') {
+  return media.getUserMedia({ video: cameraVideoConstraints(facingMode, portrait, aspect), audio: false });
 }
 
-// A phone can answer a portrait request with a landscape mode anyway (measured on the owner's phone). The live
-// track is then asked once, politely, for the portrait arrangement; when the phone cannot, the mode it already had
-// is put back, so the attempt can never cost resolution. Returns the portrait settings when the phone agreed,
-// otherwise null. The framed preview and the framing rule work either way - this only buys back the field of view.
-export async function alignCameraTrack(track, { portrait = false } = {}) {
+// Some Android browsers still return landscape even when portrait was requested. Never crop that answer silently.
+export async function alignCameraTrack(track, { portrait = false, aspect = '9:16' } = {}) {
   const before = track?.getSettings?.();
   if (!portrait || !track?.applyConstraints || !(before?.width > 0) || before.height >= before.width) return null;
-  try { await track.applyConstraints(cameraVideoConstraints(before.facingMode || "environment", true)); }
+  try { await track.applyConstraints(cameraVideoConstraints(before.facingMode || 'environment', true, aspect)); }
   catch { return null; }
   const after = track.getSettings?.() || {};
   if (after.height > after.width) return after;
   try { await track.applyConstraints({ width: { ideal: before.width }, height: { ideal: before.height } }); }
-  catch { /* The mode it already had stands. */ }
+  catch { /* Keep the camera's existing mode. */ }
   return null;
 }
 
-// A phone can hand back a track that already carries a digital zoom. The widest setting of the track is the
-// honest preview, and the photo and the clip are taken from this same track, so they stay in step with it.
+export async function setCameraZoom(track, target) {
+  let range;
+  try { range = track?.getCapabilities?.()?.zoom; } catch { /* Zoom is optional in mobile browsers. */ }
+  const min = Number(range?.min), max = Number(range?.max);
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min > max || !track?.applyConstraints)
+    return { target, actual: null, matched: false };
+  const requested = Math.max(min, Math.min(max, target));
+  try {
+    await track.applyConstraints({ advanced: [{ zoom: requested }] });
+    const actual = Number(track.getSettings?.().zoom);
+    const effective = Number.isFinite(actual) && actual > 0 ? actual : null;
+    return { target, actual: effective, matched: effective !== null && Math.abs(effective - target) < .06 };
+  } catch { return { target, actual: null, matched: false }; }
+}
+
+// Compatibility for older callers: use the widest setting exposed by this track.
 export async function widenCameraTrack(track) {
-  const range = track?.getCapabilities?.().zoom;
-  if (range && Number.isFinite(range.min)) await track.applyConstraints({ advanced: [{ zoom: range.min }] }).catch(() => {});
+  let min = NaN;
+  try { min = Number(track?.getCapabilities?.()?.zoom?.min); } catch { /* Optional capability. */ }
+  return Number.isFinite(min) && min > 0 ? setCameraZoom(track, min) : { target: null, actual: null, matched: false };
+}
+
+export function findUltraWideCamera(devices, currentDeviceId) {
+  return (devices || []).find((device) => device.kind === 'videoinput' && device.deviceId &&
+    device.deviceId !== currentDeviceId && !/(?:front|selfie|user)/i.test(device.label || '') &&
+    /(?:ultra[\s-]?wide|wide[\s-]?angle|0[.,][5-8]\s*[x×])/i.test(device.label || '')) || null;
+}
+
+export async function openCameraPresetStream(facingMode, portrait, aspect = '9:16', media = navigator.mediaDevices) {
+  let stream = await requestCameraStream(facingMode, portrait, media, aspect);
+  let track = stream.getVideoTracks()[0];
+  if (!track) { stream.getTracks().forEach((entry) => entry.stop()); throw new Error('NO_VIDEO_TRACK'); }
+  await alignCameraTrack(track, { portrait, aspect });
+  const target = aspect === '9:16' && facingMode === 'environment' ? .7 : 1;
+  let zoom = await setCameraZoom(track, target);
+  let lens = 'default';
+  if (target === .7 && !zoom.matched && typeof media.enumerateDevices === 'function') {
+    let candidate = null;
+    try { candidate = findUltraWideCamera(await media.enumerateDevices(), track?.getSettings?.().deviceId); }
+    catch { /* Browsers may hide alternative lenses; keep the working camera. */ }
+    if (candidate) {
+      let releasedOriginal = false;
+      try {
+        const constraints = cameraVideoConstraints(facingMode, portrait, aspect);
+        delete constraints.facingMode;
+        constraints.deviceId = { exact: candidate.deviceId };
+        let alternative;
+        try { alternative = await media.getUserMedia({ video: constraints, audio: false }); }
+        catch (error) {
+          // Several phones cannot open two rear lenses concurrently. Release the first only for that busy error,
+          // then restore the default stream if the alternative still cannot start.
+          if (!['NotReadableError', 'AbortError'].includes(error?.name)) throw error;
+          stream.getTracks().forEach((entry) => entry.stop()); releasedOriginal = true;
+          try { alternative = await media.getUserMedia({ video: constraints, audio: false }); }
+          catch {
+            stream = await requestCameraStream(facingMode, portrait, media, aspect);
+            track = stream.getVideoTracks()[0];
+            if (!track) { stream.getTracks().forEach((entry) => entry.stop()); throw new Error('NO_VIDEO_TRACK'); }
+            await alignCameraTrack(track, { portrait, aspect });
+            zoom = await setCameraZoom(track, target);
+          }
+        }
+        if (!alternative) return { stream, track, zoom, lens };
+        const alternativeTrack = alternative.getVideoTracks()[0];
+        if (!alternativeTrack) {
+          alternative.getTracks().forEach((entry) => entry.stop());
+          if (releasedOriginal) {
+            stream = await requestCameraStream(facingMode, portrait, media, aspect);
+            track = stream.getVideoTracks()[0];
+            if (!track) { stream.getTracks().forEach((entry) => entry.stop()); throw new Error('NO_VIDEO_TRACK'); }
+            await alignCameraTrack(track, { portrait, aspect });
+            zoom = await setCameraZoom(track, target);
+          }
+        }
+        else {
+          await alignCameraTrack(alternativeTrack, { portrait, aspect });
+          zoom = await setCameraZoom(alternativeTrack, 1);
+          if (!releasedOriginal) stream.getTracks().forEach((entry) => entry.stop());
+          stream = alternative; track = alternativeTrack; lens = 'ultrawide';
+        }
+      } catch (error) {
+        if (releasedOriginal) throw error;
+        // An inaccessible second lens must not interrupt the already working stream.
+      }
+    }
+  }
+  return { stream, track, zoom, lens };
 }

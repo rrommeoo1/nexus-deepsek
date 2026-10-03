@@ -31,12 +31,22 @@ test('video fit records the same full-frame portrait composite and releases its 
   const camera = { clientWidth: 469, clientHeight: 860, dataset: { cameraFit: 'fit', layout: 'off' } };
   const take = createFramedCameraStream({ video, camera, createCanvas: () => canvases.shift(),
     setInterval: () => 8, clearInterval: (timer) => { timerStopped = timer; } });
-  assert.deepEqual([take.width, take.height], [1047, 1920]);
+  assert.deepEqual([take.width, take.height], [1080, 1920]);
   assert.ok(draws.some((args) => args[0] === video && args[1] === 0 && args[2] === 0
     && args[3] === 1920 && args[4] === 1080));
   take.stop();
   assert.equal(timerStopped, 8);
   assert.equal(stopped, 1);
+  const portraitTake = createFramedCameraStream({ video,
+    camera: { ...camera, dataset: { ...camera.dataset, cameraAspect: '3:4' } },
+    createCanvas: () => ({ width: 0, height: 0,
+      getContext: () => ({ drawImage() {}, fillRect() {} }),
+      captureStream: () => ({ getVideoTracks: () => [{ stop() {} }] }),
+    }),
+    setInterval: () => 9, clearInterval: () => {},
+  });
+  assert.deepEqual([portraitTake.width, portraitTake.height], [1080, 1440]);
+  portraitTake.stop();
   const unavailable = createFramedCameraStream({ video, camera, createCanvas: () => ({
     width: 0, height: 0, getContext: () => ({ drawImage() {}, fillRect() {} }),
     captureStream() { throw Error('unsupported'); },

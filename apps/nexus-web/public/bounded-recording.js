@@ -1,5 +1,6 @@
 import { coverSourceRect } from './reel-layout.js?v=20261003-fill1';
 import { drawFittedCameraFrame, fittedCameraDimensions } from './reel-camera-framing.js?v=20261003-wide1';
+import { cameraFrameSize } from './reel-camera-quality.js?v=20261003-lens1';
 
 export function cameraRecordingProfile(durationSeconds, maxBytes = 20 * 1024 * 1024) {
   const seconds = Math.max(15, Math.min(600, Number(durationSeconds) || 60));
@@ -18,10 +19,8 @@ export function createCameraRecorder(stream, Recorder = MediaRecorder, profile =
   });
 }
 
-// What the full-screen preview cuts out of the frame, in source pixels, or null when the frame already matches the
-// surface shape closely enough that a canvas would only cost frames: a 9:16 stream on a 9:19,5 screen loses about
-// three percent and is recorded as it arrives, a 3:4 or 4:3 or 16:9 frame is drawn from its framed centre. Same
-// `cover` arithmetic as the preview and the photo, so the three cannot disagree.
+// Legacy centre-crop fallback for explicit fill. The normal 9:16 and 3:4 presets use the fitted path below, so
+// a landscape camera answer is never silently magnified to fill a portrait preview or recording.
 export function framedCameraCrop(sourceWidth, sourceHeight, surfaceWidth, surfaceHeight) {
   const sw = Math.max(0, Number(sourceWidth) || 0), sh = Math.max(0, Number(sourceHeight) || 0);
   const dw = Math.max(0, Number(surfaceWidth) || 0), dh = Math.max(0, Number(surfaceHeight) || 0);
@@ -44,8 +43,9 @@ export function createFramedCameraStream({
 } = {}) {
   if (!video || !camera) return null;
   const fit = camera.dataset?.cameraFit === 'fit' && (camera.dataset?.layout || 'off') === 'off';
-  const crop = fit ? null : framedCameraCrop(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
-  const output = fit ? fittedCameraDimensions(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight) : crop;
+  const frame = cameraFrameSize(camera);
+  const crop = fit ? null : framedCameraCrop(video.videoWidth, video.videoHeight, frame?.width, frame?.height);
+  const output = fit && frame ? fittedCameraDimensions(video.videoWidth, video.videoHeight, frame.width, frame.height) : crop;
   if (!output) return null;
   const canvas = createCanvas();
   canvas.width = fit ? output.width : crop.sw; canvas.height = fit ? output.height : crop.sh;
