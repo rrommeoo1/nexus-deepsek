@@ -20,7 +20,7 @@ import { createThreadNavigation, messageWindowQuery, messageScrollPosition, moun
 import { attachProfileNavigation, bindCreatorDestinations, profileMediaPosts, syncAuthorFollow } from "./profile-navigation.js?v=20260924-profile2";
 const threadNavigation = createThreadNavigation();
 import { loadContactStories } from "./contact-stories.js?v=20260913-spaces1";
-import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery, framedCameraTake } from "./bounded-recording.js?v=20261003-fill1";
+import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery, framedCameraTake } from "./bounded-recording.js?v=20261003-wide1";
 import { ensureChatDevice, encryptChatAttachment, encryptChatText, decryptChatAttachment, decryptChatMessage, observeConversationSafety, verifyConversationSafety, validateConversationKeyMaterial, activateProvisionedRecoveryDevice, clearPendingRecoveryActivation, computeRecoveryAccountBinding, persistPendingRecoveryActivation, provisionRecoveryDevice, readPendingRecoveryActivation, restoreRecoveryDevice } from "./chat-crypto.js?v=20260906-p2decrypt1";
 import {
   configureCallClient, callCapability, startDirectCall, handleCallInvite,
@@ -51,17 +51,17 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261002-layout1";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261003-wide1";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { applyCameraFraming, cameraSurfaceIsPortrait, markCameraRequest, openReelSoundCatalogue, reelCameraMarkup, showCameraSensorNote, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-fill1";
+import { applyCameraFraming, cameraSurfaceIsPortrait, markCameraRequest, openReelSoundCatalogue, reelCameraMarkup, showCameraSensorNote, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-wide1";
 import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
-import { createReelLayoutController } from "./reel-layout-controller.js?v=20261002-layout1";
+import { createReelLayoutController } from "./reel-layout-controller.js?v=20261003-wide1";
 import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-publish1";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261002-layout1";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261002-layout1";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261002-layout1";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261002-layout1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261003-wide1";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261003-wide1";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261003-wide1";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261003-wide1";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -6683,6 +6683,7 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     const stream = await requestCameraStream(facingMode, portrait);
     const videoTrack = stream.getVideoTracks()[0];
     await alignCameraTrack(videoTrack, { portrait });
+    await widenCameraTrack(videoTrack);
     if (!request.isCurrent() || !camera.isConnected || !video.isConnected || !sourceInput.isConnected) {
       stream.getTracks().forEach((track) => track.stop());
       return;
@@ -6701,7 +6702,6 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     showCameraSensorNote(video, camera);
     const flash = document.getElementById("cameraFlash");
     if (flash) flash.hidden = !(facingMode === "environment" && Boolean(videoTrack?.getCapabilities?.().torch));
-    await widenCameraTrack(videoTrack);
   } catch (error) {
     if (!request.isCurrent() || !camera.isConnected || !sourceInput.isConnected) return;
     camera.querySelector(".reelCameraStatus").textContent = t("camera.deniedDetail");
@@ -6828,6 +6828,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     const recover = (message) => cameraRecovery(camera, stopComposerCamera, toast, message);
     const recordingProfile = cameraRecordingProfile(camera.dataset.cameraDuration, DRAFT_FILE_LIMIT);
     const framed = framedCameraTake(video, camera, stream);
+    if (camera.dataset.cameraFit === 'fit' && !framed) toast('Clipul păstrează cadrul complet, dar acest browser nu poate înregistra fundalul estompat.');
     let recorder;
     try { recorder = createCameraRecorder(framed?.stream || stream, MediaRecorder, recordingProfile); }
     catch { framed?.stop(); return recover(t("camera.recordUnsupported")); }
@@ -6911,6 +6912,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   });
   document.getElementById('cameraFit')?.addEventListener('click', (event) => {
     if (layoutController.selected() !== 'off') return;
+    camera.dataset.cameraFramingManual = 'true';
     applyCameraFraming(camera, camera.dataset.cameraFit !== 'fit');
   });
   document.getElementById("cameraToolsMore")?.addEventListener("click", (event) => {

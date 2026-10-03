@@ -1,4 +1,5 @@
 import { coverSourceRect } from './reel-layout.js?v=20261003-fill1';
+import { drawFittedCameraFrame, fittedCameraDimensions } from './reel-camera-framing.js?v=20261003-wide1';
 
 export function cameraRecordingProfile(durationSeconds, maxBytes = 20 * 1024 * 1024) {
   const seconds = Math.max(15, Math.min(600, Number(durationSeconds) || 60));
@@ -42,19 +43,32 @@ export function createFramedCameraStream({
   setInterval: every = setInterval, clearInterval: stopEvery = clearInterval,
 } = {}) {
   if (!video || !camera) return null;
-  const crop = framedCameraCrop(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
-  if (!crop) return null;
+  const fit = camera.dataset?.cameraFit === 'fit' && (camera.dataset?.layout || 'off') === 'off';
+  const crop = fit ? null : framedCameraCrop(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
+  const output = fit ? fittedCameraDimensions(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight) : crop;
+  if (!output) return null;
   const canvas = createCanvas();
-  canvas.width = crop.sw; canvas.height = crop.sh;
+  canvas.width = fit ? output.width : crop.sw; canvas.height = fit ? output.height : crop.sh;
   const context = canvas.getContext?.('2d');
   if (!context || typeof canvas.captureStream !== 'function') return null;
+  const backdrop = fit ? createCanvas() : null;
+  if (fit && !backdrop?.getContext?.('2d')) return null;
   const draw = () => {
-    if (!video.videoWidth) return;
-    context.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh);
+    if (!video.videoWidth) return false;
+    try {
+      if (fit) return drawFittedCameraFrame(context, video, canvas.width, canvas.height, backdrop);
+      context.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, crop.sw, crop.sh);
+      return true;
+    } catch { return false; }
   };
-  draw();
+  if (!draw()) return null;
+  let stream;
+  try { stream = canvas.captureStream(Math.max(1, fps)); }
+  catch { return null; }
   const timer = every(draw, Math.max(15, Math.round(1000 / Math.max(1, fps))));
-  return Object.freeze({ stream: canvas.captureStream(Math.max(1, fps)), width: crop.sw, height: crop.sh, stop: () => stopEvery(timer) });
+  return Object.freeze({ stream, width: canvas.width, height: canvas.height, stop: () => {
+    stopEvery(timer); stream?.getVideoTracks?.().forEach((track) => track.stop());
+  } });
 }
 
 // The take the recorder should use: the framed canvas stream with the microphone already on it, or null when the

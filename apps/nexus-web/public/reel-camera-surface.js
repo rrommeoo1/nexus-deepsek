@@ -12,6 +12,17 @@ export function cameraSurfaceCut(streamAspect, surfaceAspect) {
   return Math.round((1 / kept) * 100) / 100;
 }
 
+export const MAX_AUTOMATIC_CAMERA_CROP = 1.2;
+
+export function cameraNeedsFullFrame(video, camera) {
+  if (!(video?.videoWidth > 0) || !(video?.videoHeight > 0)) return false;
+  const width = camera?.clientWidth || globalThis.window?.innerWidth;
+  const height = camera?.clientHeight || globalThis.window?.innerHeight;
+  if (!(width > 0) || !(height > 0)) return true;
+  return cameraSurfaceCut(video.videoWidth / video.videoHeight,
+    width / height) > MAX_AUTOMATIC_CAMERA_CROP;
+}
+
 // What the phone actually handed back, on the creator's own screen for a few seconds. The framing question was
 // argued from photos twice, so the numbers now show up in the camera itself while the phone answers them: what the
 // sensor returned, what was asked for, how big the screen is, and how much the screen costs the picture.
@@ -58,27 +69,24 @@ export function markCameraRequest(camera, facingMode, portrait) {
   camera.dataset.cameraRequest = asked.width.ideal + "×" + asked.height.ideal + " (" + (asked.width.ideal / asked.height.ideal).toFixed(2) + ")";
 }
 
-// The camera opens full screen, the way the native camera the owner compares against does: the picture fills the
-// whole surface, with no black bands above or below it. The whole frame stays one tap away ("Încadrează"), where
-// the blurred copy of the same frame fills what the picture does not reach.
-//
-// This used to be decided from the incoming stream shape (a wide stream opened on "fit"), and that is exactly what
-// the owner saw and rejected four times: on his phone a 469x860 screen met a 1920x1080 stream, and the whole frame
-// letterboxed into that screen left 69% of it black. The opening framing is his call, not the phone's; the stream's
-// shape is answered by the request (the sensor itself, in the arrangement the phone is held) and by the sensor
-// note, not by an empty screen.
+// A native portrait stream can fill the surface with little loss. A browser that hands a landscape stream to a
+// portrait phone cannot: cover would discard most of the scene and look like digital zoom. Keep the whole frame
+// with a blurred continuation when the crop would exceed 20%; a deliberate tap can still choose full bleed.
 export function syncCameraFraming(video, camera) {
-  const open = () => { if (video.videoWidth) applyCameraFraming(camera, false); };
+  const open = () => {
+    if (video.videoWidth && camera.dataset.cameraFramingManual !== 'true')
+      applyCameraFraming(camera, cameraNeedsFullFrame(video, camera));
+  };
   if (video.videoWidth) open(); else video.addEventListener("loadedmetadata", open, { once: true });
+  video.addEventListener('resize', open);
 }
 
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
-    // Fill is the opening framing: the owner asked for the picture to fill the screen, the way the native camera he
-    // compares against does, and a full screen is what tapping "+" shows. "Încadrează" keeps the whole frame one
-    // tap away for whoever wants to see everything the sensor caught, blurred copy behind it.
-    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fill" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
+    // Fit is the safe initial state while metadata loads. Portrait streams that lose little are switched to fill;
+    // wide streams stay complete over a blurred full-screen continuation instead of silently cropping the subject.
+    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
     // A blurred copy of the same frame stands behind the picture: on "Încadrează" the surface still reads as full
     // screen while the creator keeps the whole field of view the phone hands back, instead of black bands.
     '<video id="composerCameraBackdrop" class="reelCameraBackdrop" autoplay muted playsinline aria-hidden="true"></video>',
@@ -92,7 +100,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
     button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
-    button('cameraFit', '⤢', 'Încadrează', 'aria-pressed="false"'),
+    button('cameraFit', '⤢', 'Umple', 'aria-pressed="true"'),
     button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
     button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),

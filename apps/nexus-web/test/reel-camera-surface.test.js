@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { applyCameraFraming, cameraSurfaceCut, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
+import { applyCameraFraming, cameraNeedsFullFrame, cameraSurfaceCut, reelCameraMarkup, syncCameraFraming } from "../public/reel-camera-surface.js";
 import { reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "../public/reel-camera-review.js";
 
 const esc = (value) => String(value);
@@ -32,17 +32,12 @@ test("Reel camera exposes only Photo and Video capture modes with bounded tools"
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
 });
 
-test("the camera opens full screen and the whole frame stays one tap away", () => {
-  // Owner, 3 octombrie 2026, the fourth time he asked: tapping "+" has to show the camera filling the screen the
-  // way the native camera he compares with does. His phone answered a portrait request with a 1920x1080 stream on
-  // a 469x860 screen, so the old rule ("a wide stream opens on the whole picture") left 69% of the screen black -
-  // measured in .ephemeral/camera-fill-probe.mjs on that same 469x860 surface. Fill is the opening framing now.
+test("camera surface opens safely, fills the viewport and avoids a close-up landscape crop", () => {
   const markup = reelCameraMarkup({ esc, t });
-  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fill"/);
-  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="false"[\s\S]{0,140}?<small>Încadrează<\/small>/);
+  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fit"/);
+  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="true"[\s\S]{0,140}?<small>Umple<\/small>/);
   const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
-  // A clip is framed like a photo: the preview fills the screen, the take is recorded from that same framed
-  // centre, and the framing button works in both modes.
+  // A clip and photo use the same framing choice, with the full frame retained when cover would crop too far.
   assert.doesNotMatch(styles, /reelCamera\[data-camera-mode="clip"\] > video/);
   assert.doesNotMatch(styles, /reelCamera\[data-camera-mode="clip"\] #cameraFit/);
   // A blurred copy of the same frame stands behind the picture, so the whole frame is never black bands, and the
@@ -57,18 +52,15 @@ test("the camera opens full screen and the whole frame stays one tap away", () =
   // Cache-busting belongs to the release: the stylesheet and the module are asked for under a new version, and
   // the entry file feeds the same stream to the backdrop, plays it and puts the sensor note on screen.
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /reel-camera-surface\.css\?v=20261003-fill1/);
+  assert.match(html, /reel-camera-surface\.css\?v=20261003-wide1/);
   const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(app, /reel-camera-surface\.js\?v=20261003-fill1/);
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-wide1/);
   assert.match(app, /showCameraSensorNote\(video, camera\)/);
   assert.match(app, /composerCameraBackdrop"\)[\s\S]{0,120}backdrop\.play\?\.\(\)\.catch/);
   assert.match(app, /syncCameraFraming\(video, camera\)/);
 });
 
-test("the framing fills the screen whatever the phone hands back, and the tap wins", () => {
-  // The opening framing is the owner's call, not the phone's: a 0,55 screen filled from a 1,78 stream costs a
-  // 3,24x cut and from a 0,56 stream about 1% (`cameraSurfaceCut` is the number the note prints), but both open
-  // filled. "Încadrează" is the deliberate whole-frame view for the rest of the session.
+test("automatic framing preserves a wide sensor and a manual choice wins", () => {
   const makeCamera = (width, height) => {
     const label = { textContent: "" };
     const button = { attrs: {}, setAttribute(name, value) { this.attrs[name] = value; }, querySelector: () => label };
@@ -85,9 +77,9 @@ test("the framing fills the screen whatever the phone hands back, and the tap wi
   assert.equal(portrait.label.textContent, "Încadrează");
   const wide = makeCamera(469, 860);
   syncCameraFraming(makeVideo(1920, 1080), wide.node);
-  assert.equal(wide.node.dataset.cameraFit, "fill", "the owner's 1,78 stream fills the screen too - no black bands");
-  assert.equal(wide.button.attrs["aria-pressed"], "false");
-  assert.equal(wide.label.textContent, "Încadrează");
+  assert.equal(wide.node.dataset.cameraFit, "fit", "the 3.26x crop would remove most of the scene");
+  assert.equal(wide.button.attrs["aria-pressed"], "true");
+  assert.equal(wide.label.textContent, "Umple");
   // The stream size is known only after metadata, so the surface is framed once the frame is really there.
   const late = makeCamera(469, 860);
   const stream = makeVideo(0, 0);
@@ -95,12 +87,17 @@ test("the framing fills the screen whatever the phone hands back, and the tap wi
   assert.equal(late.node.dataset.cameraFit, undefined);
   stream.videoWidth = 1920; stream.videoHeight = 1080;
   stream.fire("loadedmetadata");
-  assert.equal(late.node.dataset.cameraFit, "fill");
-  applyCameraFraming(wide.node, true);
-  assert.equal(wide.node.dataset.cameraFit, "fit");
-  assert.equal(wide.label.textContent, "Umple");
+  assert.equal(late.node.dataset.cameraFit, "fit");
+  stream.videoWidth = 1080; stream.videoHeight = 1920;
+  stream.fire('resize');
+  assert.equal(late.node.dataset.cameraFit, 'fill');
   applyCameraFraming(wide.node, false);
   assert.equal(wide.node.dataset.cameraFit, "fill");
+  wide.node.dataset.cameraFramingManual = 'true';
+  syncCameraFraming(makeVideo(1920, 1080), wide.node);
+  assert.equal(wide.node.dataset.cameraFit, 'fill', 'a deliberate fill selection is not overwritten');
+  assert.equal(cameraNeedsFullFrame(makeVideo(1440, 1920), wide.node), true);
+  assert.equal(cameraNeedsFullFrame(makeVideo(1080, 1920), wide.node), false);
 });
 
 test("the sensor note reports the cut a screen shape costs the frame it was given", () => {

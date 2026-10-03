@@ -108,7 +108,7 @@ test('layout shows one live cell, captures each cell separately and blocks incom
   } finally { env.restore(); }
 });
 
-test('single photo crops the live full-screen frame and fit keeps the entire sensor image', async () => {
+test('single photo follows fill crop or fits the whole sensor in a portrait composite', async () => {
   const env = cameraEnvironment();
   try {
     await env.controller.capture();
@@ -116,8 +116,10 @@ test('single photo crops the live full-screen frame and fit keeps the entire sen
     assert.equal(env.completed[0].frame.height, 1080);
     env.camera.dataset.cameraFit = 'fit';
     await env.controller.capture();
-    assert.equal(env.completed[1].frame.width, 1920);
-    assert.equal(env.completed[1].frame.height, 1080);
+    assert.equal(env.completed[1].frame.width, 960);
+    assert.equal(env.completed[1].frame.height, 1920);
+    const foreground = env.canvasCalls.at(-1);
+    assert.deepEqual(foreground.slice(0, 5), [env.video, 0, 0, 1920, 1080]);
   } finally { env.restore(); }
 });
 

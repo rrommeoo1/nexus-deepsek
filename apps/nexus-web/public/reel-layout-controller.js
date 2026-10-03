@@ -1,7 +1,15 @@
 import { composeReelLayout, coverSourceRect, reelLayoutCells } from './reel-layout.js?v=20261002-layout1';
+import { drawFittedCameraFrame, fittedCameraDimensions } from './reel-camera-framing.js?v=20261003-wide1';
 
-function cameraFrame(video, aspect = 0) {
+function cameraFrame(video, aspect = 0, camera = null) {
   const canvas = document.createElement('canvas');
+  if (camera?.dataset.cameraFit === 'fit') {
+    const output = fittedCameraDimensions(video.videoWidth, video.videoHeight, camera.clientWidth, camera.clientHeight);
+    if (!output) return null;
+    canvas.width = output.width; canvas.height = output.height;
+    if (!drawFittedCameraFrame(canvas.getContext('2d'), video, canvas.width, canvas.height, document.createElement('canvas'))) return null;
+    return canvas;
+  }
   const crop = aspect > 0 ? coverSourceRect(video.videoWidth, video.videoHeight, aspect * 1000, 1000) :
     { sx: 0, sy: 0, sw: video.videoWidth, sh: video.videoHeight };
   canvas.width = Math.max(1, Math.round(crop.sw)); canvas.height = Math.max(1, Math.round(crop.sh));
@@ -60,7 +68,7 @@ export function createReelLayoutController({ camera, video, guide, finish, setSt
     busy = true;
     try {
       const aspect = selected() === 'off' && camera.dataset.cameraFit !== 'fit' ? camera.clientWidth / Math.max(1, camera.clientHeight) : 0;
-      const frame = cameraFrame(video, aspect); if (!frame) throw new Error('CANVAS_UNAVAILABLE');
+      const frame = cameraFrame(video, aspect, selected() === 'off' ? camera : null); if (!frame) throw new Error('CANVAS_UNAVAILABLE');
       setState('photo-capture', { force: true });
       if (selected() === 'off') { await onComplete(frame, 'nexus-photo'); return true; }
       const cells = reelLayoutCells(selected()); frames[active] = frame;
