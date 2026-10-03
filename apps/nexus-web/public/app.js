@@ -1346,7 +1346,7 @@ function renderRail() {
 
 // The owner's rule (2 octombrie 2026): each deployed build prints its version on the main logo, so he can see
 // which build he is looking at. Bump the line below on every deploy; the series starts at 1.01.
-const NEXUS_BUILD_VERSION = "1.08";
+const NEXUS_BUILD_VERSION = "1.09";
 function nexusWordmarkMarkup() {
   return '<svg class="nexusWordmarkSvg" viewBox="0 0 132 34" role="img" aria-label="Nexus"><defs><linearGradient id="nexus-wordmark-x" x1="0" x2="1"><stop stop-color="#00efff"/><stop offset="1" stop-color="#a66cff"/></linearGradient></defs><text x="1" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">NE</text><text x="44" y="24" fill="url(#nexus-wordmark-x)" font-size="22" font-family="Arial,Helvetica,sans-serif">X</text><text x="61" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">US</text><path d="M91 8h27m-17 6h24m-31 6h30m-20 6h14" fill="none" stroke="#27dfe9" stroke-width="1" opacity=".65"/><circle cx="121" cy="8" r="1.6" fill="#9d72ff"/><circle cx="127" cy="14" r="1.6" fill="#27dfe9"/><circle cx="126" cy="20" r="1.6" fill="#9d72ff"/></svg><i class="wordmarkBuild" aria-hidden="true">' + NEXUS_BUILD_VERSION + '</i>';
 }
