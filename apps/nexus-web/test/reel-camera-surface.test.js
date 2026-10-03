@@ -32,6 +32,19 @@ test("Reel camera exposes only Photo and Video capture modes with bounded tools"
   assert.doesNotMatch(markup, /cameraGalleryRecovery/);
 });
 
+test("the camera opens on the whole picture and a clip keeps that same frame", () => {
+  // Owner photos, 2 octombrie 2026: the same room, one in the shipped "fill" default - where `cover` cut about
+  // 2,9x out of his phone's wider stream - and one against the native camera, which shows the whole picture.
+  // Fit is now the opening framing, and "Umple" stays the deliberate full-bleed crop.
+  const markup = reelCameraMarkup({ esc, t });
+  assert.match(markup, /id="composerCamera"[^>]+data-camera-fit="fit"/);
+  assert.match(markup, /id="cameraFit"[^>]+aria-pressed="true"[\s\S]{0,140}?<small>Umple<\/small>/);
+  const styles = readFileSync(new URL("../public/reel-camera-surface.css", import.meta.url), "utf8");
+  // A clip is recorded from the track itself, with no canvas crop, so the preview has to show the whole frame.
+  assert.match(styles, /reelCamera\[data-camera-mode="clip"\] > video[^}]+object-fit: contain !important/);
+  assert.match(styles, /reelCamera\[data-camera-mode="clip"\] #cameraFit[^}]+display:\s*none\s*!important/);
+});
+
 test("captured camera media enters a dedicated review surface with retake and continue controls", () => {
   const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
   const review = readFileSync(new URL("../public/reel-camera-review.js", import.meta.url), "utf8");

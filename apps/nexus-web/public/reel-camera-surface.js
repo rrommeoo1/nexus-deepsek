@@ -3,7 +3,10 @@ const tabs = ["Hot", "For You", "Favorites", "Recent"];
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
-    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fill" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
+    // Fit, not fill, is the opening framing: the owner photographed his own room on 2 octombrie 2026 and the
+    // phone's wider stream was cropped about 2,9x by `cover` in fill, while the whole picture is what the native
+    // camera he compared with shows. "Umple" is one tap away for anybody who wants the full-bleed crop.
+    '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
     '<button class="reelCameraClose" id="cameraClose" type="button" aria-label="Închide">×</button>',
@@ -14,7 +17,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     button('cameraEffects', '✦', 'Effects', 'aria-expanded="false"'),
     button('cameraTimer', '◴', 'Timer', 'aria-pressed="false"'),
     button('cameraLayout', '▦', 'Layout', 'aria-pressed="false" aria-expanded="false"'),
-    button('cameraFit', '⤢', 'Încadrează complet', 'aria-pressed="false"'),
+    button('cameraFit', '⤢', 'Umple', 'aria-pressed="true"'),
     button('cameraBeauty', '✣', 'Retouch', 'aria-pressed="false"'),
     button('cameraFilters', '◉', 'Filters', 'aria-expanded="false"'),
     button('cameraToolsMore', '⌄', 'Collapse tools', 'aria-expanded="true"'),
