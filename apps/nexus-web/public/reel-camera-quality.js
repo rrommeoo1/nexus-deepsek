@@ -10,17 +10,22 @@ export function cameraFrameSize(camera) {
 
 export function cameraVideoConstraints(facingMode, portrait, aspect = '9:16') {
   const dimensions = portrait ? (aspect === '3:4' ? [1080, 1440] : [1080, 1920]) : [1920, 1080];
+  const targetZoom = aspect === '9:16' && facingMode === 'environment' ? .7 : 1;
   // A native, uncropped mode is preferable. An unsupported resizeMode is ignored by older browsers.
   return {
     facingMode: { ideal: facingMode },
     width: { ideal: dimensions[0] }, height: { ideal: dimensions[1] },
     frameRate: { ideal: 30, max: 30 },
+    // An ideal zoom can influence which rear camera the browser selects before a track exists.
+    zoom: { ideal: targetZoom },
     resizeMode: 'none',
   };
 }
 
-export async function requestCameraStream(facingMode, portrait, media = navigator.mediaDevices, aspect = '9:16') {
-  return media.getUserMedia({ video: cameraVideoConstraints(facingMode, portrait, aspect), audio: false });
+export async function requestCameraStream(facingMode, portrait, media = navigator.mediaDevices, aspect = '9:16', deviceId = '') {
+  const video = cameraVideoConstraints(facingMode, portrait, aspect);
+  if (deviceId) { delete video.facingMode; video.deviceId = { exact: deviceId }; }
+  return media.getUserMedia({ video, audio: false });
 }
 
 // Some Android browsers still return landscape even when portrait was requested. Never crop that answer silently.
@@ -59,20 +64,25 @@ export async function widenCameraTrack(track) {
 }
 
 export function findUltraWideCamera(devices, currentDeviceId) {
+  const reachesWideZoom = (device) => {
+    try { const minimum = Number(device.getCapabilities?.()?.zoom?.min); return minimum > 0 && minimum <= .7; }
+    catch { return false; }
+  };
   return (devices || []).find((device) => device.kind === 'videoinput' && device.deviceId &&
     device.deviceId !== currentDeviceId && !/(?:front|selfie|user)/i.test(device.label || '') &&
-    /(?:ultra[\s-]?wide|wide[\s-]?angle|0[.,][5-8]\s*[x×])/i.test(device.label || '')) || null;
+    (/(?:ultra[\s-]?wide|wide[\s-]?angle|0[.,][5-8]\s*[x×])/i.test(device.label || '') ||
+      reachesWideZoom(device))) || null;
 }
 
-export async function openCameraPresetStream(facingMode, portrait, aspect = '9:16', media = navigator.mediaDevices) {
-  let stream = await requestCameraStream(facingMode, portrait, media, aspect);
+export async function openCameraPresetStream(facingMode, portrait, aspect = '9:16', media = navigator.mediaDevices, selectedDevice = null) {
+  let stream = await requestCameraStream(facingMode, portrait, media, aspect, selectedDevice?.deviceId);
   let track = stream.getVideoTracks()[0];
   if (!track) { stream.getTracks().forEach((entry) => entry.stop()); throw new Error('NO_VIDEO_TRACK'); }
   await alignCameraTrack(track, { portrait, aspect });
   const target = aspect === '9:16' && facingMode === 'environment' ? .7 : 1;
   let zoom = await setCameraZoom(track, target);
-  let lens = 'default';
-  if (target === .7 && !zoom.matched && typeof media.enumerateDevices === 'function') {
+  let lens = selectedDevice ? (/(?:ultra[\s-]?wide|wide[\s-]?angle|0[.,][5-8]\s*[x×])/i.test(selectedDevice.label || '') ? 'ultrawide' : 'manual') : 'default';
+  if (target === .7 && !zoom.matched && !selectedDevice && typeof media.enumerateDevices === 'function') {
     let candidate = null;
     try { candidate = findUltraWideCamera(await media.enumerateDevices(), track?.getSettings?.().deviceId); }
     catch { /* Browsers may hide alternative lenses; keep the working camera. */ }
@@ -112,9 +122,11 @@ export async function openCameraPresetStream(facingMode, portrait, aspect = '9:1
         }
         else {
           await alignCameraTrack(alternativeTrack, { portrait, aspect });
-          zoom = await setCameraZoom(alternativeTrack, 1);
+          zoom = await setCameraZoom(alternativeTrack, target);
+          if (!zoom.matched) zoom = await setCameraZoom(alternativeTrack, 1);
           if (!releasedOriginal) stream.getTracks().forEach((entry) => entry.stop());
-          stream = alternative; track = alternativeTrack; lens = 'ultrawide';
+          stream = alternative; track = alternativeTrack;
+          lens = /(?:ultra[\s-]?wide|wide[\s-]?angle|0[.,][5-8]\s*[x×])/i.test(candidate.label || '') ? 'ultrawide' : 'default';
         }
       } catch (error) {
         if (releasedOriginal) throw error;

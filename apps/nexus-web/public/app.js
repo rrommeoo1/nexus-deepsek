@@ -1,7 +1,7 @@
 import { api, toast } from "./client.js?v=20260831-p1e2eeattach2";
 import { creatorStudioMarkup } from './creator-studio-markup.js?v=20261001-publish1';
 import { syncCreatorDraft, hydrateRemoteDraft, bindDraftBackup, serializeDraftWrite, validDraft, draftMediaBytes } from './creator-draft-sync.js?v=20261002-layout1';
-import { openCameraPresetStream } from './reel-camera-quality.js?v=20261003-lens1';
+import { openCameraPresetStream } from './reel-camera-quality.js?v=20261003-lens2';
 import { openCameraExitDialog } from './creator-camera-exit.js?v=20261002-layout1';
 import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20261002-stability1';
 import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
@@ -20,7 +20,7 @@ import { createThreadNavigation, messageWindowQuery, messageScrollPosition, moun
 import { attachProfileNavigation, bindCreatorDestinations, profileMediaPosts, syncAuthorFollow } from "./profile-navigation.js?v=20260924-profile2";
 const threadNavigation = createThreadNavigation();
 import { loadContactStories } from "./contact-stories.js?v=20260913-spaces1";
-import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery, framedCameraTake } from "./bounded-recording.js?v=20261003-lens1";
+import { createCameraRecorder, cameraRecordingProfile, startBoundedRecording, cameraRecovery, framedCameraTake } from "./bounded-recording.js?v=20261003-lens2";
 import { ensureChatDevice, encryptChatAttachment, encryptChatText, decryptChatAttachment, decryptChatMessage, observeConversationSafety, verifyConversationSafety, validateConversationKeyMaterial, activateProvisionedRecoveryDevice, clearPendingRecoveryActivation, computeRecoveryAccountBinding, persistPendingRecoveryActivation, provisionRecoveryDevice, readPendingRecoveryActivation, restoreRecoveryDevice } from "./chat-crypto.js?v=20260906-p2decrypt1";
 import {
   configureCallClient, callCapability, startDirectCall, handleCallInvite,
@@ -51,17 +51,17 @@ import { renderWatchWorkspace } from "./watch-module.js?v=20260910-m10local1";
 import { renderGrowWorkspace, renderMusicWorkspace } from "./music-grow-module.js?v=20260910-m11local1";
 import { renderM12CreatorWorkspace, renderM12NodeWorkspace, renderM12PayWorkspace } from "./m12-module.js?v=20260910-m12local1";
 import { createPostDetailSurface } from "./post-detail.js?v=20260928-name1";
-import { clipSubtitlesMarkup } from "./clip-options.js?v=20261003-lens1";
+import { clipSubtitlesMarkup } from "./clip-options.js?v=20261003-lens2";
 import { mountReelAutoSound, synchronizeReelSound } from "./reel-auto-sound.js?v=20261001-publish1";
-import { applyCameraPreset, cameraSurfaceIsPortrait, markCameraRequest, openReelSoundCatalogue, reelCameraMarkup, showCameraPresetStatus, showCameraSensorNote, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-lens1";
+import { applyCameraPreset, cameraSurfaceIsPortrait, markCameraRequest, openCameraLensChooser, openReelSoundCatalogue, reelCameraMarkup, showCameraPresetStatus, showCameraSensorNote, startCameraBackdrop, stopCameraBackdrop, syncCameraFraming } from "./reel-camera-surface.js?v=20261003-lens2";
 import { bindCameraReview, reelCameraReviewMarkup, setCameraComposerState, startRecordingDial } from "./reel-camera-review.js?v=20261002-stability1";
 import { canvasBlob } from "./reel-layout.js?v=20261001-publish1";
-import { createReelLayoutController } from "./reel-layout-controller.js?v=20261003-lens1";
+import { createReelLayoutController } from "./reel-layout-controller.js?v=20261003-lens2";
 import { bindStudioDecorationTimeline, readStudioDecorations, renderStudioDecorations, studioDecorationsMarkup } from "./reel-editor-overlays.js?v=20261001-publish1";
-import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261003-lens1";
-import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261003-lens1";
-import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261003-lens1";
-import { profileBioMarkup } from "./profile-bio-text.js?v=20261003-lens1";
+import { bindOnboarding, onboardingDefaults, onboardingMarkup, onboardingRequired, visibilityLabelKey } from "./onboarding.js?v=20261003-lens2";
+import { bindLocationPicker, closeLocationPicker } from "./profile-location.js?v=20261003-lens2";
+import { createProfileHeroEditor } from "./profile-hero-edit.js?v=20261003-lens2";
+import { profileBioMarkup } from "./profile-bio-text.js?v=20261003-lens2";
 import { bindProfilePullRefresh, profileRelativeTime, renderOwnerProfileExperience } from "./profile-experience.js?v=20260923-wave14i";
 import { renderCreatorProfile } from "./creator-profile.js?v=20260924-profile2";
 import { bindProfileMenu, markProfileMenuActive, profileMenuMarkup, profileMenuView } from "./profile-menu.js?v=20260923-wave14i";
@@ -6640,6 +6640,7 @@ async function openDraftLibrary() {
 
 function stopComposerCamera({ discardRecording = true } = {}) {
   composerCameraRequestGate.invalidate();
+  stopCameraBackdrop(document.getElementById("composerCameraBackdrop"));
   const recorder = activeRecorder;
   if (recorder && recorder.state !== "inactive") {
     if (discardRecording) discardedComposerRecorders.add(recorder);
@@ -6654,8 +6655,7 @@ function stopComposerCamera({ discardRecording = true } = {}) {
   camera?.classList.remove("ready");
   const preview = camera?.querySelector("#composerCameraVideo");
   if (preview) preview.srcObject = null;
-  const backdrop = document.getElementById("composerCameraBackdrop");
-  if (backdrop) backdrop.srcObject = null;
+  camera?.querySelector('.cameraLensDialog')?.remove();
   const record = document.getElementById("recordClip"), stop = document.getElementById("stopRecording"), finish = document.getElementById("finishRecording"), finishLayout = document.getElementById("finishLayout");
   if (record) record.hidden = camera?.dataset?.cameraMode ? camera.dataset.cameraMode !== "clip" : false;
   if (stop) stop.hidden = true;
@@ -6680,7 +6680,8 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
   try {
     const portrait = cameraSurfaceIsPortrait(camera);
     const preset = camera.dataset.cameraAspect || '9:16';
-    const opened = await openCameraPresetStream(facingMode, portrait, preset);
+    const selectedDevice = camera.dataset.deviceId ? { deviceId: camera.dataset.deviceId, label: camera.dataset.deviceLabel || '' } : null;
+    const opened = await openCameraPresetStream(facingMode, portrait, preset, navigator.mediaDevices, selectedDevice);
     const { stream, track: videoTrack } = opened;
     if (!request.isCurrent() || !camera.isConnected || !video.isConnected || !sourceInput.isConnected) {
       stream.getTracks().forEach((track) => track.stop());
@@ -6688,8 +6689,7 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     }
     activeComposerStream = stream;
     video.srcObject = stream;
-    const backdrop = document.getElementById("composerCameraBackdrop");
-    if (backdrop) { backdrop.srcObject = stream; backdrop.play?.().catch(() => {}); }
+    startCameraBackdrop(video, camera, stream, () => activeComposerStream === stream);
     camera.dataset.facing = facingMode;
     markCameraRequest(camera, facingMode, portrait);
     camera.classList.add("ready");
@@ -6703,6 +6703,10 @@ async function startComposerCamera(sourceInput, facingMode = "environment") {
     if (flash) flash.hidden = !(facingMode === "environment" && Boolean(videoTrack?.getCapabilities?.().torch));
   } catch (error) {
     if (!request.isCurrent() || !camera.isConnected || !sourceInput.isConnected) return;
+    if (camera.dataset.deviceId && error?.name === 'OverconstrainedError') {
+      delete camera.dataset.deviceId; delete camera.dataset.deviceLabel;
+      return startComposerCamera(sourceInput, facingMode);
+    }
     camera.querySelector(".reelCameraStatus").textContent = t("camera.deniedDetail");
     camera.querySelector(".cameraRecovery")?.removeAttribute("hidden");
     setCameraComposerState("error", { force: true });
@@ -6861,8 +6865,20 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
     finish.onclick = recording.stop;
     status.textContent = t("camera.recording");
   }));
-  document.getElementById("switchCamera").addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing === "user" ? "environment" : "user"));
+  document.getElementById("switchCamera").addEventListener("click", () => {
+    delete camera.dataset.deviceId; delete camera.dataset.deviceLabel;
+    startComposerCamera(sourceInput, camera.dataset.facing === "user" ? "environment" : "user");
+  });
   document.getElementById("retryCamera")?.addEventListener("click", () => startComposerCamera(sourceInput, camera.dataset.facing || "environment"));
+  document.getElementById('cameraLensPick')?.addEventListener('click', async () => {
+    await openCameraLensChooser({ camera, media: navigator.mediaDevices,
+      currentId: activeComposerStream?.getVideoTracks?.()[0]?.getSettings?.().deviceId,
+      onError: toast, onSelect: (device) => {
+        camera.dataset.deviceId = device.deviceId; camera.dataset.deviceLabel = device.label || '';
+        startComposerCamera(sourceInput, 'environment');
+      },
+    });
+  });
   const openGallery = () => { stopComposerCamera(); sourceInput.removeAttribute("capture"); openNativePicker(); };
   document.getElementById("cameraGallery")?.addEventListener("click", openGallery);
   document.getElementById("cameraClose")?.addEventListener("click", () => onClose(layoutController));
@@ -6912,6 +6928,7 @@ function wireComposerCamera(sourceInput, openNativePicker, { onSoundSelection = 
   });
   document.getElementById('cameraFit')?.addEventListener('click', () => {
     if (layoutController.selected() !== 'off') return;
+    delete camera.dataset.deviceId; delete camera.dataset.deviceLabel;
     applyCameraPreset(camera, camera.dataset.cameraAspect === '9:16' ? '3:4' : '9:16');
     startComposerCamera(sourceInput, camera.dataset.facing || 'environment');
   });

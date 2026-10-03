@@ -44,23 +44,37 @@ test("camera surface opens safely, fills the viewport and avoids a close-up land
   // A blurred copy of the same frame stands behind the picture, so the whole frame is never black bands, and the
   // sensor note reports what the phone handed back next to what was asked of it.
   const surface = readFileSync(new URL("../public/reel-camera-surface.js", import.meta.url), "utf8");
-  assert.match(markup, /id="composerCameraBackdrop"[^>]+autoplay muted playsinline[^>]+aria-hidden="true"/);
-  assert.match(styles, /reelCamera > \.reelCameraBackdrop[^}]+object-fit: cover !important/);
-  assert.match(styles, /reelCamera:not\(\.layoutActive\) > #composerCameraVideo[^}]+aspect-ratio:9\/16/);
-  assert.match(styles, /reelCamera\[data-camera-aspect="3:4"\]:not\(\.layoutActive\) > #composerCameraVideo[^}]+aspect-ratio:3\/4/);
-  assert.match(styles, /reelCamera\[data-camera-fit="fill"\] > \.reelCameraBackdrop[^}]+display: none !important/);
+  assert.match(markup, /<canvas id="composerCameraBackdrop"[^>]+aria-hidden="true"/);
+  assert.match(styles, /reelCamera > \.reelCameraBackdropCanvas[^}]+filter:blur/);
+  assert.match(styles, /reelCamera:not\(\.layoutActive\) > #composerCameraVideo[^}]+--camera-live-width/);
+  assert.match(styles, /reelCamera\[data-camera-aspect="3:4"\]:not\(\.layoutActive\) > #composerCameraVideo[^}]+--camera-live-width/);
+  assert.match(surface, /video\.style\?\.setProperty\?\.\('--camera-live-width'/);
+  assert.match(styles, /reelCamera\[data-camera-fit="fill"\] > \.reelCameraBackdropCanvas[^}]+display: none !important/);
   assert.match(styles, /reelCamera\.ready\.cameraNote \.reelCameraStatus[^}]+opacity: 1/);
   assert.match(surface, /export function showCameraSensorNote\(video, camera, seconds = 8\)/);
   assert.match(surface, /" · cerut " \+ camera\.dataset\.cameraRequest/);
-  // Cache-busting belongs to the release: the stylesheet and the module are asked for under a new version, and
-  // the entry file feeds the same stream to the backdrop, plays it and puts the sensor note on screen.
+  // The canvas copies small frames from the live video instead of relying on a second camera video element.
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  assert.match(html, /reel-camera-surface\.css\?v=20261003-lens1/);
+  assert.match(html, /reel-camera-surface\.css\?v=20261003-lens2/);
   const app = readFileSync(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(app, /reel-camera-surface\.js\?v=20261003-lens1/);
+  assert.match(app, /reel-camera-surface\.js\?v=20261003-lens2/);
   assert.match(app, /showCameraSensorNote\(video, camera\)/);
-  assert.match(app, /composerCameraBackdrop"\)[\s\S]{0,120}backdrop\.play\?\.\(\)\.catch/);
+  assert.match(surface, /context\.drawImage\(video,/);
+  assert.match(app, /startCameraBackdrop\(video, camera, stream,/);
   assert.match(app, /syncCameraFraming\(video, camera\)/);
+});
+
+test("a 3:4 camera answer occupies its own pixels inside 9:16 instead of painting black video letterboxes", () => {
+  const css = new Map();
+  const video = { videoWidth: 1440, videoHeight: 1920, srcObject: {},
+    style: { setProperty: (name, value) => css.set(name, value) }, addEventListener() {}, removeEventListener() {} };
+  const camera = { clientWidth: 469, clientHeight: 860, dataset: { cameraAspect: '9:16' } };
+  syncCameraFraming(video, camera);
+  assert.equal(camera.dataset.cameraFit, 'fit');
+  assert.equal(css.get('--camera-live-width'), '469px');
+  assert.equal(Math.round(parseFloat(css.get('--camera-live-height'))), 625);
+  assert.match(readFileSync(new URL('../public/reel-camera-surface.css', import.meta.url), 'utf8'),
+    /reelCamera > \.reelCameraBackdropCanvas[^}]+filter:blur/);
 });
 
 test("9:16 opens without cropping; the control explicitly switches to 3:4", () => {
@@ -208,7 +222,7 @@ test("global Create opens the rear live camera and media import stays explicit",
   assert.match(source, /const selfieFirst = options\.facing === "user"/);
   const start = source.slice(source.indexOf("async function startComposerCamera("), source.indexOf("async function openViewerComments("));
   assert.match(start, /facingMode = "environment"/);
-  assert.match(start, /await openCameraPresetStream\(facingMode, portrait, preset\)/);
+  assert.match(start, /await openCameraPresetStream\(facingMode, portrait, preset, navigator\.mediaDevices, selectedDevice\)/);
   assert.doesNotMatch(start, /\.click\(\)|openNativePicker/);
   assert.match(source, /cameraGallery"\)\?\.addEventListener\("click", openGallery\)/);
 });

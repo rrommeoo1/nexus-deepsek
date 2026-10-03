@@ -84,7 +84,9 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // frame composition and the dialog UI remain in their own modules.
   // Adaptive camera framing adds only the fit-recording fallback and manual-choice glue here;
   // the photo/video compositor remains in reel-camera-framing.js.
-  assert.equal(sizes.app <= 637_000, true, `app.js budget exceeded: ${sizes.app}`);
+  // The rear-lens chooser and live canvas backdrop stay in reel-camera-surface.js;
+  // this small allowance covers only their lifecycle hooks in app.js.
+  assert.equal(sizes.app <= 637_500, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance

@@ -1,4 +1,4 @@
-import { cameraVideoConstraints } from "./reel-camera-quality.js?v=20261003-lens1";
+import { cameraVideoConstraints } from "./reel-camera-quality.js?v=20261003-lens2";
 
 const tabs = ["Hot", "For You", "Favorites", "Recent"];
 const framingListeners = new WeakMap();
@@ -71,6 +71,8 @@ export function showCameraPresetStatus(camera, { facingMode = 'environment', len
     zoom.actual ? `${Number(zoom.actual).toFixed(1).replace('.', ',')}× · ${target} indisponibil` :
     `${target} neconfirmat`;
   output.textContent = `${aspect} · ${label}${resizeMode === 'crop-and-scale' ? ' · decupare browser' : ''}`;
+  const lensPicker = camera.querySelector('#cameraLensPick');
+  if (lensPicker) lensPicker.hidden = !(aspect === '9:16' && facingMode === 'environment' && lens !== 'ultrawide' && !zoom.matched);
 }
 
 // How the phone is held: the screen decides, not the section. A section that is still being laid out (0x0) must
@@ -93,19 +95,92 @@ export function syncCameraFraming(video, camera) {
   if (previous) {
     video.removeEventListener?.('loadedmetadata', previous);
     video.removeEventListener?.('resize', previous);
+    globalThis.window?.removeEventListener?.('resize', previous);
   }
-  const open = () => { if (video.videoWidth) camera.dataset.cameraFit = 'fit'; };
+  const open = () => {
+    if (!video.videoWidth || !video.videoHeight) return;
+    camera.dataset.cameraFit = 'fit';
+    const ratio = camera.dataset.cameraAspect === '3:4' ? 3 / 4 : 9 / 16;
+    const frameWidth = Math.min(camera.clientWidth, camera.clientHeight * ratio);
+    const frameHeight = frameWidth / ratio;
+    const streamRatio = video.videoWidth / video.videoHeight;
+    const width = Math.min(frameWidth, frameHeight * streamRatio);
+    video.style?.setProperty?.('--camera-live-width', `${width}px`);
+    video.style?.setProperty?.('--camera-live-height', `${width / streamRatio}px`);
+  };
   if (video.videoWidth) open(); else video.addEventListener("loadedmetadata", open, { once: true });
   video.addEventListener('resize', open);
+  globalThis.window?.addEventListener?.('resize', open);
   framingListeners.set(video, open);
+}
+
+let backdropFrame = 0;
+export function stopCameraBackdrop(canvas) {
+  if (backdropFrame) cancelAnimationFrame(backdropFrame);
+  backdropFrame = 0;
+  if (canvas) canvas.getContext?.('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+export function startCameraBackdrop(video, camera, stream, isCurrent) {
+  const canvas = camera.querySelector('#composerCameraBackdrop');
+  const context = canvas?.getContext?.('2d', { alpha: false });
+  if (!context) return;
+  stopCameraBackdrop(canvas);
+  let lastPaint = 0;
+  const paint = (now) => {
+    if (!camera.isConnected || video.srcObject !== stream || !isCurrent()) return;
+    if (now - lastPaint >= 180 && video.videoWidth > 0 && video.videoHeight > 0) {
+      lastPaint = now;
+      const width = 112;
+      const height = Math.max(112, Math.round(width * camera.clientHeight / Math.max(1, camera.clientWidth)));
+      if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
+      const sourceRatio = video.videoWidth / video.videoHeight, targetRatio = width / height;
+      const sourceWidth = sourceRatio > targetRatio ? video.videoHeight * targetRatio : video.videoWidth;
+      const sourceHeight = sourceRatio > targetRatio ? video.videoHeight : video.videoWidth / targetRatio;
+      try { context.drawImage(video, (video.videoWidth - sourceWidth) / 2, (video.videoHeight - sourceHeight) / 2,
+        sourceWidth, sourceHeight, 0, 0, width, height); } catch { /* A stopped stream may lose its frame. */ }
+    }
+    backdropFrame = requestAnimationFrame(paint);
+  };
+  backdropFrame = requestAnimationFrame(paint);
+}
+
+export async function openCameraLensChooser({ camera, media, currentId, onSelect, onError }) {
+  let devices = [];
+  try { devices = (await media.enumerateDevices()).filter((device) =>
+    device.kind === 'videoinput' && device.deviceId && !/(?:front|selfie|user)/i.test(device.label || '')); }
+  catch { onError('Browserul nu permite afișarea obiectivelor camerei.'); return; }
+  const dialog = document.createElement('div'); dialog.className = 'cameraLensDialog';
+  dialog.setAttribute('role', 'dialog'); dialog.setAttribute('aria-modal', 'true'); dialog.setAttribute('aria-label', 'Alege obiectivul camerei');
+  const sheet = document.createElement('section'); sheet.className = 'cameraLensSheet';
+  const header = document.createElement('header');
+  const title = document.createElement('h2'); title.textContent = 'Alege obiectivul';
+  const close = document.createElement('button'); close.type = 'button'; close.textContent = '×'; close.setAttribute('aria-label', 'Închide'); close.onclick = () => dialog.remove();
+  header.append(title, close);
+  const detail = document.createElement('p');
+  detail.textContent = devices.length > 1
+    ? 'Telefonul a expus mai multe camere. Alege un obiectiv și compară cadrul; selecția nu decupează artificial imaginea.'
+    : 'Browserul expune doar o cameră din spate. Nu putem activa optic 0,7× dacă telefonul nu îl oferă paginilor web.';
+  const options = document.createElement('div'); options.className = 'cameraLensOptions';
+  devices.forEach((device, index) => {
+    const option = document.createElement('button'); option.type = 'button';
+    option.textContent = `${device.label || `Camera spate ${index + 1}`}${device.deviceId === currentId ? ' · activă' : ''}`;
+    option.onclick = () => { dialog.remove(); onSelect(device); };
+    options.append(option);
+  });
+  sheet.append(header, detail, options); dialog.append(sheet); camera.append(dialog);
+  dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.remove(); });
+  dialog.addEventListener('keydown', (event) => { if (event.key === 'Escape') dialog.remove(); });
+  close.focus();
 }
 
 export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false }) {
   const button = (id, icon, label, extra = "") => '<button id="' + id + '" type="button" aria-label="' + esc(label) + '" title="' + esc(label) + '" ' + extra + '><i aria-hidden="true">' + icon + '</i><small>' + esc(label) + '</small></button>';
   return [
     '<section class="composerCamera reelCamera" id="composerCamera" data-facing="' + (selfieFirst ? 'user' : 'environment') + '" data-camera-mode="' + (clipMode ? 'clip' : 'photo') + '" data-camera-aspect="9:16" data-camera-fit="fit" data-camera-duration="' + (clipMode ? '60' : '0') + '">',
-    // The blurred copy fills unused screen space if a browser returns a landscape stream to the portrait preset.
-    '<video id="composerCameraBackdrop" class="reelCameraBackdrop" autoplay muted playsinline aria-hidden="true"></video>',
+    // A low-resolution canvas copy fills only the unused space. Android may not play two video elements
+    // backed by the same camera stream, which previously left solid black bars above and below the preview.
+    '<canvas id="composerCameraBackdrop" class="reelCameraBackdropCanvas" aria-hidden="true"></canvas>',
     '<video id="composerCameraVideo" autoplay muted playsinline></video>',
     '<div class="reelCameraShade" aria-hidden="true"></div>',
     '<button class="reelCameraClose" id="cameraClose" type="button" aria-label="Închide">×</button>',
@@ -132,6 +207,7 @@ export function reelCameraMarkup({ esc, t, selfieFirst = false, clipMode = false
     '<nav class="reelCameraModes" aria-label="Mod creare"><button type="button" data-camera-destination="camera" class="active">CAMERA</button><button type="button" data-camera-destination="create">CREATE</button><button type="button" data-camera-destination="live">LIVE</button></nav>',
     '<div class="cameraActiveBadge"><i></i><span>' + esc(t('camera.activeBadge')) + '</span></div>',
     '<output class="cameraPresetStatus" role="status" aria-live="polite">9:16 · pregătesc 0,7×</output>',
+    '<button class="cameraLensPick" id="cameraLensPick" type="button" hidden>Încearcă alt obiectiv</button>',
     '<div class="cameraRecovery" hidden><button id="retryCamera" type="button">' + esc(t('camera.retry')) + '</button></div>',
     '<small class="reelCameraStatus">' + esc(t('camera.instruction')) + '</small>',
     '</section>',
