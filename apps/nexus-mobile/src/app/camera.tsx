@@ -13,6 +13,15 @@ import { type CaptureFraming, type LocalCapture, loadLatestCapture, persistCaptu
 type CaptureMode = 'photo' | 'video';
 type Facing = 'back' | 'front';
 
+async function waitForOutput(output: { readonly currentResolution?: { width: number; height: number } }) {
+  const deadline = Date.now() + 5000;
+  while (!output.currentResolution && Date.now() < deadline) {
+    await new Promise<void>((resolve) => setTimeout(resolve, 100));
+  }
+  // The native capture call remains the source of truth if the readiness event
+  // or resolution property is unavailable after Fast Refresh.
+}
+
 function VideoPlayback({ uri }: { uri: string }) {
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
@@ -29,8 +38,8 @@ export default function CameraScreen() {
   const [framing, setFraming] = useState<CaptureFraming>('9:16');
   const [mode, setMode] = useState<CaptureMode>('photo');
   const [facing, setFacing] = useState<Facing>('back');
-  const [previewReadyFor, setPreviewReadyFor] = useState<string | null>(null);
   const [outputReadyFor, setOutputReadyFor] = useState<string | null>(null);
+  const [connectedOutputFor, setConnectedOutputFor] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [recording, setRecording] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -76,12 +85,26 @@ export default function CameraScreen() {
     enableAudio: microphonePermission.hasPermission,
   });
   const outputs = useMemo(() => mode === 'photo' ? [photoOutput] : [videoOutput], [mode, photoOutput, videoOutput]);
-  const captureReady = previewReadyFor === cameraKey && outputReadyFor === cameraKey
-    && !busy && !cameraError && cameraPermission.hasPermission && !!device;
+  const nativeReady = outputReadyFor === cameraKey || connectedOutputFor === cameraKey;
+  const canAttemptCapture = !busy && !cameraError && cameraPermission.hasPermission && !!device;
+
+  useEffect(() => {
+    if (captured || !device) return;
+    const output = mode === 'photo' ? photoOutput : videoOutput;
+    const checkConnection = () => {
+      if (output.currentResolution) {
+        setConnectedOutputFor(cameraKey);
+        clearInterval(interval);
+      }
+    };
+    const interval = setInterval(checkConnection, 200);
+    checkConnection();
+    return () => clearInterval(interval);
+  }, [cameraKey, captured, device, mode, photoOutput, videoOutput]);
 
   function resetReady() {
-    setPreviewReadyFor(null);
     setOutputReadyFor(null);
+    setConnectedOutputFor(null);
     setCameraError(null);
   }
 
@@ -107,9 +130,10 @@ export default function CameraScreen() {
   }
 
   async function takePhoto() {
-    if (!captureReady) return;
+    if (!canAttemptCapture) return;
     setBusy(true);
     try {
+      await waitForOutput(photoOutput);
       const result = await photoOutput.capturePhotoToFile({ flashMode: 'off', enableDistortionCorrection: false }, {});
       const saved = await persistCapture(result.filePath, 'photo', framing);
       setPhotoDimensions(null);
@@ -123,7 +147,7 @@ export default function CameraScreen() {
   }
 
   async function startVideo() {
-    if (!captureReady) return;
+    if (!canAttemptCapture) return;
     if (!microphonePermission.hasPermission) {
       if (microphonePermission.canRequestPermission) void microphonePermission.requestPermission();
       else setCameraError('Microfonul este blocat. Activează permisiunea din setările telefonului.');
@@ -132,6 +156,7 @@ export default function CameraScreen() {
     setBusy(true);
     setElapsedSeconds(0);
     try {
+      await waitForOutput(videoOutput);
       const recorder = await videoOutput.createRecorder({ maxDuration: 120 });
       recorderRef.current = recorder;
       await recorder.startRecording(
@@ -245,7 +270,7 @@ export default function CameraScreen() {
             outputs={outputs}
             resizeMode="cover"
             onConfigured={() => setOutputReadyFor(cameraKey)}
-            onPreviewStarted={() => { setPreviewReadyFor(cameraKey); setCameraError(null); }}
+            onPreviewStarted={() => setCameraError(null)}
             onError={(error) => { resetReady(); setCameraError(error.message); }}
           />
         </View>
@@ -285,7 +310,7 @@ export default function CameraScreen() {
         </View>
       ) : null}
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, 16) + 20 }]}>
-        <Text style={styles.state}>{recording ? `Se înregistrează · ${String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}` : captureReady ? 'Camera pregătită pentru test' : 'Camera pornește…'}</Text>
+        <Text style={styles.state}>{recording ? `Se înregistrează · ${String(Math.floor(elapsedSeconds / 60)).padStart(2, '0')}:${String(elapsedSeconds % 60).padStart(2, '0')}` : busy ? 'Se pregătește captura…' : nativeReady ? 'Camera pregătită pentru test' : 'Camera pornește… · poți apăsa declanșatorul'}</Text>
         <View style={styles.modes}>
           <Pressable accessibilityRole="button" accessibilityState={{ selected: mode === 'photo' }} style={[styles.mode, mode === 'photo' && styles.selectedMode]} onPress={() => changeMode('photo')}>
             <Text style={[styles.modeText, mode === 'photo' && styles.selectedModeText]}>PHOTO</Text>
@@ -303,8 +328,8 @@ export default function CameraScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={recording ? 'Oprește și salvează video' : mode === 'photo' ? 'Fă fotografie' : 'Înregistrează video'}
-            accessibilityState={{ disabled: !recording && !captureReady }}
-            style={[styles.shutter, recording && styles.recordingShutter, !recording && !captureReady && styles.disabledShutter]}
+            accessibilityState={{ disabled: !recording && !canAttemptCapture }}
+            style={[styles.shutter, recording && styles.recordingShutter, !recording && !canAttemptCapture && styles.disabledShutter]}
             onPress={() => { if (recording) void stopVideo(); else if (mode === 'photo') void takePhoto(); else void startVideo(); }}
           ><View style={recording ? styles.stopIcon : styles.shutterInner} /></Pressable>
           <View style={styles.lastCapture} />
