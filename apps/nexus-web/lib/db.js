@@ -2139,19 +2139,48 @@ CREATE INDEX IF NOT EXISTS idx_media_purge_receipts_time ON media_purge_receipts
   db.prepare(`UPDATE moderation_appeals SET status = 'RECORDED_AUTOMATED_ONLY' WHERE status = 'AUTO_REVIEWED'`).run();
   const missingPostCommitments = db.prepare(`
     SELECT id, user_id, persona, kind, caption, media_id, visibility, language, region_code, provenance,
-           media_edit_hash, audio_media_id, audio_rights, audio_attribution
+           media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json,
+           publishing_json, content_commitment, status, version
     FROM posts
   `).all();
   const updatePostCommitment = db.prepare(`UPDATE posts SET content_commitment = ? WHERE id = ?`);
+  const currentPostVersion = db.prepare(`SELECT content_commitment FROM post_versions WHERE post_id = ? AND version = ?`);
+  let restoredPostCommitments = 0;
+  let unresolvedActivePostCommitments = 0;
   for (const row of missingPostCommitments) {
-    const commitment = createHash("sha256").update(JSON.stringify({
+    const payload = {
       userId: row.user_id, persona: row.persona, kind: row.kind, caption: row.caption,
       mediaId: row.media_id, visibility: row.visibility, language: row.language,
       regionCode: row.region_code, provenance: row.provenance,
       mediaEditHash: row.media_edit_hash, audioMediaId: row.audio_media_id,
       audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
-    })).digest("hex");
-    updatePostCommitment.run(commitment, row.id);
+    };
+    // Keep the original field order: the hash is an integrity commitment, not a bag of fields.
+    const legacyCommitment = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+    if (row.external_audio_json) payload.externalAudio = row.external_audio_json;
+    if (row.publishing_json) payload.publishing = row.publishing_json;
+    const canonicalCommitment = createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+    if (!row.content_commitment) {
+      // Older active posts predate commitments. Never invent a canonical hash for an
+      // archived/withdrawn post: their version history uses a different commitment.
+      if (row.status === "active") updatePostCommitment.run(canonicalCommitment, row.id);
+      continue;
+    }
+    if (row.content_commitment === canonicalCommitment) continue;
+    const versionCommitment = currentPostVersion.get(row.id, row.version)?.content_commitment;
+    // An older startup migration overwrote the current row with the legacy hash,
+    // omitting publishing/audio. Restore only when the immutable version record
+    // independently matches the canonical content. Unknown mismatches stay untouched.
+    if (row.status === "active" && row.content_commitment === legacyCommitment
+      && versionCommitment === canonicalCommitment) {
+      updatePostCommitment.run(canonicalCommitment, row.id);
+      restoredPostCommitments += 1;
+    } else if (row.status === "active") {
+      unresolvedActivePostCommitments += 1;
+    }
+  }
+  if (restoredPostCommitments || unresolvedActivePostCommitments) {
+    console.warn(`post commitment migration: restored=${restoredPostCommitments} unresolved_active=${unresolvedActivePostCommitments}`);
   }
   const missingCommentCommitments = db.prepare(`
     SELECT id, user_id, actor_persona, post_id, parent_id, body FROM comments

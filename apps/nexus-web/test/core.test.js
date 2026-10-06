@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { generateKeyPairSync, sign as ed25519Sign } from "node:crypto";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { UserSecretKey, Message, MessageComputer, Address } from "@multiversx/sdk-core";
 import { openDb, resolveDataDirectory } from "../lib/db.js";
@@ -1720,6 +1722,61 @@ test("Social Trust Lens separates provenance, context and safety without inventi
     "Vând cocaină ieftină azi"
   ]) {
     assert.equal(assessSocialContent({ text: injected, provenance: "NOT_DECLARED" }).decision, "BLOCK");
+  }
+});
+
+test("post migration restores only version-verified commitments and preserves publishing edits", () => {
+  const tempDir = mkdtempSync(join(tmpdir(), "nexus-post-commitment-"));
+  let db;
+  try {
+    const dbPath = join(tempDir, "nexus.sqlite");
+    db = openDb(dbPath);
+    let repo = createRepo(db);
+    const author = repo.createUser({ handle: "migration-author", displayName: "Author" });
+    repo.ensurePersona(author.id, "social", { visibility: "public" });
+    const post = repo.createPost({
+      userId: author.id, persona: "social", caption: "Before restart",
+      publishing: { title: "A real title", allowComments: false },
+    });
+    const originalCommitment = post.content_commitment;
+    const row = db.prepare(`SELECT * FROM posts WHERE id = ?`).get(post.id);
+    const legacyCommitment = sha256Hex(JSON.stringify({
+      userId: row.user_id, persona: row.persona, kind: row.kind, caption: row.caption,
+      mediaId: row.media_id, visibility: row.visibility, language: row.language,
+      regionCode: row.region_code, provenance: row.provenance,
+      mediaEditHash: row.media_edit_hash, audioMediaId: row.audio_media_id,
+      audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
+    }));
+    assert.notEqual(legacyCommitment, originalCommitment);
+    // Reproduce the old startup migration: it replaced only the live row hash.
+    db.prepare(`UPDATE posts SET content_commitment = ? WHERE id = ?`).run(legacyCommitment, post.id);
+    db.close();
+    db = openDb(dbPath);
+    repo = createRepo(db);
+    assert.equal(repo.getPostById(post.id).content_commitment, originalCommitment);
+    const edited = repo.editPost({
+      id: post.id, userId: author.id, actorPersona: "social",
+      caption: "After edit", visibility: "public",
+    });
+    assert.equal(edited.publishing.title, "A real title");
+    assert.ok(repo.saveContentAssessment("post", edited.id, edited.content_commitment,
+      assessSocialContent({ text: edited.caption, provenance: edited.provenance, mediaKind: edited.kind })));
+    db.close();
+    db = openDb(dbPath);
+    repo = createRepo(db);
+    assert.equal(repo.getPostById(post.id).content_commitment, edited.content_commitment);
+    // A real content change without a matching version record must not be silently repaired.
+    db.prepare(`UPDATE posts SET caption = 'Tampered' WHERE id = ?`).run(post.id);
+    db.close();
+    db = openDb(dbPath);
+    repo = createRepo(db);
+    assert.equal(repo.getPostById(post.id).content_commitment, edited.content_commitment);
+    assert.throws(() => repo.saveContentAssessment("post", post.id, edited.content_commitment,
+      assessSocialContent({ text: "Tampered", provenance: post.provenance, mediaKind: post.kind })),
+    /CONTENT_ASSESSMENT_COMMITMENT_MISMATCH/);
+  } finally {
+    db?.close();
+    rmSync(tempDir, { recursive: true, force: true });
   }
 });
 

@@ -878,12 +878,7 @@ export function createRepo(db) {
       const cleanVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : post.visibility;
       if (!cleanCaption && !post.media_id) return null;
       const version = Number(post.version || 1) + 1;
-      const commitment = sha256Hex(JSON.stringify({
-        userId: post.user_id, persona: post.persona, kind: post.kind, caption: cleanCaption,
-        mediaId: post.media_id, visibility: cleanVisibility, language: post.language, regionCode: post.region_code,
-        provenance: post.provenance, mediaEditHash: post.media_edit_hash, audioMediaId: post.audio_media_id,
-        audioRights: post.audio_rights, audioAttribution: post.audio_attribution,
-      }));
+      const commitment = canonicalPostCommitment({ ...post, caption: cleanCaption, visibility: cleanVisibility });
       this.db.exec("BEGIN IMMEDIATE");
       try {
         const changed = this.db.prepare(`UPDATE posts SET caption = ?, visibility = ?, content_commitment = ?, version = ?, edited_at = unixepoch()
