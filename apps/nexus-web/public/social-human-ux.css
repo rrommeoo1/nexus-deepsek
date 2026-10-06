@@ -70,10 +70,15 @@ body,.phoneScreen{font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFo
 :root{--nav-h:60px}
 .appNav{height:60px!important;padding:4px 7px max(6px,env(safe-area-inset-bottom))!important}
 .appNav:before{left:6px!important;right:6px!important;top:4px!important;height:50px!important;border-radius:26px!important}
-.appNav button{height:50px!important;gap:0!important}
+/* Wave 14i: the name under a mark was hidden in 14h, so a mark is one glyph in a column - and a column
+   was never told to centre it, so all seven sat at the top of the glass they share. They are centred in
+   it now, and the create circle is 44px: the glass that holds the six drawn marks holds it too, instead
+   of the circle hanging over the edge of the bar. */
+.appNav button{height:50px!important;gap:0!important;justify-content:center!important}
 .appNav button i{width:32px!important;height:32px!important;font-size:20px!important}
 .appNav button span{display:none!important}
-.appNav button.createNav{transform:translateY(-8px)!important}.appNav button.createNav i{width:52px!important;min-width:52px!important;height:52px!important;min-height:52px!important;font-size:27px!important}
+.appNav button.createNav{align-self:center!important;transform:none!important}
+.appNav button.createNav i{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;font-size:23px!important}
 .presentation-cards>.pulsePosts{padding:12px!important;background:#07101a!important;scroll-snap-type:none!important}
 .presentation-cards .pulsePosts.clipFirst .clipCard{height:auto!important;min-height:auto!important;margin:0 0 18px!important;border:1px solid rgba(116,174,204,.24)!important;border-radius:22px!important;overflow:hidden}
 .presentation-cards .pulsePosts.clipFirst .clipCard .clipStage{height:68dvh!important;min-height:520px!important;border-radius:22px!important}

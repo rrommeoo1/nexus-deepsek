@@ -75,6 +75,7 @@ test("the bottom bar is the owner's marks with Home in front of them, icons only
   // destinations; the header keeps the module drawer, and the last mark shows the reader's own picture.
   const marks = readFileSync(new URL("../public/nav-marks.js", import.meta.url), "utf8");
   const css = readFileSync(new URL("../public/social-human-ux.css", import.meta.url), "utf8");
+  const surface = readFileSync(new URL("../public/feed-surface.css", import.meta.url), "utf8");
   assert.equal(app.includes('import { NAV_LABEL_KEYS, navFaceMarkup, navIconMarkup } from "./nav-marks.js?v=20260923-wave14i";'), true, "the bar's marks are their own module");
   assert.equal(app.includes('social: [["primary","⌂","Acasă"],["inbox","◌","Mesaje"],["search","⌕","Căutare"],'), true, "the Social bar starts Home, Messages, Search");
   assert.equal(app.includes('social: [["primary","⌂","Acasă"],["menu"'), false, "the duplicate Change mark is gone");
@@ -95,7 +96,14 @@ test("the bottom bar is the owner's marks with Home in front of them, icons only
   assert.match(css, /\.appNav button span\{display:none!important\}/);
   assert.match(css, /:root\{--nav-h:60px\}/);
   assert.match(css, /\.appNav\{height:60px!important;padding:4px 7px max\(6px,env\(safe-area-inset-bottom\)\)!important\}/);
-  assert.match(css, /\.appNav button\.createNav i\{width:52px!important;min-width:52px!important;height:52px!important;min-height:52px!important;font-size:27px!important\}/);
+  // Wave 14i: a mark is one glyph in a column since the name under it was hidden, and the column centres
+  // it now, so the seven sit in the middle of the glass they share. The create circle is 44px - small
+  // enough for that glass - and the seven take one width, so Create is the middle of them.
+  assert.match(css, /\.appNav button\{height:50px!important;gap:0!important;justify-content:center!important\}/);
+  assert.match(css, /\.appNav button\.createNav\{align-self:center!important;transform:none!important\}/);
+  assert.match(css, /\.appNav button\.createNav i\{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important;font-size:23px!important\}/);
+  assert.match(surface, /\.appNav\.social>button\{flex:1 1 0!important;max-width:64px!important\}/);
+  assert.equal(surface.includes(".appNav.social>button.createNav{"), false, "the seven marks take one width");
   assert.match(css, /\.screenViewport\{height:calc\(100% - 132px\)!important\}/);
   assert.match(css, /\.phoneScreen:has\(\.inboxScreen\) \.screenViewport,\.phoneScreen:has\(\.accountScreen\) \.screenViewport\{height:calc\(100% - var\(--nav-h,86px\)\)!important\}/);
 });

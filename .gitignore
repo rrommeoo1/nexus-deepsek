@@ -28,6 +28,7 @@ planning/evidence/screenshots/chrome-profile-*/
 # Runtime databases, uploads and logs
 apps/nexus-web/data/
 tools/cloudflared.exe
+tools/scrcpy/
 **/*.log
 **/*.err
 **/*.out

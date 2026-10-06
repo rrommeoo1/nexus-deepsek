@@ -11,11 +11,12 @@ Aceasta urmează ținta React Native/Expo din `docs/01-technical-architecture.md
 
 ## Situația verificată
 
-- Repository-ul are `apps/nexus-web` și `apps/nexus-demo`, dar încă nu are `apps/nexus-mobile`.
+- Repository-ul are `apps/nexus-web` și `apps/nexus-demo`; `apps/nexus-mobile` a fost adăugat ca shell WebView peste clientul web (vezi mai jos), nu ca rescriere a ecranelor.
 - Clientul web existent are 113 fișiere în `public` și 122 fișiere de test; `public/app.js` are aproximativ 9.100 de linii. Migrarea completă este un proiect etapizat, nu un build dintr-un clic.
 - Backendul existent oferă rute pentru feed, profil, postări, upload și drafturi. Contractele, autentificarea, permisiunile și transferul media trebuie verificate pentru clientul Android înainte de a declara reutilizarea lor completă.
-- PC-ul are Microsoft OpenJDK 17.0.20.1 și Android SDK local cu platforma API 36, Build-Tools 36.0.0 și `adb` 37.0.1. `JAVA_HOME`, `ANDROID_HOME`, `ANDROID_SDK_ROOT` și PATH sunt configurate ca variabile ale utilizatorului. Android Studio nu este instalat. Clientul `apps/nexus-mobile` a produs un APK debug arm64 pentru diagnosticul încadrării; `adb devices -l` nu a găsit încă un telefon conectat, deci funcționarea pe Xiaomi rămâne neverificată.
+- PC-ul are Microsoft OpenJDK 17.0.20.1 și Android SDK local cu platforma API 36, Build-Tools 36.0.0 și `adb` 37.0.1. `JAVA_HOME`, `ANDROID_HOME`, `ANDROID_SDK_ROOT` și PATH sunt configurate ca variabile ale utilizatorului. Android Studio nu este instalat. Clientul `apps/nexus-mobile` rulează acum pe Xiaomi prin development build și Metro/Fast Refresh, fără reinstalare la fiecare editare JavaScript.
 - Xiaomi 17 Pro este primul dispozitiv de acceptare. Comparația cu TikTok trebuie făcută din aceeași poziție și la aceeași lumină; capturile existente arată problema, dar nu măsoară singure obiectivul sau FOV-ul.
+- Shell-ul Android are bara de jos apăsabilă și camera nativă în afara WebView-ului. Marcajul `creează` cedează ecranul `src/app/camera.tsx` prin `nexus:open-camera`; `window.__NEXUS_SHELL__` marchează clientul web găzduit. Pe Xiaomi au fost probate încadrările 9:16/0,7× și 3:4/1× și captura foto/video locală. Camera nu mai afișează panourile de diagnostic; zoomul inițial a fost amânat până la primul cadru pentru a evita cursa CameraX. Aceasta este o bază testabilă, nu acceptare finală a calității imaginii ori a fluxului de publicare. După captură există un editor nativ minimal cu text mobil, titlu, descriere și draft local; stickerele, locația, sunetul, compoziția finală a media și publicarea lipsesc încă. Feed-ul, profilul și celelalte ecrane rămân în WebView.
 
 ## Regula de dezvoltare și actualizare
 
@@ -23,6 +24,8 @@ Aceasta urmează ținta React Native/Expo din `docs/01-technical-architecture.md
 2. Camera, editorul și draftul se testează local cu date sintetice. Backendul poate rula local; Railway rămâne mediul existent și se folosește pentru integrare numai cu autorizarea aplicabilă. Railway nu este instrumentul de compilare Android.
 3. Nu se achiziționează servicii, nu se acceptă termeni noi pentru instrumente, nu se publică în producție ori Play Store fără aprobările explicite cerute de `AGENTS.md`. Proprietarul a aprobat instalarea gratuită JDK/Android SDK și acceptarea licențelor lor la 2026-10-04.
 4. Codul web și datele sale nu se șterg. Fiecare etapă are teste și un checkpoint; un build de tranziție nu este prezentat ca paritate funcțională nativă.
+5. Android este direcția produsului final: `+`, editorul, feed-ul, profilul și restul ecranelor se mută gradual în clientul nativ, cu backendul existent păstrat. Nu numim shell-ul WebView „aplicația finală”.
+6. Fiecare release împins în producție pe Railway primește următorul număr vizibil sub logo în clientul web (`1.09` este versiunea live verificată la 2026-10-04; următoarele sunt `1.10`, `1.11` etc.). Se mărește versiunea împreună cu schimbarea pregătită pentru deploy, apoi se verifică URL-ul public și versiunea servită înainte de a raporta publicarea. Un commit local, Fast Refresh sau APK de dezvoltare nu sunt automat release Railway. Pentru buildul Android distribuit, versiunea afișată va fi aliniată cu versiunea de release, iar `versionCode` Android va crește separat conform regulilor de distribuție. Niciun deploy de producție fără aprobarea cerută de `AGENTS.md`.
 
 ## Etape și criterii de acceptare
 
@@ -46,6 +49,6 @@ Aceasta urmează ținta React Native/Expo din `docs/01-technical-architecture.md
 
 ## Următorul packet executabil
 
-`apps/nexus-mobile` este pregătit ca development client Android separat de web. Typecheck, lint, Expo Doctor, exportul bundle-ului JavaScript Android și două build-uri debug arm64 au trecut local; al doilea build a verificat scriptul repetabil. APK-ul rezultat (`app.nexus.mobile.dev`, `minSdk 24`, `targetSdk 36`) este în `apps/nexus-mobile/builds/nexus-dev-arm64.apk`, ignorat de Git. Auditul npm raportează 29 de avertismente în arborele de dependențe, ce trebuie triat înainte de lansare; nu s-a aplicat `audit fix --force`, care ar schimba incompatibil versiunile Expo. Următorul gate este conectarea Xiaomi prin USB/wireless debugging și proba pe dispozitiv a raportului 9:16, 3:4 și a obiectivelor expuse. Acest APK nu înseamnă că fluxul foto/video sau produsul Android complet sunt implementate. Railway nu este cuplat la acest build.
+`apps/nexus-mobile` este un development client Android funcțional pe Xiaomi. Pachetul curent de cameră trebuie validat vizual pe dispozitiv după Fast Refresh, inclusiv alternarea 9:16 ↔ 3:4 și revenirea din editor, fără stack trace sau pierderea draftului. Următorul packet de produs leagă editorul nativ de contractele backend pentru upload/draft/publicare și adaugă instrumentele cerute (stickere, locație, sunet) în etape verificabile. Ulterior se migrează feed-ul și profilul nativ, apoi restul ecranelor. Railway nu livrează direct codul camerei native; site-ul și APK-ul trebuie verificate ca artefacte distincte la fiecare release.
 
 Surse de implementare: `https://docs.expo.dev/develop/development-builds/introduction/`, `https://developer.android.com/media/camera/camerax/configuration`, `https://developer.android.com/develop/ui/views/layout/webapps/native-api-access-jsbridge`.

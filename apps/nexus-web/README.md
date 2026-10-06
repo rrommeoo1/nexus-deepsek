@@ -24,12 +24,41 @@ npm install
 npm start
 ```
 
-Deschide `http://localhost:3000`. Pe telefon, în aceeași rețea Wi-Fi, folosește
-`http://<IP-LAN>:3000`. Serverul ascultă implicit pe `0.0.0.0`.
+Deschide `http://localhost:<PORT>`, unde `PORT` vine din `.env` (implicit 3000, în acest
+repository 5000). Pe telefon, în aceeași rețea Wi-Fi, folosește
+`http://<IP-LAN>:<PORT>`. Serverul ascultă implicit pe `0.0.0.0`.
 
 Camera și microfonul web cer o origine sigură. HTTP prin LAN afișează intenționat
 un gate; pentru testare folosește certificatul local configurat sau un HTTPS de
 încredere și adaugă originea exactă în allowlist.
+
+Într-un browser, camera rămâne cea web. În shell-ul Android (`apps/nexus-mobile`)
+clientul nu montează deloc camera web: shell-ul injectează `window.__NEXUS_SHELL__`
+înainte de încărcarea scripturilor, iar `openComposer` cedează camera ecranului nativ
+prin `postMessage({ type: "nexus:open-camera", source })`. Ramurile `isNexusShell()`
+din `public/app.js` sunt singurul loc în care clientul web știe de shell, iar în
+browser nu se activează niciodată.
+
+## Contul de test local
+
+Pentru autentificare manuală — pe PC sau pe telefon, prin shell-ul Android — există un cont fix:
+
+| email | parolă | handle |
+| --- | --- | --- |
+| `test@nexus.ro` | `test1234` | `test` |
+
+Pe deployment-ul de preview contul se creează singur (`NODE_ENV=production` și
+`NEXUS_DEPLOYMENT_MODE=preview` → `lib/preview-test-account.js`). Local garda de preview nu
+se aplică, deci pornește-l explicit; comanda este idempotentă, nu iese în rețea și nu atinge
+niciun portofel:
+
+```bash
+npm run dev:test-account
+```
+
+Contul are email verificat, onboarding încheiat și toate personaele create, dar **niciun
+portofel**: clientul va cere în continuare configurarea portofelului. Parola autentifică,
+portofelul autorizează acțiunile, deci cele două rămân pași separați.
 
 ## Verificare
 

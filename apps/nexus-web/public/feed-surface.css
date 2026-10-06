@@ -641,7 +641,8 @@ html[dir="rtl"] .feedModeHint{transform:scaleX(-1)}
 /* Seven purposeful marks: Home, Messages, Search, Create, Friends, Live, Profile. */
 .appNav.social{justify-content:space-between!important;gap:1px!important;padding-inline:8px!important}
 .appNav.social>button{flex:1 1 0!important;max-width:64px!important}
-.appNav.social>button.createNav{flex:0 0 68px!important;max-width:68px!important}
+/* Wave 14i: a wider create mark is what let the circle sit over the edge of the bar, so Create takes the
+   same width as the six drawn marks and one rhythm runs along the seven. */
 
 /* The active reading becomes part of the Nexus mark. The other two readings are reached by swipe. */
 .appHeader.feedHeader{
@@ -798,7 +799,7 @@ html[dir="rtl"] .feedModeHint{transform:scaleX(-1)}
   .pulsePosts.feedReels .clipQuickActions{right:5px!important;transform:scale(.9);transform-origin:right bottom}
   .pulsePosts.feedReels .clipMetaOverlay{right:67px!important}
   .appNav.social{padding-inline:4px!important}
-  .appNav.social>button.createNav{flex-basis:62px!important}
+  /* Wave 14i: the narrowest bar keeps the create circle on the row - 53px of glass at 380px holds it. */
 }
 @media(max-height:720px){
   .reelViewer .viewerActionRail{top:90px!important;gap:0!important;transform:scale(.86);transform-origin:right bottom}

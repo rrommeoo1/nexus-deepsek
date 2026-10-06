@@ -8,10 +8,14 @@ export const PREVIEW_TEST_ACCOUNT = Object.freeze({
   displayName: "Test Nexus",
 });
 
-export function ensurePreviewTestAccount(repo, env = process.env) {
+// `force` este folosit exclusiv de seeder-ul local
+// (scripts/dev-test-account.mjs): același cont trebuie să existe și pe
+// mașina de dezvoltare, unde NODE_ENV nu este "production", deci garda de
+// preview de mai jos l-ar sări.
+export function ensurePreviewTestAccount(repo, env = process.env, { force = false } = {}) {
   const preview = env.NODE_ENV === "production"
     && String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() === "preview";
-  if (!preview) return null;
+  if (!preview && !force) return null;
 
   let user = repo.getUserByEmail(PREVIEW_TEST_ACCOUNT.email);
   if (!user) {
