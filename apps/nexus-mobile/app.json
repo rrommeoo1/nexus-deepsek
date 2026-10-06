@@ -12,7 +12,10 @@
     },
     "android": {
       "package": "app.nexus.mobile.dev",
-      "permissions": ["android.permission.CAMERA", "android.permission.RECORD_AUDIO"],
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -27,7 +30,8 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
-      "expo-video"
+      "expo-video",
+      "expo-audio"
     ]
   }
 }

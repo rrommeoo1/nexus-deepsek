@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 
 $mobileRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $buildRoot = 'C:\nxm'
@@ -18,24 +18,25 @@ if ($resolvedBuildRoot -ne 'C:\nxm' -or -not (Test-Path -LiteralPath $markerTarg
   throw "Refuz build-ul: $buildRoot nu este directorul izolat Nexus verificat."
 }
 
-$javaHome = [Environment]::GetEnvironmentVariable('JAVA_HOME', 'User')
-$androidHome = [Environment]::GetEnvironmentVariable('ANDROID_HOME', 'User')
-if (-not $javaHome -or -not (Test-Path -LiteralPath (Join-Path $javaHome 'bin\java.exe'))) {
-  throw 'JDK 17 lipsește din JAVA_HOME (variabilă de utilizator).'
+. (Join-Path $PSScriptRoot 'nexus-env.ps1')
+
+# Rezolvă JDK-ul și Android SDK-ul independent de variabilele de utilizator:
+# acestea pot indica o cale vizibilă doar în containerul MSIX (LocalCache).
+$toolchain = Import-NexusToolchain -ApplyEnvironment
+if (-not $toolchain.JavaHome) {
+  throw 'JDK 17+ nu a fost găsit. Setează JAVA_HOME sau instalează Microsoft OpenJDK 17.'
 }
-if (-not $androidHome -or -not (Test-Path -LiteralPath (Join-Path $androidHome 'platform-tools\adb.exe'))) {
-  throw 'Android SDK lipsește din ANDROID_HOME (variabilă de utilizator).'
+if (-not $toolchain.AndroidSdk) {
+  throw 'Android SDK nu a fost găsit (lipsește platform-tools\adb.exe). Verifică ANDROID_HOME sau instalarea SDK-ului.'
 }
-$env:JAVA_HOME = $javaHome
-$env:ANDROID_HOME = $androidHome
-$env:ANDROID_SDK_ROOT = $androidHome
-$env:Path = (Join-Path $javaHome 'bin') + ';' + $env:Path
+Write-Host "[nexus] JDK: $($toolchain.JavaHome)"
+Write-Host "[nexus] Android SDK: $($toolchain.AndroidSdk)"
 $env:NODE_ENV = 'development'
 
 foreach ($name in @('app.json', 'package.json', 'package-lock.json', 'tsconfig.json', 'eslint.config.js')) {
   Copy-Item -LiteralPath (Join-Path $mobileRoot $name) -Destination (Join-Path $buildRoot $name) -Force
 }
-foreach ($name in @('src', 'assets')) {
+foreach ($name in @('src', 'assets', 'patches')) {
   $targetDirectory = Join-Path $buildRoot $name
   New-Item -ItemType Directory -Path $targetDirectory -Force | Out-Null
   Copy-Item -Path (Join-Path (Join-Path $mobileRoot $name) '*') -Destination $targetDirectory -Recurse -Force

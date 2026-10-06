@@ -1,0 +1,95 @@
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPhotoOutput.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPhotoOutput.kt
+index f3bdfe3..c41ea0d 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPhotoOutput.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPhotoOutput.kt
+@@ -43,6 +43,9 @@ class HybridPhotoOutput(
+   private val options: PhotoOutputOptions,
+ ) : HybridCameraPhotoOutputSpec(),
+   NativeCameraOutput {
++  override val prefersWideScreenPreview: Boolean
++    get() = maxOf(options.targetResolution.width, options.targetResolution.height) /
++      minOf(options.targetResolution.width, options.targetResolution.height) > 1.6
+   override val mediaType: MediaType = MediaType.VIDEO
+   override var outputOrientation: CameraOrientation = CameraOrientation.UP
+     set(value) {
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPreviewOutput.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPreviewOutput.kt
+index 7960056..676d2de 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPreviewOutput.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridPreviewOutput.kt
+@@ -1,5 +1,6 @@
+ package com.margelo.nitro.camera.hybrids.outputs
+ 
++import androidx.camera.core.AspectRatio
+ import androidx.camera.core.Preview
+ import com.margelo.nitro.camera.CameraOrientation
+ import com.margelo.nitro.camera.HybridCameraPreviewOutputSpec
+@@ -72,6 +73,9 @@ class HybridPreviewOutput :
+               setPreviewStabilizationEnabled(true)
+             }
+           }
++          if (config.previewAspectRatio == AspectRatio.RATIO_16_9) {
++            setTargetAspectRatio(AspectRatio.RATIO_16_9)
++          }
+         }.build()
+ 
+     return NativeCameraOutput.PreparedUseCase(preview) {
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridVideoOutput.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridVideoOutput.kt
+index c65d44f..403d060 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridVideoOutput.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/hybrids/outputs/HybridVideoOutput.kt
+@@ -36,6 +36,9 @@ class HybridVideoOutput(
+   private val options: VideoOutputOptions,
+ ) : HybridCameraVideoOutputSpec(),
+   NativeCameraOutput {
++  override val prefersWideScreenPreview: Boolean
++    get() = maxOf(options.targetResolution.width, options.targetResolution.height) /
++      minOf(options.targetResolution.width, options.targetResolution.height) > 1.6
+   override val mediaType: MediaType = MediaType.VIDEO
+   override var outputOrientation: CameraOrientation = CameraOrientation.UP
+     set(value) {
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/public/NativeCameraOutput.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/public/NativeCameraOutput.kt
+index d2d5e0b..ec3c52a 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/public/NativeCameraOutput.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/public/NativeCameraOutput.kt
+@@ -17,8 +17,13 @@ interface NativeCameraOutput {
+     val videoStabilizationMode: TargetStabilizationMode?,
+     val videoDynamicRange: TargetDynamicRange?,
+     val photoHDR: Boolean?,
++    val previewAspectRatio: Int? = null,
+   )
+ 
++  /** The portrait 9:16 output needs a matching 16:9 sensor preview to avoid center cropping. */
++  val prefersWideScreenPreview: Boolean
++    get() = false
++
+   /**
+    * A [UseCase] that has been prepared by a [NativeCameraOutput],
+    * but not yet attached to the Camera.
+diff --git a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/session/ConstraintResolver.kt b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/session/ConstraintResolver.kt
+index 2431cd8..27cad33 100644
+--- a/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/session/ConstraintResolver.kt
++++ b/node_modules/react-native-vision-camera/android/src/main/java/com/margelo/nitro/camera/session/ConstraintResolver.kt
+@@ -3,6 +3,7 @@ package com.margelo.nitro.camera.session
+ import android.util.Log
+ import android.util.Range
+ import androidx.camera.core.CameraInfo
++import androidx.camera.core.AspectRatio
+ import androidx.camera.core.ImageCapture
+ import androidx.camera.core.Preview
+ import androidx.camera.core.SessionConfig
+@@ -54,11 +55,14 @@ object ConstraintResolver {
+         .filter { !it.isType<FPSConstraint>() }
+         .filter { it.isSupportedIndividually(cameraInfo) }
+         .toMutableList()
++    val previewAspectRatio =
++      if (outputConfigurations.any { (it.output as? NativeCameraOutput)?.prefersWideScreenPreview == true })
++        AspectRatio.RATIO_16_9 else null
+ 
+     // Pass 1: Resolve features (stab, HDR, etc.) via isSessionConfigSupported.
+     // SessionConfig is built WITHOUT FPS — FPS ranges depend on the resolved features.
+     while (true) {
+-      val config = activeConstraints.toConfig()
++      val config = activeConstraints.toConfig().copy(previewAspectRatio = previewAspectRatio)
+       val preparedUseCases =
+         outputConfigurations.map { outputConfiguration ->
+           val output =
