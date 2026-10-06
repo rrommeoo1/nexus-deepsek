@@ -8,6 +8,19 @@ import { applyCameraPreset, reelCameraMarkup, syncCameraFraming } from '../publi
 
 const source = (path) => readFileSync(new URL(path, import.meta.url), 'utf8');
 
+test('Android camera handoff cannot bypass an unsaved composer draft', () => {
+  const app = source('../public/app.js');
+  const start = app.indexOf('function openComposer(mode = "post", options = {})');
+  const end = app.indexOf('activeCameraExit = null;', start);
+  assert.ok(start >= 0 && end > start);
+  const entry = app.slice(start, end);
+  const cameraExit = entry.indexOf('requestActiveCameraExit()');
+  const draftExit = entry.indexOf('composerExit?.request(');
+  const nativeHandoff = entry.indexOf('requestNativeCamera(');
+  assert.ok(cameraExit >= 0 && cameraExit < nativeHandoff);
+  assert.ok(draftExit >= 0 && draftExit < nativeHandoff);
+});
+
 test('camera requests the sensor itself in the arrangement the phone is held, without exact-device rejection', () => {
   assert.deepEqual(cameraVideoConstraints('environment', true), {
     facingMode: { ideal: 'environment' }, width: { ideal: 1080 }, height: { ideal: 1920 }, frameRate: { ideal: 30, max: 30 }, zoom: { ideal: .7 }, resizeMode: 'none',

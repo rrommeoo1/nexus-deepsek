@@ -1346,7 +1346,7 @@ function renderRail() {
 
 // The owner's rule (2 octombrie 2026): each deployed build prints its version on the main logo, so he can see
 // which build he is looking at. Bump the line below on every deploy; the series starts at 1.01.
-const NEXUS_BUILD_VERSION = "1.09";
+const NEXUS_BUILD_VERSION = "1.10";
 function nexusWordmarkMarkup() {
   return '<svg class="nexusWordmarkSvg" viewBox="0 0 132 34" role="img" aria-label="Nexus"><defs><linearGradient id="nexus-wordmark-x" x1="0" x2="1"><stop stop-color="#00efff"/><stop offset="1" stop-color="#a66cff"/></linearGradient></defs><text x="1" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">NE</text><text x="44" y="24" fill="url(#nexus-wordmark-x)" font-size="22" font-family="Arial,Helvetica,sans-serif">X</text><text x="61" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">US</text><path d="M91 8h27m-17 6h24m-31 6h30m-20 6h14" fill="none" stroke="#27dfe9" stroke-width="1" opacity=".65"/><circle cx="121" cy="8" r="1.6" fill="#9d72ff"/><circle cx="127" cy="14" r="1.6" fill="#27dfe9"/><circle cx="126" cy="20" r="1.6" fill="#9d72ff"/></svg><i class="wordmarkBuild" aria-hidden="true">' + NEXUS_BUILD_VERSION + '</i>';
 }
@@ -2112,6 +2112,23 @@ function selectModule(id) {
   renderNav();
   renderInfoPanel();
   renderView();
+}
+
+// Pe Android, shell-ul nativ (`apps/nexus-mobile`) deschide camera nativă full-screen
+// (`/camera`) în locul celei web, pe care WebView-ul o redă cu benzi negre sus și jos:
+// flagul `__NEXUS_SHELL__` este injectat înainte de încărcarea scripturilor.
+const NATIVE_CAMERA_SOURCES = new Set(["camera", "clip_camera", "story_camera"]);
+
+function isNexusShell() {
+  return typeof window !== "undefined" && window.__NEXUS_SHELL__ === true;
+}
+
+function requestNativeCamera(source) {
+  if (!isNexusShell()) return false;
+  const bridge = window.ReactNativeWebView;
+  if (!bridge || typeof bridge.postMessage !== "function") return false;
+  bridge.postMessage(JSON.stringify({ type: "nexus:open-camera", source: source || "camera" }));
+  return true;
 }
 
 function navigate(slot) {
@@ -7235,6 +7252,9 @@ async function uploadMediaResumable(file, purpose, onProgress = () => {}, cancel
 function openComposer(mode = "post", options = {}) {
   if (requestActiveCameraExit()) return;
   if (composerExit?.request(() => openComposer(mode, options))) return;
+  // Cererea către camera nativă vine DUPĂ protecția draftului existent. Altfel
+  // atingerea lui „+” ar putea ocoli dialogul Salvează / Rămâi / Ieși.
+  if ((options.camera || NATIVE_CAMERA_SOURCES.has(options.source)) && requestNativeCamera(options.source || "camera")) return;
   activeCameraExit = null;
   activeDraftBackup = null;
   stopComposerCamera();
@@ -7247,7 +7267,8 @@ function openComposer(mode = "post", options = {}) {
   const tweetMode = socialMode && !storyMode && options.source === "tweet";
   const liveCamera = Boolean(options.camera);
   const modernFlow = socialMode && !storyMode && !tweetMode;
-  if (modernFlow) options = { ...options, camera: true };
+  // Composerul social este altfel „camera first"; în shell camera este cea nativă.
+  if (modernFlow && !isNexusShell()) options = { ...options, camera: true };
   const mediaFirst = Boolean(options.camera || options.pick || storyMode || options.source === "clip");
   const sourceLabel = t(options.source === "camera" ? "composer.sourceCamera" : options.source === "story_camera" ? "composer.sourceStoryCamera" : options.source === "clip_camera" ? "composer.sourceClipCamera" : options.source === "gallery" ? "composer.sourceGallery" : options.source === "clip" ? "composer.sourceClip" : storyMode ? "composer.sourceStory" : "composer.sourceDefault");
   const composerClass = ["premiumComposer", storyMode ? "storyComposer" : "", tweetMode ? "tweetComposer" : "", mediaFirst ? "mediaFirstComposer" : "textFirstComposer", options.camera ? "cameraComposer" : ""].filter(Boolean).join(" ");
@@ -7288,7 +7309,7 @@ function openComposer(mode = "post", options = {}) {
     const form = e.currentTarget;
     const submit = e.submitter || form.querySelector('button[type="submit"]');
     if (submit?.disabled) return;
-    if (modernFlow && form.closest('.cameraComposer')?.dataset.cameraState !== 'publishing-details') return;
+    if (modernFlow && !isNexusShell() && form.closest('.cameraComposer')?.dataset.cameraState !== 'publishing-details') return;
     const publishKey = form.dataset.publishKey;
     // Read values before disabling.
     const fd = new FormData(form);

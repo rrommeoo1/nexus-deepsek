@@ -86,7 +86,11 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // the photo/video compositor remains in reel-camera-framing.js.
   // The rear-lens chooser and live canvas backdrop stay in reel-camera-surface.js;
   // this small allowance covers only their lifecycle hooks in app.js.
-  assert.equal(sizes.app <= 637_500, true, `app.js budget exceeded: ${sizes.app}`);
+  // The Android shell wave is the surface that moves this number, by 1.1 kB: the client
+  // learns it runs inside the native shell from an injected flag, hands every camera-first
+  // entry point to the native screen instead of mounting the letterboxed web camera, and
+  // the create-slot, auto-camera and submit gates are conditional checks, not a screen.
+  assert.equal(sizes.app <= 638_600, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance
