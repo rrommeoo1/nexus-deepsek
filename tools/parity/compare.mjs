@@ -71,6 +71,15 @@ function readNativeNodes(area_, state) {
   return nodes;
 }
 
+/** Marcajul scris de device-batch.ps1 lângă PNG („ok N noduri" / „stub N noduri"). O captură „stub"
+ *  are doar imaginea: pe ecranele cu animație continuă (profil) `uiautomator` nu atinge niciodată idle,
+ *  deci dump-ul e gol. Fără acest marcaj, un XML gol ar arăta în raport ca „toate elementele lipsesc". */
+function nativeDumpMark(area_, state) {
+  const file = path.join(NATIVE, area_, `native-${state}.dump.txt`);
+  if (!fs.existsSync(file)) return '';
+  return norm(fs.readFileSync(file, 'utf8'));
+}
+
 function statesFor(area_) {
   const webDir = path.join(WEB, area_);
   const nativeDir = path.join(NATIVE, area_);
@@ -122,6 +131,13 @@ for (const { state, native } of statesFor(area)) {
   }
   const webNodes = readWebNodes(area, state) || [];
   const nativeNodes = readNativeNodes(area, state) || [];
+  // Marcajul din lot: „stub 0 noduri" înseamnă că ecranul nu ajunge la idle pentru `uiautomator`
+  // (profilul, din cauza animațiilor) — atunci nu există geometrie de comparat, doar imaginea.
+  const mark = nativeDumpMark(area, state);
+  if (nativeNodes.length === 0 || mark.startsWith('stub')) {
+    out.push(`_Captură doar-imagine: ${mark || 'fără arbore în dump'} — pe acest ecran \`uiautomator\` nu atinge idle, deci geometria nu se poate citi din dump. Diferențele se măsoară pe \`native-${state}.png\` (pixeli) sau prin coordonate citite din captură._`, '');
+    continue;
+  }
   const { rows, extra } = match(webNodes, nativeNodes);
   const ok = rows.filter((row) => row.native && verdict(row.web, row.native).startsWith('OK')).length;
   const diff = rows.filter((row) => row.native && !verdict(row.web, row.native).startsWith('OK')).length;

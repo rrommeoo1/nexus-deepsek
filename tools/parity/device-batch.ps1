@@ -81,8 +81,20 @@ function Get-Xml {
   for ($attempt = 1; $attempt -le 4; $attempt++) {
     # `| Out-Null` nu e suficient: adb scrie pe stderr („ERROR: could not get idle state"), iar cu
     # $ErrorActionPreference='Stop' un asemenea text oprește scriptul. Redirecționarea o face cmd.exe.
+    # A doua capcană, tot măsurată: `uiautomator dump` care eșuează („ERROR: could not get idle state" pe
+    # ecranele cu animație continuă) NU șterge fișierul de pe telefon. Un `cat` după el întoarce arborele
+    # *vechi*, iar un arbore vechi nu se poate deosebi de o măsurătoare bună: profil/own-0 a primit exact
+    # arborele inboxului (același MD5). De aceea fișierul se șterge înainte de fiecare dump.
+    cmd /c "`"$adb`" -s $serial shell rm -f $remote > NUL 2>&1" | Out-Null
     cmd /c "`"$adb`" -s $serial shell uiautomator dump --compressed $remote > NUL 2>&1" | Out-Null
-    $xml = (& $adb -s $serial exec-out cat $remote) -join "`n"
+    # Captura XML se citește ca *octeți* (cmd.exe redirecționează), nu prin pipeline-ul PowerShell:
+    # acesta din urmă decodează stdout-ul native cu encoding-ul consolei, iar un proces fără consolă
+    # (rulat detașat) nu poate primi UTF-8 — măsurat: „Acasă" ajungea „AcasÄƒ" și niciun tap pe etichetă
+    # nu se mai potrivea. Fișierul se citește apoi explicit ca UTF-8.
+    $local = Join-Path $env:TEMP 'nexus-parity-read.xml'
+    cmd /c "`"$adb`" -s $serial exec-out cat $remote > `"$local`"" | Out-Null
+    $xml = if (Test-Path $local) { (Get-Content -Path $local -Raw -Encoding UTF8) } else { '' }
+
     if ($xml.Length -gt $best.Length) { $best = $xml }
     if ($best.Length -ge 6000) { break }
     Start-Sleep -Milliseconds 500
@@ -92,7 +104,15 @@ function Get-Xml {
 
 function Save-Dump {
   param([string]$Path)
-  (Get-Xml) | Out-File -FilePath $Path -Encoding utf8
+  $xml = Get-Xml
+  $xml | Out-File -FilePath $Path -Encoding utf8
+  # Un arbore „stub" („ERROR: could not get idle state" → fișier aproape gol) NU e o măsurătoare, dar
+  # un .xml fără noduri arată la fel ca unul bun pentru cine citește doar fișierele. Se scrie un marcaj
+  # lângă PNG (`native-<stare>.dump.txt`), ca lipsa geometriei să fie explicită, nu presupusă.
+  $nodes = ([regex]::Matches($xml, '<node\b')).Count
+  $state = if ($nodes -ge 12) { "ok $nodes noduri" } else { "stub $nodes noduri (fără idle state)" }
+  Set-Content -Path ([System.IO.Path]::ChangeExtension($Path, '.dump.txt')) -Value $state -Encoding utf8
+  return $nodes
 }
 
 function Test-Png {
@@ -206,7 +226,8 @@ foreach ($entry in $entries) {
     $png = Join-Path $dir "native-$state.png"
     $xml = Join-Path $dir "native-$state.xml"
     Save-Screenshot -Path $png
-    Save-Dump -Path $xml
+    # Save-Dump întoarce numărul de noduri (pentru marcaj); fără `$null =`, valoarea ajunge în jurnal.
+    $null = Save-Dump -Path $xml
     $check = Test-Png -Path $png
     if (-not $check.ok) {
       Write-Warning "[parity] $value PNG invalid ($($check.why)); îl refac o dată"

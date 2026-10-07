@@ -24,7 +24,7 @@ _Fără captură nativă: `native-menu-open.xml` lipsește (lotul pe telefon în
 
 ## own-0
 
-_Fără captură nativă: `native-own-0.xml` lipsește (lotul pe telefon încă nu a rulat)._
+_Captură doar-imagine: stub 0 noduri (fără idle state) — pe acest ecran `uiautomator` nu atinge idle, deci geometria nu se poate citi din dump. Diferențele se măsoară pe `native-own-0.png` (pixeli) sau prin coordonate citite din captură._
 
 ## own-s0
 
@@ -40,11 +40,11 @@ _Fără captură nativă: `native-tab-0.xml` lipsește (lotul pe telefon încă 
 
 ## tab-1
 
-_Fără captură nativă: `native-tab-1.xml` lipsește (lotul pe telefon încă nu a rulat)._
+_Captură doar-imagine: stub 0 noduri (fără idle state) — pe acest ecran `uiautomator` nu atinge idle, deci geometria nu se poate citi din dump. Diferențele se măsoară pe `native-tab-1.png` (pixeli) sau prin coordonate citite din captură._
 
 ## tab-2
 
-_Fără captură nativă: `native-tab-2.xml` lipsește (lotul pe telefon încă nu a rulat)._
+_Captură doar-imagine: stub 0 noduri (fără idle state) — pe acest ecran `uiautomator` nu atinge idle, deci geometria nu se poate citi din dump. Diferențele se măsoară pe `native-tab-2.png` (pixeli) sau prin coordonate citite din captură._
 
 ## tab-3
 

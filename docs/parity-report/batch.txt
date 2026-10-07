@@ -32,25 +32,27 @@ capture:viewer/media-viewer
 tap:Închide
 wait:800
 
-# --- 2. Mesaje: shelf-ul de story-uri, firul de conversație (test@nexus.ro are conversația 1), cititorul
+# --- 2. Mesaje: doar inboxul e măsurabil. Contul logat (Test Nexus / @test) nu are nicio conversație —
+#     măsurat în native-inbox-0.xml: „Nicio conversație aici" + „Pornește una folosind username-ul
+#     Nexus, nu un ID numeric." — și shelf-ul de story-uri are doar „Story-ul tău" (butonul de adăugare),
+#     nu un story de citit. Prin urmare firul de conversație și cititorul de story-uri NU se pot atinge
+#     din datele actuale ale telefonului: stările lor pe web vin din contul semănat, nu din UI-ul nativ.
 tap:Mesaje
 wait:1500
 capture:messages/inbox-0
-tap:Deschide conversația
-wait:1800
-capture:messages/thread-0
-tap:Înapoi la conversații
-wait:1000
-tap:Story de verificare
-wait:1500
-capture:viewer/story-viewer
-tap:Închide
-wait:900
 
 # --- 3. Profil: bara de iconițe (defectul „meniul de moduri trebuie să fie ICONURI")
 tap:Profil
-wait:2000
+wait:3000
 capture:profile/own-0
-tap:Fotografii
-wait:1200
+# Bara de moduri a profilului e o bandă de ICONIȚE (fără text) la y=778 px fizici (÷2.6 = 299 CSS), cu
+# iconițele la x=110/330/557/777/995 (÷2.6 = 42/127/214/299/383 CSS). Pe profil `uiautomator dump` nu
+# atinge idle, deci nu există etichete: filele se aleg prin coordonate citite din captură.
+#   Măsurat pe capturi (pixeli, zona de conținut y920-2200): fila 2 („play") schimbă conținutul cu
+#   75.8%, iar fila 3 (grilă) randează IDENTIC cu fila 1 (0.0%) — un mod de profil e duplicat/inert.
+tapxy:127,299
+wait:2500
+capture:profile/tab-1
+tapxy:214,299
+wait:2500
 capture:profile/tab-2

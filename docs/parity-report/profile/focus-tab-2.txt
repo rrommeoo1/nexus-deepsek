@@ -1,0 +1,1 @@
+﻿mCurrentFocus=Window{d6f30f u0 app.nexus.mobile.dev/app.nexus.mobile.dev.MainActivity}

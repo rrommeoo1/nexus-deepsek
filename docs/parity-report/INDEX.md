@@ -174,6 +174,8 @@ Sesiune: `tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt` pe `
 (Wireless debugging), **display principal = id SurfaceFlinger `4630946949513469331`** (1220×2656, DPR 2.6);
 cover-ul (904×572, stins) este ignorat. Fiecare captură a fost verificată: focus `app.nexus.mobile.dev`
 înainte de fiecare input, antet PNG `89 50 4E 47`, XML `uiautomator` scris lângă.
+Portul de Wireless debugging se schimbă între sesiuni (runda 1: `41461`, runda 2: `35627`); se citește din
+telefon înainte de fiecare lot, nu se presupune.
 
 Capturi valide în acest lot: `feed/reels-0`, `comments/drawer-open`, `viewer/media-viewer`, `messages/inbox-0`.
 Pentru fiecare, `tools/parity/compare.mjs` a scris `diff.md` (ex. `messages`: 43 de elemente web etichetate,
@@ -206,5 +208,82 @@ Pentru fiecare, `tools/parity/compare.mjs` a scris `diff.md` (ex. `messages`: 43
 
 - `saturate(.55) brightness(.8)` de pe cardul de story văzut nu are echivalent în React Native; același estompare se face prin `opacity` (valoare listată în `StoryRail.tsx`).
 - fonturile: web `Inter, ui-sans-serif, system-ui` vs Android `Roboto`/`system-ui` (aceeași excepție ca în PARITY-MATRIX §0).
+
+---
+
+## Runda 2 — remăsurat pe telefon (`192.168.1.184:35627`)
+
+Sesiune: portul de Wireless debugging s-a schimbat (`41461` → `35627`), `adb connect` a reușit, iar
+`mCurrentFocus` a fost citit înainte de fiecare input. Aplicația căzuse în **Expo dev launcher**
+(`app.nexus.mobile.dev/expo.modules.devlauncher.launcher.DevLauncherActivity`); bundle-ul a fost încărcat
+tastând rândul serverului de dezvoltare din launcher (control al aplicației, nu al sistemului):
+`http://192.168.1.153:8081`, unde Metro răspundea `packager-status:running`. După încărcare, focus
+`app.nexus.mobile.dev/app.nexus.mobile.dev.MainActivity`.
+
+Loturi: `device-batch.ps1 -List docs/parity-report/batch.txt -Device 192.168.1.184:35627` → **15/20 pași**,
+apoi `batch-fix.txt` (6/6) și `batch-fix2.txt` (6/6).
+
+### Două capcane de tooling, măsurate (și reparate)
+
+| Constatare măsurată | Consecință | Reparat |
+|---|---|---|
+| Un PowerShell detașat (fără consolă) nu poate primi `[Console]::OutputEncoding = UTF8`, iar dump-ul citit prin pipeline (`exec-out cat`) ajungea „AcasÄƒ"/„ÃŽnchide": `tap:Acasă` a ratat, iar lotul a capturat stări greșite fără să semnaleze nimic | etichetele cu diacritice nu se mai potrivesc | `Get-Xml` citește XML-ul **binar** (`cmd /c … > fișier`), apoi `Get-Content -Encoding UTF8` |
+| `uiautomator dump` eșuat **nu șterge** fișierul de pe telefon, iar „păstrează cel mai mare arbore" preferă exact acel fișier vechi: `profile/own-0.xml` și `native-tab-2.xml` au primit arborele inboxului (MD5 identic `46A16D3C…`) | captură aparent validă, cu geometria altui ecran | `rm -f` înainte de fiecare dump + marcaj `native-<stare>.dump.txt` („ok N noduri"/„stub N noduri"); `compare.mjs` sare peste stările „stub" și scrie „captură doar-imagine" |
+
+### Rezultate măsurate
+
+| Ecran / stare | Dovezi | Rezultat |
+|---|---|---|
+| `messages/inbox-0` | `native-inbox-0.xml` (34 noduri), `focus-inbox-0.txt`, `diff.md`, `web-vs-native-inbox-0.jpg` | 43 elemente web etichetate: **0** fără diferență · **18** cu diferență · **25** lipsă · **6** în plus în nativ — neschimbat față de runda 1 |
+| `profile/own-0`, `profile/tab-1`, `profile/tab-2` | PNG + `web-vs-native-*.jpg` | arbore indisponibil („stub 0 noduri"): pe profil `uiautomator` nu atinge idle, deci geometria se citește pe pixeli |
+
+Pe profil, `uiautomator dump` întoarce **0 noduri** la fiecare încercare („ERROR: could not get idle state") —
+ecranul are animații continue (banda de metadate se derulează; comparate două capturi, banda își schimbă
+conținutul). De aceea acolo **nu există etichete**: bara de moduri a fost localizată prin decupaje, nu din
+arbore — y=778 px fizici (299 CSS), iconițele la x=110/330/557/777/995 (42/127/214/299/383 CSS).
+
+### Profil — bara de moduri funcționează pe jumătate (măsurat în pixeli)
+
+Glyphurile barei sunt exact cele din web (`≡ ▶ ▦ ❝ ✦` + `⌄`), deci defectul „iconițe vs text" din §4 este
+**reparat** pe telefon. Tap-ul pe o iconiță mută sublinia de selecție (verificat pe două capturi), deci bara
+reacționează. Ce se schimbă în *conținut* (procent de pixeli diferiți în banda y 920–2200 px):
+
+| Comparație | Delta | Citire |
+|---|---|---|
+| fila 1 (`≡`) → fila 2 (`▶`) | **75.8 %** | fila 2 randează altceva |
+| fila 2 (`▶`) → fila 3 (`▦`) | **75.8 %** | fila 3 randează altceva |
+| fila 1 (`≡`) → fila 3 (`▦`) | **0.0 %** | **fila 3 este identică pixel-cu-pixel cu fila 1** → un mod inert |
+
+Compozitele arată de ce (`profile/web-vs-native-own-0.jpg`, `…-tab-1.jpg`): web-ul randează în filele
+„flow"/„reels" o **grilă de miniaturi** (3 pe rând, fiecare cu `▶ 1` lipit și buton de selectare), iar
+nativul randează o **listă de carduri** (un post pe rând, imagine mare; în fila `▶` un card cu un video
+mare negru cu buton de redare). Diferențe de antet, citite pe compozit:
+
+| Element web | Nativ acum |
+|---|---|
+| insignă de lacăt lângă nume | absent |
+| buton hamburger (meniul profilului) | absent |
+| bandă de metadate cu iconițe (📍 localitate · 🎂 vârstă · @handle · N postări · N urmăritori) | aceleași date, dar într-o **bandă derulantă** de text, fără iconițe fixe |
+| buton creion (editează profilul) | absent |
+
+Nota §4, recalculată pe criterii: „iconuri" 0/1 → **1/1** (glyphurile sunt pe ecran), restul neschimbate
+(structură 1/2, elemente 1/2, spațiere 0.5/1, culori 0.5/1, gesturi 0.5/1, stări 0.5/2 pentru modul inert)
+⇒ **profil 4/10 → 5/10**.
+
+### Stări care nu există pe contul de pe telefon (măsurat, nu presupus)
+
+`native-inbox-0.xml` conține „Nicio conversație aici" și „Pornește una folosind username-ul Nexus, nu un ID
+numeric.", iar shelf-ul de story-uri are doar „Story-ul tău" (cardul de adăugare). Deci `messages/thread-0`
+și `viewer/story-viewer` **nu au stare corespondentă pe telefon**: stările lor din web vin din contul
+semănat (`docs/TEST-DATA.md`). Lotul a fost corectat: pașii `tap:Deschide conversația`,
+`tap:Înapoi la conversații` și `tap:Story de verificare` au fost scoși, cu motivul scris în `batch.txt`.
+Capturile greșite produse de lotul dinainte (`messages/native-thread-0.*`, `viewer/native-story-viewer.*` —
+care arătau ecranul Mesaje) au fost șterse, ca să nu intre în `diff.md` ca stări valide.
+
+**Reparat în runda 2, cu măsurătoare:** bara de reacții (2/10 → 7/10, vezi nota de scor de mai sus),
+glyphurile barei de moduri de pe profil (0/1 → 1/1), plus cele două capcane de tooling care falsificau
+capturile. **Rămas de reparat, cu dovadă:** fila 3 de profil inertă (0.0 %), antetul de profil fără
+lacăt/hamburger/creion cu banda de metadate derulantă, plus rândurile din tabelele §1–§5 care n-au fost
+atinse.
 
 

@@ -1,0 +1,19 @@
+# Recaptură profil cu coordonatele CORECTE ale barei de moduri. Lotul anterior folosea (214,202) CSS,
+# adică rata complet bara (măsurată la y=778 px fizici → 299 CSS; iconițe la x=110/330/557/777/995 px
+# → 42/127/214/299/383 CSS). Telefonul e deja pe profil, iar acolo `uiautomator dump` nu atinge idle
+# („stub"), deci toate pașii se fac cu coordonate, nu cu etichete.
+
+# fila 1 („listă"): starea de referință own-0
+tapxy:42,299
+wait:2500
+capture:profile/own-0
+
+# fila 2 („play"/video): măsurat, schimbă conținutul cu 75.8%
+tapxy:127,299
+wait:2500
+capture:profile/tab-1
+
+# fila 3 (grilă): măsurat, randează IDENTIC cu fila 1 (0.0% diferență) — dovada modului inert
+tapxy:214,299
+wait:2500
+capture:profile/tab-2

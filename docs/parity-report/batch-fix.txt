@@ -1,0 +1,26 @@
+# Recaptură runda 2, după reparațiile de tooling din device-batch.ps1:
+#   - dump citit binar (cmd /c redirect), apoi UTF-8 explicit (fără consolă nu mai există mojibake);
+#   - `rm -f` înainte de fiecare `uiautomator dump` (altfel un dump eșuat lasă arborele vechi);
+#   - marcaj `native-<stare>.dump.txt` („ok N noduri" / „stub N noduri") lângă fiecare PNG.
+#
+# Stare de plecare măsurată: telefonul e pe PROFIL, iar pe profil `uiautomator dump` nu atinge niciodată
+# idle („ERROR: could not get idle state") din cauza animațiilor → acolo etichetele nu se pot rezolva,
+# doar coordonate citite din captură. De aceea primul pas iese cu `tapxy` pe „Mesaje" din bara de jos
+# ([188,2393]-[352,2523] px fizici în native-inbox-0.xml → centru (270,2458) ÷ 2.6 = (104,945) CSS).
+
+tapxy:104,945
+wait:1500
+capture:messages/inbox-0
+
+# Profilul: se intră pe etichetă (dump-ul funcționează încă pe inbox), se captură după ce animația
+# de intrare s-a terminat; PNG-ul e dovada, XML-ul va purta marcajul „stub".
+tap:Profil
+wait:3000
+capture:profile/own-0
+
+# A doua filă din bara de moduri a profilului (iconița de grilă): coordonate citite din captura
+# de profil (bara de iconițe e la y≈525 px fizici, iconițele la x≈98/328/557/786/1016 → a treia la
+# (557,525) ÷ 2.6 ≈ (214,202) CSS).
+tapxy:214,202
+wait:2000
+capture:profile/tab-2

@@ -1,1 +1,1 @@
-﻿mCurrentFocus=Window{77892bc u0 app.nexus.mobile.dev/app.nexus.mobile.dev.MainActivity}
+﻿mCurrentFocus=Window{7d34f6f u0 app.nexus.mobile.dev/app.nexus.mobile.dev.MainActivity}
