@@ -154,7 +154,12 @@ export function AppHeader({ variant, modeId, build, switches = [], onPressWordma
 
       {variant === 'feed' ? (
         <>
-          <View style={styles.modePill}>
+          {/**
+           * `.feedModes` (feed-surface.js:77): the web paints the readings as a `nav[role=tablist]` whose
+           * accessible name is `feed.modesLabel` — "Ce citești". The phone keeps one cycling tab, but it wears
+           * the same name and the same list role, so a screen reader meets the bar under the reading it offers.
+           */}
+          <View accessibilityRole="tablist" accessibilityLabel="Ce citești" style={styles.modePill}>
             <Pressable
               accessibilityRole="tab"
               accessibilityLabel={mode.title}
