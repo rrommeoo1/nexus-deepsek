@@ -1,0 +1,117 @@
+[
+ {
+  "file": "composer-camera.css",
+  "bytes": 1408,
+  "vars": 0
+ },
+ {
+  "file": "dating-module.css",
+  "bytes": 6884,
+  "vars": 0
+ },
+ {
+  "file": "fair-verticals.css",
+  "bytes": 7102,
+  "vars": 2
+ },
+ {
+  "file": "feed-surface.css",
+  "bytes": 200842,
+  "vars": 25
+ },
+ {
+  "file": "kids.css",
+  "bytes": 3097,
+  "vars": 0
+ },
+ {
+  "file": "m12-module.css",
+  "bytes": 5668,
+  "vars": 0
+ },
+ {
+  "file": "messenger-spaces.css",
+  "bytes": 6488,
+  "vars": 0
+ },
+ {
+  "file": "music-grow-module.css",
+  "bytes": 6337,
+  "vars": 0
+ },
+ {
+  "file": "p1-requests.css",
+  "bytes": 3338,
+  "vars": 0
+ },
+ {
+  "file": "p2-clips.css",
+  "bytes": 378,
+  "vars": 0
+ },
+ {
+  "file": "p2-messaging.css",
+  "bytes": 10939,
+  "vars": 0
+ },
+ {
+  "file": "p3-visual-foundation.css",
+  "bytes": 25815,
+  "vars": 17
+ },
+ {
+  "file": "post-detail.css",
+  "bytes": 23059,
+  "vars": 0
+ },
+ {
+  "file": "post-publishing.css",
+  "bytes": 8412,
+  "vars": 0
+ },
+ {
+  "file": "profile-experience.css",
+  "bytes": 49002,
+  "vars": 8
+ },
+ {
+  "file": "profile-private-access.css",
+  "bytes": 1310,
+  "vars": 0
+ },
+ {
+  "file": "reel-camera-surface.css",
+  "bytes": 37801,
+  "vars": 0
+ },
+ {
+  "file": "screen-shell.css",
+  "bytes": 1857,
+  "vars": 3
+ },
+ {
+  "file": "social-design.css",
+  "bytes": 21389,
+  "vars": 15
+ },
+ {
+  "file": "social-human-ux.css",
+  "bytes": 36983,
+  "vars": 7
+ },
+ {
+  "file": "styles.css",
+  "bytes": 283193,
+  "vars": 44
+ },
+ {
+  "file": "watch-module.css",
+  "bytes": 3883,
+  "vars": 0
+ },
+ {
+  "file": "work-module.css",
+  "bytes": 5382,
+  "vars": 0
+ }
+]

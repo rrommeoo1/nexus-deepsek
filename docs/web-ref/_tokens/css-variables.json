@@ -1,0 +1,532 @@
+{
+ ".userDot --ux": {
+  "file": "fair-verticals.css",
+  "selector": ".userDot",
+  "value": "48%"
+ },
+ ".userDot --uy": {
+  "file": "fair-verticals.css",
+  "selector": ".userDot",
+  "value": "55%"
+ },
+ "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels) --feed-tint": {
+  "file": "feed-surface.css",
+  "selector": "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels)",
+  "value": "#8b68d4"
+ },
+ "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels) --feed-tint-soft": {
+  "file": "feed-surface.css",
+  "selector": "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels)",
+  "value": "rgba(139,104,212,.14)"
+ },
+ "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels) --feed-tint-glow": {
+  "file": "feed-surface.css",
+  "selector": "/* One tint per reading: violet for Reels, green for Whispers, blue for News. It is written on the bar as well as on the screen - the bar is not inside the screen it belongs to - so the source door glows in the colour of what is being read, and the rail, the puck and the top of the column wear the same one. */ .appHeader.feedMode-reels,.clipsScreen.feed-reels,.phoneScreen:has(.feed-reels)",
+  "value": "rgba(139,104,212,.28)"
+ },
+ ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers) --feed-tint": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers)",
+  "value": "#43df80"
+ },
+ ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers) --feed-tint-soft": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers)",
+  "value": "rgba(67,223,128,.18)"
+ },
+ ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers) --feed-tint-glow": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-whispers,.clipsScreen.feed-whispers,.phoneScreen:has(.feed-whispers)",
+  "value": "rgba(67,223,128,.38)"
+ },
+ ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news) --feed-tint": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news)",
+  "value": "#2fb7ff"
+ },
+ ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news) --feed-tint-soft": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news)",
+  "value": "rgba(47,183,255,.18)"
+ },
+ ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news) --feed-tint-glow": {
+  "file": "feed-surface.css",
+  "selector": ".appHeader.feedMode-news,.clipsScreen.feed-news,.phoneScreen:has(.feed-news)",
+  "value": "rgba(47,183,255,.38)"
+ },
+ "/* ------------------------------------------------------------------ moments */ /* The shelf of moments is the first thing the Messages screen prints now - the owner moved it there, where it sits above the conversation list the way a tray of unseen moments does - so these are the same approved cards (a picture edge to edge, the name as a band over its foot, a ring for what is unseen) in a tray. */ .inboxScreen>.stories --inbox-tray-height": {
+  "file": "feed-surface.css",
+  "selector": "/* ------------------------------------------------------------------ moments */ /* The shelf of moments is the first thing the Messages screen prints now - the owner moved it there, where it sits above the conversation list the way a tray of unseen moments does - so these are the same approved cards (a picture edge to edge, the name as a band over its foot, a ring for what is unseen) in a tray. */ .inboxScreen>.stories",
+  "value": "160px"
+ },
+ "/* ---------------------------------------------------------------- Reels G0 */ /* The immersive reader follows the approved Nexus reference without cloning another product: the existing Nexus wordmark, feed modes and navigation stay functional, while the media remains the largest object on screen. Solid marks deliberately replace the thin outline/emoji rail. */ .reelViewer --viewer-safe-top": {
+  "file": "feed-surface.css",
+  "selector": "/* ---------------------------------------------------------------- Reels G0 */ /* The immersive reader follows the approved Nexus reference without cloning another product: the existing Nexus wordmark, feed modes and navigation stay functional, while the media remains the largest object on screen. Solid marks deliberately replace the thin outline/emoji rail. */ .reelViewer",
+  "value": "max(10px,env(safe-area-inset-top))"
+ },
+ "/* ---------------------------------------------------------------- Reels G0 */ /* The immersive reader follows the approved Nexus reference without cloning another product: the existing Nexus wordmark, feed modes and navigation stay functional, while the media remains the largest object on screen. Solid marks deliberately replace the thin outline/emoji rail. */ .reelViewer --viewer-safe-bottom": {
+  "file": "feed-surface.css",
+  "selector": "/* ---------------------------------------------------------------- Reels G0 */ /* The immersive reader follows the approved Nexus reference without cloning another product: the existing Nexus wordmark, feed modes and navigation stay functional, while the media remains the largest object on screen. Solid marks deliberately replace the thin outline/emoji rail. */ .reelViewer",
+  "value": "max(8px,env(safe-area-inset-bottom))"
+ },
+ "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) --teal": {
+  "file": "feed-surface.css",
+  "selector": "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen))",
+  "value": "#fff"
+ },
+ "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) --purple": {
+  "file": "feed-surface.css",
+  "selector": "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen))",
+  "value": "#fff"
+ },
+ "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen)) --profile-color": {
+  "file": "feed-surface.css",
+  "selector": "/* Pages outside the media reader: pure black surfaces, white controls and quiet gray hierarchy. */ .phoneScreen:has(.appNav.social):not(:has(.clipsScreen))",
+  "value": "#fff"
+ },
+ "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers) --feed-tint": {
+  "file": "feed-surface.css",
+  "selector": "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers)",
+  "value": "#fff"
+ },
+ "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers) --feed-tint-soft": {
+  "file": "feed-surface.css",
+  "selector": "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers)",
+  "value": "transparent"
+ },
+ "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers) --feed-tint-glow": {
+  "file": "feed-surface.css",
+  "selector": "/* Whispers — text-first, Twitter-like and strictly monochrome. The only hierarchy comes from weight, spacing and gray values; mode green/cyan no longer competes with the writing. */ .phoneScreen:has(.clipsScreen.feed-whispers)",
+  "value": "transparent"
+ },
+ "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news) --feed-tint": {
+  "file": "feed-surface.css",
+  "selector": "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news)",
+  "value": "#fff"
+ },
+ "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news) --feed-tint-soft": {
+  "file": "feed-surface.css",
+  "selector": "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news)",
+  "value": "transparent"
+ },
+ "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news) --feed-tint-glow": {
+  "file": "feed-surface.css",
+  "selector": "/* News follows the same black-and-white reading language as Whispers. */ .phoneScreen:has(.clipsScreen.feed-news)",
+  "value": "transparent"
+ },
+ "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root --nexus-green-canvas": {
+  "file": "feed-surface.css",
+  "selector": "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root",
+  "value": "#010302"
+ },
+ "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root --nexus-green-panel": {
+  "file": "feed-surface.css",
+  "selector": "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root",
+  "value": "#050806"
+ },
+ "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root --nexus-green-line": {
+  "file": "feed-surface.css",
+  "selector": "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root",
+  "value": "rgba(112,164,130,.16)"
+ },
+ "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root --nexus-green-glow": {
+  "file": "feed-surface.css",
+  "selector": "/* Quiet Nexus green ------------------------------------------------------- The product is still near-black, but no longer clinically monochrome. The green is deliberately below the contrast of content and controls, so it reads as atmosphere rather than a mode colour. */ :root",
+  "value": "rgba(76,142,102,.075)"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-void": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#02050b"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-surface": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "rgba(9,19,32,0.82)"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-surface-strong": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "rgba(6,14,25,0.96)"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-line": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "rgba(132,184,225,0.24)"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-cyan": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#57f5ff"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-teal": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#2ce8d7"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-violet": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#8c62ff"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-text": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#f4fbff"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-muted": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#9db0bc"
+ },
+ "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root --p3-danger": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* P3 visual foundation — final, bounded layer for the shared Nexus shell, authentication, inbox and Live. Loaded last so legacy experiments cannot override the product hierarchy. */ :root",
+  "value": "#ff5373"
+ },
+ "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root --nx-viewport-height": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root",
+  "value": "100vh"
+ },
+ "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root --nx-safe-top": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root",
+  "value": "env(safe-area-inset-top,0px)"
+ },
+ "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root --nx-safe-right": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root",
+  "value": "env(safe-area-inset-right,0px)"
+ },
+ "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root --nx-safe-bottom": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root",
+  "value": "env(safe-area-inset-bottom,0px)"
+ },
+ "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root --nx-safe-left": {
+  "file": "p3-visual-foundation.css",
+  "selector": "/* Cycle 141: real-device viewport contract. The desktop showcase frame must disappear completely on phones; every fixed edge remains inside safe areas. */ :root",
+  "value": "env(safe-area-inset-left,0px)"
+ },
+ ":root --nx-viewport-height": {
+  "file": "p3-visual-foundation.css",
+  "selector": ":root",
+  "value": "100dvh"
+ },
+ ".clipsScreen --story-rail-height": {
+  "file": "p3-visual-foundation.css",
+  "selector": ".clipsScreen",
+  "value": "70px !important"
+ },
+ "/* Wave 9v — the name is read on the profile's own surface, never across the photo. Wave 6t pulled the identity row up over the cover so the portrait overlaps the band, and the words travelled with it: the name, the lock and the presence line landed on the picture, where a bright cover made them faint. The row still overlaps — the portrait keeps the cover's bottom edge — and everything that is words starts under it, on the dark surface the profile is read on. One variable carries the overlap, so the band, the portrait and the words can never disagree about it. */ .nexusOwnerProfile --heroOverlap": {
+  "file": "profile-experience.css",
+  "selector": "/* Wave 9v — the name is read on the profile's own surface, never across the photo. Wave 6t pulled the identity row up over the cover so the portrait overlaps the band, and the words travelled with it: the name, the lock and the presence line landed on the picture, where a bright cover made them faint. The row still overlaps — the portrait keeps the cover's bottom edge — and everything that is words starts under it, on the dark surface the profile is read on. One variable carries the overlap, so the band, the portrait and the words can never disagree about it. */ .nexusOwnerProfile",
+  "value": "46px"
+ },
+ ".nexusOwnerProfile --heroOverlap": {
+  "file": "profile-experience.css",
+  "selector": ".nexusOwnerProfile",
+  "value": "32px"
+ },
+ "/* Wave 10 — the name reads on one line, the portrait fills its own row, and the pencil opens a page instead of turning the hero into a form. The band above the identity is either the cover photo or the shelf of saved stories, and the moving band of facts stays with the owner on a profile that is not public. One variable carries the portrait's size and one carries where the words start under the cover, so the band, the portrait and the words can never disagree about the row they share. */ .nexusOwnerProfile --portraitSize": {
+  "file": "profile-experience.css",
+  "selector": "/* Wave 10 — the name reads on one line, the portrait fills its own row, and the pencil opens a page instead of turning the hero into a form. The band above the identity is either the cover photo or the shelf of saved stories, and the moving band of facts stays with the owner on a profile that is not public. One variable carries the portrait's size and one carries where the words start under the cover, so the band, the portrait and the words can never disagree about the row they share. */ .nexusOwnerProfile",
+  "value": "104px"
+ },
+ "/* Wave 10 — the name reads on one line, the portrait fills its own row, and the pencil opens a page instead of turning the hero into a form. The band above the identity is either the cover photo or the shelf of saved stories, and the moving band of facts stays with the owner on a profile that is not public. One variable carries the portrait's size and one carries where the words start under the cover, so the band, the portrait and the words can never disagree about the row they share. */ .nexusOwnerProfile --heroWordTop": {
+  "file": "profile-experience.css",
+  "selector": "/* Wave 10 — the name reads on one line, the portrait fills its own row, and the pencil opens a page instead of turning the hero into a form. The band above the identity is either the cover photo or the shelf of saved stories, and the moving band of facts stays with the owner on a profile that is not public. One variable carries the portrait's size and one carries where the words start under the cover, so the band, the portrait and the words can never disagree about the row they share. */ .nexusOwnerProfile",
+  "value": "calc(var(--heroOverlap) + 4px)"
+ },
+ "/* Without a cover there is nothing to overlap and nothing for the words to clear, and a profile that never had a cover must not pay for a band it does not show. */ .nexusOwnerProfile[data-profile-cover=\"0\"] --heroOverlap": {
+  "file": "profile-experience.css",
+  "selector": "/* Without a cover there is nothing to overlap and nothing for the words to clear, and a profile that never had a cover must not pay for a band it does not show. */ .nexusOwnerProfile[data-profile-cover=\"0\"]",
+  "value": "0px"
+ },
+ ".nexusOwnerProfile --portraitSize": {
+  "file": "profile-experience.css",
+  "selector": ".nexusOwnerProfile",
+  "value": "96px"
+ },
+ "/* The other half of the same choice: a profile that shows the shelf of saved stories instead of a cover. The rail is in the markup either way and the section says which of the two is on screen, so switching is one attribute; with no cover over it there is nothing to overlap, which is what --heroOverlap:0 says to every rule that reads it. It sits on its own row now: the name line, then the shelf, then the band. */ .nexusOwnerProfile[data-cover-mode=\"stories\"] --heroOverlap": {
+  "file": "profile-experience.css",
+  "selector": "/* The other half of the same choice: a profile that shows the shelf of saved stories instead of a cover. The rail is in the markup either way and the section says which of the two is on screen, so switching is one attribute; with no cover over it there is nothing to overlap, which is what --heroOverlap:0 says to every rule that reads it. It sits on its own row now: the name line, then the shelf, then the band. */ .nexusOwnerProfile[data-cover-mode=\"stories\"]",
+  "value": "0px"
+ },
+ "/* The mobile web app should read as one physical screen on every route. This file is intentionally loaded last: older module styles still own their layouts, while this layer owns only the outer screen shape and clipping. */ :root --nexus-screen-gutter": {
+  "file": "screen-shell.css",
+  "selector": "/* The mobile web app should read as one physical screen on every route. This file is intentionally loaded last: older module styles still own their layouts, while this layer owns only the outer screen shape and clipping. */ :root",
+  "value": "3px"
+ },
+ "/* The mobile web app should read as one physical screen on every route. This file is intentionally loaded last: older module styles still own their layouts, while this layer owns only the outer screen shape and clipping. */ :root --nexus-screen-radius": {
+  "file": "screen-shell.css",
+  "selector": "/* The mobile web app should read as one physical screen on every route. This file is intentionally loaded last: older module styles still own their layouts, while this layer owns only the outer screen shape and clipping. */ :root",
+  "value": "clamp(20px, 6vw, 28px)"
+ },
+ ":root --nexus-screen-radius": {
+  "file": "screen-shell.css",
+  "selector": ":root",
+  "value": "18px"
+ },
+ ":root --bg": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#090e14"
+ },
+ ":root --panel": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#131c26"
+ },
+ ":root --line": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#ffffff14"
+ },
+ ":root --muted": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#95a5b7"
+ },
+ ":root --text": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#eff4fa"
+ },
+ ":root --cyan": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#6ce9e4"
+ },
+ ":root --purple": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#9692ff"
+ },
+ ":root --bubble": {
+  "file": "social-design.css",
+  "selector": ":root",
+  "value": "#243640"
+ },
+ ".light .prototype,.light .atlas-window --bg": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#f9fbfd"
+ },
+ ".light .prototype,.light .atlas-window --panel": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#edf2f6"
+ },
+ ".light .prototype,.light .atlas-window --line": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#152b3c18"
+ },
+ ".light .prototype,.light .atlas-window --muted": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#607489"
+ },
+ ".light .prototype,.light .atlas-window --text": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#122a3d"
+ },
+ ".light .prototype,.light .atlas-window --bubble": {
+  "file": "social-design.css",
+  "selector": ".light .prototype,.light .atlas-window",
+  "value": "#d7e5ed"
+ },
+ ".light .media --muted": {
+  "file": "social-design.css",
+  "selector": ".light .media",
+  "value": "#c2d4df"
+ },
+ "/* Final Social UX overrides. */ :root --nx-human-cyan": {
+  "file": "social-human-ux.css",
+  "selector": "/* Final Social UX overrides. */ :root",
+  "value": "#65f6ff"
+ },
+ "/* Final Social UX overrides. */ :root --nx-human-text": {
+  "file": "social-human-ux.css",
+  "selector": "/* Final Social UX overrides. */ :root",
+  "value": "#f7fbff"
+ },
+ "/* Final Social UX overrides. */ :root --nx-human-muted": {
+  "file": "social-human-ux.css",
+  "selector": "/* Final Social UX overrides. */ :root",
+  "value": "#c2d0d8"
+ },
+ "/* Final Social UX overrides. */ :root --nx-human-glass": {
+  "file": "social-human-ux.css",
+  "selector": "/* Final Social UX overrides. */ :root",
+  "value": "rgba(4,10,18,.76)"
+ },
+ "/* Wave 14h: seven marks, no words, 26px less bar; the name is the aria-label. */ :root --nav-h": {
+  "file": "social-human-ux.css",
+  "selector": "/* Wave 14h: seven marks, no words, 26px less bar; the name is the aria-label. */ :root",
+  "value": "60px"
+ },
+ ".feedRefreshing .pullRefreshIndicator --pull-distance": {
+  "file": "social-human-ux.css",
+  "selector": ".feedRefreshing .pullRefreshIndicator",
+  "value": "1"
+ },
+ ":root --panel2": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#0d1822"
+ },
+ ":root --teal": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#20e0d0"
+ },
+ ":root --gold": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#f7b94c"
+ },
+ ".statusIcons .sigilBtn.locked --sigil-color": {
+  "file": "styles.css",
+  "selector": ".statusIcons .sigilBtn.locked",
+  "value": "#50616a"
+ },
+ ".appHeader .feedBadge --mode-color": {
+  "file": "styles.css",
+  "selector": ".appHeader .feedBadge",
+  "value": "#20e0d0"
+ },
+ ".appHeader .friendsBadge --mode-color": {
+  "file": "styles.css",
+  "selector": ".appHeader .friendsBadge",
+  "value": "#7be7d8"
+ },
+ ":root --void": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#02050b"
+ },
+ ":root --void2": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#07101a"
+ },
+ ":root --glass": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(11,22,34,.58)"
+ },
+ ":root --glass2": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(20,33,51,.42)"
+ },
+ ":root --violet": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#8b5cff"
+ },
+ ":root --pink": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#ff4f8f"
+ },
+ ":root --softText": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#dff7ff"
+ },
+ ":root --nx-void": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#00030a"
+ },
+ ":root --nx-glass": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(12,24,40,.58)"
+ },
+ ":root --nx-glass-strong": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(18,33,54,.74)"
+ },
+ ":root --nx-cyan": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#37f7ff"
+ },
+ ":root --nx-teal": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#24f0d2"
+ },
+ ":root --nx-violet": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#8c62ff"
+ },
+ ":root --nx-pink": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#ff4d88"
+ },
+ ":root --nx-border": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(160,190,255,.24)"
+ },
+ ":root --nx-text": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#effbff"
+ },
+ ":root --nx-muted": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#91a5b7"
+ },
+ ".clipsScreen.storiesCollapsed --story-rail-height": {
+  "file": "styles.css",
+  "selector": ".clipsScreen.storiesCollapsed",
+  "value": "0px!important"
+ },
+ ":root --nx67-void": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#0a0a0f"
+ },
+ ":root --nx67-panel": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(10,18,28,.76)"
+ },
+ ":root --nx67-panel-strong": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(8,15,24,.92)"
+ },
+ ":root --nx67-cyan": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#00e5ff"
+ },
+ ":root --nx67-teal": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#24ead8"
+ },
+ ":root --nx67-line": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "rgba(135,183,220,.22)"
+ },
+ ":root --nx67-muted": {
+  "file": "styles.css",
+  "selector": ":root",
+  "value": "#a9bac5"
+ }
+}

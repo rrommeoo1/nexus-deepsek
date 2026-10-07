@@ -1,0 +1,79 @@
+[
+ {
+  "slot": "primary",
+  "aria": "Acasă",
+  "cls": "active",
+  "r": [
+   8,
+   971,
+   63,
+   50
+  ]
+ },
+ {
+  "slot": "inbox",
+  "aria": "Mesaje",
+  "cls": "",
+  "r": [
+   72,
+   971,
+   63,
+   50
+  ]
+ },
+ {
+  "slot": "search",
+  "aria": "Găsește oameni și conținut",
+  "cls": "",
+  "r": [
+   136,
+   971,
+   63,
+   50
+  ]
+ },
+ {
+  "slot": "create",
+  "aria": "Creează",
+  "cls": " createNav",
+  "r": [
+   200,
+   963,
+   68,
+   50
+  ]
+ },
+ {
+  "slot": "friends",
+  "aria": "Prieteni",
+  "cls": "",
+  "r": [
+   269,
+   971,
+   63,
+   50
+  ]
+ },
+ {
+  "slot": "utility",
+  "aria": "Live",
+  "cls": "",
+  "r": [
+   334,
+   971,
+   63,
+   50
+  ]
+ },
+ {
+  "slot": "account",
+  "aria": "Profil",
+  "cls": "",
+  "r": [
+   398,
+   971,
+   63,
+   50
+  ]
+ }
+]

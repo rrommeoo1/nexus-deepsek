@@ -1,0 +1,15 @@
+[
+ {
+  "id": "social-search-input",
+  "name": "q",
+  "type": "text",
+  "ph": "Caută în Nexus Social",
+  "aria": null,
+  "r": [
+   16,
+   191,
+   358,
+   44
+  ]
+ }
+]

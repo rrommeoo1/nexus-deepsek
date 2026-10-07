@@ -1,0 +1,8 @@
+# Capturile PNG și dump-urile per ecran sunt dovezi pentru owner: stau pe disc, se regenerează cu
+#   node tools/web-ref/crawl.mjs
+# și sunt prea grele pentru repository (PNG ~5 MB, dump-uri ~13 MB). Se păstrează doar
+# rezumatele mici (JSON-urile de la rădăcina folderelor) și tokenii extrași.
+*.png
+*/*.dom.json
+*/*.html.json
+_network/requests.json

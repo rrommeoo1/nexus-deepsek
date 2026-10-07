@@ -1,0 +1,12 @@
+{
+ "Arial,sans-serif!important": 3,
+ "ui-monospace,SFMono-Regular,Consolas,monospace": 2,
+ "\"Segoe UI Symbol\",\"Apple Color Emoji\",\"Noto Color Emoji\",sans-serif": 2,
+ "Inter,ui-rounded,system-ui,sans-serif": 1,
+ "monospace": 1,
+ "Inter,ui-sans-serif,system-ui,-apple-system,\"Segoe UI\",sans-serif": 1,
+ "Arial,\"Segoe UI Emoji\",sans-serif!important": 1,
+ "Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif!important": 1,
+ "Inter,Arial,Helvetica,sans-serif": 1,
+ "Inter,Arial,Helvetica,sans-serif!important": 1
+}
