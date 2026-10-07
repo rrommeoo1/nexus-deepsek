@@ -157,7 +157,18 @@ Scor: structură 1/2 · elemente 0.5/2 · iconuri 0.5/1 · spațiere 0.5/1 · cu
 5. **Viewer video**: rail-ul vertical de acțiuni (reacție 56×56, comentarii, salvare, distribuie), overlay-ul de creator și blocul de legendă/trust/atribuire audio.
 6. **Story viewer**: butonul `•••` („Opțiuni") nu e desenat — singura acțiune pe care web-ul o leagă de el este arhivarea propriului story (`app.js:2776`), iar un meniu inventat ar fi o minciună.
 
-## Runda 1 pe telefon (2026-10-07) — primul `diff.md` numeric
+## Runda 2 (offline, până la re-verificarea pe telefon)
+
+| Ecran | Commit | Ce s-a schimbat (cu dovada) | Nota înainte → după (măsurat) |
+|---|---|---|---|
+| Bara de reacții (card + rail) | _vezi commitul de față_ | `REACTION_GLYPHS` verbatim din `app.js:3567` (♥ 💗 😂 😮 😢 😠 ◆ ▼ — telefonul desena 👍/👎/🟥), `REACTION_TITLES` (`reaction.*`: Like, Love, Haha, Wow, Trist, Furios, Fake?, Dislike), `reactionSummary()` cu regula de colaps a web-ului (≥85 % → un singur glif cu totalul; maximum 3; sumar neatins = inimă cu 0) și `ReactionControl.tsx`: cardul tipărește până la 3 perechi glif+număr (`reactionSummaryMarkup`), rail-ul tipărește gliful viewer-ului + totalul (`viewerReactionSummaryMarkup`), iar selectorul e placa măsurată `.reactionBar.expanded` (4 coloane, gap 8, padding 10, r16, `rgba(5,14,20,.96)`, contur `rgba(36,240,210,.3)`, titluri RO, `aria-expanded`/`aria-selected`) | **2/10 → 7/10** |
+
+Diferențe măsurate rămase pe bara de reacții (nu se pot face „identic", se documentează):
+
+- placa selectorului: pe shell-ul de telefon al web-ului (`:has(.clipsScreen)`) ea devine `#050608` fără blur, iar eu păstrez `rgba(5,14,20,.96)` (media dintre cele două reguli ale web-ului);
+- marcajul „neatins": web-ul folosește `solidViewerIcon('heart')` (SVG alb), nativul folosește gliful ♥ alb — același desen, fără un al doilea set de iconițe;
+- discurile de reacție de pe rail: web-ul lasă `background:transparent` pe shell-ul de clips, cu touch target 54×42/48 și rânduri 35/11 px, iar nativul desenează gliful la 26 px într-un touch target 54×44 (măsurat, în așteptarea capturii pe telefon).
+
 
 Sesiune: `tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt` pe `192.168.1.184:41461`
 (Wireless debugging), **display principal = id SurfaceFlinger `4630946949513469331`** (1220×2656, DPR 2.6);
