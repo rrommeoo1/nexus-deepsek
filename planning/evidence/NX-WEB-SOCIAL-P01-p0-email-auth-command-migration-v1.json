@@ -1,0 +1,70 @@
+{
+  "packet": "NX-WEB-SOCIAL-P01-P0-EMAIL-AUTH-COMMAND-MIGRATION-011",
+  "checkpoint_date": "2026-10-07",
+  "environment": "local_development",
+  "incremental_cost": 0,
+  "network_egress": false,
+  "real_funds": false,
+  "symptom": "email sign-in answered 500 on a database written by a build that never recorded a purpose, while the same code passed on a freshly created file",
+  "root_cause": "SCHEMA is a pile of CREATE TABLE IF NOT EXISTS: it creates a table this database has never seen and never corrects one an older build already wrote, so the deployed command log kept its legacy key and no purpose column",
+  "migration": {
+    "table": "email_auth_commands",
+    "from_primary_key": ["idempotency_key"],
+    "to_primary_key": ["purpose", "idempotency_key"],
+    "from_columns": ["idempotency_key", "request_mac", "subject_sha256", "user_id", "persona", "session_token_hash", "session_token_ciphertext", "response_ciphertext", "expires_at", "created_at"],
+    "to_columns": ["purpose", "idempotency_key", "request_mac", "subject_sha256", "user_id", "persona", "session_token_hash", "session_token_ciphertext", "response_ciphertext", "expires_at", "created_at"],
+    "strategy": "in_place_rebuild_with_row_copy",
+    "legacy_row_purpose_default": "login",
+    "legacy_row_rationale": "login is what wrote this log before the column existed, and a replay re-checks purpose, request MAC and subject before it answers",
+    "unreadable_shape_policy": "preserve_as_email_auth_commands_legacy_and_start_empty",
+    "rows_deleted": false,
+    "idempotent": true,
+    "fail_safe": true,
+    "variant_b_used": false,
+    "boot_order": "repaired before db.exec(SCHEMA), so every later migration finds the shape it expects",
+    "schema_drift_sweep": {
+      "tables_inspected": 137,
+      "additive_drift": "ALTER TABLE ADD COLUMN from the declaration SCHEMA already carries",
+      "unaddable_drift": "reported as table.column, never guessed",
+      "declared_vs_created": "audited against the same text the DDL is built from"
+    }
+  },
+  "verification": {
+    "migration_test": { "passed": 4, "failed": 0 },
+    "migration_file_tests": { "passed": 7, "failed": 0 },
+    "full_tests": { "passed": 749, "failed": 0 },
+    "foreign_key_check": [],
+    "integrity_check": "ok",
+    "restart_idempotent": true,
+    "second_boot_report": { "migrated": false, "reason": "current" },
+    "drift_after_boot": [],
+    "unreadable_shape_preserved": true,
+    "replay_after_migration": { "replay": true, "same_session_token": true, "response_restored": true },
+    "fixtures": "local copies in the OS temp directory; no real rows touched"
+  },
+  "rollback": {
+    "crash_before_commit_simulated": true,
+    "legacy_table_restored": true,
+    "legacy_rows_restored": true,
+    "manual_rollback": "stop the service and restore the pre-deploy /data/nexus.sqlite copy; the rewrite itself never needs it because it runs in one transaction",
+    "deploy_rollback_target": "a build that already writes the purpose column; an older build cannot write this table"
+  },
+  "artifact_sha256": {
+    "apps/nexus-web/lib/db.js": "14d53cebd5f1e0c0d2ce317ff60bdbb48d1b2314b6396a6728250bb22b4193ab",
+    "apps/nexus-web/test/db-migrations.test.js": "efc7ff4a3dc2a8e50b116fd82bc2a0dd42d2b4d2c6b1fdbcc440d1ae4520116d"
+  },
+  "deploy": {
+    "performed": false,
+    "path": "Railway service source is this GitHub repository, branch main, built from the repository-root Dockerfile, one volume at /data, health check /health",
+    "trigger": "a push to main re-deploys the service; a push to another branch does not"
+  },
+  "capacity": {
+    "band": "UNOBSERVED",
+    "implementation": "main_agent_only",
+    "independent_t0_signoff": "PENDING_CAPACITY_WINDOW"
+  },
+  "policy": {
+    "external_share": "DENY",
+    "default_deny_spend": true
+  }
+}

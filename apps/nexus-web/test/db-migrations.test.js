@@ -4,7 +4,8 @@ import { DatabaseSync } from "node:sqlite";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { migrateMediaUploadGrantsKey, openDb } from "../lib/db.js";
+import { addableColumnDeclaration, auditSchemaDrift, migrateEmailAuthCommands, migrateMediaUploadGrantsKey, migrateSchemaColumns, openDb, reportSchemaDrift } from "../lib/db.js";
+import { consumeEmailAuthCommand, replayEmailAuthCommand } from "../lib/email-auth-session.js";
 import { createRepo } from "../lib/repo.js";
 
 const keyColumns = (db) => db.prepare(`PRAGMA table_info(media_upload_grants)`).all()
@@ -185,4 +186,233 @@ test("legacy chat rows gain epoch bindings without rewriting historical cipherte
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
+const commandKeyColumns = (db) => db.prepare(`PRAGMA table_info(email_auth_commands)`).all()
+  .filter((column) => Number(column.pk) > 0)
+  .sort((left, right) => Number(left.pk) - Number(right.pk))
+  .map((column) => column.name);
+
+// The shape a deployed database kept: the command log as it was written before it recorded a
+// purpose, so the only key it ever had was the idempotency key itself.
+function replaceWithPrePurposeCommandTable(db) {
+  db.exec(`
+    PRAGMA foreign_keys = OFF;
+    BEGIN IMMEDIATE;
+    ALTER TABLE email_auth_commands RENAME TO email_auth_commands_current;
+    CREATE TABLE email_auth_commands (
+      idempotency_key TEXT PRIMARY KEY,
+      request_mac TEXT NOT NULL,
+      subject_sha256 TEXT NOT NULL,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      persona TEXT NOT NULL,
+      session_token_hash TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE,
+      session_token_ciphertext BLOB NOT NULL,
+      response_ciphertext BLOB NOT NULL,
+      expires_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    INSERT INTO email_auth_commands (idempotency_key, request_mac, subject_sha256, user_id, persona,
+      session_token_hash, session_token_ciphertext, response_ciphertext, expires_at, created_at)
+      SELECT idempotency_key, request_mac, subject_sha256, user_id, persona,
+             session_token_hash, session_token_ciphertext, response_ciphertext, expires_at, created_at
+      FROM email_auth_commands_current;
+    DROP TABLE email_auth_commands_current;
+    COMMIT;
+    PRAGMA foreign_keys = ON;
+  `);
+}
+
+test("a pre-purpose email auth command log is rebuilt in place and still answers the login read", () => {
+  const directory = mkdtempSync(join(tmpdir(), "nexus-email-auth-command-migration-"));
+  const path = join(directory, "fixture.sqlite");
+  try {
+    const seeded = openDb(path);
+    const repo = createRepo(seeded);
+    const user = repo.createUser({ handle: "email-command-owner", displayName: "Email command owner" });
+    const requestData = { email: "owner@nexus.test", password: "sealed-in-the-command" };
+    const subject = requestData.email;
+    const idempotencyKey = "nexus-email-command-000000000001";
+    const issued = consumeEmailAuthCommand({
+      db: seeded, repo, purpose: "login", idempotencyKey, requestData, subject,
+      operation: () => ({ userId: user.id, response: { persona: "social", handle: "email-command-owner" } }),
+    });
+    assert.equal(issued.replay, false);
+    seeded.close();
+
+    const legacy = new DatabaseSync(path);
+    replaceWithPrePurposeCommandTable(legacy);
+    assert.deepEqual(commandKeyColumns(legacy), ["idempotency_key"]);
+    assert.equal(legacy.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count, 1);
+
+    // A database that cannot be repaired must not end the boot, and a half-rewritten command log is
+    // worse than an old one: the failing rewrite has to leave the table exactly where it was.
+    const refused = migrateEmailAuthCommands(legacy, {
+      beforeCommit() { throw new Error("SYSTEM_TEST_MIGRATION_CRASH"); },
+    });
+    assert.equal(refused.migrated, false);
+    assert.equal(refused.reason, "failed");
+    assert.deepEqual(commandKeyColumns(legacy), ["idempotency_key"]);
+    assert.equal(legacy.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count, 1);
+    assert.equal(legacy.prepare(`PRAGMA foreign_keys`).get().foreign_keys, 1);
+    assert.deepEqual(legacy.prepare(`PRAGMA foreign_key_check`).all(), []);
+
+    const report = migrateSchemaColumns(legacy);
+    assert.deepEqual(report.deferred, ["email_auth_commands.purpose"]);
+    assert.equal(report.repaired.includes("email_auth_commands"), true);
+    assert.deepEqual(commandKeyColumns(legacy), ["purpose", "idempotency_key"]);
+    legacy.close();
+
+    // The boot path runs the same repair, and every later open finds the log already current.
+    const migrated = openDb(path);
+    assert.deepEqual(commandKeyColumns(migrated), ["purpose", "idempotency_key"]);
+    const rows = migrated.prepare(`SELECT * FROM email_auth_commands`).all();
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].purpose, "login");
+    assert.equal(rows[0].idempotency_key, idempotencyKey);
+    assert.equal(rows[0].user_id, user.id);
+    assert.equal(rows[0].expires_at, issued.expiresAt);
+    assert.equal(migrated.prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND name = 'idx_email_auth_commands_expiry'`).all().length, 1);
+    assert.deepEqual(migrated.prepare(`PRAGMA foreign_key_check`).all(), []);
+    assert.equal(migrated.prepare(`PRAGMA integrity_check`).get().integrity_check, "ok");
+    assert.deepEqual(auditSchemaDrift(migrated), []);
+    assert.deepEqual(migrateEmailAuthCommands(migrated), { migrated: false, reason: "current" });
+
+    // The read the login route performs before it looks at a credential at all.
+    const replay = replayEmailAuthCommand({
+      db: migrated, repo: createRepo(migrated), purpose: "login", idempotencyKey, requestData, subject,
+    });
+    assert.equal(replay.replay, true);
+    assert.equal(replay.token, issued.token);
+    assert.deepEqual(replay.response, { persona: "social", handle: "email-command-owner" });
+    migrated.close();
+
+    const reopened = openDb(path);
+    assert.deepEqual(commandKeyColumns(reopened), ["purpose", "idempotency_key"]);
+    assert.equal(reopened.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count, 1);
+    reopened.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a column a table cannot absorb is reported, never guessed", () => {
+  assert.equal(addableColumnDeclaration("purpose TEXT NOT NULL CHECK(purpose IN ('signup','login','verify'))"), false);
+  assert.equal(addableColumnDeclaration("assessment_hash TEXT UNIQUE NOT NULL"), false);
+  assert.equal(addableColumnDeclaration("media_id INTEGER REFERENCES media(id) ON DELETE SET NULL"), false);
+  assert.equal(addableColumnDeclaration("status TEXT NOT NULL DEFAULT 'active'"), true);
+  assert.equal(addableColumnDeclaration("expires_at INTEGER"), true);
+  assert.equal(addableColumnDeclaration("created_at INTEGER NOT NULL DEFAULT (unixepoch())"), false);
+
+  const directory = mkdtempSync(join(tmpdir(), "nexus-schema-drift-defer-"));
+  const path = join(directory, "fixture.sqlite");
+  try {
+    openDb(path).close();
+    const legacy = new DatabaseSync(path);
+    legacy.exec("ALTER TABLE comments DROP COLUMN body;");
+    const report = migrateSchemaColumns(legacy);
+    assert.deepEqual(report.deferred, ["comments.body"]);
+    assert.equal(report.repaired.includes("comments.body"), false);
+    assert.deepEqual(reportSchemaDrift(legacy), ["comments.body"]);
+    assert.equal(legacy.prepare(`PRAGMA table_info(comments)`).all().some((column) => column.name === "body"), false);
+    legacy.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("additive drift in a table no migration owns is appended before the DDL runs", () => {
+  const directory = mkdtempSync(join(tmpdir(), "nexus-schema-drift-append-"));
+  const path = join(directory, "fixture.sqlite");
+  try {
+    const seeded = openDb(path);
+    const user = createRepo(seeded).createUser({ handle: "drift-owner", displayName: "Drift owner" });
+    seeded.prepare(`INSERT INTO notification_preferences
+      (user_id, persona, type, in_app, push, email, preview, quiet_start, quiet_end, updated_at)
+      VALUES (?, 'social', 'MENTION', 1, 0, 1, 'generic', '22:00', '07:00', ?)`).run(user.id, Date.now());
+    seeded.close();
+
+    const legacy = new DatabaseSync(path);
+    legacy.exec("ALTER TABLE notification_preferences DROP COLUMN quiet_end;");
+    const report = migrateSchemaColumns(legacy);
+    assert.deepEqual(report.repaired, ["notification_preferences.quiet_end"]);
+    assert.deepEqual(report.deferred, []);
+    legacy.close();
+
+    const migrated = openDb(path);
+    const preferences = migrated.prepare(`SELECT * FROM notification_preferences WHERE user_id = ?`).get(user.id);
+    assert.equal(preferences.quiet_start, "22:00");
+    assert.equal(preferences.quiet_end, null);
+    assert.deepEqual(auditSchemaDrift(migrated), []);
+    assert.deepEqual(reportSchemaDrift(migrated), []);
+    migrated.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test("a command log that cannot identify its own rows is preserved, never dropped", () => {
+  const directory = mkdtempSync(join(tmpdir(), "nexus-email-auth-command-quarantine-"));
+  const path = join(directory, "fixture.sqlite");
+  try {
+    const seeded = openDb(path);
+    const user = createRepo(seeded).createUser({ handle: "quarantine-owner", displayName: "Quarantine owner" });
+    // A row whose session never existed: the log is a corpse the rebuild must survive, not read.
+    seeded.exec("PRAGMA foreign_keys = OFF;");
+    seeded.prepare(`INSERT INTO email_auth_commands
+      (purpose, idempotency_key, request_mac, subject_sha256, user_id, persona, session_token_hash,
+       session_token_ciphertext, response_ciphertext, expires_at, created_at)
+      VALUES ('login', ?, 'mac', 'subject', ?, 'social', 'hash', x'00', x'01', ?, ?)`)
+      .run("nexus-quarantine-0000000000001", user.id, Date.now() + 60000, Date.now());
+    seeded.exec("PRAGMA foreign_keys = ON;");
+    seeded.close();
+
+    const legacy = new DatabaseSync(path);
+    legacy.exec(`
+      PRAGMA foreign_keys = OFF;
+      BEGIN IMMEDIATE;
+      DROP INDEX IF EXISTS idx_email_auth_commands_expiry;
+      ALTER TABLE email_auth_commands RENAME TO email_auth_commands_current;
+      CREATE TABLE email_auth_commands (
+        idempotency_key TEXT PRIMARY KEY,
+        request_mac TEXT NOT NULL,
+        subject_sha256 TEXT NOT NULL,
+        user_id INTEGER NOT NULL,
+        persona TEXT NOT NULL,
+        session_token_hash TEXT NOT NULL,
+        response_ciphertext BLOB NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      INSERT INTO email_auth_commands (idempotency_key, request_mac, subject_sha256, user_id, persona,
+        session_token_hash, response_ciphertext, expires_at, created_at)
+        SELECT idempotency_key, request_mac, subject_sha256, user_id, persona, session_token_hash,
+               response_ciphertext, expires_at, created_at FROM email_auth_commands_current;
+      DROP TABLE email_auth_commands_current;
+      COMMIT;
+      PRAGMA foreign_keys = ON;
+    `);
+
+    const report = migrateEmailAuthCommands(legacy);
+    assert.equal(report.migrated, true);
+    assert.equal(report.carried, 0);
+    assert.equal(report.preserved, "email_auth_commands_legacy");
+    assert.deepEqual(commandKeyColumns(legacy), ["purpose", "idempotency_key"]);
+    assert.equal(legacy.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count, 0);
+    const preserved = legacy.prepare(`SELECT * FROM email_auth_commands_legacy`).all();
+    assert.equal(preserved.length, 1);
+    assert.equal(preserved[0].idempotency_key, "nexus-quarantine-0000000000001");
+    assert.equal(preserved[0].request_mac, "mac");
+    assert.deepEqual(migrateEmailAuthCommands(legacy), { migrated: false, reason: "current" });
+    assert.deepEqual(legacy.prepare(`PRAGMA foreign_key_check`).all(), []);
+    legacy.close();
+
+    const migrated = openDb(path);
+    assert.equal(migrated.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count, 0);
+    assert.equal(migrated.prepare(`SELECT COUNT(*) count FROM email_auth_commands_legacy`).get().count, 1);
+    assert.deepEqual(reportSchemaDrift(migrated), []);
+    migrated.close();
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
 });
