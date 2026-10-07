@@ -103,6 +103,32 @@ export function authHeaders(): Record<string, string> {
   return headers;
 }
 
+/**
+ * The subset of `authHeaders` a media request needs.
+ *
+ * `GET /media/<hash>.<ext>` sits behind the same session as the rest of the product: on production
+ * an anonymous request answers `401` while the same URL answers `200` as soon as it carries either
+ * `Authorization: Bearer <nexus_session>` or `Cookie: nexus_session=…`. `<Image source={{uri,headers}}>`
+ * and `expo-video`'s `VideoSource.headers` accept exactly such a map, so this is what makes remote
+ * media resolve inside the app instead of failing silently behind an empty frame.
+ *
+ * `Origin` is deliberately absent: it is only required by the mutation replay boundary
+ * (`assertEmailAuthIdempotencyKey`), never by a read of a static asset.
+ */
+export function mediaHeaders(): Record<string, string> {
+  const session = readSession();
+  if (!session) return {};
+  const headers: Record<string, string> = {};
+  const cookies: string[] = [];
+  if (session.token) {
+    headers.Authorization = `Bearer ${session.token}`;
+    cookies.push(`nexus_session=${session.token}`);
+  }
+  if (session.deviceId) cookies.push(`nexus_device_id=${session.deviceId}`);
+  if (cookies.length) headers.Cookie = cookies.join('; ');
+  return headers;
+}
+
 /** Every `Set-Cookie` value a fetch response may expose, across React Native versions. */
 function readSetCookie(headers: Headers): string[] {
   const values: string[] = [];

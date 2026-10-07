@@ -13,6 +13,7 @@ import { API_ORIGIN } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
 import type { MeResponse } from '../lib/socialTypes';
+import { mediaSourceForPath } from '../lib/socialTypes';
 import { FeedScreen, nextMode, type FeedModeId } from '../screens/FeedScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { socialTokens, profileModules as socialModules } from '../theme/social';
@@ -134,10 +135,9 @@ export default function NativeHomeScreen() {
     } finally { setBusy(false); }
   }, [loadMe, me?.persona]);
 
-  const avatarUri = useMemo(() => {
-    const raw = me?.user?.avatar;
-    return raw && /^\/media\/[a-f0-9]{64}\.[a-z0-9]{2,8}$/.test(raw) ? `${API_ORIGIN}${raw}` : null;
-  }, [me?.user?.avatar]);
+  // The nav avatar is the same `/media/…` path the feed pictures use, so it needs the same session
+  // headers - without them the account disc stayed empty on the phone.
+  const avatarSource = useMemo(() => mediaSourceForPath(me?.user?.avatar), [me?.user?.avatar]);
 
   const onSelectSlot = useCallback((next: NavSlot) => {
     if (next === 'create') { router.push('/camera'); return; }
@@ -209,7 +209,7 @@ export default function NativeHomeScreen() {
         onSelect={onSelectSlot}
         onOpenDrawer={() => setDrawerOpen(true)}
         onOpenCreate={() => router.push('/camera')}
-        avatarUri={avatarUri}
+        avatarSource={avatarSource}
       />
       <FeedDrawer
         open={drawerOpen}

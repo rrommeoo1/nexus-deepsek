@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { NexusMark, type NavSlot } from './NexusMark';
+import type { MediaSource } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -16,13 +17,13 @@ export type AppNavProps = {
   onSelect: (slot: NavSlot) => void;
   onOpenDrawer: () => void;
   onOpenCreate: () => void;
-  avatarUri?: string | null;
+  avatarSource?: MediaSource | null;
   unreadCount?: number;
 };
 
 const slots: NavSlot[] = ['primary', 'inbox', 'search', 'create', 'friends', 'utility', 'account'];
 
-export function AppNav({ active, onSelect, onOpenCreate, avatarUri, unreadCount = 0 }: AppNavProps) {
+export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCount = 0 }: AppNavProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const tokens = socialTokens.nav;
@@ -72,8 +73,8 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarUri, unreadCount 
             >
               {create ? <CreateDisc /> : (
                 <View style={[styles.disc, selected && styles.discActive]}>
-                  {slot === 'account' && avatarUri ? (
-                    <Image source={{ uri: avatarUri }} style={styles.avatar} accessibilityIgnoresInvertColors />
+                  {slot === 'account' && avatarSource ? (
+                    <Image source={avatarSource} style={styles.avatar} accessibilityIgnoresInvertColors />
                   ) : (
                     <NexusMark slot={slot} color={unread ? '#ff7180' : socialTokens.colors.white} />
                   )}

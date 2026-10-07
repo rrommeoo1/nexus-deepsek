@@ -6,6 +6,7 @@ import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import type { FeedPage, NewsItem, SocialPost } from '../lib/socialTypes';
 import { relativeTime } from '../lib/socialTypes';
 import { PostCard } from '../components/PostCard';
+import { ReelsReader } from '../components/ReelsReader';
 import { socialTokens } from '../theme/social';
 
 const PAGE_SIZE = 30;
@@ -110,6 +111,21 @@ export function FeedScreen({ mode, onModeChange }: {
   }, []);
 
   if (loadedUrl !== url) return <FeedSkeleton />;
+
+  // The clips reading is the immersive one (`presentation-immersive` of feed-surface.css), so it gets
+  // the full-viewport reader. Whispers and News keep the card list. When the clips reading is empty or
+  // failed the card list stays in place, which is where the empty and error lines live.
+  if (mode === 'reels' && posts.length > 0) {
+    return (
+      <ReelsReader
+        posts={posts}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        onEndReached={onLoadMore}
+        loadingMore={loadingMore}
+      />
+    );
+  }
 
   return (
     <FlatList

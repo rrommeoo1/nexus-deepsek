@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
 import type { ProfileResponse, SocialPost } from '../lib/socialTypes';
-import { initialsFor, internalMediaUrl } from '../lib/socialTypes';
+import { initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems } from '../lib/socialTypes';
 import { PostCard } from '../components/PostCard';
+import { RemoteImageSource } from '../components/PostMedia';
 import { ProfileTicker } from '../components/ProfileTicker';
 import { socialTokens } from '../theme/social';
 
@@ -82,21 +83,14 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />}
     >
       <View style={styles.cover}>
-        {internalMediaUrl(profile?.cover) ? (
-          <Image
-            source={{ uri: internalMediaUrl(profile?.cover) as string }}
-            resizeMode="cover"
-            style={styles.coverImage}
-            accessibilityIgnoresInvertColors
-          />
-        ) : null}
+        <RemoteImageSource source={mediaSourceForPath(profile?.cover)} fit="cover" style={styles.coverImage} />
       </View>
 
       <View style={styles.hero}>
         <View style={styles.identity}>
           <View style={styles.avatar}>
-            {internalMediaUrl(profile?.avatar) ? (
-              <Image source={{ uri: internalMediaUrl(profile?.avatar) as string }} style={styles.avatarImage} accessibilityIgnoresInvertColors />
+            {mediaSourceForPath(profile?.avatar) ? (
+              <RemoteImageSource source={mediaSourceForPath(profile?.avatar)} fit="cover" style={styles.avatarImage} />
             ) : (
               <Text style={styles.avatarInitials}>{initialsFor(profile?.name, profile?.handle)}</Text>
             )}
@@ -150,11 +144,12 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
   );
 }
 
+/** The tab filters the payload the server already returned, reading the kind the media really has. */
 function filterTab(posts: SocialPost[], tab: TabId): SocialPost[] {
   if (tab === 'flow') return posts;
-  if (tab === 'reels') return posts.filter((post) => post.media?.kind === 'video');
-  if (tab === 'shots') return posts.filter((post) => post.media?.kind === 'image');
-  if (tab === 'whispers') return posts.filter((post) => !post.media);
+  if (tab === 'reels') return posts.filter((post) => mediaKindOf(postMediaItems(post)[0]) === 'video');
+  if (tab === 'shots') return posts.filter((post) => mediaKindOf(postMediaItems(post)[0]) === 'image');
+  if (tab === 'whispers') return posts.filter((post) => postMediaItems(post).length === 0);
   return [];
 }
 

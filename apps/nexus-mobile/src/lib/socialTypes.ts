@@ -1,5 +1,6 @@
 import { API_ORIGIN } from './apiOrigin';
 import { mediaUrl } from './nexusApi';
+import { mediaHeaders } from './session';
 
 /**
  * The shapes the existing endpoints answer with. They are read from apps/nexus-web/lib/api.js
@@ -24,6 +25,21 @@ export type PostAuthor = {
   avatar?: string | null;
 };
 
+/** `SOCIAL_REACTIONS` of lib/repo.js, in the order the reaction bar prints them. */
+export const SOCIAL_REACTIONS = ['LIKE', 'LOVE', 'HAHA', 'WOW', 'SAD', 'ANGRY', 'FAKE_OPINION', 'DISLIKE'] as const;
+
+export type ReactionKind = typeof SOCIAL_REACTIONS[number];
+
+/**
+ * `repo.postReactionSummary` / `repo.commentReactionSummary`: the per-kind counts plus the one kind
+ * the viewer already chose. The web prints the total of `counts`, which is the same number here.
+ */
+export type ReactionSummary = {
+  counts?: Record<string, number> | null;
+  viewer_reaction?: string | null;
+  private_dislike_by_me?: boolean;
+};
+
 export type SocialPost = {
   id: number;
   user_id?: number;
@@ -38,11 +54,18 @@ export type SocialPost = {
   comment_count?: number;
   view_stats?: { viewers?: number; impressions?: number } | null;
   saved_by_me?: boolean;
+  reposted_by_me?: boolean;
+  following_me?: boolean;
+  follow_request_pending?: boolean;
   tags?: string[];
-  /** Any of the reaction counts the post summary carries; read only when present. */
-  reaction_count?: number;
-  reposts?: number;
-  shares?: number;
+  /** `socialPostView().reactions` — the real summary, never a naked number. */
+  reactions?: ReactionSummary | null;
+  /** Soundtrack of the clip, when the author attached one (`post.audio` of the web card). */
+  audio?: MediaItem | null;
+  external_audio?: { name?: string; attribution?: string; audio_url?: string } | null;
+  audio_attribution?: string | null;
+  language?: string | null;
+  status?: string;
 };
 
 export type NewsItem = { title?: string; url?: string; source?: string; published_at?: string | number | null };
@@ -151,4 +174,98 @@ export function compactCount(value?: number | null): string {
   if (count < 1000) return String(count);
   if (count < 1_000_000) return `${(count / 1000).toFixed(count < 10_000 ? 1 : 0)} k`;
   return `${(count / 1_000_000).toFixed(1)} M`;
+}
+
+/**
+ * A ready-to-use source for `<Image>` and `expo-video`, with the session attached.
+ *
+ * `/media/` answers `401` without a session (verified on production), and React Native components do
+ * not share `fetch`'s cookie jar on every platform, so the headers `mediaHeaders()` returns are what
+ * actually makes a remote picture or clip load. The same page renders identically with a black
+ * rectangle when they are missing - the failure the phone was showing.
+ */
+export type MediaSource = { uri: string; headers: Record<string, string> };
+
+export function mediaSourceFor(item?: MediaItem | null): MediaSource | null {
+  const uri = mediaItemUrl(item);
+  return uri ? { uri, headers: mediaHeaders() } : null;
+}
+
+/** The same, for the plain `/media/…` path strings a profile answers with (avatar, cover). */
+export function mediaSourceForPath(value?: string | null): MediaSource | null {
+  const uri = internalMediaUrl(value);
+  return uri ? { uri, headers: mediaHeaders() } : null;
+}
+
+/** The ordered carousel the web reads (`media_list`), falling back to the single cover. */
+export function postMediaItems(post: SocialPost): MediaItem[] {
+  const listed = Array.isArray(post.media_list) ? post.media_list.filter((item) => mediaItemUrl(item)) : [];
+  if (listed.length) return listed;
+  return post.media && mediaItemUrl(post.media) ? [post.media] : [];
+}
+
+/** `media.kind`, derived from the mime type when the server left the field out. */
+export function mediaKindOf(item?: MediaItem | null): MediaKind | null {
+  if (!item) return null;
+  if (item.kind) return item.kind;
+  const mime = String(item.mime || '');
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
+  if (mime.startsWith('image/')) return 'image';
+  return null;
+}
+
+/** The number the web prints next to the reaction button: the sum of the real per-kind counts. */
+export function reactionTotal(summary?: ReactionSummary | null): number {
+  const counts = summary?.counts ?? {};
+  return Object.values(counts).reduce((total, value) => total + (Number(value) || 0), 0);
+}
+
+export function viewerReaction(summary?: ReactionSummary | null): string | null {
+  return summary?.viewer_reaction ?? null;
+}
+
+/** The glyph the reaction palette prints for each kind of `SOCIAL_REACTIONS`. */
+export const REACTION_GLYPHS: Record<string, string> = {
+  LIKE: '👍', LOVE: '❤️', HAHA: '😂', WOW: '😮', SAD: '😢', ANGRY: '😡', FAKE_OPINION: '🟥', DISLIKE: '👎',
+};
+
+/** One comment as `commentThreadView` of lib/api.js returns it. */
+export type CommentView = {
+  id: number;
+  post_id?: number;
+  user_id?: number;
+  parent_id?: number | null;
+  body?: string;
+  created_at?: number | string | null;
+  author?: PostAuthor | null;
+  status?: string;
+  reactions?: ReactionSummary | null;
+  saved_by_me?: boolean;
+  can_pin?: boolean;
+  pinned_by_owner?: boolean;
+  views?: number;
+  parent_author?: { id?: number; handle?: string; display_name?: string; withdrawn?: boolean } | null;
+  replies?: CommentView[];
+};
+
+/** `GET /api/posts/:id/comments` */
+export type CommentPage = {
+  ok: true;
+  post_id: number;
+  comments: CommentView[];
+  sort?: string;
+  cursor?: string;
+  next_cursor?: string | null;
+  root_count?: number;
+};
+
+/**
+ * The soundtrack line of a clip, derived exactly the way the web derives it
+ * (`public/app.js`: `externalAudio?.attribution || item.audio_attribution || 'Audio original · ' + name`).
+ */
+export function audioAttributionFor(post: SocialPost, authorName: string): string {
+  return post.external_audio?.attribution
+    || post.audio_attribution
+    || `Audio original · ${authorName}`;
 }
