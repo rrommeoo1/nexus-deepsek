@@ -458,6 +458,103 @@ const steps = [
       c.note('search-result-opened', String(opened));
     },
   },
+  {
+    name: 'messages-activity',
+    run: async (c) => {
+      c.mark('messages-activity');
+      await c.ensureReady();
+      await c.slot('inbox');
+      // Notifications are the `activity` box of the inbox (public/messenger-shell.js
+      // prints `[data-inbox-box]`), not a separate screen.
+      let opened = false;
+      try { await c.domClick('[data-inbox-box="activity"]', { label: 'inbox activity box' }); opened = true; } catch { opened = false; }
+      await settle(c.page, 2200);
+      await c.snap('messages', 'activity-0', { label: 'notifications opened=' + opened });
+      await c.dumpHtml('messages', 'activity-0', ['#screenViewport', '.notificationCenter', '.appHeader']);
+      const rows = await c.page.evaluate(() =>
+        [...document.querySelectorAll('.notificationList > *, [data-notification-id]')].map((node) => {
+          const r = node.getBoundingClientRect();
+          return {
+            text: (node.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+            id: node.getAttribute('data-notification-id') || '',
+            cls: node.className,
+            r: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)],
+          };
+        }),
+      );
+      saveJson(path.join(OUT, 'messages', 'activity-rows.json'), rows);
+      c.note('activity-opened', String(opened));
+      await c.domClick('[data-inbox-box="inbox"]').catch(() => {});
+    },
+  },
+  {
+    name: 'profile-other',
+    run: async (c) => {
+      c.mark('profile-other');
+      await c.ensureReady();
+      await c.slot('primary');
+      // Another person's profile opens from the author identity of a feed card
+      // (`[data-creator-profile]`, public/feed-surface.js). The owner's own card
+      // opens the account screen instead, so the step prefers a dialog that
+      // carries a follow control.
+      const candidates = await c.page.evaluate(() =>
+        [...new Set([...document.querySelectorAll('#screenViewport [data-creator-profile]')].map((node) => node.getAttribute('data-creator-profile')))].slice(0, 6),
+      );
+      let opened = null;
+      for (const handle of candidates) {
+        await c.page.evaluate((target) => {
+          const button = [...document.querySelectorAll('#screenViewport [data-creator-profile]')]
+            .find((node) => node.getAttribute('data-creator-profile') === target);
+          if (button) button.click();
+        }, handle);
+        await settle(c.page, 1400);
+        const isOther = await c.page.evaluate(() => {
+          const dialog = document.querySelector('[role="dialog"], .publicProfileDialog, .sheet');
+          return Boolean(dialog && dialog.querySelector('[data-follow]'));
+        });
+        if (isOther) { opened = handle; break; }
+        await c.closeOverlays();
+      }
+      await c.snap('profile', 'other-0', { label: 'other profile opened=' + opened });
+      await c.dumpHtml('profile', 'other-0', ['#screenViewport', '.publicProfileDialog', '[role="dialog"]', '.appHeader']);
+      await c.closeOverlays();
+      c.note('profile-other-opened', String(opened));
+    },
+  },
+  {
+    name: 'create-composer-tweet',
+    run: async (c) => {
+      c.mark('create-composer-tweet');
+      await c.ensureReady();
+      await c.slot('create');
+      await settle(c.page, 2000);
+      // The create slot opens the camera surface; the text composer is the same
+      // screen in `tweet` intent (`[data-source-jump="tweet"]`, public/app.js).
+      const jumped = await c.page.evaluate(() => {
+        const button = document.querySelector('[data-source-jump="tweet"]');
+        if (!button) return false;
+        button.click();
+        return true;
+      });
+      await settle(c.page, 1400);
+      await c.snap('create', 'composer-tweet');
+      await c.dumpHtml('create', 'composer-tweet', ['#screenViewport', '.composerScreen', '.composer', '#composerForm']);
+      const form = await c.page.evaluate(() => {
+        const el = document.getElementById('composerForm');
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return {
+          source: document.querySelector('.composer')?.dataset.composerSource ?? null,
+          r: [Math.round(r.x), Math.round(r.y), Math.round(r.width), Math.round(r.height)],
+          controls: [...el.querySelectorAll('button, [aria-label]')]
+            .map((node) => (node.getAttribute('aria-label') || node.innerText || '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean).slice(0, 24),
+        };
+      });
+      saveJson(path.join(OUT, 'create', 'composer-tweet.json'), { jumped, form });
+      c.note('composer-tweet-opened', String(jumped));
+    },
+  },
 ];
 
 const main = async () => {
