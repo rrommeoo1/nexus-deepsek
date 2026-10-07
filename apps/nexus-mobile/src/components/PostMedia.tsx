@@ -68,11 +68,16 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
     instance.muted = muted;
   });
 
+  // A live player is a mutable native handle: expo-video exposes no declarative prop for these two,
+  // so assigning them on the handle is the documented way to change them — exactly what the
+  // `react-hooks/immutability` rule cannot see.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     player.muted = muted;
   }, [muted, player]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     player.loop = loop;
   }, [loop, player]);
 
