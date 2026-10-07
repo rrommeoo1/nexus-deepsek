@@ -348,7 +348,12 @@ Textele trebuie preluate identic din `*.dom.json → textLines`.
 ## 12. Ce mai trebuie capturat + reguli de operare
 
 1. Story viewer cu un cont care are story-uri (feed-ul de test nu are: `story-opened=false`).
-2. Fir de conversație real (inbox-ul contului de test e gol: 0 conversații).
+2. Fir de conversație real (inbox-ul contului de test e gol: 0 conversații). Dovada de structură și copy
+   pentru inbox există totuși (`messages/inbox-0.dom.json`, **92 noduri**, `textLines`), iar `inbox-0.png`,
+   `inbox-s0.png` și `thread-0.png` sunt **aceeași imagine** — normal, cu un inbox gol pașii nu schimbă
+   nimic vizibil. Regula generală observată: crawlerul emite **un PNG per grup de stare** (7 identice în
+   `comments/`+`post/`, 3 în `profile/`), deci comparația de geometrie/culoare se face pe `*.dom.json`,
+   nu pe PNG.
 3. Activitatea de notificări din inbox (`renderNotificationActivity`, tab-ul „TE").
 4. Profilul altei persoane (`renderProfilePreview`) + stările public/privat.
 5. `search-result-open` (rezultatul de căutare deschis ca postare) — corespunde §10 rând 8.
