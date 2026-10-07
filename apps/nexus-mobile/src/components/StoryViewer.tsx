@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { RemoteImage, RemoteImageSource, RemoteVideo } from './PostMedia';
 import { initialsFor, mediaKindOf, mediaSourceForPath, type StoryView } from '../lib/socialTypes';
@@ -33,6 +34,16 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
 }) {
   const [index, setIndex] = useState(() => Math.max(0, Math.min(stories.length - 1, startIndex)));
   const [failed, setFailed] = useState<number | null>(null);
+  /**
+   * `env(safe-area-inset-top)` din CSS-ul web-ului, citit de pe device: browserul îl raportează 0, dar pe
+   * telefonul de test insetul de sus este **150 px fizici (≈58 CSS px)**, adică exact zona de status bar.
+   * Măsurat în sesiunea pe telefon: rail-ul și antetul la `top: 12/22` cădeau *sub* bara de status, iar
+   * un tap pe butonul „Închide" (y=120 fizic < 150) era înghițit de sistem. De aceea ambele folosesc
+   * inserția reală, cu pragurile din CSS (`max(9px, safe-top)` și `+13px`).
+   */
+  const insets = useSafeAreaInsets();
+  const topInset = Math.max(9, insets.top);
+  const bottomInset = Math.max(25, insets.bottom);
   /** The animated bar is a value, not a ref: it is read in render, which a ref may not be. */
   const [progress] = useState(() => new Animated.Value(0));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -93,7 +104,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
             <Rect x="0" y="0" width="100%" height="100%" fill="url(#nxStoryFrame)" />
           </Svg>
 
-          <View style={styles.progressRail}>
+          <View style={[styles.progressRail, { top: topInset }]}>
             {bars.map((i) => (
               <View key={i} style={styles.progressTrack}>
                 {i < index ? <View style={styles.progressDone} /> : null}
@@ -118,7 +129,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
           ) : null}
           {failed === index ? <Text style={styles.fallbackNote}>Story-ul nu a putut fi afișat.</Text> : null}
 
-          <View style={styles.header}>
+          <View style={[styles.header, { top: topInset + 13 }]}>
             <View style={styles.avatar}>
               {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} /> : <Text style={styles.avatarInitials}>{initialsFor(name, author?.handle)}</Text>}
             </View>
@@ -129,7 +140,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
             </Pressable>
           </View>
 
-          {story?.caption ? <View style={styles.caption}><Text style={styles.captionText}>{story.caption}</Text></View> : null}
+          {story?.caption ? <View style={[styles.caption, { bottom: bottomInset }]}><Text style={styles.captionText}>{story.caption}</Text></View> : null}
 
           <Pressable accessibilityRole="button" accessibilityLabel="Story anterior" onPress={() => step(-1, false)} style={[styles.hit, styles.hitPrev]} />
           <Pressable accessibilityRole="button" accessibilityLabel="Story următor" onPress={() => step(1, false)} style={[styles.hit, styles.hitNext]} />
