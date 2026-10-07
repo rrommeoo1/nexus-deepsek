@@ -1,5 +1,9 @@
 import { API_ORIGIN } from './apiOrigin';
+import { newMutationKey } from './idempotency';
 import { authHeaders } from './session';
+
+/** Methods the server wraps in its mutation replay boundary (`prepareMutation`). */
+const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export { API_ORIGIN };
 
@@ -16,16 +20,20 @@ export class NexusApiError extends Error {
  */
 export async function nexusApi<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!path.startsWith('/') || path.startsWith('//')) throw new Error('Cale API invalidă.');
-  const response = await fetch(`${API_ORIGIN}${path}`, {
-    ...options,
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...authHeaders(),
-      ...options.headers,
-    },
-  });
+  const method = String(options.method || 'GET').toUpperCase();
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+    ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+    ...authHeaders(),
+    ...(options.headers as Record<string, string> | undefined),
+  };
+  // Same replay boundary as the web client (`public/client.js` `api()`): every authenticated
+  // mutation carries an `Idempotency-Key`, minted here unless the caller already set one. Without
+  // it the server refuses the call with 400 `IDEMPOTENCY_KEY_REQUIRED` (e.g. `POST /api/persona/switch`).
+  if (MUTATION_METHODS.has(method) && !Object.keys(headers).some((name) => name.toLowerCase() === 'idempotency-key')) {
+    headers['Idempotency-Key'] = newMutationKey('ui');
+  }
+  const response = await fetch(`${API_ORIGIN}${path}`, { ...options, credentials: 'include', headers });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !body || typeof body !== 'object' || !('ok' in body) || body.ok !== true) {
     const payload = body && typeof body === 'object' ? body as { error?: string; code?: string } : null;

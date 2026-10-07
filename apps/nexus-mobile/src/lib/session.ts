@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { API_ORIGIN } from './apiOrigin';
+import { newMutationKey } from './idempotency';
 
 /**
  * Durable native session.
@@ -122,10 +123,18 @@ type LoginBody = { ok: true; user: SessionUser; email_verified?: boolean };
  * The response is checked on the server side; nothing is trusted from the client.
  */
 export async function signInWithEmail(email: string, password: string): Promise<LoginResult> {
+  // `/auth/email/login` sits behind the same replay boundary as every mutation
+  // (`assertEmailAuthIdempotencyKey`): without a 16–128 character `Idempotency-Key` the server
+  // answers 400 `IDEMPOTENCY_KEY_REQUIRED` and the session never opens. The web form sends the same
+  // header (`public/app.js` `data-login-key`). One key per attempt, exactly like the browser.
   const response = await fetch(`${API_ORIGIN}/auth/email/login`, {
     method: 'POST',
     credentials: 'include',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'Idempotency-Key': newMutationKey('email-login'),
+    },
     body: JSON.stringify({ email, password }),
   });
   const body: unknown = await response.json().catch(() => null);
@@ -148,7 +157,7 @@ export async function signOut(): Promise<void> {
     await fetch(`${API_ORIGIN}/auth/logout`, {
       method: 'POST',
       credentials: 'include',
-      headers: { Accept: 'application/json', ...headers },
+      headers: { Accept: 'application/json', 'Idempotency-Key': newMutationKey('email-logout'), ...headers },
     });
   } catch { /* the local session is already gone; the remote one expires on its own */ }
 }
