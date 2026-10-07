@@ -1,12 +1,17 @@
+import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { RemoteImageSource } from '../components/PostMedia';
+import { StoryRail } from '../components/StoryRail';
+import { StoryViewer } from '../components/StoryViewer';
+import { fetchStories } from '../lib/stories';
 import {
   initialsFor, mediaSourceForPath, relativeTime,
-  type ChatMessage, type Conversation, type ConversationThread, type ConversationsPage,
+  type ChatMessage, type Conversation, type ConversationThread, type ConversationsPage, type StoryView,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
+
 
 /** A nonce the server accepts: 8-80 chars of `[a-zA-Z0-9:_-]`, minted per send (replay-safe). */
 function messageNonce(): string {
@@ -34,14 +39,39 @@ const describe = (cause: unknown) => (cause instanceof Error ? cause.message : '
  * the server's own plaintext boundary (`POST …/messages` with a per-send nonce). The server decides who
  * may read or reply - a thread whose profile is not the active one answers 409 and the screen prints
  * that sentence instead of a fake composer.
+ *
+ * The shelf of moments the web prints as the first child of this screen (`#storyRail`, measured
+ * 437x160 at y=134 in `docs/web-ref/messages/inbox-0.dom.json`) is the list header here, so it scrolls
+ * away with the conversations exactly like the web's single scroller. Its own card is the camera door
+ * (`app.js:3324 openComposer("story")`) and every other card opens the full-screen reader.
  */
-export function MessagesScreen() {
+export function MessagesScreen({ owner }: {
+  /** The reader's own record for the shelf's first card (`activePersonaRecord()` of the web). */
+  owner: { display_name?: string | null; handle?: string; avatar?: string | null };
+}) {
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [open, setOpen] = useState<Conversation | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [nonce, setNonce] = useState(0);
+  const [stories, setStories] = useState<StoryView[]>([]);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+  /**
+   * The unseen shelf. A refused read (another persona, a viewer the answer does not belong to) leaves
+   * the tray empty instead of showing a stale one - the web empties the container the same way
+   * (`loadStories`, app.js:3306). A story whose progress the server accepted is dropped from the shelf,
+   * which is how the web's rail loses a card it has just shown.
+   */
+  const loadStories = useCallback(() => {
+    fetchStories()
+      .then((answer) => setStories(answer.stories))
+      .catch(() => setStories([]));
+  }, []);
+
+  useEffect(() => { loadStories(); }, [loadStories]);
+
 
   // The read starts in the effect, but every setState runs inside a promise callback, so nothing is
   // written to state synchronously while React runs the effect (the pattern the profile uses). Retry,
@@ -56,7 +86,7 @@ export function MessagesScreen() {
   }, [nonce]);
 
   const reload = () => { setError(''); setLoading(true); setNonce((value) => value + 1); };
-  const refresh = () => { setRefreshing(true); setNonce((value) => value + 1); };
+  const refresh = () => { setRefreshing(true); setNonce((value) => value + 1); loadStories(); };
 
   if (open) return <ThreadView conversation={open} onBack={() => { setOpen(null); refresh(); }} />;
 
@@ -77,10 +107,32 @@ export function MessagesScreen() {
           keyExtractor={(item) => String(item.id)}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={socialTokens.colors.white} />}
-          ListEmptyComponent={<Text style={styles.empty}>Nicio conversație încă.</Text>}
+          ListHeaderComponent={(
+            /** The web prints the shelf as the first child of this same scroller (`messenger-shell.js:46`). */
+            <StoryRail
+              stories={stories}
+              owner={owner}
+              onAddStory={() => router.push('/camera')}
+              onOpenStory={(index) => setViewerIndex(index)}
+            />
+          )}
+          ListEmptyComponent={(
+            <View style={styles.emptyBox}>
+              <Text style={styles.emptyTitle}>Nicio conversație aici</Text>
+              <Text style={styles.emptyDetail}>Pornește una folosind username-ul Nexus, nu un ID numeric.</Text>
+            </View>
+          )}
           renderItem={({ item }) => <ConversationRow conversation={item} onOpen={() => setOpen(item)} />}
         />
       )}
+
+      {viewerIndex !== null && stories.length ? (
+        <StoryViewer
+          stories={stories}
+          startIndex={viewerIndex}
+          onClose={() => { setViewerIndex(null); loadStories(); }}
+        />
+      ) : null}
     </View>
   );
 }
@@ -224,6 +276,10 @@ const styles = StyleSheet.create({
   retryText: { color: socialTokens.colors.white, fontWeight: '700', fontSize: 13 },
   list: { paddingVertical: 8 },
   empty: { color: socialTokens.colors.muted, fontSize: 13, textAlign: 'center', paddingTop: 40 },
+  /** `.emptyInbox{min-height:0;padding:16px 0;gap:8px}` — the two lines the web prints on an empty inbox. */
+  emptyBox: { paddingVertical: 16, gap: 8, alignItems: 'center' },
+  emptyTitle: { color: '#dfeef3', fontSize: 15, fontWeight: '700' },
+  emptyDetail: { color: '#8e9ca5', fontSize: 13, textAlign: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
   avatar: { width: 48, height: 48, borderRadius: 24, overflow: 'hidden', backgroundColor: '#111820', alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },

@@ -262,7 +262,20 @@ export default function NativeHomeScreen() {
   const floatingHeader = onFeed && headerFloats('feed', feedMode);
   const screen = (() => {
     if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} />;
-    if (slot === 'inbox') return <MessagesScreen />;
+    if (slot === 'inbox') {
+      /** `activePersonaRecord()` of the web: the shelf's first card is the reader's own record. */
+      const shelfOwner = me.profiles?.find((entry) => entry.persona === me.persona) ?? me.profiles?.find((entry) => entry.persona === 'social');
+      return (
+        <MessagesScreen
+          owner={{
+            display_name: shelfOwner?.name || me.user.display_name || me.user.handle,
+            handle: me.user.handle,
+            avatar: shelfOwner?.avatar || me.user.avatar,
+          }}
+        />
+      );
+    }
+
     if (slot === 'friends') return <FriendsScreen />;
     if (slot === 'utility') return <LiveScreen />;
     if (slot === 'search') return <SearchScreen />;

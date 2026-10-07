@@ -55,6 +55,9 @@ export type SocialPost = {
   view_stats?: { viewers?: number; impressions?: number } | null;
   saved_by_me?: boolean;
   reposted_by_me?: boolean;
+  pinned_at?: number;
+  /** `post.ranking` of the web: the reading the feed gave this post (`profileRank` counts its reasons). */
+  ranking?: { reasons?: string[] } | null;
   following_me?: boolean;
   follow_request_pending?: boolean;
   tags?: string[];
@@ -378,6 +381,35 @@ export type NotificationsPage = {
   notifications?: { id: number; persona?: string; type?: string }[];
   unread?: number;
   unread_non_message?: number;
+};
+
+/** `storyApiView` of lib/api.js:4576 - the shape `GET /api/stories` prints, nothing invented. */
+export type StoryAuthor = { id?: number; handle?: string; display_name?: string | null; avatar?: string | null };
+
+export type StoryView = {
+  id: number;
+  user_id?: number;
+  persona?: string;
+  caption?: string;
+  visibility?: string;
+  status?: string;
+  expires_at?: number | null;
+  content_commitment?: string;
+  created_at?: number | null;
+  viewed_by_me?: boolean;
+  view_progress?: number;
+  author?: StoryAuthor | null;
+  media?: MediaItem | null;
+  lifecycle?: string;
+};
+
+/** `GET /api/stories?state=unseen` (lib/api.js:4588). */
+export type StoriesPage = {
+  ok: true;
+  viewer_id?: number;
+  viewer_persona?: string;
+  state?: string;
+  stories?: StoryView[];
 };
 
 /** `GET /api/chat/conversations/:id/messages` */
