@@ -151,6 +151,7 @@ Scor: structură 1/2 · elemente 0.5/2 · iconuri 0.5/1 · spațiere 0.5/1 · cu
 ### Ce rămâne de reparat (runda 2, în ordinea notelor)
 
 1. **Mesaje / inbox**: bara de sus `.messengerTopbar` (wordmark + „MESSAGES", sumarele „Social ⌄" / „Toate ⌄", butonul „Conversație nouă"), câmpul `#message-search` și cutiile inbox (Toate/Necitite/Grup/Cereri/Activitate).
+   - **făcut în runda 2** pentru bară, căutare, rând, starea goală și foaia de conversație nouă (vezi jurnalul de mai jos); cele două `details` și cutiile lor rămân **omise deliberat** (nu au echivalent nativ) — vezi diferențele asumate din Runda 2.
 2. **Postare deschisă**: să fie dialogul full-screen al web-ului cu `.commentSurfacePost` (postarea + creatorul), `.commentPostActions` (reacție + număr de comentarii) și tab-urile `commentSort`, nu o foaie de jos.
 3. **Comentarii**: arborele recursiv (`detailReply[data-depth]`, „Replying to @x", acțiunile per răspuns, `[data-reply-to]` în compozitor).
 4. **Bara de reacții**: sumarul compact „glife + număr" (`reactionSummaryMarkup`) și titlurile RO ale celor opt reacții.
@@ -162,12 +163,19 @@ Scor: structură 1/2 · elemente 0.5/2 · iconuri 0.5/1 · spațiere 0.5/1 · cu
 | Ecran | Commit | Ce s-a schimbat (cu dovada) | Nota înainte → după (măsurat) |
 |---|---|---|---|
 | Bara de reacții (card + rail) | _vezi commitul de față_ | `REACTION_GLYPHS` verbatim din `app.js:3567` (♥ 💗 😂 😮 😢 😠 ◆ ▼ — telefonul desena 👍/👎/🟥), `REACTION_TITLES` (`reaction.*`: Like, Love, Haha, Wow, Trist, Furios, Fake?, Dislike), `reactionSummary()` cu regula de colaps a web-ului (≥85 % → un singur glif cu totalul; maximum 3; sumar neatins = inimă cu 0) și `ReactionControl.tsx`: cardul tipărește până la 3 perechi glif+număr (`reactionSummaryMarkup`), rail-ul tipărește gliful viewer-ului + totalul (`viewerReactionSummaryMarkup`), iar selectorul e placa măsurată `.reactionBar.expanded` (4 coloane, gap 8, padding 10, r16, `rgba(5,14,20,.96)`, contur `rgba(36,240,210,.3)`, titluri RO, `aria-expanded`/`aria-selected`) | **2/10 → 7/10** |
+| Mesaje / inbox — bara de sus, căutarea, rândul de conversație, starea goală și foaia de conversație nouă | _vezi commitul de față_ | `MessengerTopbar.tsx`: `.messengerTopbar` măsurat [16,16,437,66] (capete 112 și 44, gap 6, `rgba(1,5,3,.96)`, contur măsurat `0px none`), wordmark `#inbox-home` [16,17,112,64] cu `small` „MESSAGES", `#new-conversation` 44×44 `#050608` cu traseul `compose` verbatim din DOM, `#message-search` [16,82,437,46] (`#090a0c`, contur `rgba(255,255,255,.22)`, r18, `margin 0 0 6px`) cu inputul [17,83,391,44] (8px, 16px, `min-height:44`) și butonul [408,83,44,44] cu traseul `search`; toate în `ListHeaderComponent`, în același scroller cu shelf-ul, iar Escape golește câmpul (`messenger-shell.js:66-68`). `ConversationRow` refăcut pe `.conversationRow` (`messenger-spaces.css:15-25`): avatar 52 `#203c49`, `b` 17/1.4 `#eef6fa`, `small` 16 `#afc2cf` tăiat la 64, ceas `HH:MM` peste pastila `#68ebdf` cu numărul brut (fără `99+`), fir `#233240`, min-h 80; `titleFor`/`subtitleFor` după `renderConversationRow` (`:13-25`) cu cititorul separat prin `id`, nu prin `role: 'owner'`; căutare locală `matchesConversation` (`:55-57`, NFKD) plus nota `.inboxFilterStatus` (`messenger.loadedOnly`) doar la un caracter; stările verbatim din locale (`messages.loading`; `.emptyInbox.inboxError` = `messages.loadError` + `live.retry`; `.emptyInbox` = `messages.noConversations` + `messages.startByUsername`); `NewConversationSheet.tsx` pe `#new-conversation` (`POST /api/chat/conversations`, copy `conversation.*`) | **—** (se măsoară pe telefon) |
 
 Diferențe măsurate rămase pe bara de reacții (nu se pot face „identic", se documentează):
 
 - placa selectorului: pe shell-ul de telefon al web-ului (`:has(.clipsScreen)`) ea devine `#050608` fără blur, iar eu păstrez `rgba(5,14,20,.96)` (media dintre cele două reguli ale web-ului);
 - marcajul „neatins": web-ul folosește `solidViewerIcon('heart')` (SVG alb), nativul folosește gliful ♥ alb — același desen, fără un al doilea set de iconițe;
 - discurile de reacție de pe rail: web-ul lasă `background:transparent` pe shell-ul de clips, cu touch target 54×42/48 și rânduri 35/11 px, iar nativul desenează gliful la 26 px într-un touch target 54×44 (măsurat, în așteptarea capturii pe telefon).
+
+Diferențe asumate pe mesaje / inbox (nu se pot face „identic", se documentează):
+
+- cele două plăci `summary` ale web-ului — `details.inboxModules` („Social ⌄", [134,27,132,44]) și `details.inboxTools` („Toate ⌄", [272,27,132,44]) — nu sunt desenate: bara păstrează doar capetele măsurate, iar cele două coloane `minmax(0,1fr)` rămân spațiu gol;
+- rândul are un singur target de atingere (deschide firul); web-ul are două, al doilea deschizând fișa de contact (`#messengerContact`, `messenger-contact.js:71-79`), care nu are echivalent nativ;
+- căsuțele de filtrare din `details.inboxTools` (Toate/Necitite/Grup/Cereri/Activitate, `messenger-shell.js:37-41`) și căutarea în mesaje a serverului (`#inbox-message-results`, `messenger-search.js:58`) rămân neacoperite: câmpul din bară filtrează doar rândurile deja încărcate, ca `messenger-shell.js:71-81`.
 
 
 Sesiune: `tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt` pe `192.168.1.184:41461`

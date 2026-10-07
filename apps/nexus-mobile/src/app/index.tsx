@@ -207,7 +207,8 @@ export default function NativeHomeScreen() {
   const profileName = me.profiles?.find((entry) => entry.persona === me.persona)?.name || moduleTitle;
   /** The reading the feed is on: the second switch of an off-feed bar names it (app.js:1404, 1418-1421). */
   const readingTitle = socialTokens.feedModes.find((entry) => entry.id === feedMode)?.title ?? feedMode;
-  /** Only the feed wears `.appHeader.feedHeader`; the profile screen wears no bar at all (app.js:1397, 1416). */
+  /** Only the feed wears `.appHeader.feedHeader`; the profile and the inbox wear no bar at all
+   * (app.js:1397, 1416; profile-experience.css:1, social-human-ux.css:161). */
   const onFeed = me.persona === 'social' && slot === 'primary';
   /**
    * The switches of the off-feed bar, in the order the web prints them (app.js:1418-1421): the profile,
@@ -240,7 +241,12 @@ export default function NativeHomeScreen() {
       },
     ] : []),
   ];
-  const header = slot === 'account' ? null : onFeed ? (
+  /**
+   * The profile and the inbox wear no bar of this shell: `profile-experience.css:1` and
+   * `social-human-ux.css:161` both hide `#phoneHeader` (`:has(.accountScreen)` / `:has(.inboxScreen)`),
+   * and the inbox prints its own `.messengerTopbar` in the scroller instead.
+   */
+  const header = slot === 'account' || slot === 'inbox' ? null : onFeed ? (
     <AppHeader
       variant="feed"
       modeId={feedMode}
@@ -267,7 +273,9 @@ export default function NativeHomeScreen() {
       const shelfOwner = me.profiles?.find((entry) => entry.persona === me.persona) ?? me.profiles?.find((entry) => entry.persona === 'social');
       return (
         <MessagesScreen
+          onHome={goHome}
           owner={{
+            id: me.user.id,
             display_name: shelfOwner?.name || me.user.display_name || me.user.handle,
             handle: me.user.handle,
             avatar: shelfOwner?.avatar || me.user.avatar,
