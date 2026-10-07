@@ -10,6 +10,7 @@
   "scripts": {
     "dev": "node server.js",
     "dev:test-account": "node scripts/dev-test-account.mjs",
+    "dev:fixtures": "node scripts/dev-social-fixtures.mjs",
     "start": "node server.js",
     "test": "node --test test/*.test.js",
     "release:check": "node scripts/release-check.mjs",
