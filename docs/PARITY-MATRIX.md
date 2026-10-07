@@ -266,9 +266,9 @@ liveDeviceSheet, heroEditSheet, profileMenuDrawer`).
 
 | Gest | Valoare | Sursă |
 |---|---|---|
-| Swipe canal (feed) | `|dx| ≥ 72` **și** `|dx| > |dy| * 1.2`; offset `+1` dacă `dx < 0` | `social-gesture.js`, `app.js:2980-2999` |
-| Pull-to-refresh (feed) | `scrollTop ≤ 1` **și** `dy ≥ 64` **și** `|dy| > |dx| * 1.15`; indicator `--pull-distance = min(1, dy/64)` | `social-gesture.js`, `app.js:2971-2974` |
-| Swipe vizualizator (reel/media) | `max(|dx|,|dy|) ≥ 48`; axa dominantă; pas `±1` (`dx<0`/`dy<0` → +1) | `social-gesture.js`, `app.js:5128` |
+| Swipe canal (feed) | `\|dx\| ≥ 72` **și** `\|dx\| > \|dy\| * 1.2`; offset `+1` dacă `dx < 0` | `social-gesture.js`, `app.js:2980-2999` |
+| Pull-to-refresh (feed) | `scrollTop ≤ 1` **și** `dy ≥ 64` **și** `\|dy\| > \|dx\| * 1.15`; indicator `--pull-distance = min(1, dy/64)` | `social-gesture.js`, `app.js:2971-2974` |
+| Swipe vizualizator (reel/media) | `max(\|dx\|,\|dy\|) ≥ 48`; axa dominantă; pas `±1` (`dx<0`/`dy<0` → +1) | `social-gesture.js`, `app.js:5128` |
 | Suprimare click după gest | 500 ms (canal) / 650 ms (refresh) | `app.js:2985, 2998` |
 | Zonă ignorată la gest | `button,input,textarea,select,a,.comments,.reactionBar,.clipMoreActions` | `app.js:3003, 3018` |
 | Fold-ul barei pe reel | `scrollTop ≥ 0.5 * înălțimea coloanei` (fallback 240) | `feed-surface.js:241-242` |
