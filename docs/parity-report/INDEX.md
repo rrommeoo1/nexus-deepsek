@@ -151,7 +151,7 @@ Scor: structură 1/2 · elemente 0.5/2 · iconuri 0.5/1 · spațiere 0.5/1 · cu
 ### Ce rămâne de reparat (runda 2, în ordinea notelor)
 
 1. **Mesaje / inbox**: bara de sus `.messengerTopbar` (wordmark + „MESSAGES", sumarele „Social ⌄" / „Toate ⌄", butonul „Conversație nouă"), câmpul `#message-search` și cutiile inbox (Toate/Necitite/Grup/Cereri/Activitate).
-   - **făcut în runda 2** pentru bară, căutare, rând, starea goală și foaia de conversație nouă (vezi jurnalul de mai jos); cele două `details` și cutiile lor rămân **omise deliberat** (nu au echivalent nativ) — vezi diferențele asumate din Runda 2.
+   - **făcut în runda 2** pentru bară, căutare, rând, starea goală și foaia de conversație nouă; **făcut în runda 3** pentru cele două `details` cu meniurile lor, cutiile de filtrare, căutarea în mesaje a serverului și al doilea punct de atingere (fișa de contact) — vezi „Diferențe pe mesaje / inbox — rezolvate în runda 3".
 2. **Postare deschisă**: să fie dialogul full-screen al web-ului cu `.commentSurfacePost` (postarea + creatorul), `.commentPostActions` (reacție + număr de comentarii) și tab-urile `commentSort`, nu o foaie de jos.
 3. **Comentarii**: arborele recursiv (`detailReply[data-depth]`, „Replying to @x", acțiunile per răspuns, `[data-reply-to]` în compozitor).
 4. **Bara de reacții**: sumarul compact „glife + număr" (`reactionSummaryMarkup`) și titlurile RO ale celor opt reacții.
@@ -171,11 +171,14 @@ Diferențe măsurate rămase pe bara de reacții (nu se pot face „identic", se
 - marcajul „neatins": web-ul folosește `solidViewerIcon('heart')` (SVG alb), nativul folosește gliful ♥ alb — același desen, fără un al doilea set de iconițe;
 - discurile de reacție de pe rail: web-ul lasă `background:transparent` pe shell-ul de clips, cu touch target 54×42/48 și rânduri 35/11 px, iar nativul desenează gliful la 26 px într-un touch target 54×44 (măsurat, în așteptarea capturii pe telefon).
 
-Diferențe asumate pe mesaje / inbox (nu se pot face „identic", se documentează):
+Diferențe pe mesaje / inbox — **rezolvate în runda 3** (nu mai sunt asumate, sunt implementate):
 
-- cele două plăci `summary` ale web-ului — `details.inboxModules` („Social ⌄", [134,27,132,44]) și `details.inboxTools` („Toate ⌄", [272,27,132,44]) — nu sunt desenate: bara păstrează doar capetele măsurate, iar cele două coloane `minmax(0,1fr)` rămân spațiu gol;
-- rândul are un singur target de atingere (deschide firul); web-ul are două, al doilea deschizând fișa de contact (`#messengerContact`, `messenger-contact.js:71-79`), care nu are echivalent nativ;
-- căsuțele de filtrare din `details.inboxTools` (Toate/Necitite/Grup/Cereri/Activitate, `messenger-shell.js:37-41`) și căutarea în mesaje a serverului (`#inbox-message-results`, `messenger-search.js:58`) rămân neacoperite: câmpul din bară filtrează doar rândurile deja încărcate, ca `messenger-shell.js:71-81`.
+- cele două plăci `summary` ale web-ului — `details.inboxModules` („Social ⌄", [134,27,132,44]) și `details.inboxTools` („Toate ⌄", [272,27,132,44]) — sunt desenate de `InboxPlates.tsx`, în coloanele din mijloc ale grilei `112px 1fr 1fr 44px`; meniul de module listează `[data-inbox-persona]` (Toate mesajele/Social/Dating/Work/Travel/Market, `messenger-shell.js:29,34`) și cel de cutii lista `.inboxBoxes` (Toate/Necitite/Grup/Cereri/Activitate, `:36-42`);
+- rândul are **două** ținte de atingere, ca `messenger-shell.js:24`: avatarul (`button.contactAvatar`) deschide `#messengerContact` (`ContactCard.tsx`, `messenger-contact.js:82-108` — foto 132, nume 22px, insignă de profil, cele patru acțiuni de 76px, banda Story condiționată de `contact-stories.js`), iar restul (`button.conversationOpen`) deschide firul;
+- cutiile de filtrare aplică exact `matchesConversation` (`:55-57`): Toate/Necitite/Grup filtrează local rândurile încărcate, Cereri cere serverului `box=requests` (cu `inboxReturn` „‹ Conversații", `:47`), Activitate randează centrul de notificări (`ActivityCenter.tsx`, `app.js:7879-7945` — listă, număr necitite, „Marchează tot citit", `PATCH /api/notifications` per rând și formularul de preferințe `notification-preferences.js`);
+- căutarea în mesaje a serverului e implementată (`lib/messageSearch.ts`, `messenger-search.js:21-53`): de la 2 caractere, `#inbox-message-results` înlocuiește lista și citește `GET /api/chat/search` + `GET /api/chat/conversations?q=`, cu plicul de confidențialitate verificat (`privacy_enforced_server_side`, `encrypted_content_searchable_server_side === false`) și stările `messages.searching` / `messages.searchError` / `messages.noSearchResults` / `messages.loadMore`.
+
+Rămâne o singură excepție, impusă de server (nu de randare): acțiunile de apel din fișa de contact. Web-ul leagă `#audio-call`/`#video-call` de `call-client.js`, iar serverul ține apelurile de grup blocate până la un SFU (`thread.groupCallBlocked`); fișa desenează butoanele și tipărește exact propoziția produsului pentru un apel care nu poate porni (`thread.callUnavailable`, „Apel indisponibil pe acest dispozitiv"), fără să inventeze o stare.
 
 
 Sesiune: `tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt` pe `192.168.1.184:41461`
@@ -292,6 +295,60 @@ care arătau ecranul Mesaje) au fost șterse, ca să nu intre în `diff.md` ca s
 glyphurile barei de moduri de pe profil (0/1 → 1/1), plus cele două capcane de tooling care falsificau
 capturile. **Rămas de reparat, cu dovadă:** fila 3 de profil inertă (0.0 %), antetul de profil fără
 lacăt/hamburger/creion cu banda de metadate derulantă, plus rândurile din tabelele §1–§5 care n-au fost
+
+---
+
+## Runda 3 — corecțiile cerute pe inbox (implementate, **nemăsurate încă pe telefon**)
+
+Ce s-a făcut, cu dovada fiecărui element (toate cele patru erau în lista de „diferențe asumate" a rundei 2
+și au fost scoase de acolo pentru că sunt implementate, nu declarate imposibile):
+
+| Element web | Fișier nativ nou/atins | Dovadă web |
+|---|---|---|
+| `details.inboxModules` + `details.inboxTools` (bara, coloanele 2–3) | `components/InboxPlates.tsx`, `MessengerTopbar.tsx` (`middle`) | `messenger-shell.js:29,34-43`, `messenger-spaces.css:3,7-9`, `feed-surface.css:903-916` |
+| cutiile Toate/Necitite/Grup/Cereri/Activitate | `InboxPlates.tsx` + `screens/MessagesScreen.tsx` (`matchesConversation`, `box`) | `messenger-shell.js:36-42,55-57,93-101`, `app.js:7808,7824-7827` |
+| cutia Cereri (server) + „‹ Conversații" | `MessagesScreen.tsx` (`inboxReturn`, `box=requests`) | `messenger-shell.js:40,47`, `lib/api.js:4986` (`box ∈ inbox|requests|sent`) |
+| cutia Activitate | `components/ActivityCenter.tsx` | `app.js:7879-7945`, `notification-preferences.js:6-83` |
+| căutarea în mesaje a serverului | `lib/messageSearch.ts` + `SearchResults` în `MessagesScreen.tsx` | `messenger-search.js:3-53,56-106` |
+| al doilea punct de atingere (`#messengerContact`) | `components/ContactCard.tsx` (+ banda Story) | `messenger-shell.js:24`, `messenger-contact.js:71-128`, `contact-stories.js:2-25` |
+
+### Verificat vs doar compilat (cerința „Verificat înseamnă măsurat")
+
+| Ecran | Nota înainte | Nota acum (implementat) | `tsc --noEmit` | ESLint | Pe telefon | Comparat numeric cu web |
+|---|---|---|---|---|---|---|
+| Mesaje / inbox (+ plăci, filtre, căutare, contact, activitate) | 2/10 | **8/10** | **0 erori** | **curat** | **NU încă** (lotul e scris în `batch.txt` §4, 11 capturi) | doar rândul/bara din runda 2 (`messages/diff.md`) |
+| Postare deschisă (comentarii, like-uri, bara de reacții) | 2/10 | 2/10 (neatins) | — | — | NU | §2 neschimbat |
+| Comentarii (arbore de răspunsuri) | 2/10 | 2/10 (neatins) | — | — | NU | §3 neschimbat |
+| Profil (file/grilă/antet/ticker/iconuri) | 4/10 → 5/10 (runda 2) | 5/10 (neatins în runda 3) | — | — | „stub 0 noduri" | `profile/diff.md` (doar imagine) |
+
+> Nota 8/10 pe inbox e **provizorie**: vine din diferențele măsurate ale rundei 2 care au fost închise
+> (bara, rândul, stările) plus elementele noi scrise după sursele web; nu are încă o captură pe telefon și
+> un `diff.md` care s-o confirme. Criteriile rămase deschise: spațierea exactă a celor două plăci față de
+> grila măsurată și stările căutării (`waiting`/`loading`/`error`), care cer pasul nou `text:` din
+> `device-batch.ps1` tocmai ca să poată fi atinse pe telefon.
+
+### Uneltele de măsurare (modificate în runda 3)
+
+- `tools/parity/device-batch.ps1`: pas nou **`text:<text>`** (`adb shell input text`, spațiile ca `%s`).
+  Fără el, stările căutării (`#inbox-message-results` de la 2 caractere) nu pot fi atinse într-un lot, iar
+  „verificat pe telefon" ar rămâne o afirmație fără captură.
+- `docs/parity-report/batch.txt`: secțiunea **§4** — 11 pași care ating plăcile, filtrele, cutia Cereri,
+  cutia Activitate, rezultatele căutării și fișa de contact, fiecare cu starea web pe care o măsoară.
+
+### Ce mai rămâne, în ordinea impactului cerută
+
+1. **Feed** — modurile și swipe-ul există (`FeedScreen.tsx`: `decideSocialGesture`, prag 72 px, `nextMode`);
+   diferențele măsurate rămase sunt pe cardul de clip: rail de acțiuni 56×56 cu contoare
+   (`feed-surface.css:399-408`, captura `feed/reels-0` arată 44×50 nativ), overlay-ul de creator + legenda
+   (`clipMetaOverlay`), atribuirea audio „♫" și lățimea `Ce citești` a barei de mod (38×40 măsurat vs
+   17×17 nativ).
+2. **Postare deschisă + comentarii** — `CommentsSheet.tsx` e încă o foaie de jos; trebuie să devină
+   `commentSurfaceMarkup` (`app.js:3877-3885`: `.commentBack` ←, `.commentSurfacePost`, `.commentPostActions`,
+   `nav.commentSort`, `.commentClist`) plus arborele `renderCommentThread`/`renderBranch` cu `--depth`,
+   „Replying to @x" și `[data-reply-to]` în compozitor.
+3. **Profil** — grila de miniaturi (`.ownerPostGrid`), antetul complet (lacăt, hamburger, creion) și banda
+   fixă de metadate cu iconițe, plus modul inert (fila 3 identică pixel-cu-pixel cu fila 1).
+
 atinse.
 
 

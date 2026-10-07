@@ -1,5 +1,5 @@
 import { nexusApi } from './nexusApi';
-import type { StoriesPage, StoryView } from './socialTypes';
+import { mediaSourceForPath, type StoriesPage, type StoryView } from './socialTypes';
 
 /**
  * The story shelf of the product, read with the two calls the web client itself makes:
@@ -64,3 +64,36 @@ export async function recordStoryView(storyId: number, progress: number, complet
   });
   return answer.viewed === true;
 }
+
+/**
+ * The stories of one contact, read with the call the web makes for a contact card
+ * (`contact-stories.js:22-25`: `GET /api/stories?state=all`) and gated by `contactStories`
+ * (`contact-stories.js:2-20`), condition for condition: the answer must be the viewer's own, on the
+ * `social` persona, in the `all` state, and every row must belong to the peer being opened.
+ */
+export async function fetchContactStories(peerId: number, viewerId?: number): Promise<StoryView[] | null> {
+  const result = await nexusApi<StoriesPage>('/api/stories?state=all').catch(() => null);
+  if (!result || result.ok !== true) return null;
+  if (Number(result.viewer_id) !== Number(viewerId)) return null;
+  if (result.viewer_persona !== 'social' || result.state !== 'all') return null;
+  if (!Array.isArray(result.stories) || result.stories.length > 100) return null;
+  const items = result.stories.filter((story) => Number(story?.user_id) === Number(peerId));
+  const now = Math.floor(Date.now() / 1000);
+  const printable = items.every((story) => Number.isSafeInteger(Number(story.id)) && Number(story.id) > 0
+    && story.persona === 'social' && story.status === 'active'
+    && ['public', 'followers', 'friends', 'private'].includes(String(story.visibility))
+    && typeof story.caption === 'string' && story.caption.length <= 500
+    && Number.isSafeInteger(Number(story.created_at)) && Number(story.created_at) > 0
+    && Number(story.author?.id) === Number(peerId) && HANDLE.test(String(story.author?.handle || ''))
+    && (!story.author?.avatar || Boolean(mediaSourceForPath(story.author.avatar)))
+    && COMMITMENT.test(String(story.content_commitment || ''))
+    && (story.expires_at == null || (Number.isSafeInteger(Number(story.expires_at)) && Number(story.expires_at) > now))
+    && story.lifecycle === (story.expires_at == null ? 'persistent_until_archived' : 'expires')
+    && Number(story.view_progress) >= 0 && Number(story.view_progress) <= 1
+    && (!story.media || (['image', 'video'].includes(String(story.media.kind))
+      && /^[a-f0-9]{64}$/.test(String(story.media.hash || ''))
+      && /^[a-z0-9]{2,8}$/.test(String(story.media.ext || ''))
+      && Boolean(mediaSourceForPath(`/media/${story.media.hash}.${story.media.ext}`)))));
+  return printable ? items : null;
+}
+

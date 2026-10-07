@@ -5,6 +5,7 @@
 #   tap:<etichetă>            dump -> nodul cu eticheta (sau textul) -> tap în centru
 #   key:<nume>                `input keyevent` (ex. key:back ȋnchide orice Modal rămas deschis)
 #   tapxy:<x>,<y>             tap la coordonate CSS px (măsurate din web-ref), când nodul nu are etichetă
+#   text:<text>               `input text` în câmpul care are deja focusul (spații = %s); pentru căutare
 #   wait:<ms>
 #
 # Rulare:  powershell -NoProfile -File tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt
@@ -56,3 +57,49 @@ capture:profile/tab-1
 tapxy:214,299
 wait:2500
 capture:profile/tab-2
+
+# --- 4. Runda 3: plăcile inboxului, cutiile de filtrare, căutarea server şi fişa de contact ---
+#     Fiecare pas are o dovadă web: messenger-shell.js:34-43 (plăci + .inboxBoxes), messenger-search.js:56-106
+#     (#inbox-message-results), messenger-contact.js:82-108 (#messengerContact, al doilea punct de atingere).
+tap:Mesaje
+wait:1500
+capture:messages/inbox-0            # bara cu „Social ⌄ / Toate ⌄" şi rândul cu DOUĂ ţinte
+tap:Filtre după profil
+wait:600
+capture:messages/module-plate       # meniul de module (Toate mesajele/Social/Dating/Work/Travel/Market)
+key:back
+wait:400
+tap:Opțiuni
+wait:600
+capture:messages/tools-plate        # .inboxBoxes: Toate/Necitite/Grup/Cereri/Activitate
+tap:Necitite
+wait:800
+capture:messages/filter-unread      # filtrarea locală (matchesConversation, messenger-shell.js:55-57)
+tap:Opțiuni
+wait:500
+tap:Cereri
+wait:1500
+capture:messages/box-requests       # box=requests + „‹ Conversaţii" (inboxReturn, :47)
+tap:Conversații
+wait:1200
+tap:Opțiuni
+wait:500
+tap:Activitate
+wait:2000
+capture:messages/box-activity       # centrul de activitate (renderNotificationActivity, app.js:7879-7945)
+tap:Conversații
+wait:1200
+tap:Caută conversații
+wait:400
+text:test
+wait:1200
+capture:messages/search-results     # #inbox-message-results: hit-uri de conversaţii + mesaje
+tap:Mesaje
+wait:1200
+# Al doilea punct de atingere: avatarul rândului deschide fişa de contact (nu firul).
+tapxy:42,146
+wait:1200
+capture:messages/contact-card       # #messengerContact: foto 132, patru acţiuni, bandă Story
+key:back
+wait:600
+

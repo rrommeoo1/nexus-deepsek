@@ -274,6 +274,8 @@ export default function NativeHomeScreen() {
       return (
         <MessagesScreen
           onHome={goHome}
+          activePersona={me.persona}
+          onSelectModule={(persona) => void onSelectModule(persona)}
           owner={{
             id: me.user.id,
             display_name: shelfOwner?.name || me.user.display_name || me.user.handle,

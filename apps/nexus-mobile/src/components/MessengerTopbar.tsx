@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { NexusWordmark } from './NexusWordmark';
@@ -20,8 +21,8 @@ import { NexusWordmark } from './NexusWordmark';
  * `rgba(255,255,255,.68)` and both marks sit white on `#050608`.
  *
  * The web's four-column grid carries two `details` plates between the ends — the module dropdown
- * ("Social") and the box dropdown ("Toate"). This app prints neither: the row keeps the two ends and
- * the space between them, and nothing is drawn where the web draws a menu it does not have.
+ * ("Social") and the box dropdown ("Toate"). They are handed in through `middle` (`InboxPlates.tsx`), so
+ * the bar draws the same three parts in the same three columns the grid measures.
  */
 
 /** `messenger-shell.js:108-114` — a 24x24 frame, no fill, `stroke:currentColor`, width 1.8, round caps. */
@@ -55,11 +56,16 @@ const NEW_CONVERSATION_LABEL = 'Conversație nouă';
 /** `messenger.search` (`interface-locale.js:15`) — the placeholder and the name of both search halves. */
 const SEARCH_LABEL = 'Caută conversații';
 
-export function MessengerTopbar({ onHome, onNewConversation }: {
+export function MessengerTopbar({ onHome, onNewConversation, middle }: {
   /** `#inbox-home` is the way home (`app.js:7752` binds it to `goHome`). */
   onHome: () => void;
   /** `#new-conversation` opens the conversation creator (`app.js:7810`). */
   onNewConversation: () => void;
+  /**
+   * The two middle columns of the web's grid (`112px 1fr 1fr 44px`): the module plate and the box plate
+   * (`messenger-shell.js:34-43`). They are handed in by the inbox, which owns the two decisions they show.
+   */
+  middle?: ReactNode;
 }) {
   return (
     <View style={styles.topbar}>
@@ -67,6 +73,7 @@ export function MessengerTopbar({ onHome, onNewConversation }: {
         <NexusWordmark width={112} ink="#ffffff" />
         <Text style={styles.homeSmall}>MESSAGES</Text>
       </Pressable>
+      {middle}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={NEW_CONVERSATION_LABEL}

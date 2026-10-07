@@ -196,6 +196,17 @@ foreach ($entry in $entries) {
     continue
   }
 
+  if ($kind -eq 'text') {
+    # `text:...` tastează în câmpul care are deja focusul (căutarea inboxului, un composer de comentariu).
+    # Spațiile se trimit ca %s, singura formă pe care o acceptă `input text`; nimic altceva nu se atinge.
+    $typed = $value -replace ' ', '%s'
+    & $adb -s $serial shell input text $typed | Out-Null
+    Write-Host "[parity] text '$value'"
+    Start-Sleep -Milliseconds 700
+    $report += [pscustomobject]@{ step = $entry; ok = $true; detail = $value }
+    continue
+  }
+
   if ($kind -eq 'tap' -or $kind -eq 'tapxy') {
     $nodes = Get-Nodes -Xml (Get-Xml)
     if ($kind -eq 'tapxy') {
