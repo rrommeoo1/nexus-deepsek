@@ -663,4 +663,78 @@ acum doar în `CommentsSheet`), fit/zoom/pan în vizualizator, atribuirea audio 
 `#feedBadge` / `#friendsBadge`, plus mutarea credențialelor în variabile de mediu și recrearea datelor de
 test.
 
+## 17. Date de test realiste + credențiale în mediu + pași noi de captură (2026-10-07, lot 4)
+
+### 17.1 Credențiale: nicio parolă în fișiere comise
+
+Parola contului de test era **scrisă în patru fișiere comise**
+(`apps/nexus-web/lib/preview-test-account.js`, `scripts/dev-test-account.mjs`,
+`apps/nexus-mobile/scripts/login-webview.mjs`, `apps/nexus-mobile/scripts/nexus-dev.ps1`)
+și în două README-uri. Acum vine **doar** din `NEXUS_TEST_ACCOUNT_PASSWORD`
+(minim 8 caractere) și nu este niciodată tipărită:
+
+- `lib/preview-test-account.js` expune `previewTestAccountPassword(env)` și
+  `TEST_ACCOUNT_PASSWORD_ENV`; `ensurePreviewTestAccount` **nu creează contul** dacă
+  variabila lipsește (avertisment, fără parolă implicită). Consecință operațională:
+  deployment-ul de preview trebuie să aibă `NEXUS_TEST_ACCOUNT_PASSWORD` setat,
+  altfel contul nu se auto-provisionează.
+- `scripts/dev-test-account.mjs` iese cu cod 2 și un mesaj clar fără variabilă.
+- `login-webview.mjs` și `nexus-dev.ps1` cer aceeași variabilă (sau argumentul
+  explicit); `nexus-dev.ps1 -Action login` aruncă dacă parola lipsește.
+- README-urile (`apps/nexus-web`, `apps/nexus-mobile`) trimit la variabilă și la
+  `docs/TEST-DATA.md`; o căutare a parolei vechi în fișierele urmărite nu mai
+  găsește nicio potrivire.
+
+### 17.2 Set de date de test (5 conturi + conținut), documentat
+
+- `apps/nexus-web/lib/social-fixtures.js` — plan de date + `seedSocialFixtures`;
+- `apps/nexus-web/scripts/dev-social-fixtures.mjs` — CLI (`npm run dev:fixtures`),
+  refuză `NODE_ENV=production`, cere `--confirm-local-db`, scrie doar local;
+- `docs/TEST-DATA.md` — conturile, conținutul, politica de media, idempotența,
+  limitările declarate și dovada rulării.
+
+Cinci conturi (`ana_popescu`, `mihai_ionescu`, `elena_vasilescu`, `andrei_stan`,
+`sorina_marin`) plus `test` ca Viewer: 9 urmăriri cu 3 cupluri reciproce (prieteni),
+**14 postări** (5 fotografii, 6 Tweet-uri, 3 Reels), **6 story-uri**, 6 comentarii,
+5 reacții, **4 conversații** (12 mesaje), **6 notificări** necitite. Media generată
+este deterministă (PNG cu encoder propriu) și trecută prin pipeline-ul real;
+Reels refolosesc un clip local validat sau primesc `--clip <cale>`.
+
+Defect prins și reparat în timpul verificării: prima rulare **rescria emailul
+Viewer-ului** (`test@nexus.ro` → `test@nexus.test`), ceea ce ar fi rupt identitatea
+documentată (inclusiv `api.js:396`). Acum `buildAccount(owner…)` rulează cu
+`{ resetPassword: false, setFixtureEmail: false }`; baza locală a fost reparată.
+
+### 17.3 Pași noi de captură pregătiți (rulează cu credențiale)
+
+În `tools/web-ref/crawl.mjs`:
+
+- `messages-activity` — notificările sunt **cutia `activity` din inbox**
+  (`[data-inbox-box="activity"]`, `public/messenger-shell.js`), nu un ecran separat;
+- `profile-other` — profilul altei persoane se deschide din
+  `[data-creator-profile]` (`public/feed-surface.js`), preferând dialogul cu `[data-follow]`;
+- `create-composer-tweet` — compozitorul de text (`[data-source-jump="tweet"]`,
+  dump pe `#composerForm`).
+
+### 17.4 Verificare (offline, fără telefon)
+
+- `node --test --test-reporter=dot` în `apps/nexus-web` → **exit 0** (389 de
+  subteste trecute);
+- `npm run typecheck` și `npm run lint` în `apps/nexus-mobile` → curate;
+- seed pe bază aruncabilă (`NEXUS_DATA_DIR` temporar): rularea completă iese cu
+  **cod 0** (stare finală: feed 14, 6 story-uri, 4 conversații, 6 notificări
+  necitite); **a doua rulare iese tot cu 0** și nu creează nimic (`posts: 0`,
+  `skipped: 26`, `content_sources` stabil la 23) — verificarea este starea finală,
+  nu munca depusă, deci o rulare idempotentă nu este raportată ca eșec;
+- baza locală de dezvoltare (`apps/nexus-web/data/nexus.sqlite`) este **seedată**:
+  feed 14, 8 cu media, 6 story-uri, 4 conversații, 6 notificări necitite, media
+  servibilă (`readMedia` verifică hash-ul).
+
+### 17.5 Rămas
+
+Recapturarea cu credențiale a celor trei pași din §17.3 și completarea rândurilor
+de matrice corespunzătoare; story rail/vezualizator pe date reale (acum există
+story-uri, deci `story-opened` va fi `true`); atribuirea audio din Reel; apoi
+sesiunea pe telefon (gesturi: swipe de canal, pull-to-refresh, vizualizator).
+
 

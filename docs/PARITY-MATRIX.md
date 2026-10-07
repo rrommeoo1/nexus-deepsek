@@ -10,7 +10,7 @@
 | Aspect | Valoare |
 |---|---|
 | Sursă | `https://nexus-deepsek-production.up.railway.app/` (build web **1.11**, citit din `NEXUS_BUILD_VERSION`) |
-| Cont | `test@nexus.ro` (doar contul de test; parola doar prin variabile de mediu, nesalvată în fișiere) |
+| Cont | `test@nexus.ro` (doar contul de test; parola **doar** din `NEXUS_TEST_ACCOUNT_PASSWORD`, nimic scris în fișiere comise — vezi `docs/TEST-DATA.md`) |
 | Dispozitiv (interogat cu `adb shell wm size` / `wm density`, fără input) | fizic **1220×2656 px**, density override **416 dpi** ⇒ **DPR 2.6** |
 | Viewport de emulare | **469×1021 CSS px**, `deviceScaleFactor 2.6`, `isMobile`, `hasTouch`, UA Chrome Android 128 |
 | Unealtă | `tools/web-ref/*.mjs` — Playwright-core 1.63 + Chrome de sistem (fără descărcare de browser) |
@@ -354,12 +354,26 @@ Textele trebuie preluate identic din `*.dom.json → textLines`.
    nimic vizibil. Regula generală observată: crawlerul emite **un PNG per grup de stare** (7 identice în
    `comments/`+`post/`, 3 în `profile/`), deci comparația de geometrie/culoare se face pe `*.dom.json`,
    nu pe PNG.
-3. Activitatea de notificări din inbox (`renderNotificationActivity`, tab-ul „TE").
-4. Profilul altei persoane (`renderProfilePreview`) + stările public/privat.
+3. ~~Activitatea de notificări din inbox~~ → **pas pregătit** (`messages-activity`: `[data-inbox-box="activity"]`
+   în inbox, apoi `.notificationCenter`); rularea așteaptă credențialele de mediu.
+4. ~~Profilul altei persoane~~ → **pas pregătit** (`profile-other`: `[data-creator-profile]` de pe cardul de
+   feed, preferând dialogul cu `[data-follow]`).
 5. `search-result-open` (rezultatul de căutare deschis ca postare) — corespunde §10 rând 8.
 6. Persona non-Social (Work/Dating/Travel/Market): bară, ecrane, module de sine stătătoare.
 7. Onboarding, devnet, `account-modal`, setările detaliate (`profile-settings-panels.js`).
-8. Compozitor: CAMERA/CREATE/LIVE/DRAFTS, unelte, emoji, draft-uri, publicare (stări de eroare).
+8. Compozitor: CAMERA/CREATE/LIVE/DRAFTS, unelte, emoji, draft-uri, publicare (stări de eroare) →
+   **pas pregătit pentru text** (`create-composer-tweet`: slotul `create` apoi `[data-source-jump="tweet"]`,
+   dump pe `#composerForm`).
+
+**Comenzi pregătite** (rulează doar cu `NEXUS_TEST_EMAIL` / `NEXUS_TEST_PASSWORD` în mediu):
+
+```powershell
+node tools/web-ref/crawl.mjs --only=messages-activity,profile-other,create-composer-tweet
+```
+
+Capturile noi vor apărea în `docs/web-ref/messages/activity-0.*`, `docs/web-ref/profile/other-0.*` și
+`docs/web-ref/create/composer-tweet.*`.
+
 
 **Reguli de operare învățate în acest lot (obligatorii pentru sesiunile următoare):**
 - click-urile din header sunt blocate de overlay-uri ⇒ `domClick` (`el.click()`), nu click cu
@@ -369,4 +383,23 @@ Textele trebuie preluate identic din `*.dom.json → textLines`.
   `--disable-features=OverscrollHistoryNavigation,TouchpadOverscrollHistoryNavigation`;
 - orice drag trebuie să aibă ambele axe finite (`dx`/`dy` implicite 0), altfel CDP refuză parametrii;
 - un pas = o interacțiune + un dump; crawl-ul se rulează în fundal (depășește 30 s per comandă).
+
+## 13. Date de test (pentru comparații pe conținut real)
+
+Setul este descris în **`docs/TEST-DATA.md`**: 5 conturi
+(`ana_popescu`, `mihai_ionescu`, `elena_vasilescu`, `andrei_stan`, `sorina_marin`)
+plus contul de autentificare `test` (Viewer), cu 9 urmăriri / 3 cupluri reciproce,
+14 postări (5 fotografii, 6 Tweet-uri, 3 Reels), 6 story-uri, 6 comentarii,
+5 reacții, 4 conversații (12 mesaje) și 6 notificări necitite.
+
+- comenzi: `npm run dev:test-account` apoi `npm run dev:fixtures -- --confirm-local-db`;
+- parola vine **doar** din `NEXUS_TEST_ACCOUNT_PASSWORD`; nicio parolă nu este
+  scrisă în fișiere comise;
+- media generată este deterministă (PNG) și trecută prin pipeline-ul real; Reels
+  refolosesc un clip local validat sau primesc `--clip`;
+- **consecință pentru capturi**: cu story-uri reale în cont, pasul `story-viewer`
+  are acum ce deschide (`story-opened` ar trebui să fie `true`), iar firul de
+  conversație și activitatea de notificări nu mai pornesc din liste goale;
+- geometria și culorile se compară pe `*.dom.json`. PNG-urile din `docs/web-ref/`
+  sunt un **PNG per grup de stare** (vezi §12.2) — nu sunt o dovadă de diferență.
 
