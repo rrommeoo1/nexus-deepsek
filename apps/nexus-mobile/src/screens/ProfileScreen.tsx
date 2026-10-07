@@ -75,6 +75,8 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
   const profile = data?.profile ?? null;
   const posts = data?.posts ?? [];
   const filtered = filterTab(posts, tab);
+  /** The posts that carry media: the gallery a card hands the full-screen reader (app.js:4913). */
+  const gallery = filtered.filter((post) => postMediaItems(post).length > 0);
 
   return (
     <ScrollView
@@ -138,7 +140,7 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
       {!error && !data?.locked && filtered.length === 0 ? <Text style={styles.empty}>Nimic aici încă.</Text> : null}
 
       <View style={styles.posts}>
-        {filtered.map((post) => <PostCard key={post.id} post={post} />)}
+        {filtered.map((post) => <PostCard key={post.id} post={post} gallery={gallery} />)}
       </View>
     </ScrollView>
   );

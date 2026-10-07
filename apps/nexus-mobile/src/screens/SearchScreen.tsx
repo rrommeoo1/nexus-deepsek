@@ -4,7 +4,7 @@ import { nexusApi } from '../lib/nexusApi';
 import { PostCard } from '../components/PostCard';
 import { RemoteImageSource } from '../components/PostMedia';
 import {
-  initialsFor, mediaSourceForPath, type SearchProfile, type SocialSearchPage,
+  initialsFor, mediaSourceForPath, postMediaItems, type SearchProfile, type SocialSearchPage,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
@@ -48,6 +48,8 @@ export function SearchScreen() {
   const posts = page?.posts ?? [];
   const profiles = page?.profiles ?? [];
   const empty = page !== null && posts.length === 0 && profiles.length === 0;
+  /** The results that carry media: the gallery a card hands the full-screen reader (app.js:4913). */
+  const gallery = posts.filter((post) => postMediaItems(post).length > 0);
 
   return (
     <View style={styles.screen}>
@@ -83,7 +85,7 @@ export function SearchScreen() {
               {profiles.map((person) => <ProfileRow key={person.id} person={person} />)}
             </View>
           ) : null}
-          renderItem={({ item }) => <PostCard post={item} />}
+          renderItem={({ item }) => <PostCard post={item} gallery={gallery} />}
         />
       ) : null}
     </View>
