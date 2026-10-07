@@ -89,15 +89,15 @@ const styles = StyleSheet.create({
   /** `.clipQuickActions` column on the reader's rail; the card keeps its own action row. */
   railWrap: { alignItems: 'center' },
   cardWrap: { flexGrow: 1, flexBasis: 0, alignItems: 'center' },
-  /** `.clipQuickActions>button` — a 44px touch target even where the mark is drawn smaller. */
-  railButton: { minWidth: 54, minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  /** `.clipQuickActions>button:not(.clipRailAvatar)` — the reference's 56×56 cell, rows 39px + 14px. */
+  railButton: { width: 56, minWidth: 56, height: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 1 },
   cardButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
-  /** `.reactionMetric>b` 34x34 on the phone shell, 52x52 in the full viewer; the rail draws 34. */
-  railGlyph: { color: '#ffffff', fontSize: 26, lineHeight: 30 },
+  /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29 — drawn at 28px to fill it. */
+  railGlyph: { color: '#ffffff', fontSize: 28, lineHeight: 36 },
   /** Untouched: `solidViewerIcon('heart')` — the same mark in white. */
   railGlyphIdle: { color: '#ffffff' },
-  /** `.reactionMetric>em{font-size:11px;font-weight:850;line-height:13px}` */
-  railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 13 },
+  /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
+  railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
   /** `.reactionSummaryGlyphs` — up to three glyph+count pairs, in the order the summary ranked them. */
   metrics: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metric: { flexDirection: 'row', alignItems: 'center' },

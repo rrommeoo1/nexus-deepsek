@@ -8,7 +8,7 @@ import { ReactionControl } from './ReactionControl';
 import { RemoteImage, RemoteImageSource, RemoteVideo, type MediaFit } from './PostMedia';
 import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
 import {
-  audioAttributionFor, compactCount, mediaKindOf, mediaSourceForPath, postMediaItems,
+  audioAttributionFor, compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems,
   relativeTime, viewerReaction,
   type MediaItem, type SocialPost,
 } from '../lib/socialTypes';
@@ -202,9 +202,6 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
         <Pressable accessibilityRole="button" accessibilityLabel="Mod de afișare a imaginii" onPress={onToggleFit} style={styles.disc}>
           <Text style={styles.discText}>{fit === 'cover' ? '⤢' : '⤡'}</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={muted ? 'Activează sunetul' : 'Oprește sunetul'} onPress={onToggleMute} style={styles.disc}>
-          <Text style={styles.discText}>{muted ? '🔇' : '🔊'}</Text>
-        </Pressable>
       </View>
 
       {isVideo && !plays ? (
@@ -224,11 +221,28 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           </View>
         </View>
         {post.caption ? <Text style={styles.caption} numberOfLines={3}>{post.caption}</Text> : null}
-        <Text style={styles.sound} numberOfLines={1}>{`♫ ${audioAttributionFor(post, name)}`}</Text>
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       </View>
 
       <View style={styles.rail}>
+        {/**
+         * `.clipQuickActions>.clipRailAvatar` (feed-surface.js:201, feed-surface.css:148-150): the owner moved the
+         * profile up the rail, above the reactions, so the mark sits where a thumb already is. It stays the button
+         * it always was - it opens the creator's moment - which on the phone is the reel itself.
+         */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Deschide momentul creatorului ${name}`}
+          onPress={onOpenPost}
+          style={styles.railAvatar}
+        >
+          <View style={styles.railAvatarDisc}>
+            {avatar
+              ? <RemoteImageSource source={avatar} fit="cover" style={styles.railAvatarImage} />
+              : <Text style={styles.railAvatarText}>{initialsFor(name, handle)}</Text>}
+          </View>
+        </Pressable>
+
         <ReactionControl variant="rail" summary={summary} onReact={(kind) => react(kind)} />
 
         <Pressable
@@ -249,6 +263,8 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           style={styles.railButton}
         >
           <Text style={styles.railGlyph}>{saved ? '🔖' : '🏷'}</Text>
+          {/* `.railMetricPlaceholder` — save has no public count, so its metric row is reserved invisibly. */}
+          <Text accessible={false} style={[styles.railCount, styles.railCountPlaceholder]}>•</Text>
         </Pressable>
 
         <Pressable
@@ -258,9 +274,24 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           style={styles.railButton}
         >
           <Text style={[styles.railGlyph, reposted && styles.railGlyphOn]}>🔁</Text>
+          <Text style={styles.railCount}>{post.reposts ? compactCount(post.reposts) : ''}</Text>
         </Pressable>
 
         {busy ? <ActivityIndicator color="#ffffff" style={styles.railSpinner} /> : null}
+
+        {/**
+         * `.clipMusicDisc` (app.js:4285, feed-surface.css:751-753): the soundtrack lives on the rail as a disc
+         * that toggles the sound, and the attribution it carries is its accessible name.
+         */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${muted ? 'Activează' : 'Oprește'} sunetul · ${audioAttributionFor(post, name)}`}
+          accessibilityState={{ selected: !muted }}
+          onPress={onToggleMute}
+          style={[styles.musicDisc, muted && styles.musicDiscMuted]}
+        >
+          <Text style={styles.musicDiscGlyph}>♫</Text>
+        </Pressable>
       </View>
 
       {distributeOpen ? (
@@ -311,14 +342,37 @@ const styles = StyleSheet.create({
   creatorName: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
   creatorHandle: { color: 'rgba(255,255,255,0.78)', fontSize: 12 },
   caption: { color: '#f2f6f9', fontSize: 14, lineHeight: 19 },
-  sound: { color: 'rgba(255,255,255,0.74)', fontSize: 12 },
   notice: { color: '#ffc6c6', fontSize: 12, fontWeight: '600' },
-  rail: { position: 'absolute', right: 10, bottom: 26, alignItems: 'center', gap: 14 },
-  railButton: { alignItems: 'center', justifyContent: 'center', minWidth: 44, gap: 2 },
-  railGlyph: { fontSize: 24 },
+  /** `.clipQuickActions{right:8px;bottom:10px;gap:2px}` — the reader's action column. */
+  rail: { position: 'absolute', right: 10, bottom: 26, alignItems: 'center', gap: 2 },
+  /** `.clipQuickActions>.clipRailAvatar{width:62px;margin:0 0 8px}` — the cell is wider than the ring it holds. */
+  railAvatar: { width: 62, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  /** `.clipRailAvatar>i` — a 46px ring with the avatar inside it (or the initials when there is none). */
+  railAvatarDisc: {
+    width: 46, height: 46, borderRadius: 23, overflow: 'hidden',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.86)', backgroundColor: '#111820',
+    alignItems: 'center', justifyContent: 'center',
+  },
+  railAvatarImage: { width: '100%', height: '100%' },
+  railAvatarText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
+  /** `.clipQuickActions>button:not(.clipRailAvatar)` — one predictable 56×56 action cell. */
+  railButton: { width: 56, minWidth: 56, height: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29, on the row above its metric. */
+  railGlyph: { fontSize: 28, lineHeight: 36 },
   railGlyphOn: { color: '#ff315f' },
-  railCount: { color: '#ffffff', fontSize: 11, fontWeight: '700' },
+  /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
+  railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
+  /** `.railMetricPlaceholder{visibility:hidden}` — a reserved metric row that prints nothing. */
+  railCountPlaceholder: { opacity: 0 },
   railSpinner: { marginTop: 4 },
+  /** `.clipMusicDisc` — a 56px single-row disc that keeps the soundtrack's own toggle. */
+  musicDisc: {
+    width: 56, height: 56, borderRadius: 28, marginTop: 4,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.42)', backgroundColor: '#0a0b0e',
+  },
+  musicDiscMuted: { opacity: 0.72 },
+  musicDiscGlyph: { color: '#ffffff', fontSize: 20 },
   palette: {
     position: 'absolute', right: 10, bottom: 214, flexDirection: 'row', flexWrap: 'wrap', maxWidth: 190,
     justifyContent: 'flex-end', gap: 6, padding: 8, borderRadius: 18,

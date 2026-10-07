@@ -52,6 +52,8 @@ export type SocialPost = {
   media?: MediaItem | null;
   media_list?: MediaItem[];
   comment_count?: number;
+  /** `post.reposts` of the web card: the count the rail prints beside the distribute control. */
+  reposts?: number;
   view_stats?: { viewers?: number; impressions?: number } | null;
   saved_by_me?: boolean;
   reposted_by_me?: boolean;
