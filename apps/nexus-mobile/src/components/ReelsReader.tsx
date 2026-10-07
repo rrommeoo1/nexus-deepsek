@@ -24,12 +24,14 @@ import {
  * phone from decoding six videos at once. Every action behind the rail is a real endpoint call
  * (`lib/postInteractions`) - nothing here is a picture of a button.
  */
-export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadingMore }: {
+export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadingMore, onOpenPost }: {
   posts: SocialPost[];
   refreshing: boolean;
   onRefresh: () => void;
   onEndReached: () => void;
   loadingMore: boolean;
+  /** `tapVideo` (app.js:3216): a single tap opens the reel full screen instead of pausing it. */
+  onOpenPost: (post: SocialPost) => void;
 }) {
   const [pageHeight, setPageHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -80,6 +82,7 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
               muted={muted}
               onToggleMute={() => setMuted((value) => !value)}
               onToggleFit={() => setFit((value) => (value === 'cover' ? 'contain' : 'cover'))}
+              onOpenPost={() => onOpenPost(item)}
             />
           )}
           ListFooterComponent={loadingMore ? <ActivityIndicator color="#ffffff" style={styles.footer} /> : null}
@@ -90,7 +93,7 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
 }
 
 /** One reel: the whole viewport, the picture, and the rail the reader actually uses. */
-function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit }: {
+function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit, onOpenPost }: {
   post: SocialPost;
   height: number;
   active: boolean;
@@ -98,6 +101,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
   muted: boolean;
   onToggleMute: () => void;
   onToggleFit: () => void;
+  onOpenPost: () => void;
 }) {
   const items = postMediaItems(post);
   const cover: MediaItem | null = items[0] ?? post.media ?? null;
@@ -163,10 +167,15 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
       {cover && !isVideo ? <RemoteImage item={cover} fit={fit} style={styles.media} /> : null}
       {!cover ? <View style={styles.media} /> : null}
 
+      {/**
+       * `video aria-label="Deschide Reel-ul pe tot ecranul"` + `bindDoubleTapHeart(video, { onSingle: tapVideo })`
+       * (app.js:3178,3216): one tap opens the reader. Playback is not toggled here - the web keeps that on the
+       * clip's own `[data-clip-play]` control, which is the disc below.
+       */}
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={playing ? 'Pauză' : 'Redă clipul'}
-        onPress={() => setPlaying((value) => !value)}
+        accessibilityLabel="Deschide Reel-ul pe tot ecranul"
+        onPress={onOpenPost}
         style={styles.stage}
       />
 
@@ -180,6 +189,17 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
       ) : null}
 
       <View style={styles.chrome}>
+        {/* `[data-clip-play]` — the web's own playback control, hidden while the clip is running. */}
+        {isVideo ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={playing ? 'Pauză' : 'Redă clipul'}
+            onPress={() => setPlaying((value) => !value)}
+            style={styles.disc}
+          >
+            <Text style={styles.discText}>{playing ? '❚❚' : '▶'}</Text>
+          </Pressable>
+        ) : null}
         <Pressable accessibilityRole="button" accessibilityLabel="Mod de afișare a imaginii" onPress={onToggleFit} style={styles.disc}>
           <Text style={styles.discText}>{fit === 'cover' ? '⤢' : '⤡'}</Text>
         </Pressable>

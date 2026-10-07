@@ -7,6 +7,7 @@ import { decideSocialGesture } from '../lib/socialGesture';
 import type { FeedPage, NewsItem, SocialPost } from '../lib/socialTypes';
 import { postMediaItems, relativeTime } from '../lib/socialTypes';
 import { PostCard } from '../components/PostCard';
+import { MediaViewer } from '../components/MediaViewer';
 import { ReelsReader } from '../components/ReelsReader';
 import { socialTokens } from '../theme/social';
 
@@ -151,6 +152,13 @@ export function FeedScreen({ mode, onModeChange }: {
     setReloadNonce((value) => value + 1);
   }, []);
 
+  /** Where the full-screen reader stands: the index of the tapped post inside the media gallery. */
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const openInViewer = useCallback((post: SocialPost) => {
+    const index = gallery.findIndex((entry) => entry.id === post.id);
+    if (index >= 0) setViewerIndex(index);
+  }, [gallery]);
+
   if (loadedUrl !== url) return <FeedSkeleton />;
 
   // The clips reading is the immersive one (`presentation-immersive` of feed-surface.css), so it gets
@@ -158,15 +166,28 @@ export function FeedScreen({ mode, onModeChange }: {
   // failed the card list stays in place, which is where the empty and error lines live.
   if (mode === 'reels' && posts.length > 0) {
     return (
-      <View style={styles.surface} {...channelSwipe.panHandlers}>
-        <ReelsReader
-          posts={posts}
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          onEndReached={onLoadMore}
-          loadingMore={loadingMore}
+      <>
+        <View style={styles.surface} {...channelSwipe.panHandlers}>
+          <ReelsReader
+            posts={posts}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            onEndReached={onLoadMore}
+            loadingMore={loadingMore}
+            onOpenPost={openInViewer}
+          />
+        </View>
+        {/**
+         * `tapVideo` of the web (app.js:3216-3239) opens the reel full screen on a single tap; the reader
+         * it opens is the same `#mediaViewer` every other card opens, and it is handed the media posts of
+         * this surface (`gallery`), with the tapped post as its first frame.
+         */}
+        <MediaViewer
+          post={viewerIndex !== null ? gallery[viewerIndex] ?? null : null}
+          gallery={gallery}
+          onClose={() => setViewerIndex(null)}
         />
-      </View>
+      </>
     );
   }
 
