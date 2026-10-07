@@ -612,3 +612,55 @@ Credențiale: `test@nexus.ro`, furnizate **doar** prin variabile de mediu (`NEXU
   (se închide cu Escape → `goBack`), iar un swipe pornit din marginea stângă declanșează gestul de
   back al Chrome (se dezactivează cu `--disable-features=OverscrollHistoryNavigation`).
 
+## 16. Port 1:1 — gesturile, rama de shell și vizualizatorul (2026-10-07, lot 3)
+
+Ce s-a portat (fiecare cu sursa web citată în cod):
+
+- **Rama de shell** (`components/AppHeader.tsx`, `components/AppNav.tsx`): header **72 px**
+  (`feedHeader.height` / `appHeader.height` din `theme/social.ts`, aceeași valoare în ambele variante),
+  wordmark + `wordmarkBuild`, **un singur** tab de citire (`accessibilityRole="tab"`, glyph ▶ / ❝ / ▤ din
+  `socialTokens.feedModes`) și cele 7 mărci ale barei cu geometria din `shell/nav-marks.json`.
+- **Badge-ul de necitite** (`AppNav.tsx` + `lib/unread.ts`): pill `Math.min(unread, 99)` cu eticheta care
+  poartă suma — aceeași împărțire ca `app.js:2067-2073`; sursa este suma inbox + notificări cu plafon
+  9999 (`app.js:2416-2454`).
+- **Swipe-ul de canal** (`lib/socialGesture.ts` + `FeedScreen.tsx`): `decideSocialGesture` transcrie
+  decizia din `social-gesture.js` / `app.js:2960-3048` — `|dx| ≥ 72` **și** `|dx| > |dy|*1.2`, offset `+1`
+  când `dx < 0`, apoi `nextMode` pe ordinea din `feedModes` (reels → whispers → news → reels, cu wrap, ca
+  `nextFeedMode` din `app.js:2999`).
+- **Vizualizatorul de media** (`components/MediaViewer.tsx`): galeria e cheiată pe postare (`gallery` de la
+  ecran), contor „n / N", plăci ‹ › și „×", plus un flick = un pas prin `decideViewerGesture` (48 px, axa
+  dominantă, `dx < 0` / `dy < 0` → `+1`, cu wrap ca `step()` din `app.js:5114-5133`).
+
+Decizii explicite (și de ce se abat de la web):
+
+- **Pull-to-refresh rămâne nativ.** Ramura verticală a deciziei (`dy ≥ 64`, `|dy| > |dx| * 1.15`,
+  `scrollTop ≤ 1`) rămâne **neatinsă**: revendicarea cere `dx` dominant, deci un pull nu este niciodată
+  preluat de `PanResponder`, iar `RefreshControl`-ul platformei încarcă exact pagina pe care acea ramură ar
+  fi cerut-o. Consecință asumată: textele „↻ Trage pentru actualizare" / „Se actualizează" sunt ale
+  platformei, nu ale web-ului.
+- **Pragul de revendicare e 24 px, sub pragul de decizie (72 px).** Un gest nativ trebuie revendicat
+  *înainte* de a fi decis, altfel lista îl consumă; se revendică doar un flick clar orizontal, iar copilul
+  (`Pressable`) își anulează apăsarea — ceea ce ține locul `suppressFeedClickUntil = now+500` din web.
+- **`ReelsReader` păstrează paginarea nativă** (`pagingEnabled` + `snapToInterval` + `onMomentumScrollEnd`),
+  deci gestul de 48 px al vizualizatorului se aplică doar în `MediaViewer`; în reels, readerul vertical
+  este cel care decide.
+
+Reparat în acest lot (defecte găsite de lint-ul pe **arborele întreg**, nu de cel per fișier):
+
+- `app/index.tsx`: `goHome` era un `useCallback` aflat **după** ieșirile timpurii de boot și de login, deci
+  React vedea altă ordine de hook-uri pe acele randări — risc real de crash. Mutat lângă celelalte
+  callbacks, cu motivul scris în cod.
+- `components/AppNav.tsx`: `glyphWeight` era destructurat degeaba (`styles.createGlyph` îl aplică deja).
+
+Verificare (offline, fără telefon):
+
+- `node node_modules/typescript/bin/tsc --noEmit` → exit **0**.
+- `node node_modules/eslint/bin/eslint.js src --format json` → **43 fișiere, 0 erori, 0 avertismente**.
+
+Rămas pe acest fir (nepostat): story viewer-ul și rail-ul de story pe feed (captura web a eșuat —
+`story-opened=false`, feed-ul de test nu are story-uri), compozitorul din vizualizatorul de media (trăiește
+acum doar în `CommentsSheet`), fit/zoom/pan în vizualizator, atribuirea audio din reel, `#modeBadge` /
+`#feedBadge` / `#friendsBadge`, plus mutarea credențialelor în variabile de mediu și recrearea datelor de
+test.
+
+

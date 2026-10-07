@@ -44,10 +44,10 @@ absentă), marcat în MIGRATION.md · `n/a` = element de showcase desktop, irele
 
 | Element | Web (dovadă) | Nativ acum | Stare | Prior. |
 |---|---|---|---|---|
-| `.appHeader` înălțime 72 px, `display:grid` | `shell/home.html.json`, `.appHeader` r=[0,0,469,72] | `FeedHeader.tsx` (minHeight 56, vezi `theme/social.ts` feedHeader) | diferit (56 vs 72) | P0 |
+| `.appHeader` înălțime 72 px, `display:grid` | `shell/home.html.json`, `.appHeader` r=[0,0,469,72] | `AppHeader.tsx` — `feedBar`/`screenBar` iau `feedHeader.height` / `appHeader.height` = **72** din `theme/social.ts` (layout flex, nu grid) | identic (înălțime; grid → flex) | — |
 | Wordmark SVG `NE<b>X</b>US` + bare + 3 cercuri, `#wordmark` aria „Nexus Home · revino la prima pagină" | `shell/home.html.json` (SVG exact) | `NexusWordmark.tsx` + `tokens.graphics.wordmarkSvg` | identic | — |
 | Build version `1.11` imprimat în `i.wordmarkBuild` | `shell/home.html.json` | citit din `/app.js` la runtime (`fetchBackendVersion`) | identic (sursă diferită, același număr) | — |
-| Rail de mod `nav.feedModes[role=tablist]` aria „Ce citești" cu **un singur** tab vizibil `#feedModeCurrent` (glyph ▶ / ❝ / ▤) | `shell/home.html.json`, `feed/swipe-modes.json` | `FeedHeader.tsx` (comutator mod) | diferit (de verificat glyph/aria) | P1 |
+| Rail de mod `nav.feedModes[role=tablist]` aria „Ce citești" cu **un singur** tab vizibil `#feedModeCurrent` (glyph ▶ / ❝ / ▤) | `shell/home.html.json`, `feed/swipe-modes.json` | `AppHeader.tsx` — un singur `accessibilityRole="tab"` cu `accessibilityLabel` = titlul citirii, glyph + gradient din `socialTokens.feedModes` | aliniat (un singur tab + glyph; `tablist`-ul aria „Ce citești" nu are echivalent nativ) | P1 |
 | `#feedModules` buton drawer (aria „Schimbă profilul Nexus", 2 dreptunghiuri + săgeți) | `shell/home.html.json` | `FeedDrawer.tsx` | diferit (de verificat) | P1 |
 | `#modeBadge` (avatar persona + „NEXUS / Social" + ⌄) | `shell/home.html.json` | absent | lipsă | P0 |
 | `#feedBadge` / `#friendsBadge` (doar off-feed: „Căutare", „Followers") | `search/initial-0.dom.json` (textLines) | absent | lipsă | P1 |
@@ -55,10 +55,10 @@ absentă), marcat în MIGRATION.md · `n/a` = element de showcase desktop, irele
 | Geometrie marcă: `i` 32×32 r12, svg 25×25 stroke 1.7, create 44×44 r19 border 5 | `theme/social.ts` (citat din CSS) | `AppNav.tsx` + `theme/social.ts` | identic | — |
 | Iconițe SVG desenate (nu emoji) pentru cele 7 mărci + față reală în `account` | `nav-marks.js`, `shell/home.html.json` (img în `i`) | `NexusMark.tsx` | identic | — |
 | Etichete: Acasă, Mesaje, „Găsește oameni și conținut", Creează, Prieteni, Live, Profil | `shell/nav-marks.json` | `AppNav.tsx` | identic | — |
-| Badge `hasUnread` numeric (max 99) pe inbox | `app.js:2067-2073` | absent | lipsă | P2 |
+| Badge `hasUnread` numeric (max 99) pe inbox | `app.js:2067-2073` | `AppNav.tsx` (pill `min(unread, 99)`, eticheta poartă suma) + `lib/unread.ts` (inbox + notificări, plafon 9999) | identic (de confirmat pe device) | P2 |
 | Drawer „quick" (`feedQuickLayer`/`feedQuickDrawer`): grid 3 col, tile 40, închidere ×, tile-uri module + logout | `feed/drawer-open2.html.json`, `feed-surface.js:130-144` | `FeedDrawer.tsx` | diferit | P1 |
 | Stare `aria-expanded` + focus return pe opener la închidere | `feed-surface.js:151-195` | de verificat | diferit | P2 |
-| Pull-to-refresh: indicator `.pullRefreshIndicator` „↻ Trage pentru actualizare" → „Se actualizează", prag **dy ≥ 64**, `|dy| > |dx|*1.15`, doar la `scrollTop ≤ 1` | `social-gesture.js`, `app.js:2976-2999`, `feed/pull-refresh-text.json` | FeedScreen (RefreshControl?) | diferit (de aliniat prag/copy) | P1 |
+| Pull-to-refresh: indicator `.pullRefreshIndicator` „↻ Trage pentru actualizare" → „Se actualizează", prag **dy ≥ 64**, `|dy| > |dx|*1.15`, doar la `scrollTop ≤ 1` | `social-gesture.js`, `app.js:2976-2999`, `feed/pull-refresh-text.json` | `FeedScreen.tsx` — ramura verticală rămâne neatinsă (revendicarea cere `\|dx\|` dominant, deci un pull nu e niciodată preluat), iar `RefreshControl` încarcă exact pagina acelei ramuri; indicatorul și textele sunt ale platformei | aliniat structural (copy-ul indicatorului, nu al web-ului) | P1 |
 
 ## 2. Feed — trei citiri (Reels / Șoapte / Știri)
 
@@ -69,19 +69,19 @@ Contract: `FEED_MODES = ["reels","whispers","news"]` (`feed-surface.js:14`), fie
 
 | Element | Web (dovadă) | Nativ acum | Stare | Prior. |
 |---|---|---|---|---|
-| Swipe orizontal schimbă citirea: prag **|dx| ≥ 72** și **|dx| > |dy|*1.2**, offset +1 la stânga | `social-gesture.js`, `app.js:2960-3048` | FeedScreen (pan/gesture?) | diferit | P0 |
-| Blocare gest dacă pornirea e pe `button,input,textarea,select,a,.comments,.reactionBar,.clipMoreActions` | `app.js:3003,3018` | absent | lipsă | P1 |
+| Swipe orizontal schimbă citirea: prag **\|dx\| ≥ 72** și **\|dx\| > \|dy\|*1.2**, offset +1 la stânga | `social-gesture.js`, `app.js:2960-3048` | `lib/socialGesture.ts` (`decideSocialGesture`, transcriere verbatim) + `FeedScreen.tsx` (`PanResponder`, revendicare la 24 px orizontali) → `nextMode` (ordinea `feedModes`, cu wrap) | identic | — |
+| Blocare gest dacă pornirea e pe `button,input,textarea,select,a,.comments,.reactionBar,.clipMoreActions` | `app.js:3003,3018` | n/a structural — gestul e revendicat doar dacă e clar orizontal (≥ 24 px **și** > 1.2× verticala), deci o apăsare pe buton/card/comentarii nu e niciodată furată | aliniat prin construcție | — |
+| `suppressFeedClickUntil = now+500` după schimbarea de mod (anti-click accidental) | `app.js:2998` | n/a — când părintele revendică responderul, `Pressable`-ul copil își anulează apăsarea, deci nu există click accidental de suprimat | n/a | — |
 | Bazin gesturi: pointer (mouse, ignoră `pointerType==='touch'`) **și** touch pe `container.closest('.clipsScreen')` | `app.js:3001-3047` | n/a (nativ are un singur sistem) | n/a | — |
-| `suppressFeedClickUntil = now+500` după schimbarea de mod (anti-click accidental) | `app.js:2998` | absent | lipsă | P2 |
 | Memoria poziției per mod: `feedScrollMemory` | `app.js` (feedScrollMemory, `app.js:1510` ctx) | absent | lipsă | P2 |
 | Mod reels: `#pulsePosts` clasa `feedReels clipFirst`, carduri tip `article.clipCard.clipPost` | `feed/reels-0.html.json` | FeedScreen `reels` | diferit | P0 |
 | Mod șoapte: card text `.whisperCard` cu autor, „Șoapte · acum X zile", „•••" | `feed/swipe-left-1.*`, `feed-surface.js:345` | FeedScreen `whispers` | diferit | P0 |
 | Mod știri: stare **gol** reală: „Știrile sunt pregătite, dar oprite" + „Nicio sursă nu a fost aprobată încă. Fără o decizie de owner pentru un agregator din lista aprobată, Nexus nu are de unde lua titluri reale — și nu inventează niciunul." | `feed/swipe-left-2.html.json` (+ textLines) | FeedScreen `news` | de verificat copy | P1 |
 | Fundal imersiv: `.screen.clipsScreen.presentation-immersive.media-fit-fill.feed-reels` | `shell/home.html.json` | absent (clase CSS) | n/a | — |
-| Skelet/încărcare feed: `feedSkeletonMarkup` (3 carduri, shimmer 1.5s) | `feed-surface.js:250`, `_tokens/animations.json` | FeedScreen (de verificat) | diferit | P1 |
-| Stare eroare feed: `feedErrorMarkup` | `feed-surface.js:275` | de verificat | diferit | P1 |
-| Stare gol: `feedEmptyMarkup` | `feed-surface.js:264` | de verificat | diferit | P2 |
-| „Mai mult" la capăt de listă: `feedMoreMarkup` cu cursor | `feed-surface.js:441` | absent | lipsă | P2 |
+| Skelet/încărcare feed: `feedSkeletonMarkup` (3 carduri, shimmer 1.5s) | `feed-surface.js:250`, `_tokens/animations.json` | `FeedScreen.tsx` → `FeedSkeleton` (4 carduri cu blocuri statice, fără shimmer) | diferit (număr de carduri + animația) | P1 |
+| Stare eroare feed: `feedErrorMarkup` | `feed-surface.js:275` | `FeedScreen.tsx` — mesajul serverului + buton „Reîncearcă" (`onRetry`) și scurtătura „Vezi <citirea următoare>" | parțial (copy de comparat cu `feedErrorMarkup`) | P1 |
+| Stare gol: `feedEmptyMarkup` | `feed-surface.js:264` | `FeedScreen.tsx` (`emptyNote`, cu scurtătura spre citirea următoare) | parțial (copy de comparat) | P2 |
+| „Mai mult" la capăt de listă: `feedMoreMarkup` cu cursor | `feed-surface.js:441` | `FeedScreen.tsx` — cursor + `onEndReached` (prag 0.6), subsol cu spinner; fără markup-ul „mai mult" | parțial | P2 |
 | Zgomot/audio: `feedAudioMarkup` + buton `♫` per card (`applySocialMuted`) | `feed-surface.js:387`, `app.js:420-453` | ReelsReader (mute toggle) | diferit | P1 |
 | Story rail pe feed: `feedStoryRailMarkup` + `bindStoryImages` | `feed-surface.js:285-331` | absent (story viewer nu s-a putut deschide: `story-opened=false`, feed-ul de test nu are story-uri) | lipsă / de recapturat | P1 |
 | Atribuire audio în reel full-screen: „♫ What Is Love — Melanie Ungar · CC BY" | `viewer/reel-fullscreen.dom.json` | absent | lipsă | P2 |
@@ -247,11 +247,11 @@ liveDeviceSheet, heroEditSheet, profileMenuDrawer`).
 | Element | Web (dovadă) | Nativ acum | Stare | Prior. |
 |---|---|---|---|---|
 | Vizualizator reel pe tot ecranul (`.reelViewer`), deschis prin tap pe `video[aria-label="Deschide Reel-ul pe tot ecranul"]` | `viewer/reel-fullscreen.dom.json` (177 noduri) | `ReelsReader.tsx` (348 linii) | diferit | P0 |
-| Gest în vizualizator: `decideViewerGesture`, prag **48 px** pe axa dominantă, pas ±1 | `social-gesture.js`, `app.js:5128,5186-5225` | ReelsReader (de aliniat prag) | diferit | P0 |
+| Gest în vizualizator: `decideViewerGesture`, prag **48 px** pe axa dominantă, pas ±1 | `social-gesture.js`, `app.js:5128,5186-5225` | `lib/socialGesture.ts` (`decideViewerGesture`) folosit de `MediaViewer.tsx`; `ReelsReader.tsx` rămâne pe paginarea nativă (`pagingEnabled` + `snapToInterval`) | parțial (decizia e portată, readerul de reel nu o folosește) | P0 |
 | Atribuire audio „♫ What Is Love — Melanie Ungar · CC BY" | `viewer/reel-fullscreen.dom.json` | absent | lipsă | P2 |
-| Vizualizator media (`.mediaViewer`) cu compozitor „Adaugă un comentariu…" | `viewer/media-viewer.dom.json` (153 noduri) | `MediaViewer.tsx` (64 linii) | diferit | P0 |
+| Vizualizator media (`.mediaViewer`) cu compozitor „Adaugă un comentariu…" | `viewer/media-viewer.dom.json` (153 noduri) | `MediaViewer.tsx` — galerie cheiată pe postare, contor „n / N", plăci ‹ ›, „×"; compozitorul de comentarii trăiește în `CommentsSheet.tsx` (deschis din card) | parțial | P0 |
 | Închidere prin `history.back()` și `Modal.onRequestClose` | `app.js:4788-4790, 4940` | MediaViewer (BACK) | identic | — |
-| Gesti în vizualizatorul media (8: fit/zoom/pan/swipe) | `app.js:4911-5000` | de verificat | diferit | P1 |
+| Gesti în vizualizatorul media (8: fit/zoom/pan/swipe) | `app.js:4911-5000` | `MediaViewer.tsx` — un flick = un pas (48 px, axa dominantă, wrap); fit/zoom/pan neportate | parțial | P1 |
 | Foaie de comentarii (`.clipCommentsDrawer` + `[data-comments-scrim]`, sortare, compozitor) | `comments/drawer-open.*`, `app.js:3887-3895` | `CommentsSheet.tsx` (220 linii) | diferit | P1 |
 | Detaliu postare (`post-detail.js` 33 KB, `post-detail.css` 23 KB) cu fir de răspunsuri | `post/detail-open.*` | absent | lipsă | P0 |
 | Deep-link de postare `#post-<id>` și `#reply-<id>` (hash + `replaceState`) | `app.js:1228-1252,3998-4026` | absent | lipsă | P2 |
@@ -272,6 +272,12 @@ liveDeviceSheet, heroEditSheet, profileMenuDrawer`).
 | Suprimare click după gest | 500 ms (canal) / 650 ms (refresh) | `app.js:2985, 2998` |
 | Zonă ignorată la gest | `button,input,textarea,select,a,.comments,.reactionBar,.clipMoreActions` | `app.js:3003, 3018` |
 | Fold-ul barei pe reel | `scrollTop ≥ 0.5 * înălțimea coloanei` (fallback 240) | `feed-surface.js:241-242` |
+
+**Cum arată aceste praguri în nativ** (`apps/nexus-mobile`): deciziile stau în `src/lib/socialGesture.ts`
+(`decideSocialGesture` / `decideViewerGesture`, transcrieri ale `social-gesture.js`), iar pragul de
+**revendicare** al `PanResponder` este **24 px** — sub pragul de decizie, pentru că un gest nativ trebuie
+revendicat *înainte* de a putea fi decis (altfel lista îl consumă). Pull-to-refresh-ul rămâne al
+`RefreshControl`-ului, iar consecințele sunt asumate în `apps/nexus-mobile/MIGRATION.md` §16.
 
 ### 10.2 Animații și tranziții (durate/easing extrase)
 
