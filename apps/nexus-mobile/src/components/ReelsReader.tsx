@@ -266,7 +266,9 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           onPress={() => setCommentsOpen(true)}
           style={styles.railButton}
         >
-          <Text style={styles.railGlyph}>💬</Text>
+          <View style={styles.railDisc}>
+            <Text style={styles.railGlyph}>💬</Text>
+          </View>
           <Text style={styles.railCount}>{post.comment_count ? compactCount(post.comment_count) : ''}</Text>
         </Pressable>
 
@@ -277,7 +279,9 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           onPress={save}
           style={styles.railButton}
         >
-          <Text style={styles.railGlyph}>{saved ? '🔖' : '🏷'}</Text>
+          <View style={styles.railDisc}>
+            <Text style={styles.railGlyph}>{saved ? '🔖' : '🏷'}</Text>
+          </View>
           {/* `.railMetricPlaceholder` — save has no public count, so its metric row is reserved invisibly. */}
           <Text accessible={false} style={[styles.railCount, styles.railCountPlaceholder]}>•</Text>
         </Pressable>
@@ -288,7 +292,9 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           onPress={() => setDistributeOpen((open) => !open)}
           style={styles.railButton}
         >
-          <Text style={[styles.railGlyph, reposted && styles.railGlyphOn]}>🔁</Text>
+          <View style={styles.railDisc}>
+            <Text style={[styles.railGlyph, reposted && styles.railGlyphOn]}>🔁</Text>
+          </View>
           <Text style={styles.railCount}>{post.reposts ? compactCount(post.reposts) : ''}</Text>
         </Pressable>
 
@@ -375,8 +381,10 @@ const styles = StyleSheet.create({
   railAvatarText: { color: '#ffffff', fontSize: 13, fontWeight: '800' },
   /** `.clipQuickActions>button:not(.clipRailAvatar)` — one predictable 56×56 action cell. */
   railButton: { width: 56, minWidth: 56, height: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  /** `.clipQuickActions :is(.clipSolidIcon,.reactionMetric>b)` 36×36 disc on the cell's 39px first row. */
+  railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
   /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29, on the row above its metric. */
-  railGlyph: { fontSize: 28, lineHeight: 36 },
+  railGlyph: { fontSize: 28, lineHeight: 29 },
   railGlyphOn: { color: '#ff315f' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
   railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },

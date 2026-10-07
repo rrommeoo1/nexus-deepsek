@@ -48,7 +48,9 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
         style={rail ? styles.railButton : styles.cardButton}
       >
         {rail ? (
-          <Text style={[styles.railGlyph, mine ? null : styles.railGlyphIdle]}>{railGlyph}</Text>
+          <View style={styles.railDisc}>
+            <Text style={[styles.railGlyph, mine ? null : styles.railGlyphIdle]}>{railGlyph}</Text>
+          </View>
         ) : (
           <View style={styles.metrics}>
             {compact.entries.map((entry) => (
@@ -92,8 +94,13 @@ const styles = StyleSheet.create({
   /** `.clipQuickActions>button:not(.clipRailAvatar)` — the reference's 56×56 cell, rows 39px + 14px. */
   railButton: { width: 56, minWidth: 56, height: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 1 },
   cardButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  /**
+   * `.clipQuickActions :is(.clipSolidIcon,.reactionMetric>b)` 36×36 on the cell's first row — the
+   * `grid-template-rows:39px 14px` floor. The disc holds the mark; the 39px row is its own height.
+   */
+  railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
   /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29 — drawn at 28px to fill it. */
-  railGlyph: { color: '#ffffff', fontSize: 28, lineHeight: 36 },
+  railGlyph: { color: '#ffffff', fontSize: 28, lineHeight: 29 },
   /** Untouched: `solidViewerIcon('heart')` — the same mark in white. */
   railGlyphIdle: { color: '#ffffff' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
