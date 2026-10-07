@@ -11,10 +11,11 @@
 # Sesiunea cere: telefonul deblocat, Nexus Dev în prim-plan (app.nexus.mobile.dev), Wireless debugging pornit.
 # Fiecare pas se sare dacă mCurrentFocus nu este app.nexus.mobile.dev.
 
-# --- 0. pornire curată: închide orice Modal rămas deschis (viewer, foaie de comentarii)
-key:back
-key:back
-wait:600
+# --- 0. reguli de sesiune (cerute de operator)
+#   - NU se atinge cortina de notificări, NU se trimite Home sau Back;
+#   - din aplicație se iese doar prin controalele ei („Închide", „Înapoi la conversații");
+#   - dacă mCurrentFocus nu e app.nexus.mobile.dev, lotul face O SINGURĂ `am start -n …/.MainActivity`;
+#     dacă tot nu e în prim-plan, se oprește și raportează, fără să trimită input.
 
 # --- 1. Feed Reels, rail-ul de comentarii, clipul pe tot ecranul (defectul „viewer video")
 tap:Acasă
@@ -31,20 +32,20 @@ capture:viewer/media-viewer
 tap:Închide
 wait:800
 
-# --- 2. Mesaje: shelf-ul de story-uri (defectul „Mesaje: lipsesc Stories"), cititorul, firul
+# --- 2. Mesaje: shelf-ul de story-uri, firul de conversație (test@nexus.ro are conversația 1), cititorul
 tap:Mesaje
 wait:1500
 capture:messages/inbox-0
-tapxy:175,214
+tap:Deschide conversația
+wait:1800
+capture:messages/thread-0
+tap:Înapoi la conversații
+wait:1000
+tap:Story de verificare
 wait:1500
 capture:viewer/story-viewer
 tap:Închide
 wait:900
-tap:Deschide conversația
-wait:1500
-capture:messages/thread-0
-tap:Înapoi la conversații
-wait:800
 
 # --- 3. Profil: bara de iconițe (defectul „meniul de moduri trebuie să fie ICONURI")
 tap:Profil

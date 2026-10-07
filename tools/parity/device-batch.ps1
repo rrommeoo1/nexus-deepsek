@@ -131,13 +131,6 @@ function Get-Nodes {
   return $nodes
 }
 
-function Hide-Shade {
-  # Cortina de notificări (sau o altă fereastră ridicată peste aplicație) fură atingerile din zona de jos:
-  # măsurat în sesiune, o notificare a făcut un `tap` pe marcajul „Profil" să ajungă în altă aplicație.
-  # `cmd statusbar collapse` o închide fără să trimită input nimănui (nu e o atingere, e o comandă de sistem).
-  cmd /c "`"$adb`" -s $serial shell cmd statusbar collapse > NUL 2>&1" | Out-Null
-}
-
 function Tap-Node {
   param($Node, [string]$What)
   $x = [int](($Node.x1 + $Node.x2) / 2)
@@ -154,27 +147,23 @@ foreach ($entry in $entries) {
   if ($kind -eq 'wait') { Start-Sleep -Milliseconds ([int]$value); continue }
 
   if ($kind -ne 'wait') {
-    # Acest dispozitiv e zgomotos: notificări și alte aplicații (măsurat: Microsoft Teams) fură focusul și
-    # atingerile. De aceea fiecare pas readuce întâi aplicația sub test în față (monkey LAUNCHER, care nu
-    # trimite input nimănui), închide cortina de notificări, apoi verifică focusul.
-    Hide-Shade
-    cmd /c "`"$adb`" -s $serial shell monkey -p $Package -c android.intent.category.LAUNCHER 1 > NUL 2>&1" | Out-Null
-    Start-Sleep -Milliseconds 1200
+    # Regula sesiunii (cerută de operator): NU se atinge cortina de notificări, NU se trimite Home sau Back.
+    # Singura revenire permisă este o comandă explicită de start, o singură dată, după ce s-a citit focusul.
+    $focus = Get-Focus
+    if ($focus -notmatch [regex]::Escape($Package)) {
+      Write-Host "[parity] focus străin ($focus) — o singură revenire: am start -n $Package/.MainActivity"
+      cmd /c "`"$adb`" -s $serial shell am start -n $Package/.MainActivity > NUL 2>&1" | Out-Null
+      Start-Sleep -Seconds 3
+      $focus = Get-Focus
+    }
+    if ($focus -notmatch [regex]::Escape($Package)) {
+      # Focusul nu e aplicația sub test: nu se trimite niciun input, lotul se oprește și raportează.
+      Write-Warning "[parity] OPRIT la $entry — mCurrentFocus nu este $Package ($focus). Nu trimit input și nu reiau singur."
+      $report += [pscustomobject]@{ step = $entry; ok = $false; detail = 'focus străin' }
+      break
+    }
   }
   $focus = Get-Focus
-  if ($kind -ne 'wait' -and $focus -notmatch [regex]::Escape($Package)) {
-    # Recuperare, nu ghicit: se aduce aplicația sub test în față (monkey LAUNCHER nu trimite input în
-    # nicio altă aplicație) și se reverifică. Dacă tot nu e în prim-plan, pasul se sare și se raportează.
-    cmd /c "`"$adb`" -s $serial shell monkey -p $Package -c android.intent.category.LAUNCHER 1 > NUL 2>&1" | Out-Null
-    Start-Sleep -Seconds 3
-    $focus = Get-Focus
-    if ($focus -match [regex]::Escape($Package)) { Write-Host '[parity] aplicația a fost readusă în prim-plan' }
-  }
-  if ($focus -notmatch [regex]::Escape($Package)) {
-    Write-Warning "[parity] $entry SĂRIT: mCurrentFocus nu este $Package ($focus)"
-    $report += [pscustomobject]@{ step = $entry; ok = $false; detail = 'focus' }
-    continue
-  }
 
   if ($kind -eq 'key') {
     # `key:back` închide orice Modal rămas deschis (viewer, foaie de comentarii), fără să ghicească o
