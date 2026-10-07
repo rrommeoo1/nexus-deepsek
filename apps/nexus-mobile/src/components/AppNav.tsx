@@ -104,7 +104,7 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
 
 /** `.appNav.social .createNav i` — the 52px circle the bar was built around, and the bar's only lift. */
 function CreateDisc() {
-  const { size, glyphSize, glyphWeight } = socialTokens.nav.create;
+  const { size, glyphSize } = socialTokens.nav.create;
   return (
     <View style={styles.createDisc}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>

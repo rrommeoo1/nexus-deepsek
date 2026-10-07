@@ -165,6 +165,13 @@ export default function NativeHomeScreen() {
 
   const onCycleFeedMode = useCallback(() => setFeedMode((current) => nextMode(current)), []);
 
+  /**
+   * `goHome()` - the wordmark, and the feed switch off it, land on the feed at its first reading. It sits
+   * with the other callbacks, above the early returns, because a hook may not be reached on only some of
+   * the renders: the boot line and the login line leave before the header is ever built.
+   */
+  const goHome = useCallback(() => { setSlot('primary'); setFeedMode('reels'); }, []);
+
   if (booting) {
     return (
       <View style={styles.boot}>
@@ -202,8 +209,6 @@ export default function NativeHomeScreen() {
   const readingTitle = socialTokens.feedModes.find((entry) => entry.id === feedMode)?.title ?? feedMode;
   /** Only the feed wears `.appHeader.feedHeader`; the profile screen wears no bar at all (app.js:1397, 1416). */
   const onFeed = me.persona === 'social' && slot === 'primary';
-  /** `goHome()` - the wordmark, and the feed switch off it, land on the feed at its first reading. */
-  const goHome = useCallback(() => { setSlot('primary'); setFeedMode('reels'); }, []);
   /**
    * The switches of the off-feed bar, in the order the web prints them (app.js:1418-1421): the profile,
    * then the plate that names the feed and the plate that names the relations. Where the web opens a
