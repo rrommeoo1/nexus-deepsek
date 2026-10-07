@@ -83,11 +83,21 @@ export function clearSession(): void {
   } catch { /* a session file that cannot be removed still expires server-side */ }
 }
 
-/** Headers that carry the stored session, without ever exposing it in the UI. */
+/**
+ * Headers that carry the stored session, without ever exposing it in the UI.
+ *
+ * `Origin` is sent explicitly because React Native has no browsing context: `fetch` never adds the
+ * header a browser adds on its own, and every authenticated native call carries the
+ * `nexus_device_id` cookie below. The server refuses a cookie-bearing mutation that arrives without
+ * an `Origin` (`apps/nexus-web/lib/api.js` → 403 `origin obligatoriu pentru mutații autentificate`),
+ * so a native publish would be turned away before it reached any route. The value is the origin the
+ * API is served from, which is exactly what `externalOrigin(req)` compares against; a browser
+ * cannot forge that header, so the cross-site guard keeps rejecting every other origin.
+ */
 export function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { Origin: API_ORIGIN };
   const session = readSession();
-  if (!session) return {};
-  const headers: Record<string, string> = {};
+  if (!session) return headers;
   if (session.token) headers.Authorization = `Bearer ${session.token}`;
   if (session.deviceId) headers.Cookie = `nexus_device_id=${session.deviceId}`;
   return headers;
@@ -133,6 +143,9 @@ export async function signInWithEmail(email: string, password: string): Promise<
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
+      // The device cookie from an earlier visit can still be attached to this call, so the server
+      // asks for the origin of the client; React Native never adds it (see `authHeaders`).
+      Origin: API_ORIGIN,
       'Idempotency-Key': newMutationKey('email-login'),
     },
     body: JSON.stringify({ email, password }),
