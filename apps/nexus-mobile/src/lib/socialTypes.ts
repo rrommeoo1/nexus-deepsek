@@ -228,10 +228,55 @@ export function viewerReaction(summary?: ReactionSummary | null): string | null 
   return summary?.viewer_reaction ?? null;
 }
 
-/** The glyph the reaction palette prints for each kind of `SOCIAL_REACTIONS`. */
+/**
+ * `REACTION_GLYPHS` of the web, verbatim (`app.js:3567`): the heart, the four faces, and the two
+ * geometric marks. Measured against the web: FAKE_OPINION is a diamond and DISLIKE a triangle, not
+ * the thumbs the phone used to draw.
+ */
 export const REACTION_GLYPHS: Record<string, string> = {
-  LIKE: '👍', LOVE: '❤️', HAHA: '😂', WOW: '😮', SAD: '😢', ANGRY: '😡', FAKE_OPINION: '🟥', DISLIKE: '👎',
+  LIKE: '\u2665', LOVE: '\u{1F497}', HAHA: '\u{1F602}', WOW: '\u{1F62E}',
+  SAD: '\u{1F622}', ANGRY: '\u{1F620}', FAKE_OPINION: '\u25C6', DISLIKE: '\u25BC',
 };
+
+/** The word each reaction carries in the picker: `reaction.*` of `interface-locale.js` (RO). */
+export const REACTION_TITLES: Record<string, string> = {
+  LIKE: 'Like', LOVE: 'Love', HAHA: 'Haha', WOW: 'Wow',
+  SAD: 'Trist', ANGRY: 'Furios', FAKE_OPINION: 'Fake?', DISLIKE: 'Dislike',
+};
+
+/**
+ * `reactionSummary()` of the web (`app.js:3579-3595`): the counts ranked, the total, and the two or
+ * three glyphs the compact control prints. When one reaction owns at least 85 % of the total the
+ * summary collapses to that glyph carrying the whole number; three entries are the ceiling, and an
+ * untouched summary prints the plain heart with a zero.
+ */
+export type ReactionSummaryEntry = { kind: string; count: number; glyph: string };
+
+export function reactionSummary(counts?: Record<string, number> | null): {
+  entries: ReactionSummaryEntry[];
+  total: number;
+  distributed: boolean;
+  collapsed: boolean;
+} {
+  const ranked = Object.keys(REACTION_GLYPHS)
+    .map((kind) => ({ kind, count: Number(counts?.[kind] ?? 0) }))
+    .filter((entry) => entry.count > 0)
+    .sort((a, b) => b.count - a.count);
+  const total = ranked.reduce((sum, entry) => sum + entry.count, 0);
+  const dominant = ranked[0];
+  const dominantShare = dominant && total ? dominant.count / total : 0;
+  const visible = !ranked.length
+    ? [{ kind: 'LIKE', count: 0 }]
+    : dominantShare >= 0.85
+      ? [{ ...dominant, count: total }]
+      : ranked.slice(0, 3);
+  return {
+    entries: visible.map((entry) => ({ ...entry, glyph: REACTION_GLYPHS[entry.kind] })),
+    total,
+    distributed: visible.length > 1,
+    collapsed: ranked.length > 1 && dominantShare >= 0.85,
+  };
+}
 
 /** One comment as `commentThreadView` of lib/api.js returns it. */
 export type CommentView = {

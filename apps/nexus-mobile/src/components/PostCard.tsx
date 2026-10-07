@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CommentsSheet } from './CommentsSheet';
+import { ReactionControl } from './ReactionControl';
 import { MediaViewer } from './MediaViewer';
 import { RemoteImage, RemoteImageSource, type MediaFit } from './PostMedia';
 import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
 import {
-  compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems, REACTION_GLYPHS,
-  reactionTotal, relativeTime, SOCIAL_REACTIONS, viewerReaction, type SocialPost,
+  compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems,
+  reactionTotal, relativeTime, viewerReaction, type SocialPost,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
@@ -38,7 +39,6 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   const [summary, setSummary] = useState(post.reactions ?? null);
   const [saved, setSaved] = useState(Boolean(post.saved_by_me));
   const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
-  const [paletteOpen, setPaletteOpen] = useState(false);
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const mine = viewerReaction(summary);
@@ -49,7 +49,6 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
 
   const react = (kind: string) => {
     const nextActive = mine !== kind;
-    setPaletteOpen(false);
     setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
     setPostReaction(post.id, kind, nextActive)
       .then((answer) => setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction }))
@@ -121,16 +120,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
         </View>
 
         <View style={styles.actions}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Reacționează"
-            accessibilityState={{ selected: Boolean(mine) }}
-            onPress={() => setPaletteOpen((open) => !open)}
-            style={styles.action}
-          >
-            <Text style={styles.actionGlyph}>{mine ? REACTION_GLYPHS[mine] : '🤍'}</Text>
-            <Text style={styles.actionText}>Reacție</Text>
-          </Pressable>
+          <ReactionControl variant="card" summary={summary} onReact={(kind) => react(kind)} />
           <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={() => setCommentsOpen(true)} style={styles.action}>
             <Text style={styles.actionGlyph}>💬</Text>
             <Text style={styles.actionText}>Comentarii</Text>
@@ -159,24 +149,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
             <Text style={styles.actionGlyph}>↗</Text>
             <Text style={styles.actionText}>Distribuie</Text>
           </Pressable>
-        </View>
-
-        {paletteOpen ? (
-          <View style={styles.palette}>
-            {SOCIAL_REACTIONS.map((kind) => (
-              <Pressable
-                key={kind}
-                accessibilityRole="button"
-                accessibilityLabel={kind}
-                accessibilityState={{ selected: mine === kind }}
-                onPress={() => react(kind)}
-                style={[styles.paletteButton, mine === kind && styles.paletteOn]}
-              >
-                <Text style={styles.paletteGlyph}>{REACTION_GLYPHS[kind]}</Text>
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
+        </View>
       </Pressable>
 
       {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} /> : null}
