@@ -221,6 +221,21 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           </View>
         </View>
         {post.caption ? <Text style={styles.caption} numberOfLines={3}>{post.caption}</Text> : null}
+        {/**
+         * `captionTranslationButtonMarkup` (caption-translation.js:11-13, `.clipTranslate`): the web paints
+         * "Vezi traducerea" under the caption and only fails on press when the browser holds no on-device
+         * Translator. React Native holds none either, so the press answers with the same unavailable sentence.
+         */}
+        {post.caption ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Vezi traducerea"
+            onPress={() => setNotice('Traducerea pe dispozitiv nu este disponibilă în această aplicație.')}
+            style={styles.translate}
+          >
+            <Text style={styles.translateText}>Vezi traducerea</Text>
+          </Pressable>
+        ) : null}
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       </View>
 
@@ -342,6 +357,9 @@ const styles = StyleSheet.create({
   creatorName: { color: '#ffffff', fontSize: 14, fontWeight: '800' },
   creatorHandle: { color: 'rgba(255,255,255,0.78)', fontSize: 12 },
   caption: { color: '#f2f6f9', fontSize: 14, lineHeight: 19 },
+  /** `.clipTranslate` — the caption's own translation door: 10px, weight 800, near-white. */
+  translate: { alignSelf: 'flex-start', minHeight: 24, justifyContent: 'center' },
+  translateText: { color: 'rgba(255,255,255,0.86)', fontSize: 10, fontWeight: '800' },
   notice: { color: '#ffc6c6', fontSize: 12, fontWeight: '600' },
   /** `.clipQuickActions{right:8px;bottom:10px;gap:2px}` — the reader's action column. */
   rail: { position: 'absolute', right: 10, bottom: 26, alignItems: 'center', gap: 2 },
