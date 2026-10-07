@@ -13,10 +13,16 @@
 
 const [wsUrl, emailArg, passwordArg] = process.argv.slice(2);
 const email = (emailArg || "test@nexus.ro").trim().toLowerCase();
-const password = passwordArg || "test1234";
+// Parola nu este scrisă în fișiere comise: vine din argument sau, implicit, din
+// NEXUS_TEST_ACCOUNT_PASSWORD (aceeași variabilă folosită de `dev:test-account`).
+const password = passwordArg || String(process.env.NEXUS_TEST_ACCOUNT_PASSWORD || "").trim();
 
 if (!wsUrl) {
   console.error("[!] lipsește adresa websocket (ws://...); rulează `npm run dev:login`.");
+  process.exit(2);
+}
+if (!password) {
+  console.error("[!] lipsește parola contului de test: setează NEXUS_TEST_ACCOUNT_PASSWORD sau pasează-o ca al doilea argument.");
   process.exit(2);
 }
 if (typeof WebSocket !== "function") {

@@ -45,16 +45,24 @@ Pentru autentificare manuală — pe PC sau pe telefon, prin shell-ul Android �
 
 | email | parolă | handle |
 | --- | --- | --- |
-| `test@nexus.ro` | `test1234` | `test` |
+| `test@nexus.ro` | din `NEXUS_TEST_ACCOUNT_PASSWORD` | `test` |
+
+Parola nu este scrisă în niciun fișier comis: o dai în mediu (`NEXUS_TEST_ACCOUNT_PASSWORD`,
+minim 8 caractere) atât pentru `npm run dev:test-account`, cât și pentru autentificarea manuală
+sau `npm run dev:login`. Fără variabilă, contul pur și simplu nu este creat.
 
 Pe deployment-ul de preview contul se creează singur (`NODE_ENV=production` și
-`NEXUS_DEPLOYMENT_MODE=preview` → `lib/preview-test-account.js`). Local garda de preview nu
-se aplică, deci pornește-l explicit; comanda este idempotentă, nu iese în rețea și nu atinge
-niciun portofel:
+`NEXUS_DEPLOYMENT_MODE=preview` → `lib/preview-test-account.js`), dar tot din
+`NEXUS_TEST_ACCOUNT_PASSWORD`; dacă variabila lipsește pe deployment, contul nu se creează
+automat. Local garda de preview nu se aplică, deci pornește-l explicit; comanda este
+idempotentă, nu iese în rețea și nu atinge niciun portofel:
 
 ```bash
-npm run dev:test-account
+NEXUS_TEST_ACCOUNT_PASSWORD='...' npm run dev:test-account
 ```
+
+Setul complet de date de test (5 conturi, urmăriri, prieteni, Reels, fotografii, Tweet-uri,
+stories, comentarii, conversații, notificări) și comanda lui sunt descrise în `docs/TEST-DATA.md`.
 
 Contul are email verificat, onboarding încheiat și toate personaele create, dar **niciun
 portofel**: clientul va cere în continuare configurarea portofelului. Parola autentifică,

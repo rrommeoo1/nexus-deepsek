@@ -54,10 +54,11 @@ param(
   # În `dev`, pornește Metro și redirecționarea, dar nu deschide fereastra scrcpy.
   [switch]$NoMirror,
 
-  # Contul folosit de `login` (implicit contul de test documentat).
+  # Contul folosit de `login` (implicit contul de test documentat). Parola nu are
+  # valoare implicită în fișiere comise: vine din NEXUS_TEST_ACCOUNT_PASSWORD.
   [string]$Email = 'test@nexus.ro',
 
-  [string]$Password = 'test1234',
+  [string]$Password = $env:NEXUS_TEST_ACCOUNT_PASSWORD,
 
   # Portul local pentru CDP (redirecționare adb către WebView-ul de pe telefon).
   [int]$CdpPort = 9222
@@ -406,6 +407,10 @@ function Invoke-NexusLogin {
     [string]$Password,
     [int]$CdpPort = 9222
   )
+
+  if (-not $Password) {
+    throw 'Lipsește parola contului de test: setează NEXUS_TEST_ACCOUNT_PASSWORD (sau pasează -Password). Nicio parolă nu este salvată în fișiere comise.'
+  }
 
   # Pagina trebuie să fie servită și accesibilă de pe telefon; altfel WebView-ul
   # afișează ecranul lui de eroare și nu există niciun formular de autentificare.
