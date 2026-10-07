@@ -12,9 +12,9 @@ sau cu detalii lipsă · **lipsă** = neportat.
 | # | Etapă | Stare |
 | - | - | - |
 | 1 | Sesiune persistentă, navigație Social (7 poziții), feed + profil reale, meniu, refresh, stări de încărcare/eroare/reluare | **gata** (codul), verificare pe dispozitiv în curs |
-| 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **parțial** — camera există (9:16, 0,7×, 3:4 la 1×, import galerie, permisiuni); returul capturii în composer lipsește |
+| 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **gata** (codul) — camera există (9:16, 0,7×, 3:4 la 1×, import galerie, permisiuni) și captura se întoarce în composer (`camera.tsx` → `CaptureEditor` → `PublishPanel`); verificare pe dispozitiv în curs |
 | 3 | Editor (text, emoji/stickere mutabile, muzică Jamendo, randare finală) | **parțial** — text mutabil + emoji + căutare/previzualizare Jamendo în draft; compunere finală lipsă |
-| 4 | Publicare (copertă, titlu, descriere, hashtaguri, mențiuni, locație, link, vizibilitate, comentarii, repost, AI, descărcare, watermark, draft, postare reală, fără dublare la retry) | **lipsă** |
+| 4 | Publicare (copertă, titlu, descriere, hashtaguri, mențiuni, locație, link, vizibilitate, comentarii, repost, AI, descărcare, watermark, draft, postare reală, fără dublare la retry) | **parțial** — formular complet (titlu, descriere, #/@, locație + precizie, link, vizibilitate, comentarii/repostare/descărcare/watermark, declarație AI, drepturi audio + atribuire), salvare în cont și publicare reală din aplicație, cu cheie de idempotency per intenție; rămân neportate: compunerea finală a fișierului (watermark/overlay ars), salvarea pe dispozitiv și etichetarea persoanelor după id |
 | 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **lipsă** |
 
 ## 1. Decizii tehnice (și de ce)
@@ -50,6 +50,13 @@ sau cu detalii lipsă · **lipsă** = neportat.
    este singura sursă a originii (`src/lib/apiOrigin.ts`).
 7. **Chei externe.** Jamendo rămâne exclusiv pe Railway (`JAMENDO_CLIENT_ID`); aplicația folosește doar
    `/api/reels/sound-suggestions` și afișează eroarea serverului când providerul nu e configurat.
+8. **Frontiera de replay pentru mutații (identică cu webul).** Serverul învelește fiecare
+   `POST`/`PUT`/`PATCH`/`DELETE` din afara `/api/uploads` în `prepareMutation` (`lib/api.js:1739`):
+   fără `Idempotency-Key` răspunde `400 IDEMPOTENCY_KEY_REQUIRED`. `/auth/email/login` și
+   `/auth/logout` sunt pe aceeași frontieră (`assertEmailAuthIdempotencyKey`). Webul completează cheia
+   automat (`public/client.js` `api()`), iar loginul are cheia proprie (`data-login-key`). Clientul
+   nativ face identic: `nexusApi` generează cheia pentru orice metodă mutatoare
+   (`src/lib/nexusApi.ts`), iar `signInWithEmail`/`signOut` o trimit explicit (`src/lib/session.ts`).
 
 ## 2. Fișa 1 — Login / Landing
 
@@ -70,6 +77,9 @@ Sursă: `app.js` `renderLanding` + `styles.css`, `p3-visual-foundation.css`. Tok
   `Inter` nu este împachetat, deci geometria textului nu e identică pixel-cu-pixel.
 - **Nou în etapa 1:** login-ul scrie sesiunea durabilă (token + `nexus_device_id`) și afișează versiunea
   Android + backend.
+- **Frontiera de replay (verificat pe API-ul Railway):** `POST /auth/email/login` fără `Idempotency-Key`
+  răspunde `400 IDEMPOTENCY_KEY_REQUIRED` (nu `401`) — cheia se cere *înainte* de verificarea
+  credențialelor. Clientul nativ o trimite acum din `session.ts`, exact ca `data-login-key` de pe web.
 
 ## 3. Fișa 2 — Feed Social (Home)
 
@@ -156,18 +166,79 @@ mici / stare) înainte de a începe fiecare ecran. Ce se știe acum din auditul 
 
 | Fișă | Sursă principală | API | Stare |
 | - | - | - | - |
-| 5. Camera nativă | `reel-camera-surface.js/.css`, `reel-camera-framing.js`, `reel-camera-quality.js` | niciunul (local) | **parțial** — 9:16 UHD, 0,7× pe obiectivul virtual, 3:4 la 1×, import galerie, permisiuni refuzabile fără blocare; returul în composer lipsește |
+| 5. Camera nativă | `reel-camera-surface.js/.css`, `reel-camera-framing.js`, `reel-camera-quality.js` | niciunul (local) | **gata** (codul) — 9:16 UHD, 0,7× pe obiectivul virtual, 3:4 la 1×, import galerie, permisiuni refuzabile fără blocare; captura se întoarce în composer (editor → „Detalii postare") |
 | 6. Editor / reel | `reel-editor-overlays.js`, `clip-options.js`, `reel-sticker-catalog.js`, `composer-emoji.js` | `/api/reels/sound-suggestions` | **parțial** — text mutabil + emoji + sugestii Jamendo; stickere, redimensionare, efecte, randare finală lipsesc |
-| 7. Publicare | `post-publishing.js/.css`, `creator-draft-sync.js`, `draft-policy.js` | `/api/uploads` (resumable), `/api/social/posts` | **lipsă** |
+| 7. Publicare | `post-publishing.js/.css`, `creator-draft-sync.js`, `draft-policy.js` | `/api/uploads` (resumable), `/api/posts` | **parțial** — vezi 6.1 |
 | 8. Comentarii | `post-detail.js/.css`, `double-tap-heart.js` | `/api/social/posts/:id/comments` | **lipsă** |
 | 9. Mesaje | `messenger-shell.js`, `messenger-spaces.css`, `chat-crypto.js` | `/api/messages/*` | **lipsă** (mark-ul de mesaje arată un ecran onest) |
 | 10. Căutare / Prieteni / Live / Notificări / Setări | `social-inbox-demo.js`, `profile-settings-panels.js`, `notification-preferences.js` | varie | **lipsă** (mark-urile arată ecrane oneste) |
 
+### 6.1 Etapa 4 — publicarea nativă (portată în cod)
+
+Fluxul complet al unei capturi, de la editor la postarea reală, este acum în aplicație. Aceeași ordine
+ca pe web (`creator-draft-sync.js` pentru copia din cont, handlerul `composerForm` din `app.js` pentru
+publicare):
+
+1. **verificare locală** — `normalizePublishing` (limitele și regulile câmpurilor) rulează *înainte* de
+   primul octet urcat; o descriere refuzată nu costă un upload;
+2. **upload sursă** — `/api/uploads`, `purpose: social_post`;
+3. **upload audio** (doar dacă există fișier) — `/api/uploads`, `purpose: social_audio`, precedat de
+   declarația de drepturi, obligatorie pentru `creator_audio_*`;
+4. **scrierea postării** — `POST /api/posts`, un singur `Idempotency-Key` per intenție:
+   regenerat de editor la orice modificare, păstrat la retry, deci o rețea care cade la jumătate
+   produce o singură postare.
+
+Module și fișiere:
+
+| Fișier | Ce ține |
+| - | - |
+| `src/lib/idempotency.ts` | formatarea și validarea cheilor de mutație (`newMutationKey`, `idempotencyKeyIsValid`) |
+| `src/lib/sha256.ts` | amprenta SHA-256 a fișierului (aceeași pe care o cere `/api/uploads`) |
+| `src/lib/uploadClient.ts` | upload-ul resumable, `UploadProgress`, lista de MIME acceptate, mesaje în română |
+| `src/lib/publishing.ts` | `PublishingDetails`, limitele, `normalizePublishing`, `captionWithToken` |
+| `src/lib/publishClient.ts` | etichetele de vizibilitate/proveniență/drepturi audio, `publishBody`, `assertPublishable`, `publishPost`, `publishIntentKey` |
+| `src/lib/draftsClient.ts` | `/api/creator/drafts` (GET/PUT/DELETE) și `/api/uploads` pentru copia din cont |
+| `src/lib/capturePublish.ts` | ordinea pașilor 1–4, `loadEditorIdentity` (`/api/me`), `backupCapture`, `publishCapture`, `catalogAudioSelected`, `captureFlowErrorMessage` |
+| `src/components/PublishPanel.tsx` | ecranul „Detalii postare”: toate câmpurile, opțiunile, starea copiei din cont, butoanele |
+| `src/components/CaptureEditor.tsx` | identitatea, starea copiei din cont, cheia de idempotency, apelurile de backup/publicare |
+
+Reguli păstrate din web, aici ca invarianți ai codului:
+
+- fișierul urcă înainte de rând: un post refuzat lasă obiectul stocat și draftul pe telefon, niciodată
+  un post pe jumătate;
+- un backup eșuat nu blochează publicarea, iar o publicare reușită șterge copia din cont (dacă ștergerea
+  eșuează, se spune, nu se preface reușită);
+- audio din catalog (Jamendo) **nu** poate fi publicat din aplicație: serverul are nevoie de fișierul
+  urcat, deci panoul explică refuzul în loc să încerce (`CatalogAudioError`);
+- un buton se oferă doar când acțiunea poate reuși: MIME refuzat (HEIC/MOV), catalog audio sau cont
+  necitit transformă „Publică” într-o propoziție care explică de ce nu.
+
+Ce rămâne neportat din fișa 7 (declarat explicit în interfață, nu ascuns):
+
+- **compunerea finală a fișierului**: fotografia urcă așa cum a ieșit din cameră; textul/emoji-urile
+  mutate, `locationPrecision: exact/area/city` (poziția overlay-ului este trimisă ca `TOP|CENTER|BOTTOM`
+  prin `overlayPosition`) și watermarkul sunt transmise ca opțiuni, dar arderea lor în pixeli este
+  randarea finală, încă neportată;
+- **salvarea pe dispozitiv după publicare**: comutatorul este afișat oprit, cu explicația că opțiunea
+  nu există încă în aplicație (valoarea trimisă serverului rămâne cea corectă: oprit);
+- **etichetarea persoanelor după id**: `captionWithToken` scrie mențiunea în descriere (exact ca pe
+  site), dar selectarea unui cont real din listă nu este portată.
+
+Verificare (fara dispozitiv, inaintea testului pe Xiaomi): `tsc --noEmit` curat, `expo lint` curat (0
+probleme) si `expo export --platform android` construieste bundle-ul Hermes fara erori. Un invariant este
+si verificat explicit in cod: cheia de backup se schimba la fiecare editare (`touchDraft` miste `updatedAt`,
+din care se deriva `draftMutationKey`), deci o a doua „Salveaza in cont" scrie copia din cont in loc sa
+redea raspunsul vechi. Ramane testul pe dispozitiv (draft persistat dupa repornire + o publicare reala), de
+aceea starea din tabelul global ramane **partial**.
+
+
+
 ## 7. Probleme cunoscute și variabile lipsă
 
-1. **M1 deschis:** o fotografie capturată nu se întoarce încă în composer. Camera nativă salvează local
-   (`nexus-camera-tests/`), iar editorul deschide captura, dar fluxul nu se închide înapoi în ecranul de
-   publicare. Este primul lucru din Etapa 2.
+1. **M1 închis (Etapa 2):** o fotografie capturată **se întoarce** în composer. `camera.tsx` salvează
+   local (`nexus-camera-tests/`) și, când există o captură, randează `CaptureEditor`
+   (`camera.tsx:278`); editorul randează `PublishPanel` („Detalii postare", `CaptureEditor.tsx:292`), iar
+   `onExit` restaurează camera. Rămâne doar verificarea pe dispozitiv (captură → editare → publicare).
 2. **Set-Cookie pe Android:** dacă platforma nu expune antetul, sesiunea se bazează pe cookie jar-ul
    nativ. De verificat pe dispozitiv la primul test de login + repornire la rece.
 3. **`expo-secure-store`** nu este instalat (ar cere APK nou). Dacă se dorește tokenul în Keystore,
@@ -181,3 +252,14 @@ mici / stare) înainte de a începe fiecare ecran. Ce se știe acum din auditul 
 7. **Fontul `Inter`** nu este împachetat în aplicație, deci metricile textului diferă ușor de web.
 8. **Sticla barei de jos:** umbrele interioare CSS (`inset`) sunt redate ca benzi de 1px; diferență
    vizuală minimă, imposibil de reprodus identic fără CSS.
+
+9. **Email auth pe Railway răspunde `500` (blochează verificarea pe dispozitiv).** `POST /auth/email/login`,
+   `/signup` și `/verify` întorc `{"ok":false,"error":"internal error"}` **înainte** de verificarea
+   credențialelor — o parolă greșită sau un email inexistent dau tot 500, nu 401 — în timp ce
+   `POST /auth/logout` răspunde `200`, iar `GET /health` e `ready`. Toate cele trei rute citesc întâi rândul
+   din `email_auth_commands` (`replayEmailAuthCommand`), iar exact același cod trece local pe
+   `data/nexus.sqlite` (contul de test `test@nexus.ro` / `test1234`, `npm run dev:test-account`).
+   Concluzie: baza de date a deploy-ului are un `email_auth_commands` incompatibil (vechi, dinaintea
+   coloanei `purpose`), pe care `CREATE TABLE IF NOT EXISTS` nu îl poate migra. Reparația cere acord:
+   migrare de schemă sau rotirea directorului de date (`NEXUS_DATA_DIR`).
+

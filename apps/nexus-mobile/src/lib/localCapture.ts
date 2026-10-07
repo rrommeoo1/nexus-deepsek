@@ -1,4 +1,11 @@
 import { Directory, File, Paths } from 'expo-file-system';
+import {
+  emptyPublishing, readPublishing, type PublishingDetails,
+} from './publishing';
+import {
+  AUDIO_ATTRIBUTION_LIMIT, CONTENT_PROVENANCE, CREATOR_AUDIO_RIGHTS, POST_VISIBILITIES,
+  type ContentProvenance, type CreatorAudioRights, type PostVisibility,
+} from './publishClient';
 
 export type CaptureKind = 'photo' | 'video';
 export type CaptureFraming = '9:16' | '3:4';
@@ -14,13 +21,35 @@ export interface LocalCapture {
 export interface LocalDraft {
   version: 1;
   captureName: string;
+  /**
+   * Legacy mirror of `publishing.title`. `loadDraft` migrates a draft written before Etapa 4 into
+   * `publishing.title`; the editor writes both from the same field so older builds stay readable.
+   */
   title: string;
   description: string;
   overlayText: string;
   overlayX: number;
   overlayY: number;
+  /**
+   * The exact details the server validates: audience, tags, link and the four switches.
+   */
+  publishing: PublishingDetails;
+  /**
+   * The audience the publish body carries (`visibility` of `POST /api/posts`). Written by the editor,
+   * kept in the draft, and sent unchanged on both the backup and the publish.
+   */
+  visibility: PostVisibility;
+  /**
+   * The author's own declaration about the content (`provenance`). The server prints the declaration;
+   * it never claims to have verified it, and neither does this editor.
+   */
+  provenance: ContentProvenance;
   audioUri?: string;
   audioName?: string;
+  /** Required for a phone audio file: `normalizeCreatorAudio` refuses uploaded audio without it. */
+  audioRights?: CreatorAudioRights;
+  /** The attribution line of the track, at most `AUDIO_ATTRIBUTION_LIMIT` characters. */
+  audioAttribution?: string;
   jamendoTrackId?: string;
   jamendoAudioUrl?: string;
   jamendoSelectionToken?: string;
@@ -41,8 +70,41 @@ function draftFile(capture: LocalCapture): File {
 export function emptyDraft(capture: LocalCapture): LocalDraft {
   return {
     version: 1, captureName: capture.name, title: '', description: '',
-    overlayText: '', overlayX: 0.5, overlayY: 0.5, updatedAt: Date.now(),
+    overlayText: '', overlayX: 0.5, overlayY: 0.5, publishing: emptyPublishing(),
+    // The two values the composer's own form starts from: a public post, no declaration made.
+    visibility: 'public', provenance: 'NOT_DECLARED', updatedAt: Date.now(),
   };
+}
+
+/**
+ * The edit stamp of the manifest: every edit moves `updatedAt`, so the backup's key
+ * (`draftMutationKey(id, updatedAt)`) is new per change and a retry replays the written row instead of
+ * writing a second one. Kept outside the components, like `emptyDraft`, so the stamp is never produced
+ * during a render.
+ */
+export function touchDraft(draft: LocalDraft): LocalDraft {
+  return { ...draft, updatedAt: Date.now() };
+}
+
+/**
+ * A manifest written before Etapa 4 has no audience and no declaration. Reading them tolerantly keeps
+ * that draft openable: the defaults the composer's form starts from are used, and nothing typed by the
+ * user is invented as a declaration the author never made.
+ */
+function readVisibility(value: unknown): PostVisibility {
+  return POST_VISIBILITIES.includes(value as PostVisibility) ? value as PostVisibility : 'public';
+}
+
+function readProvenance(value: unknown): ContentProvenance {
+  return CONTENT_PROVENANCE.includes(value as ContentProvenance) ? value as ContentProvenance : 'NOT_DECLARED';
+}
+
+function readAudioRights(value: unknown): CreatorAudioRights | undefined {
+  return CREATOR_AUDIO_RIGHTS.includes(value as CreatorAudioRights) ? value as CreatorAudioRights : undefined;
+}
+
+function readAudioAttribution(value: unknown): string | undefined {
+  return typeof value === 'string' ? value.slice(0, AUDIO_ATTRIBUTION_LIMIT) : undefined;
 }
 
 export function loadDraft(capture: LocalCapture): LocalDraft {
@@ -57,7 +119,19 @@ export function loadDraft(capture: LocalCapture): LocalDraft {
       && 'overlayText' in value && typeof value.overlayText === 'string'
       && 'overlayX' in value && typeof value.overlayX === 'number'
       && 'overlayY' in value && typeof value.overlayY === 'number') {
-      return value as LocalDraft;
+      const draft = value as LocalDraft;
+      const publishing = readPublishing((value as { publishing?: unknown }).publishing);
+      // A draft written before Etapa 4 kept the title only in `title`; the value moves into the
+      // publishing details the server actually receives, so nothing typed by the user is lost.
+      if (!publishing.title && draft.title) publishing.title = draft.title;
+      return {
+        ...draft,
+        publishing,
+        visibility: readVisibility(draft.visibility),
+        provenance: readProvenance(draft.provenance),
+        audioRights: readAudioRights(draft.audioRights),
+        audioAttribution: readAudioAttribution(draft.audioAttribution),
+      };
     }
   } catch { /* A corrupt manifest must not hide the original media. */ }
   return emptyDraft(capture);
@@ -69,7 +143,9 @@ export function saveDraft(capture: LocalCapture, draft: LocalDraft): void {
   directory.create({ idempotent: true, intermediates: true });
   const temporary = new File(directory, `${capture.name}.draft.tmp`);
   temporary.create({ overwrite: true });
-  temporary.write(JSON.stringify({ ...draft, updatedAt: Date.now() }));
+  // The stamp is the one the draft already carries (the editor bumps it on every edit), so the file on
+  // disk and the in-memory draft the backup key is derived from always agree.
+  temporary.write(JSON.stringify(draft));
   temporary.moveSync(draftFile(capture), { overwrite: true });
 }
 
