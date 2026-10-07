@@ -253,13 +253,22 @@ aceea starea din tabelul global ramane **partial**.
 8. **Sticla barei de jos:** umbrele interioare CSS (`inset`) sunt redate ca benzi de 1px; diferență
    vizuală minimă, imposibil de reprodus identic fără CSS.
 
-9. **Email auth pe Railway răspunde `500` (blochează verificarea pe dispozitiv).** `POST /auth/email/login`,
-   `/signup` și `/verify` întorc `{"ok":false,"error":"internal error"}` **înainte** de verificarea
-   credențialelor — o parolă greșită sau un email inexistent dau tot 500, nu 401 — în timp ce
-   `POST /auth/logout` răspunde `200`, iar `GET /health` e `ready`. Toate cele trei rute citesc întâi rândul
-   din `email_auth_commands` (`replayEmailAuthCommand`), iar exact același cod trece local pe
-   `data/nexus.sqlite` (contul de test `test@nexus.ro` / `test1234`, `npm run dev:test-account`).
-   Concluzie: baza de date a deploy-ului are un `email_auth_commands` incompatibil (vechi, dinaintea
-   coloanei `purpose`), pe care `CREATE TABLE IF NOT EXISTS` nu îl poate migra. Reparația cere acord:
-   migrare de schemă sau rotirea directorului de date (`NEXUS_DATA_DIR`).
+9. **Email auth pe Railway răspunde `500` — reparat în cod, așteaptă deploy (verificarea pe dispozitiv
+   rămâne blocată până atunci).** Simptomul a fost reprodus local pe o copie a unei baze vechi:
+   `email_auth_commands` avea doar cheia `idempotency_key`, fără coloana `purpose`, iar `SCHEMA` este
+   format din `CREATE TABLE IF NOT EXISTS`, care creează un tabel nou dar nu repară niciodată unul
+   existent. Reparația (varianta (a), fără ștergere de date și fără varianta (b)) se aplică la pornire,
+   înainte de `db.exec(SCHEMA)`: `migrateSchemaColumns` compară fiecare tabel existent cu declarațiile
+   din care este construit `SCHEMA` și adaugă aditiv coloanele lipsă (`ALTER TABLE ADD COLUMN`), iar
+   `migrateEmailAuthCommands` reconstruiește tabelul de comenzi într-o singură tranzacție, copiind
+   fiecare rând și citind un `purpose` lipsă ca `login` (login-ul a scris acel jurnal înainte de
+   coloană, iar replay-ul reverifică `purpose`, MAC-ul cererii și subiectul). Migrarea este idempotentă
+   și fail-safe: o eroare lasă tabelul vechi neatins, iar ce nu poate fi adăugat (`NOT NULL` fără
+   default, chei, referințe) este raportat în log, nu ghicit. Dovezi:
+   `planning/evidence/NX-WEB-SOCIAL-P01-p0-email-auth-command-migration-v1.json` (6/6 teste de migrare,
+   748/748 teste, `foreign_key_check` gol, `integrity_check` ok, repornire fără nicio modificare).
+   Rămâne: deploy pe `main` (Railway pornește din acest repository, branch `main`), apoi verificarea pe
+   dispozitiv din punctul 1 (cameră → editor → publicare). Dacă jurnalul din deploy are o formă care nu
+   poate identifica rândurile, tabelul pornește gol și rândurile vechi sunt păstrate renumite
+   (`email_auth_commands_legacy`) — un replay se reia printr-un login nou, iar datele nu se șterg.
 

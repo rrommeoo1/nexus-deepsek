@@ -1831,6 +1831,259 @@ function addMissingColumns(db, tableName, definitions) {
   }
 }
 
+// --- Schema drift -------------------------------------------------------------------------------
+// `SCHEMA` speaks in `CREATE TABLE IF NOT EXISTS`: it creates a table this database has never seen,
+// but it never repairs one an older build already wrote. The column a query names is what fails
+// first, so the drift is read back out of the same text the DDL is built from — this cannot describe
+// a schema the deployment does not have. A database whose command log predates the `purpose` column
+// answered 500 on every email sign-in while the same code passed on a freshly created file.
+
+const CREATE_TABLE_PATTERN = /CREATE TABLE IF NOT EXISTS\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(([\s\S]*?)\n\);/g;
+const CONSTRAINT_KEYWORDS = new Set(["CONSTRAINT", "PRIMARY", "UNIQUE", "FOREIGN", "CHECK"]);
+const IDENTIFIER_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** Every column a schema declares, keyed by table, in declaration order. */
+export function declaredSchemaColumns(schema = SCHEMA) {
+  const tables = new Map();
+  for (const match of String(schema).matchAll(CREATE_TABLE_PATTERN)) {
+    const [, table, body] = match;
+    const columns = tables.get(table) ?? new Map();
+    for (const rawLine of body.split("\n")) {
+      const line = rawLine.trim().replace(/,$/, "");
+      if (!line || line.startsWith("--")) continue;
+      const [name] = line.split(/[\s(]+/, 1);
+      if (!IDENTIFIER_PATTERN.test(name) || CONSTRAINT_KEYWORDS.has(name.toUpperCase())) continue;
+      // A table declared twice keeps the first definition of a name and gains any column only the
+      // second one names, so the audit can never be narrower than the DDL it checks.
+      if (!columns.has(name)) columns.set(name, line);
+    }
+    tables.set(table, columns);
+  }
+  return tables;
+}
+
+/** What a database is missing, table by table, before anything is repaired. */
+export function auditSchemaDrift(db, { schema = SCHEMA } = {}) {
+  const drift = [];
+  for (const [table, declared] of declaredSchemaColumns(schema)) {
+    const actual = db.prepare(`PRAGMA table_info(${table})`).all();
+    if (!actual.length) continue; // absent: the DDL creates it with the full shape
+    const present = new Set(actual.map((column) => column.name));
+    const missing = [...declared.keys()].filter((name) => !present.has(name));
+    if (missing.length) drift.push({ table, missing });
+  }
+  return drift;
+}
+
+/**
+ * `ALTER TABLE ADD COLUMN` can only append a column SQLite can fill for every row already stored: a
+ * key or a unique constraint cannot be added to a table that holds rows, a reference needs a null
+ * default, and `NOT NULL` needs a constant to stand on. Anything else is reported, never guessed.
+ */
+export function addableColumnDeclaration(declaration) {
+  const text = String(declaration);
+  if (/\b(PRIMARY\s+KEY|UNIQUE|REFERENCES|GENERATED)\b/i.test(text)) return false;
+  if (/\bAS\s*\(/.test(text)) return false;
+  // A parenthesized default is not a constant: `ALTER TABLE` refuses it outright, so the column is
+  // left to the migration that owns the table rather than attempted here.
+  if (/\bDEFAULT\s*\(/i.test(text)) return false;
+  return !/\bNOT\s+NULL\b/i.test(text) || /\bDEFAULT\b/i.test(text);
+}
+
+const shortReason = (error) => String(error?.message ?? error ?? "unknown").replace(/[\r\n\t]+/g, " ").slice(0, 160);
+
+const EMAIL_AUTH_COMMAND_COLUMNS = [
+  "purpose", "idempotency_key", "request_mac", "subject_sha256", "user_id", "persona",
+  "session_token_hash", "session_token_ciphertext", "response_ciphertext", "expires_at", "created_at",
+];
+const EMAIL_AUTH_COMMAND_KEY = ["purpose", "idempotency_key"];
+// Mirrors the `email_auth_commands` table in `SCHEMA`; it lives beside the repair that builds it.
+const EMAIL_AUTH_COMMAND_TABLE = `
+  CREATE TABLE email_auth_commands_v2 (
+    purpose TEXT NOT NULL CHECK(purpose IN ('signup','login','verify')),
+    idempotency_key TEXT NOT NULL,
+    request_mac TEXT NOT NULL,
+    subject_sha256 TEXT NOT NULL,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    persona TEXT NOT NULL,
+    session_token_hash TEXT NOT NULL REFERENCES sessions(token_hash) ON DELETE CASCADE,
+    session_token_ciphertext BLOB NOT NULL,
+    response_ciphertext BLOB NOT NULL,
+    expires_at INTEGER NOT NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (purpose, idempotency_key)
+  )`;
+const EMAIL_AUTH_COMMAND_INDEX = "CREATE INDEX IF NOT EXISTS idx_email_auth_commands_expiry ON email_auth_commands(expires_at)";
+
+/**
+ * The `SELECT` that carries an old command log into the shape this build reads. A shape that cannot
+ * identify its own rows makes no projection at all: those rows are preserved under another name
+ * instead of being invented into the new table.
+ */
+function emailAuthCommandProjection(present) {
+  const identity = ["idempotency_key", "session_token_hash", "session_token_ciphertext", "response_ciphertext", "expires_at"];
+  if (identity.some((name) => !present.has(name))) return null;
+  const value = (name, fallback) => (present.has(name) ? `COALESCE(${name}, ${fallback})` : fallback);
+  return [
+    // A purpose the old shape never recorded is read back as `login`, which is what wrote this log
+    // before the column existed; a replay re-checks purpose, request MAC and subject, so a
+    // mislabelled row can never hand out a session.
+    present.has("purpose")
+      ? "CASE WHEN purpose IN ('signup','login','verify') THEN purpose ELSE 'login' END"
+      : "'login'",
+    "COALESCE(idempotency_key, 'legacy-row-' || rowid)",
+    value("request_mac", "''"),
+    value("subject_sha256", "''"),
+    value("user_id", "0"),
+    value("persona", "'social'"),
+    "session_token_hash",
+    "session_token_ciphertext",
+    "response_ciphertext",
+    "expires_at",
+    value("created_at", "0"),
+  ];
+}
+
+function legacyEmailAuthCommandTableName(db) {
+  const taken = new Set(db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table'`).all().map((row) => row.name));
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    const name = attempt ? `email_auth_commands_legacy_${attempt}` : "email_auth_commands_legacy";
+    if (!taken.has(name)) return name;
+  }
+  return `email_auth_commands_legacy_${Date.now()}`;
+}
+
+/**
+ * Rebuilds the command log inside one transaction. Foreign keys are switched off for the rewrite and
+ * put back in the `finally`: the copy must be able to keep a row whose session or owner is already
+ * gone, and a half-applied rewrite is left to the caller to report.
+ */
+function rebuildEmailAuthCommands(db, { query = null, quarantine = null, beforeCommit = null } = {}) {
+  db.exec("PRAGMA foreign_keys = OFF;");
+  try {
+    db.exec("BEGIN IMMEDIATE;");
+    try {
+      if (quarantine) {
+        db.exec(`ALTER TABLE email_auth_commands RENAME TO ${quarantine};`);
+        // The index travels with the renamed table and keeps its name, which the new table needs.
+        db.exec("DROP INDEX IF EXISTS idx_email_auth_commands_expiry;");
+      }
+      db.exec(EMAIL_AUTH_COMMAND_TABLE);
+      if (query) {
+        db.exec(`INSERT INTO email_auth_commands_v2 (${EMAIL_AUTH_COMMAND_COLUMNS.join(", ")})
+          SELECT ${query} FROM email_auth_commands;`);
+      }
+      if (!quarantine) db.exec("DROP TABLE email_auth_commands;");
+      db.exec("ALTER TABLE email_auth_commands_v2 RENAME TO email_auth_commands;");
+      db.exec(EMAIL_AUTH_COMMAND_INDEX);
+      if (typeof beforeCommit === "function") beforeCommit();
+      db.exec("COMMIT;");
+    } catch (error) {
+      try { db.exec("ROLLBACK;"); } catch { /* the transaction may already be closed */ }
+      throw error;
+    }
+  } finally {
+    db.exec("PRAGMA foreign_keys = ON;");
+  }
+}
+
+/**
+ * `email_auth_commands` is read by `(purpose, idempotency_key)` before the login route looks at a
+ * credential at all, and `CREATE TABLE IF NOT EXISTS` never corrects a table an older build already
+ * wrote. The table is rebuilt in place with every row carried over; a shape that cannot even
+ * identify a row is preserved under a `legacy` name and the log starts empty, because a lost replay
+ * costs one repeated sign-in while a dead login costs the account. This never throws: a database it
+ * cannot repair must not end the boot, it must be named in the log.
+ */
+export function migrateEmailAuthCommands(db, { beforeCommit = null } = {}) {
+  let columns = [];
+  try {
+    columns = db.prepare(`PRAGMA table_info(email_auth_commands)`).all();
+  } catch (error) {
+    console.warn(`email auth command migration skipped: ${shortReason(error)}`);
+    return { migrated: false, reason: "unreadable" };
+  }
+  if (!columns.length) return { migrated: false, reason: "table_absent" };
+  const present = new Set(columns.map((column) => column.name));
+  const primaryKey = columns.filter((column) => Number(column.pk) > 0)
+    .sort((left, right) => Number(left.pk) - Number(right.pk))
+    .map((column) => column.name);
+  const missing = EMAIL_AUTH_COMMAND_COLUMNS.filter((name) => !present.has(name));
+  const keyed = primaryKey.length === EMAIL_AUTH_COMMAND_KEY.length
+    && primaryKey.every((name, index) => name === EMAIL_AUTH_COMMAND_KEY[index]);
+  if (!missing.length && keyed) return { migrated: false, reason: "current" };
+
+  let carried = 0;
+  try {
+    carried = Number(db.prepare(`SELECT COUNT(*) count FROM email_auth_commands`).get().count ?? 0);
+    const query = emailAuthCommandProjection(present);
+    if (!query) {
+      const quarantine = legacyEmailAuthCommandTableName(db);
+      rebuildEmailAuthCommands(db, { quarantine, beforeCommit });
+      console.warn(`email auth command table rebuilt empty: ${carried} unreadable rows kept in ${quarantine}`);
+      return { migrated: true, carried: 0, preserved: quarantine, missing, primaryKey: EMAIL_AUTH_COMMAND_KEY };
+    }
+    rebuildEmailAuthCommands(db, { query, beforeCommit });
+    return { migrated: true, carried, missing, primaryKey: EMAIL_AUTH_COMMAND_KEY };
+  } catch (error) {
+    console.warn(`email auth command migration failed, the old table is unchanged: ${shortReason(error)}`);
+    return { migrated: false, reason: "failed", carried, missing, error: shortReason(error) };
+  }
+}
+
+/**
+ * Repairs a database written by an older build, before the DDL is applied: `SCHEMA` can create a
+ * missing table but never correct an existing one, and every query names the columns this build has.
+ * Additive drift is appended in place; a table whose key cannot be patched is rebuilt by its own
+ * migration. Nothing here may end the boot: a schema that cannot be repaired is named in the log.
+ */
+export function migrateSchemaColumns(db, { schema = SCHEMA, beforeCommit = null } = {}) {
+  const repaired = [];
+  const deferred = [];
+  let drift = [];
+  let declared = new Map();
+  try {
+    drift = auditSchemaDrift(db, { schema });
+    declared = declaredSchemaColumns(schema);
+  } catch (error) {
+    console.warn(`schema drift audit failed: ${shortReason(error)}`);
+    return { repaired, deferred, drift, error: shortReason(error) };
+  }
+  for (const { table, missing } of drift) {
+    const columns = declared.get(table) ?? new Map();
+    for (const name of missing) {
+      const declaration = columns.get(name);
+      if (!declaration || !addableColumnDeclaration(declaration)) { deferred.push(`${table}.${name}`); continue; }
+      try {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN ${declaration}`);
+        repaired.push(`${table}.${name}`);
+      } catch (error) {
+        deferred.push(`${table}.${name}`);
+        console.warn(`schema drift repair skipped ${table}.${name}: ${shortReason(error)}`);
+      }
+    }
+  }
+  // The command log is keyed by its purpose, and part of a key cannot be appended to a table that
+  // already holds rows: that one table is rebuilt by the migration written for it.
+  const commands = migrateEmailAuthCommands(db, { beforeCommit });
+  if (commands.migrated) repaired.push("email_auth_commands");
+  if (repaired.length) console.warn(`schema drift repaired: ${repaired.join(", ")}`);
+  if (deferred.length) console.warn(`schema drift not appended here: ${deferred.join(", ")}`);
+  return { repaired, deferred, drift, commands };
+}
+
+/**
+ * The drift that survived every migration, flattened to `table.column`. This is the one line that
+ * should be read in a deployment log: an empty result is a database this build fully understands,
+ * and anything else needs a human, because no repair here could reach it.
+ */
+export function reportSchemaDrift(db, { schema = SCHEMA } = {}) {
+  const remaining = auditSchemaDrift(db, { schema })
+    .flatMap(({ table, missing }) => missing.map((name) => `${table}.${name}`));
+  if (remaining.length) console.warn(`schema drift left for a human: ${remaining.join(", ")}`);
+  return remaining;
+}
+
 export function migrateNotificationSchema(db) {
   addMissingColumns(db, "notifications", {
     persona: "persona TEXT NOT NULL DEFAULT 'social'",
@@ -2292,6 +2545,11 @@ export function openDb(path = DB_PATH) {
   db.exec("PRAGMA secure_delete = ON;");
   db.exec("PRAGMA journal_mode = WAL;");
   db.exec("PRAGMA foreign_keys = ON;");
+  // The DDL below is a pile of `IF NOT EXISTS`: it creates a table this database has never seen, but
+  // it can never correct one an older build already wrote, and an index over a column the old table
+  // never had would end the boot right here. Repair that drift first, so the DDL and every query
+  // after it meet the shape this build actually names.
+  migrateSchemaColumns(db);
   db.exec(SCHEMA);
   migrateUsersTable(db);
   migrateWalletsTable(db);
@@ -2299,6 +2557,8 @@ export function openDb(path = DB_PATH) {
   migrateSocialTables(db);
   initializeCreatorDrafts(db);
   migrateMessagingTables(db);
+  // Named once, after every migration had its chance to add what it owns.
+  reportSchemaDrift(db);
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_users_mvx_address ON users(mvx_address) WHERE mvx_address IS NOT NULL AND mvx_address <> ''`);
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS ux_users_linked_wallet ON users(linked_wallet) WHERE linked_wallet IS NOT NULL AND linked_wallet <> ''`);
   // SQLite unique indexes cannot express cross-column uniqueness. These
