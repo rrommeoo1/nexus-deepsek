@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   compune un „web | nativ" lateral, JPEG, cel mult 1500 px înălțime, pentru un ecran.
 

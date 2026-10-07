@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Lotul de capturi native pentru raportul de paritate, într-o singură sesiune pe telefon.
 
@@ -21,12 +21,20 @@
 param(
   [Parameter(Mandatory = $true)][string]$List,
   [string]$Device = '',
-  [int]$Display = 0,
+  # Id-ul SurfaceFlinger al ecranului principal (NU numărul logic 0): se citește cu
+  # `adb shell dumpsys SurfaceFlinger --display-id`. Cover-ul are alt id, iar fără `-d` screencap
+  # avertizează că alege „primul display găsit", care nu e garantat același între capturi.
+  [string]$Display = '4630946949513469331',
   [double]$Dpr = 2.6,
   [string]$Package = 'app.nexus.mobile.dev',
   [string]$Out = 'docs/parity-report'
 )
 $ErrorActionPreference = 'Stop'
+# Etichetele aplicației conțin diacritice („Acasă", „Închide"), iar PowerShell decodează stdout-ul unei
+# comenzi native cu encoding-ul consolei, nu cu UTF-8: fără aceste două linii, dump-ul ajunge „AcasÄƒ" și
+# nicio potrivire pe etichetă nu mai reușește. Fișierele .ps1 din acest folder au BOM UTF-8 din același motiv.
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $adb = Join-Path $root 'tools\scrcpy\adb.exe'
 if (-not (Test-Path $adb)) { throw "adb lipsește în repo: $adb" }
@@ -42,24 +50,49 @@ if (-not $serial) {
 Write-Host "[parity] device = $serial (DPR $Dpr)"
 
 function Get-Focus {
-  $raw = & $adb -s $serial shell dumpsys window 2>$null | Select-String -Pattern 'mCurrentFocus' | Select-Object -First 1
-  if (-not $raw) { return '' }
-  return $raw.ToString().Trim()
+  # Ecranul are două display-uri: 1 = cover (stins, `mCurrentFocus=null`), 0 = ecranul principal. Se ia
+  # linia care numește pachetul; dacă nu există, ultima linie (display-ul principal e listat ultimul).
+  $lines = @(& $adb -s $serial shell dumpsys window displays 2>$null | Select-String -Pattern 'mCurrentFocus' | ForEach-Object { $_.ToString().Trim() })
+  if (-not $lines) { return '' }
+  $mine = $lines | Where-Object { $_ -match [regex]::Escape($Package) } | Select-Object -First 1
+  if ($mine) { return $mine }
+  return $lines[-1]
 }
 
 function Save-Screenshot {
   param([string]$Path)
-  # Redirecționarea o face cmd.exe: PowerShell ar trece fluxul binar prin decodorul de text și l-ar strica.
-  $cmd = "`"$adb`" -s $serial exec-out screencap -d $Display -p > `"$Path`""
+  # Două capcane ale acestui dispozitiv, ambele măsurate, nu presupuse:
+  #   - `-d 0` NU este un id valid: `screencap -d` vrea id-ul SurfaceFlinger al ecranului principal
+  #     (4630946949513469331 pe acest telefon); fără `-d` alege „primul display găsit", adică poate și cover-ul;
+  #   - `exec-out screencap -p > fișier` strecoară un avertisment de text în flux pe Windows, care
+  #     strică antetul PNG. De aceea se scrie întâi pe telefon, apoi se citește cu `exec-out cat`.
+  & $adb -s $serial shell screencap -d $Display -p /sdcard/nexus-parity.png | Out-Null
+  $cmd = "`"$adb`" -s $serial exec-out cat /sdcard/nexus-parity.png > `"$Path`""
   cmd /c $cmd | Out-Null
+}
+
+function Get-Xml {
+  # `uiautomator dump` întoarce uneori un arbore parțial: când ecranul se animă răspunde
+  # „ERROR: could not get idle state" și scrie un XML sărac (măsurat: 9 noduri în loc de ~60).
+  # De aceea se reface până când arborele e consistent sau se epuizează încercările, și se păstrează
+  # cel mai mare rezultat - captura nu se ia niciodată din primul răspuns orb.
+  $remote = '/sdcard/nexus-parity.xml'
+  $best = ''
+  for ($attempt = 1; $attempt -le 4; $attempt++) {
+    # `| Out-Null` nu e suficient: adb scrie pe stderr („ERROR: could not get idle state"), iar cu
+    # $ErrorActionPreference='Stop' un asemenea text oprește scriptul. Redirecționarea o face cmd.exe.
+    cmd /c "`"$adb`" -s $serial shell uiautomator dump --compressed $remote > NUL 2>&1" | Out-Null
+    $xml = (& $adb -s $serial exec-out cat $remote) -join "`n"
+    if ($xml.Length -gt $best.Length) { $best = $xml }
+    if ($best.Length -ge 6000) { break }
+    Start-Sleep -Milliseconds 500
+  }
+  return $best
 }
 
 function Save-Dump {
   param([string]$Path)
-  $remote = '/sdcard/nexus-parity.xml'
-  & $adb -s $serial shell uiautomator dump --compressed $remote | Out-Null
-  $xml = & $adb -s $serial exec-out cat $remote
-  $xml | Out-File -FilePath $Path -Encoding utf8
+  (Get-Xml) | Out-File -FilePath $Path -Encoding utf8
 }
 
 function Test-Png {
@@ -73,15 +106,13 @@ function Test-Png {
   return @{ ok = $ok; why = $magic; size = $size }
 }
 
-$entries = Get-Content $List | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
+$entries = Get-Content $List -Encoding UTF8 | ForEach-Object { $_.Trim() } | Where-Object { $_ -and -not $_.StartsWith('#') }
 if (-not $entries) { throw 'lista nu conține niciun pas' }
 
 function Get-Nodes {
-  $remote = '/sdcard/nexus-parity.xml'
-  & $adb -s $serial shell uiautomator dump --compressed $remote | Out-Null
-  $xml = (& $adb -s $serial exec-out cat $remote) -join "`n"
+  param([string]$Xml)
   $nodes = @()
-  foreach ($match in [regex]::Matches($xml, '<node\b[^>]*>')) {
+  foreach ($match in [regex]::Matches($Xml, '<node\b[^>]*>')) {
     $tag = $match.Value
     $attr = { param($name) $found = [regex]::Match($tag, "$name=`"([^`"]*)`""); if ($found.Success) { $found.Groups[1].Value } else { '' } }
     $bounds = [regex]::Match($tag, 'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
@@ -96,7 +127,15 @@ function Get-Nodes {
       y2      = [int]$bounds.Groups[4].Value
     }
   }
+  Write-Host ("[parity] dump: {0} noduri ({1} cu etichetă)" -f $nodes.Count, (@($nodes | Where-Object { $_.label -or $_.text }).Count))
   return $nodes
+}
+
+function Hide-Shade {
+  # Cortina de notificări (sau o altă fereastră ridicată peste aplicație) fură atingerile din zona de jos:
+  # măsurat în sesiune, o notificare a făcut un `tap` pe marcajul „Profil" să ajungă în altă aplicație.
+  # `cmd statusbar collapse` o închide fără să trimită input nimănui (nu e o atingere, e o comandă de sistem).
+  cmd /c "`"$adb`" -s $serial shell cmd statusbar collapse > NUL 2>&1" | Out-Null
 }
 
 function Tap-Node {
@@ -114,20 +153,52 @@ foreach ($entry in $entries) {
 
   if ($kind -eq 'wait') { Start-Sleep -Milliseconds ([int]$value); continue }
 
+  if ($kind -ne 'wait') {
+    # Acest dispozitiv e zgomotos: notificări și alte aplicații (măsurat: Microsoft Teams) fură focusul și
+    # atingerile. De aceea fiecare pas readuce întâi aplicația sub test în față (monkey LAUNCHER, care nu
+    # trimite input nimănui), închide cortina de notificări, apoi verifică focusul.
+    Hide-Shade
+    cmd /c "`"$adb`" -s $serial shell monkey -p $Package -c android.intent.category.LAUNCHER 1 > NUL 2>&1" | Out-Null
+    Start-Sleep -Milliseconds 1200
+  }
   $focus = Get-Focus
+  if ($kind -ne 'wait' -and $focus -notmatch [regex]::Escape($Package)) {
+    # Recuperare, nu ghicit: se aduce aplicația sub test în față (monkey LAUNCHER nu trimite input în
+    # nicio altă aplicație) și se reverifică. Dacă tot nu e în prim-plan, pasul se sare și se raportează.
+    cmd /c "`"$adb`" -s $serial shell monkey -p $Package -c android.intent.category.LAUNCHER 1 > NUL 2>&1" | Out-Null
+    Start-Sleep -Seconds 3
+    $focus = Get-Focus
+    if ($focus -match [regex]::Escape($Package)) { Write-Host '[parity] aplicația a fost readusă în prim-plan' }
+  }
   if ($focus -notmatch [regex]::Escape($Package)) {
     Write-Warning "[parity] $entry SĂRIT: mCurrentFocus nu este $Package ($focus)"
     $report += [pscustomobject]@{ step = $entry; ok = $false; detail = 'focus' }
     continue
   }
 
+  if ($kind -eq 'key') {
+    # `key:back` închide orice Modal rămas deschis (viewer, foaie de comentarii), fără să ghicească o
+    # etichetă: fiecare Modal al aplicației e legat de `onRequestClose`, deci back-ul e exact butonul lui.
+    $code = if ($value -match '^\d+$') { $value } else { "KEYCODE_$($value.ToUpper())" }
+    & $adb -s $serial shell input keyevent $code | Out-Null
+    Write-Host "[parity] key $code"
+    Start-Sleep -Milliseconds 700
+    $report += [pscustomobject]@{ step = $entry; ok = $true; detail = $code }
+    continue
+  }
+
   if ($kind -eq 'tap' -or $kind -eq 'tapxy') {
-    $nodes = Get-Nodes
+    $nodes = Get-Nodes -Xml (Get-Xml)
     if ($kind -eq 'tapxy') {
       $xy = $value -split ','
       $node = [pscustomobject]@{ x1 = [int]([double]$xy[0] * $Dpr); y1 = [int]([double]$xy[1] * $Dpr); x2 = [int]([double]$xy[0] * $Dpr); y2 = [int]([double]$xy[1] * $Dpr); label = 'coordonată CSS'; text = ''; cls = '(măsurat din web-ref)' }
     } else {
-      $node = $nodes | Where-Object { ($_.label + ' ' + $_.text) -like "*$value*" } | Sort-Object { ($_.x2 - $_.x1) * ($_.y2 - $_.y1) } | Select-Object -Last 1
+      # Eticheta exactă are prioritate (altfel „Profil" ar prinde și „Schimbă profilul Nexus"); dacă nu
+      # există, se ia cea mai mare potrivire care *conține* textul cerut.
+      $exact = $nodes | Where-Object { $_.label -eq $value -or $_.text -eq $value } | Select-Object -First 1
+      if ($exact) { $node = $exact } else {
+        $node = $nodes | Where-Object { ($_.label + ' ' + $_.text) -like "*$value*" } | Sort-Object { ($_.x2 - $_.x1) * ($_.y2 - $_.y1) } | Select-Object -Last 1
+      }
     }
     if (-not $node) { Write-Warning "[parity] tap:$value — niciun nod nu conține eticheta"; $report += [pscustomobject]@{ step = $entry; ok = $false; detail = 'nod negăsit' }; continue }
     Tap-Node -Node $node -What $value

@@ -3,12 +3,18 @@
 # Formatul unui pas:
 #   capture:<ecran>/<stare>   screencap + uiautomator dump (focus verificat, antet PNG verificat)
 #   tap:<etichetă>            dump -> nodul cu eticheta (sau textul) -> tap în centru
-#   tapxy:<x>,<y>             tap la coordonate CSS px (măsurate din web-ref), doar când nodul nu are etichetă
+#   key:<nume>                `input keyevent` (ex. key:back ȋnchide orice Modal rămas deschis)
+#   tapxy:<x>,<y>             tap la coordonate CSS px (măsurate din web-ref), când nodul nu are etichetă
 #   wait:<ms>
 #
 # Rulare:  powershell -NoProfile -File tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt
 # Sesiunea cere: telefonul deblocat, Nexus Dev în prim-plan (app.nexus.mobile.dev), Wireless debugging pornit.
 # Fiecare pas se sare dacă mCurrentFocus nu este app.nexus.mobile.dev.
+
+# --- 0. pornire curată: închide orice Modal rămas deschis (viewer, foaie de comentarii)
+key:back
+key:back
+wait:600
 
 # --- 1. Feed Reels, rail-ul de comentarii, clipul pe tot ecranul (defectul „viewer video")
 tap:Acasă
@@ -32,8 +38,8 @@ capture:messages/inbox-0
 tapxy:175,214
 wait:1500
 capture:viewer/story-viewer
-tapxy:440,46
-wait:800
+tap:Închide
+wait:900
 tap:Deschide conversația
 wait:1500
 capture:messages/thread-0

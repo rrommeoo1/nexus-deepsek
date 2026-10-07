@@ -157,7 +157,41 @@ Scor: structură 1/2 · elemente 0.5/2 · iconuri 0.5/1 · spațiere 0.5/1 · cu
 5. **Viewer video**: rail-ul vertical de acțiuni (reacție 56×56, comentarii, salvare, distribuie), overlay-ul de creator și blocul de legendă/trust/atribuire audio.
 6. **Story viewer**: butonul `•••` („Opțiuni") nu e desenat — singura acțiune pe care web-ul o leagă de el este arhivarea propriului story (`app.js:2776`), iar un meniu inventat ar fi o minciună.
 
-### Limite acceptate (nu se pot face identice)
+## Runda 1 pe telefon (2026-10-07) — primul `diff.md` numeric
+
+Sesiune: `tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt` pe `192.168.1.184:41461`
+(Wireless debugging), **display principal = id SurfaceFlinger `4630946949513469331`** (1220×2656, DPR 2.6);
+cover-ul (904×572, stins) este ignorat. Fiecare captură a fost verificată: focus `app.nexus.mobile.dev`
+înainte de fiecare input, antet PNG `89 50 4E 47`, XML `uiautomator` scris lângă.
+
+Capturi valide în acest lot: `feed/reels-0`, `comments/drawer-open`, `viewer/media-viewer`, `messages/inbox-0`.
+Pentru fiecare, `tools/parity/compare.mjs` a scris `diff.md` (ex. `messages`: 43 de elemente web etichetate,
+**0** fără diferență, 18 cu diferență, 25 fără pereche în nativ, 6 în plus în nativ).
+
+### Patru lucruri măsurate pe device (și ce s-a făcut cu ele)
+
+| Constatare măsurată | Consecință | Reparat |
+|---|---|---|
+| `screencap -d 0` e respins („Failed to take screenshot. Display I…"); `-d` vrea id-ul SurfaceFlinger, iar fără `-d` „Multiple displays were found… defaulting to the first" | capturi nedeterministe / fișiere text în loc de PNG | `Save-Screenshot` trimite id-ul măsurat (`-d 4630946949513469331`), scrie pe telefon și citește cu `exec-out cat` |
+| `exec-out screencap -p > fișier` strecoară avertismentul adb în flux → PNG cu antet text (`46 61 69 6C 65 64` = „Failed t…") | capturi invalide | idem (scriere pe telefon + `cat`) |
+| `uiautomator dump` întoarce uneori **9 noduri** („ERROR: could not get idle state", ecranul se animă) | arbore parțial, căutări de etichete ratate | `Get-Xml` reîncearcă de 4× și păstrează cel mai mare arbore |
+| Story viewer: rail-ul de progres și antetul cădeau **sub bara de status** (inset real măsurat: 150 px fizici ≈ 58 CSS px), iar „Închide" la y=120 fizic era înghițit de sistem | buton de închidere nefuncțional pe telefon | `useSafeAreaInsets()` pentru rail/antet/legendă, cu pragurile CSS (`max(9px, safe-top)`, `+13px`, `max(25px, safe-bottom)`) |
+
+### Ce blochează restul lotului (cinstit, cu măsurătoare)
+
+1. **Notificările fură atingerea.** Dispozitivul avea notificări active (Teams / DHL). Două apăsări pe
+   marcajul „Profil" (colț dreapta-jos) au dus în altă aplicație: `mCurrentFocus` a devenit
+   `com.microsoft.teams/.MainActivity`. Pentru o sesiune curată e nevoie de **Do Not Disturb** sau de
+   curățarea notificărilor.
+2. **Contul de pe telefon nu e cel documentat.** Inbox-ul lui este gol („Nicio conversație aici") și
+   story-urile urmărite sunt deja marcate văzute, deci `/api/stories?state=unseen` întoarce gol și shelf-ul
+   arată doar cardul propriu. Pentru `messages/thread-0` și `viewer/story-viewer` e nevoie de
+   **`test@nexus.ro`** (are conversația 1 și vede story-urile seedate ca necitite), exact cum spune
+   `docs/TEST-DATA.md`.
+3. `profile/own-0` și `profile/tab-2` au fost capturate greșit (ecranul Mesaje, pentru că tap-ul pe
+   marcajul de profil a fost furat de notificare) — se refac după sesiunea curată.
+
+
 
 - `saturate(.55) brightness(.8)` de pe cardul de story văzut nu are echivalent în React Native; același estompare se face prin `opacity` (valoare listată în `StoryRail.tsx`).
 - fonturile: web `Inter, ui-sans-serif, system-ui` vs Android `Roboto`/`system-ui` (aceeași excepție ca în PARITY-MATRIX §0).
