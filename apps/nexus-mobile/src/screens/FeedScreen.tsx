@@ -1,15 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator, FlatList, Linking, Pressable, RefreshControl, StyleSheet, Text, View,
+  ActivityIndicator, FlatList, Linking, PanResponder, Pressable, RefreshControl, StyleSheet, Text, View,
 } from 'react-native';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
+import { decideSocialGesture } from '../lib/socialGesture';
 import type { FeedPage, NewsItem, SocialPost } from '../lib/socialTypes';
-import { relativeTime } from '../lib/socialTypes';
+import { postMediaItems, relativeTime } from '../lib/socialTypes';
 import { PostCard } from '../components/PostCard';
 import { ReelsReader } from '../components/ReelsReader';
 import { socialTokens } from '../theme/social';
 
 const PAGE_SIZE = 30;
+
+/** How far a flick has to move before the feed takes it over: well under the 72px that decides it. */
+const CLAIM_TRAVEL = 24;
+
+/** Whether a move is clearly horizontal, the way `decideSocialGesture` reads a finished gesture. */
+function horizontalIntent(dx: number, dy: number): boolean {
+  return Math.abs(dx) >= CLAIM_TRAVEL && Math.abs(dx) > Math.abs(dy) * 1.2;
+}
 
 export type FeedModeId = 'reels' | 'whispers' | 'news';
 
@@ -42,6 +51,38 @@ export function FeedScreen({ mode, onModeChange }: {
   const [error, setError] = useState('');
   const [reloadNonce, setReloadNonce] = useState(0);
   const requestId = useRef(0);
+  /** Where the column stands, so the swipe decides with the same number the web hands its decision. */
+  const scrollTop = useRef(0);
+  /** The posts a card would open the full-screen reader with (app.js:4913): the ones that carry media. */
+  const gallery = useMemo(() => posts.filter((post) => postMediaItems(post).length > 0), [posts]);
+  /**
+   * The end of a horizontal flick on the feed (app.js:2960-3030 `wireSocialChannelSwipe`). The decision is
+   * the web's, taken with the same 72px threshold and the same scroll position, and the walk it takes is
+   * `nextMode`: the order the rail prints, wrapping at both ends (`activateFeedMode(nextFeedMode(feedMode,
+   * offset))`, app.js:2999). A pull at the very top is not answered here — the native `RefreshControl`
+   * already owns it and reloads exactly the page that branch would have asked for.
+   */
+  const endSwipe = useCallback((dx: number, dy: number) => {
+    const decision = decideSocialGesture({ dx, dy, scrollTop: scrollTop.current });
+    if (decision.action !== 'channel') return;
+    onModeChange(nextMode(mode, decision.offset));
+  }, [mode, onModeChange]);
+  /**
+   * The surface that reads the flick. Only a move that is clearly horizontal is taken over — 24px of travel
+   * and more than 1.2× the vertical one — so the column's own scroll and every tap stay with their owner.
+   *
+   * The compiler rule below reads `PanResponder.create` as a call that could run its handlers while the
+   * component renders; `endSwipe` is only ever reached on a release, which is exactly where reading where
+   * the column stands is allowed (the same disable sits on the media reader of `PostMedia.tsx`).
+   */
+  // eslint-disable-next-line react-hooks/refs
+  const channelSwipe = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => false,
+    onMoveShouldSetPanResponder: (_event, gesture) => horizontalIntent(gesture.dx, gesture.dy),
+    onMoveShouldSetPanResponderCapture: (_event, gesture) => horizontalIntent(gesture.dx, gesture.dy),
+    onPanResponderRelease: (_event, gesture) => endSwipe(gesture.dx, gesture.dy),
+    onPanResponderTerminate: () => {},
+  }), [endSwipe]);
 
   const applyPage = useCallback((page: FeedPage, kind: 'initial' | 'more') => {
     setCursor(typeof page.next_cursor === 'string' ? page.next_cursor : null);
@@ -117,25 +158,30 @@ export function FeedScreen({ mode, onModeChange }: {
   // failed the card list stays in place, which is where the empty and error lines live.
   if (mode === 'reels' && posts.length > 0) {
     return (
-      <ReelsReader
-        posts={posts}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        onEndReached={onLoadMore}
-        loadingMore={loadingMore}
-      />
+      <View style={styles.surface} {...channelSwipe.panHandlers}>
+        <ReelsReader
+          posts={posts}
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          onEndReached={onLoadMore}
+          loadingMore={loadingMore}
+        />
+      </View>
     );
   }
 
   return (
     <FlatList
+      {...channelSwipe.panHandlers}
       data={posts}
       keyExtractor={(post) => String(post.id)}
-      renderItem={({ item }) => <PostCard post={item} />}
+      renderItem={({ item }) => <PostCard post={item} gallery={gallery} />}
       contentContainerStyle={styles.list}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />}
       onEndReachedThreshold={0.6}
       onEndReached={onLoadMore}
+      onScroll={(event) => { scrollTop.current = event.nativeEvent.contentOffset.y; }}
+      scrollEventThrottle={16}
       ListHeaderComponent={mode === 'news' && (news || newsNotice) ? <NewsBlock items={news ?? []} notice={newsNotice} /> : null}
       ListFooterComponent={loadingMore ? <ActivityIndicator color={socialTokens.colors.white} style={styles.footer} /> : null}
       ListEmptyComponent={(
@@ -156,9 +202,15 @@ export function FeedScreen({ mode, onModeChange }: {
   );
 }
 
-export function nextMode(mode: FeedModeId): FeedModeId {
-  const order: FeedModeId[] = ['reels', 'whispers', 'news'];
-  return order[(order.indexOf(mode) + 1) % order.length];
+/**
+ * `nextFeedMode` of feed-surface.js:66-69: one place along the rail, wrapping at both ends, over the order
+ * the rail itself prints (`socialTokens.feedModes`). An unknown mode falls back to the first reading, the
+ * way the web's own `Math.max(0, …)` floor does, so a stale mode can never throw the rail away.
+ */
+export function nextMode(mode: FeedModeId, offset = 1): FeedModeId {
+  const order: FeedModeId[] = socialTokens.feedModes.map((entry) => entry.id);
+  const step = Number(offset || 0);
+  return order[(Math.max(0, order.indexOf(mode)) + step + order.length) % order.length];
 }
 
 /** The headlines an allow-listed provider returned, or the provider's own reason for having none. */
@@ -202,6 +254,8 @@ function FeedSkeleton() {
 
 const styles = StyleSheet.create({
   list: { paddingTop: 10, paddingHorizontal: 10, paddingBottom: 24 },
+  /** The surface the horizontal flick is read on: the whole body of the feed, above its own scrolling. */
+  surface: { flex: 1 },
   footer: { paddingVertical: 16 },
   emptyBox: { alignItems: 'center', gap: 12, paddingTop: 60, paddingHorizontal: 24 },
   empty: { color: socialTokens.colors.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 },

@@ -19,8 +19,10 @@ import { socialTokens } from '../theme/social';
  * black rectangle: `/media/…` answers 401 for a caller without a session, so the picture request has to
  * carry the same session the rest of the app carries.
  */
-export function PostCard({ post, onOpen, fit = 'cover' }: {
+export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   post: SocialPost;
+  /** The media posts of the list this card lives in — the gallery the full-screen reader walks. */
+  gallery?: SocialPost[];
   onOpen?: (post: SocialPost) => void;
   fit?: MediaFit;
 }) {
@@ -179,7 +181,7 @@ export function PostCard({ post, onOpen, fit = 'cover' }: {
 
       {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} /> : null}
 
-      <MediaViewer post={viewerOpen ? post : null} onClose={() => setViewerOpen(false)} />
+      <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} />
     </>
   );
 }

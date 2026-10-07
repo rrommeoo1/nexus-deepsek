@@ -3,8 +3,8 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppHeader, headerFloats, type AppHeaderSwitch } from '../components/AppHeader';
 import { AppNav } from '../components/AppNav';
-import { FeedHeader } from '../components/FeedHeader';
 import { FeedDrawer } from '../components/FeedDrawer';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
@@ -14,6 +14,7 @@ import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
+import { readUnreadTotal } from '../lib/unread';
 import { FeedScreen, nextMode, type FeedModeId } from '../screens/FeedScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { LiveScreen } from '../screens/LiveScreen';
@@ -61,6 +62,8 @@ export default function NativeHomeScreen() {
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileKey, setProfileKey] = useState(0);
+  /** The count the bottom bar prints over the inbox mark; the two reads behind it live in lib/unread.ts. */
+  const [unreadCount, setUnreadCount] = useState(0);
   const booted = useRef(false);
 
   const loadMe = useCallback(async (): Promise<MeResponse | null> => {
@@ -102,6 +105,17 @@ export default function NativeHomeScreen() {
       void fetchBackendVersion().then(setBackendVersion);
     })();
   }, [ensureSocialPersona, loadMe]);
+
+  // The two counters of the bar are read again whenever the account changes hands or a mark moves the
+  // reader - the inbox empties while the reader is on it, so the bar has to be able to say so when they
+  // come back. The web runs the same two reads on boot and after every persona switch (app.js:2416-2454),
+  // and a read that fails keeps the last number the server gave instead of claiming an empty inbox.
+  useEffect(() => {
+    if (!me) return;
+    let alive = true;
+    void readUnreadTotal().then((total) => { if (alive && total !== null) setUnreadCount(total); });
+    return () => { alive = false; };
+  }, [me, slot]);
 
   const onSignIn = useCallback(async (email: string, password: string) => {
     setBusy(true); setError('');
@@ -182,6 +196,65 @@ export default function NativeHomeScreen() {
   }
 
   const moduleTitle = socialModules.find((entry) => entry.id === me.persona)?.title ?? me.persona;
+  /** The name the account gave the profile being read, which the first switch reads out (app.js:1436). */
+  const profileName = me.profiles?.find((entry) => entry.persona === me.persona)?.name || moduleTitle;
+  /** The reading the feed is on: the second switch of an off-feed bar names it (app.js:1404, 1418-1421). */
+  const readingTitle = socialTokens.feedModes.find((entry) => entry.id === feedMode)?.title ?? feedMode;
+  /** Only the feed wears `.appHeader.feedHeader`; the profile screen wears no bar at all (app.js:1397, 1416). */
+  const onFeed = me.persona === 'social' && slot === 'primary';
+  /** `goHome()` - the wordmark, and the feed switch off it, land on the feed at its first reading. */
+  const goHome = useCallback(() => { setSlot('primary'); setFeedMode('reels'); }, []);
+  /**
+   * The switches of the off-feed bar, in the order the web prints them (app.js:1418-1421): the profile,
+   * then the plate that names the feed and the plate that names the relations. Where the web opens a
+   * sheet from a plate, this bar opens the one screen the app has for it - so the feed plate names the
+   * reading the feed is on and lands on that feed, and the relations plate lands on the relations screen
+   * rather than on a sheet of views the app does not have. The two plates are printed for the Social
+   * shell only: behind the first mark of every other persona this app has the PendingScreen, and a plate
+   * that offered a door to it would be offering nothing.
+   */
+  const offFeedSwitches: AppHeaderSwitch[] = [
+    {
+      key: 'mode',
+      label: moduleTitle,
+      accessibilityLabel: `Schimbă Nexus ${moduleTitle} · profil activ ${profileName}`,
+      onPress: () => setDrawerOpen(true),
+    },
+    ...(me.persona === 'social' ? [
+      {
+        key: 'feed' as const,
+        label: readingTitle,
+        accessibilityLabel: `Schimbă feedul Social · ${readingTitle}`,
+        onPress: goHome,
+      },
+      {
+        key: 'friends' as const,
+        label: 'Prieteni',
+        accessibilityLabel: 'Deschide relațiile Social · Prieteni',
+        onPress: () => setSlot('friends'),
+      },
+    ] : []),
+  ];
+  const header = slot === 'account' ? null : onFeed ? (
+    <AppHeader
+      variant="feed"
+      modeId={feedMode}
+      build={backendVersion}
+      onPressWordmark={goHome}
+      onOpenDrawer={() => setDrawerOpen(true)}
+      onCycleMode={onCycleFeedMode}
+    />
+  ) : (
+    <AppHeader
+      variant="screen"
+      build={backendVersion}
+      onPressWordmark={goHome}
+      onOpenDrawer={() => setDrawerOpen(true)}
+      switches={offFeedSwitches}
+    />
+  );
+  /** Reels floats that bar over the clip, so it leaves the flow and the feed keeps the whole column. */
+  const floatingHeader = onFeed && headerFloats('feed', feedMode);
   const screen = (() => {
     if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} />;
     if (slot === 'inbox') return <MessagesScreen />;
@@ -189,16 +262,14 @@ export default function NativeHomeScreen() {
     if (slot === 'utility') return <LiveScreen />;
     if (slot === 'search') return <SearchScreen />;
     if (me.persona !== 'social') return <PendingScreen title={moduleTitle} detail="Acest modul nu este încă portat. Comută înapoi pe Social din sertarul de profil." />;
-    return (
-      <>
-        <FeedHeader modeId={feedMode} onCycleMode={onCycleFeedMode} onOpenDrawer={() => setDrawerOpen(true)} />
-        <FeedScreen mode={feedMode} onModeChange={setFeedMode} />
-      </>
-    );
+    return <FeedScreen mode={feedMode} onModeChange={setFeedMode} />;
   })();
 
   return (
     <SafeAreaView edges={['top']} style={styles.shell}>
+      {floatingHeader ? (
+        <View pointerEvents="box-none" style={styles.floatingHeader}>{header}</View>
+      ) : header}
       <View style={styles.body}>{screen}</View>
       {error ? (
         <View style={styles.errorBar}>
@@ -211,9 +282,9 @@ export default function NativeHomeScreen() {
       <AppNav
         active={slot}
         onSelect={onSelectSlot}
-        onOpenDrawer={() => setDrawerOpen(true)}
         onOpenCreate={() => router.push('/camera')}
         avatarSource={avatarSource}
+        unreadCount={unreadCount}
       />
       <FeedDrawer
         open={drawerOpen}
@@ -230,6 +301,8 @@ export default function NativeHomeScreen() {
 const styles = StyleSheet.create({
   /** `.phoneScreen:has(.appNav.social){background:#000}` */
   shell: { flex: 1, backgroundColor: '#000000' },
+  /** `#phoneHeader` over a Reels feed: out of the flow, over the clip (feed-surface.css:96-98). */
+  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 },
   body: { flex: 1 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000' },
   bootText: { color: socialTokens.colors.muted, fontSize: 14 },

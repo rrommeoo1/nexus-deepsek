@@ -368,6 +368,18 @@ export type Conversation = {
 /** `GET /api/chat/conversations` */
 export type ConversationsPage = { ok: true; conversations?: Conversation[]; next_cursor?: string | null };
 
+/**
+ * `GET /api/notifications?persona=all` — the envelope the bar's second counter comes from. Only two of
+ * its numbers are read here: `unread` is every unread row of the account and `unread_non_message` is the
+ * share of them that is not a message, which is the count the activity mark owns (app.js:2435-2454).
+ */
+export type NotificationsPage = {
+  ok: true;
+  notifications?: { id: number; persona?: string; type?: string }[];
+  unread?: number;
+  unread_non_message?: number;
+};
+
 /** `GET /api/chat/conversations/:id/messages` */
 export type ConversationThread = {
   ok: true;
