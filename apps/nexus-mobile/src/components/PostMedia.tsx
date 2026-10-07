@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource } from '../lib/socialTypes';
@@ -53,7 +53,7 @@ export function RemoteImageSource({ source, fit = 'contain', style, onError }: {
  * list play only the reel the reader is looking at. The player is created from the same
  * `{uri, headers}` source so `/media/…` resolves exactly like it does on the web.
  */
-export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false }: {
+export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false, onError }: {
   item?: MediaItem | null;
   fit?: MediaFit;
   style?: StyleProp<ViewStyle>;
@@ -61,12 +61,29 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
   muted?: boolean;
   loop?: boolean;
   nativeControls?: boolean;
+  onError?: () => void;
 }) {
   const source = mediaSourceFor(item);
   const player = useVideoPlayer(source, (instance) => {
     instance.loop = loop;
     instance.muted = muted;
   });
+
+  // The failure handler lives in a ref so a caller's inline arrow does not re-subscribe the listener
+  // on every render.
+  const failure = useRef(onError);
+  useEffect(() => { failure.current = onError; }, [onError]);
+
+  // `/media/…` answers 423 for an unvalidated record and 410 for one whose bytes are gone, and a
+  // dropped network answers the same way; expo-video reports all of them as `status: 'error'`, which
+  // is the one signal a black stage would otherwise hide. Nothing else can tell the reader a clip
+  // exists but cannot be played.
+  useEffect(() => {
+    const subscription = player.addListener('statusChange', (payload) => {
+      if (payload.status === 'error') failure.current?.();
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   // A live player is a mutable native handle: expo-video exposes no declarative prop for these two,
   // so assigning them on the handle is the documented way to change them — exactly what the

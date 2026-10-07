@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View,
   type NativeScrollEvent, type NativeSyntheticEvent, type ViewToken,
@@ -35,12 +35,14 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
   const [activeIndex, setActiveIndex] = useState(0);
   const [fit, setFit] = useState<MediaFit>('cover');
   const [muted, setMuted] = useState(true);
-  const viewability = useRef({ viewAreaCoveragePercentThreshold: 60 });
+  // Both values must stay identity-stable for the life of the reader, so they are memoised instead of
+  // held in refs: reading `ref.current` during render is what the React Compiler rule forbids.
+  const viewability = useMemo(() => ({ viewAreaCoveragePercentThreshold: 60 }), []);
 
-  const onViewableItemsChanged = useRef((info: { viewableItems: ViewToken[] }) => {
+  const onViewableItemsChanged = useCallback((info: { viewableItems: ViewToken[] }) => {
     const first = info.viewableItems.find((entry) => entry.isViewable);
     if (first && typeof first.index === 'number') setActiveIndex(first.index);
-  });
+  }, []);
 
   const onMomentumEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!pageHeight) return;
@@ -63,8 +65,8 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
           maxToRenderPerBatch={2}
           windowSize={3}
           removeClippedSubviews={false}
-          onViewableItemsChanged={onViewableItemsChanged.current}
-          viewabilityConfig={viewability.current}
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewability}
           onMomentumScrollEnd={onMomentumEnd}
           onEndReachedThreshold={0.8}
           onEndReached={onEndReached}
@@ -113,6 +115,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
+  const [mediaFailed, setMediaFailed] = useState(false);
 
   const mine = viewerReaction(summary);
   const plays = active && playing && isVideo;
@@ -155,7 +158,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
   return (
     <View style={[styles.page, { height }]}>
       {cover && isVideo ? (
-        <RemoteVideo item={cover} fit={fit} style={styles.media} active={plays} muted={muted} />
+        <RemoteVideo item={cover} fit={fit} style={styles.media} active={plays} muted={muted} onError={() => setMediaFailed(true)} />
       ) : null}
       {cover && !isVideo ? <RemoteImage item={cover} fit={fit} style={styles.media} /> : null}
       {!cover ? <View style={styles.media} /> : null}
@@ -169,6 +172,12 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit 
 
       <View pointerEvents="none" style={styles.topPlate} />
       <View pointerEvents="none" style={styles.bottomPlate} />
+
+      {mediaFailed ? (
+        <View pointerEvents="none" style={styles.playState}>
+          <Text style={styles.unavailable}>Clipul nu a putut fi redat.</Text>
+        </View>
+      ) : null}
 
       <View style={styles.chrome}>
         <Pressable accessibilityRole="button" accessibilityLabel="Mod de afișare a imaginii" onPress={onToggleFit} style={styles.disc}>
@@ -297,6 +306,7 @@ const styles = StyleSheet.create({
   discText: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
   playState: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   playGlyph: { color: 'rgba(255,255,255,0.82)', fontSize: 54, fontWeight: '900' },
+  unavailable: { color: '#ffc6c6', fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
   meta: { position: 'absolute', left: 14, right: 84, bottom: 22, gap: 6 },
   creatorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   creatorDisc: {

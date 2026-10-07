@@ -269,3 +269,136 @@ export function audioAttributionFor(post: SocialPost, authorName: string): strin
     || post.audio_attribution
     || `Audio original · ${authorName}`;
 }
+
+/** `repo.listSocialRelations` — one real person per row (never a placeholder). */
+export type RelationPerson = {
+  user_id: number;
+  handle: string;
+  name?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+  relation?: 'followers' | 'following';
+  following_me?: boolean;
+  counts?: { following?: number; followers?: number } | null;
+};
+
+/** `GET /api/social/relations?kind=…` */
+export type RelationsPage = { ok: true; kind?: string; people?: RelationPerson[]; next_cursor?: string | null };
+
+/** `repo.listFollowRequests` — a pending request, exactly as the server holds it. */
+export type FollowRequest = {
+  id: number;
+  requester_id?: number;
+  target_id?: number;
+  persona?: string;
+  status?: string;
+  created_at?: number | string | null;
+  handle?: string;
+  name?: string | null;
+  avatar?: string | null;
+};
+
+/** `GET /api/follow/requests?direction=…` */
+export type FollowRequestsPage = { ok: true; direction?: string; requests?: FollowRequest[] };
+
+/** `GET /api/follows` — the two real counters the web prints. */
+export type FollowCounts = { ok: true; following?: number; followers?: number };
+
+/** `GET /api/social/search?q=…` */
+/**
+ * `repo.searchSocial` — a public profile row of the search index. It is keyed by `id`, not by the
+ * `user_id` the relation lists carry (`SELECT u.id, u.handle, p.name, … FROM users …` in
+ * repo.js:1078 vs `SELECT u.id user_id, …` in `listSocialRelations`), so it is its own type: reusing
+ * `RelationPerson` here made every row arrive with an undefined key.
+ */
+export type SearchProfile = {
+  id: number;
+  handle: string;
+  name?: string | null;
+  bio?: string | null;
+  avatar?: string | null;
+  visibility?: string;
+  followers?: number;
+};
+
+export type SocialSearchPage = { ok: true; query?: string; profiles?: SearchProfile[]; posts?: SocialPost[]; next_cursor?: string | null };
+
+/** One participant of a conversation (`getConversationDetails().participants`). */
+export type ConversationParticipant = {
+  id: number;
+  handle: string;
+  display_name?: string | null;
+  avatar?: string | null;
+  role?: string;
+  state?: string;
+};
+
+/** `repo.getConversationMessage` — one real message row. */
+export type ChatMessage = {
+  id: number;
+  conversation_id?: number;
+  sender_id?: number;
+  sender_persona?: string;
+  kind?: string;
+  body?: string | null;
+  created_at?: number | string | null;
+  status?: string;
+  encryption_mode?: string;
+  sender_handle?: string;
+  sender_display_name?: string | null;
+  attachment_url?: string | null;
+  media_kind?: string | null;
+};
+
+/** `repo.getConversationDetails` — the inbox row the unified messenger prints. */
+export type Conversation = {
+  id: number;
+  kind?: string;
+  context_persona?: string;
+  status?: string;
+  created_by?: number;
+  title?: string | null;
+  updated_at?: number | string | null;
+  participants?: ConversationParticipant[];
+  last_message?: ChatMessage | null;
+  unread?: number;
+  blocked?: boolean;
+};
+
+/** `GET /api/chat/conversations` */
+export type ConversationsPage = { ok: true; conversations?: Conversation[]; next_cursor?: string | null };
+
+/** `GET /api/chat/conversations/:id/messages` */
+export type ConversationThread = {
+  ok: true;
+  conversation?: Conversation;
+  messages?: ChatMessage[];
+  transport?: { plaintext_available?: boolean; label?: string };
+};
+
+/** `GET /api/social/live` — the sessions (and creators) the reader may open. */
+export type LiveSession = {
+  id: number;
+  host_id?: number;
+  user_id?: number;
+  handle?: string;
+  display_name?: string | null;
+  avatar?: string | null;
+  title?: string | null;
+  visibility?: string;
+  status?: string;
+  transport_status?: string;
+  started_at?: number | string | null;
+  organic_viewers?: number;
+  qualified_followers?: number;
+  is_following?: boolean;
+};
+
+/** `GET /api/social/live` envelope, including the provider's own (gated) reasons. */
+export type LivePage = {
+  ok: true;
+  live?: LiveSession[];
+  creators?: LiveSession[];
+  competitions?: Record<string, unknown>[];
+  transport?: { status?: string; public_broadcast?: boolean; provider_configured?: boolean };
+};

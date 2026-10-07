@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { RemoteImage, RemoteVideo } from './PostMedia';
@@ -17,9 +18,11 @@ import { mediaKindOf, postMediaItems, type SocialPost } from '../lib/socialTypes
  * / `RemoteVideo`, so a `/media/…` that needs a credential still resolves here.
  */
 export function MediaViewer({ post, onClose }: { post: SocialPost | null; onClose: () => void }) {
+  const [failedId, setFailedId] = useState<number | null>(null);
   const items = post ? postMediaItems(post) : [];
   const media = items[0] ?? post?.media ?? null;
   const isVideo = mediaKindOf(media) === 'video';
+  const failed = post !== null && failedId === post.id;
 
   return (
     <Modal
@@ -32,10 +35,11 @@ export function MediaViewer({ post, onClose }: { post: SocialPost | null; onClos
       <View style={styles.stage}>
         <StatusBar hidden />
         {post && media && isVideo ? (
-          <RemoteVideo item={media} fit="contain" style={styles.media} active muted={false} nativeControls />
+          <RemoteVideo item={media} fit="contain" style={styles.media} active muted={false} nativeControls onError={() => setFailedId(post.id)} />
         ) : null}
         {post && media && !isVideo ? <RemoteImage item={media} fit="contain" style={styles.media} /> : null}
         {post && !media ? <Text style={styles.note}>Această postare nu are media de afișat.</Text> : null}
+        {failed ? <Text style={styles.note}>Clipul nu a putut fi redat.</Text> : null}
 
         <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
           <Text style={styles.closeText}>×</Text>

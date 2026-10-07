@@ -40,3 +40,6 @@ yarn-error.*
 /ios
 /android
 /builds
+
+# local build-diagnostics credential (JWT) — never commit secrets
+buildsdiag-token.txt

@@ -15,7 +15,11 @@ import { clearSession, readSession, signInWithEmail, signOut } from '../lib/sess
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
 import { FeedScreen, nextMode, type FeedModeId } from '../screens/FeedScreen';
+import { FriendsScreen } from '../screens/FriendsScreen';
+import { LiveScreen } from '../screens/LiveScreen';
+import { MessagesScreen } from '../screens/MessagesScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
+import { SearchScreen } from '../screens/SearchScreen';
 import { socialTokens, profileModules as socialModules } from '../theme/social';
 import { nexusTokens } from '../theme/tokens';
 
@@ -180,10 +184,10 @@ export default function NativeHomeScreen() {
   const moduleTitle = socialModules.find((entry) => entry.id === me.persona)?.title ?? me.persona;
   const screen = (() => {
     if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} />;
-    if (slot === 'inbox') return <PendingScreen title="Mesaje" detail="Conversațiile nu sunt încă portate în aplicația Android. Ecranul web rămâne referința; aici nu se afișează date inventate." />;
-    if (slot === 'friends') return <PendingScreen title="Prieteni" detail="Relațiile (urmăritori, cereri, blocări) nu sunt încă portate în aplicația Android." />;
-    if (slot === 'utility') return <PendingScreen title="Live" detail="Transmisiunile live nu sunt încă portate în aplicația Android." />;
-    if (slot === 'search') return <PendingScreen title="Găsește oameni și conținut" detail="Căutarea nu este încă portată în aplicația Android." />;
+    if (slot === 'inbox') return <MessagesScreen />;
+    if (slot === 'friends') return <FriendsScreen />;
+    if (slot === 'utility') return <LiveScreen />;
+    if (slot === 'search') return <SearchScreen />;
     if (me.persona !== 'social') return <PendingScreen title={moduleTitle} detail="Acest modul nu este încă portat. Comută înapoi pe Social din sertarul de profil." />;
     return (
       <>
