@@ -1,0 +1,49 @@
+# Lot de capturi native — runda 1 (vezi docs/parity-report/INDEX.md)
+#
+# Formatul unui pas:
+#   capture:<ecran>/<stare>   screencap + uiautomator dump (focus verificat, antet PNG verificat)
+#   tap:<etichetă>            dump -> nodul cu eticheta (sau textul) -> tap în centru
+#   tapxy:<x>,<y>             tap la coordonate CSS px (măsurate din web-ref), doar când nodul nu are etichetă
+#   wait:<ms>
+#
+# Rulare:  powershell -NoProfile -File tools/parity/device-batch.ps1 -List docs/parity-report/batch.txt
+# Sesiunea cere: telefonul deblocat, Nexus Dev în prim-plan (app.nexus.mobile.dev), Wireless debugging pornit.
+# Fiecare pas se sare dacă mCurrentFocus nu este app.nexus.mobile.dev.
+
+# --- 1. Feed Reels, rail-ul de comentarii, clipul pe tot ecranul (defectul „viewer video")
+tap:Acasă
+wait:1500
+capture:feed/reels-0
+tap:Comentarii
+wait:1200
+capture:comments/drawer-open
+tap:Închide
+wait:800
+tap:Deschide Reel-ul pe tot ecranul
+wait:1500
+capture:viewer/media-viewer
+tap:Închide
+wait:800
+
+# --- 2. Mesaje: shelf-ul de story-uri (defectul „Mesaje: lipsesc Stories"), cititorul, firul
+tap:Mesaje
+wait:1500
+capture:messages/inbox-0
+tapxy:175,214
+wait:1500
+capture:viewer/story-viewer
+tapxy:440,46
+wait:800
+tap:Deschide conversația
+wait:1500
+capture:messages/thread-0
+tap:Înapoi la conversații
+wait:800
+
+# --- 3. Profil: bara de iconițe (defectul „meniul de moduri trebuie să fie ICONURI")
+tap:Profil
+wait:2000
+capture:profile/own-0
+tap:Fotografii
+wait:1200
+capture:profile/tab-2

@@ -83,7 +83,7 @@ Contract: `FEED_MODES = ["reels","whispers","news"]` (`feed-surface.js:14`), fie
 | Stare gol: `feedEmptyMarkup` | `feed-surface.js:264` | `FeedScreen.tsx` (`emptyNote`, cu scurtătura spre citirea următoare) | parțial (copy de comparat) | P2 |
 | „Mai mult" la capăt de listă: `feedMoreMarkup` cu cursor | `feed-surface.js:441` | `FeedScreen.tsx` — cursor + `onEndReached` (prag 0.6), subsol cu spinner; fără markup-ul „mai mult" | parțial | P2 |
 | Zgomot/audio: `feedAudioMarkup` + buton `♫` per card (`applySocialMuted`) | `feed-surface.js:387`, `app.js:420-453` | ReelsReader (mute toggle) | diferit | P1 |
-| Story rail pe feed: `feedStoryRailMarkup` + `bindStoryImages` | `feed-surface.js:285-331` | absent (story viewer nu s-a putut deschide: `story-opened=false`, feed-ul de test nu are story-uri) | lipsă / de recapturat | P1 |
+| Story rail: shelf-ul de momente `feedStoryRailMarkup` + `bindStoryImages`; trăiește pe ecranul **Mesaje** (nu pe feed), măsurat 437×160 la y=134 | `feed-surface.js:285-331`, `messenger-shell.js:46`, `docs/web-ref/messages/inbox-0.dom.json` | **desenat**: `StoryRail.tsx` + `StoryViewer.tsx` + `lib/stories.ts`, ca antet al listei din inbox (`MessagesScreen`) | parțial — vezi `docs/parity-report/INDEX.md` §1 (măsurătoare pe telefon în așteptare) | P1 |
 | Atribuire audio în reel full-screen: „♫ What Is Love — Melanie Ungar · CC BY" | `viewer/reel-fullscreen.dom.json` | absent | lipsă | P2 |
 
 ### 2.1 Anatomia cardului de reel (web, markup exact)
@@ -402,4 +402,25 @@ plus contul de autentificare `test` (Viewer), cu 9 urmăriri / 3 cupluri recipro
   conversație și activitatea de notificări nu mai pornesc din liste goale;
 - geometria și culorile se compară pe `*.dom.json`. PNG-urile din `docs/web-ref/`
   sunt un **PNG per grup de stare** (vezi §12.2) — nu sunt o dovadă de diferență.
+
+
+## 14. Starea reală măsurată (runda 1 — `docs/parity-report/INDEX.md`)
+
+Regula acestui capitol: **niciun rând nu se declară `identic` fără o măsurătoare pe telefon** (un
+`diff.md` numeric produs de `tools/parity/compare.mjs` din `uiautomator dump`, plus un compozit
+`web | nativ` din `tools/parity/compose.ps1`). Rândurile de mai jos au fost deschise din nou și
+corectate după ce s-a citit codul nativ și s-au măsurat dovezile web existente.
+
+| Rând | Stare înainte | Stare corectată | Dovadă |
+|---|---|---|---|
+| §4 Mesaje — inbox | identic structural | **diferit (2/10)**: lipsesc `.messengerTopbar`, `#message-search`, `#storyRail`, cutiile inbox; rândul de conversație diferă (avatar 48 vs 52, nume 15 vs 17, badge 20 `#ff315f` vs 24 `#68ebdf`) | `docs/web-ref/messages/inbox-0.dom.json` |
+| §4 Mesaje — fir | identic structural | **de reverificat pe telefon** | `messages/thread-0.dom.json` |
+| §2 Feed — story rail | lipsă | **desenat, dar pe ecranul Mesaje** (shelf-ul nu trăiește pe feed); se măsoară pe telefon | `messenger-shell.js:46`, `feed-surface.js:285` |
+| §3 Profil — bara de conținut | (nu exista rând) | **era text → reparat**: cinci iconițe `≡ ▶ ▦ ❝ ✦` cu `role=tab`, plus săgeata cu cele trei citiri | `profile-experience.js:16,443-453` |
+| §2 Viewer (clip) — deschidere la tap | (nu exista rând) | **diferit → reparat**: tap-ul pe clip deschide dialogul full-screen; redarea a trecut pe `[data-clip-play]` | `app.js:3216-3239`, `docs/web-ref/viewer/media-viewer.dom.json` |
+| §1 Shell — `#feedModules` drawer | diferit (de verificat) | **diferit** (măsurat: prag, geometrie) | `feed/drawer-open2.dom.json` |
+| §1 Shell — rail de mod `nav.feedModes` | identic | **de reverificat pe telefon** | `shell/home.html.json` |
+
+Restul rândurilor marcate `identic` rămân **de reverificat**, în ordinea notelor din
+`docs/parity-report/INDEX.md`; fiecare primește compozit + `diff.md` înainte de a-și păstra starea.
 

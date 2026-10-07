@@ -738,3 +738,29 @@ story-uri, deci `story-opened` va fi `true`); atribuirea audio din Reel; apoi
 sesiunea pe telefon (gesturi: swipe de canal, pull-to-refresh, vizualizator).
 
 
+
+### 17.6 Runda de paritate vizuală (2026-10-07) — starea reală
+
+Paritatea reală măsurată este de aproximativ **2 din 10** pe ecranele de bază: matricea marcaseră
+`identic` după cod și teste, nu după comparația cu ecranul. De acum fiecare ecran are o notă care
+vine din **diferențe măsurate**, în `docs/parity-report/INDEX.md` (nota înainte, ce s-a schimbat,
+ce rămâne), plus un `diff.md` numeric și un compozit `web | nativ` în `docs/parity-report/<ecran>/`.
+
+Ce s-a reparat în runda 1 (commit-uri pe branch-ul mobil):
+
+- `4edb4e3` — **shelf-ul de story-uri** pe ecranul Mesaje: `lib/stories.ts`,
+  `components/StoryRail.tsx`, `components/StoryViewer.tsx`, cablat în `MessagesScreen`
+  (antet de listă) și în `index.tsx` (propriul record de persoană).
+- `de3d558` — **tap-ul pe clip deschide viewer-ul full-screen** (`ReelsReader` +
+  `MediaViewer` deținut de `FeedScreen`) și **bara de conținut a profilului** e acum cinci
+  iconițe (`≡ ▶ ▦ ❝ ✦`) cu citirile din săgeată, sortate cu `profileStamp/Score/Rank`.
+
+Unelte noi (offline, fără dependențe): `tools/parity/device-batch.ps1` (lotul de capturi native,
+cu verificarea `mCurrentFocus = app.nexus.mobile.dev` înainte de fiecare input și validarea antetului
+PNG), `tools/parity/compare.mjs` (comparația numerică web ↔ nativ), `tools/parity/compose.ps1`
+(compozitul JPEG „web | nativ"), plus lotul scris în `docs/parity-report/batch.txt`.
+
+Rămâne de reparat, în ordinea notelor (§17.5 și INDEX): bara de sus a inbox-ului, dialogul
+postării deschise cu comentarii/like-uri/reacții, arborele de răspunsuri, bara de reacții,
+rail-ul viewer-ului și overlay-ul de creator.
+
