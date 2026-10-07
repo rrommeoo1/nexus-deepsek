@@ -15,7 +15,7 @@ sau cu detalii lipsă · **lipsă** = neportat.
 | 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **gata** (codul) — camera există (9:16, 0,7×, 3:4 la 1×, import galerie, permisiuni) și captura se întoarce în composer (`camera.tsx` → `CaptureEditor` → `PublishPanel`); verificare pe dispozitiv în curs |
 | 3 | Editor (text, emoji/stickere mutabile, muzică Jamendo, randare finală) | **parțial** — text mutabil + emoji + căutare/previzualizare Jamendo în draft; compunere finală lipsă |
 | 4 | Publicare (copertă, titlu, descriere, hashtaguri, mențiuni, locație, link, vizibilitate, comentarii, repost, AI, descărcare, watermark, draft, postare reală, fără dublare la retry) | **parțial** — formular complet (titlu, descriere, #/@, locație + precizie, link, vizibilitate, comentarii/repostare/descărcare/watermark, declarație AI, drepturi audio + atribuire), salvare în cont și publicare reală din aplicație, cu cheie de idempotency per intenție; rămân neportate: compunerea finală a fișierului (watermark/overlay ars), salvarea pe dispozitiv și etichetarea persoanelor după id |
-| 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **lipsă** |
+| 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **parțial** — comentariile sunt portate (fir citit/scris prin API-ul real, `CommentsSheet`); mesaje, căutare, prieteni și live sunt marcate *onest* ca neportate (`PendingScreen`, vezi §8); notificări și setări rămân **lipsă** |
 
 ## 1. Decizii tehnice (și de ce)
 
@@ -108,8 +108,13 @@ Sursă: `app.js` `renderHeader`/`renderNav`/`loadFeed`, `feed-surface.js`/`feed-
   `reels→clips` (fără lens), `whispers→tweets, for-you`, `news→posts, breaking` (răspuns cu `news[]` și
   `provider`). Erori: 409 (personă greșită) și mesajul serverului; retry-ul nu dublează postări.
 - **Detalii mici:** `near` fără consimțământ ⇒ text explicit.
-- **Stare nativă:** **gata** pentru citire/feed/paginare/refresh; **lipsă**: acțiunile de pe card
-  (reacții, comentarii, repost, salvare, share), viewerul media, comentariile, SSE.
+- **Stare nativă:** **gata** pentru citire/feed/paginare/refresh **și** pentru acțiunile cardului și
+  viewerul media: reacții (`/api/posts/:id/reaction`), salvare, repost și distribuire (`PostCard` +
+  `lib/postInteractions`), firul de comentarii citit și scris, cu reacții și răspunsuri afișate
+  (`CommentsSheet`). Lectura „Reels" este propria prezentare imersivă pe tot ecranul (`ReelsReader`):
+  un singur reel în viewport, doar cel vizibil se redă, rail de creator/reacții/comentarii/salvare/
+  repost/soundtrack. **Lipsă**: SSE (actualizări în timp real) și viewerul de postare unică în afara
+  cardului pentru Șoapte/Știri.
 
 
 
@@ -137,6 +142,9 @@ Componente: `ProfileScreen`, `ProfileTicker`, `PostCard`.
 - **Stare nativă:** **gata** pentru antet + ticker + flux de postări; **lipsă**: editorul de profil,
   highlights/albume, reposts și răspunsuri distribuite ca liste, presence, sigilii, meniul profilului
   (wallet, acces, confidențialitate, notificări, aspect), grila de fotografii, banda de stories.
+- **Verificat pe dispozitiv (2026-10-07):** `docs/screens/w-profile.png` și `04-profile.png` arată ecranul
+  real — copertă, avatar 78px, identitate (`@test` · Kraków), banda ticker, taburile Flux/Reels/Fotografii/
+  Șoapte/Momente și un card de postare real cu reacții/comentarii/salvare/repost/distribuire.
 
 
 ## 5. Fișa 4 — Meniul / sertarul
@@ -169,9 +177,9 @@ mici / stare) înainte de a începe fiecare ecran. Ce se știe acum din auditul 
 | 5. Camera nativă | `reel-camera-surface.js/.css`, `reel-camera-framing.js`, `reel-camera-quality.js` | niciunul (local) | **gata** (codul) — 9:16 UHD, 0,7× pe obiectivul virtual, 3:4 la 1×, import galerie, permisiuni refuzabile fără blocare; captura se întoarce în composer (editor → „Detalii postare") |
 | 6. Editor / reel | `reel-editor-overlays.js`, `clip-options.js`, `reel-sticker-catalog.js`, `composer-emoji.js` | `/api/reels/sound-suggestions` | **parțial** — text mutabil + emoji + sugestii Jamendo; stickere, redimensionare, efecte, randare finală lipsesc |
 | 7. Publicare | `post-publishing.js/.css`, `creator-draft-sync.js`, `draft-policy.js` | `/api/uploads` (resumable), `/api/posts` | **parțial** — vezi 6.1 |
-| 8. Comentarii | `post-detail.js/.css`, `double-tap-heart.js` | `/api/social/posts/:id/comments` | **lipsă** |
-| 9. Mesaje | `messenger-shell.js`, `messenger-spaces.css`, `chat-crypto.js` | `/api/messages/*` | **lipsă** (mark-ul de mesaje arată un ecran onest) |
-| 10. Căutare / Prieteni / Live / Notificări / Setări | `social-inbox-demo.js`, `profile-settings-panels.js`, `notification-preferences.js` | varie | **lipsă** (mark-urile arată ecrane oneste) |
+| 8. Comentarii | `post-detail.js/.css`, `double-tap-heart.js` | `/api/posts/:id/comments`, `/api/comments/:id/reaction` | **parțial** — firul se citește și se scrie real (`CommentsSheet`: listă, răspuns cu `parent_id`, reacție LIKE, răspunsurile-părinte afișate `↩ @autor`); lipsesc pagina dedicată de postare și inimioara de dublu-tap pe media |
+| 9. Mesaje | `messenger-shell.js`, `messenger-spaces.css`, `chat-crypto.js` | `/api/messages/*` | **lipsă** — mark-ul `inbox` randează `PendingScreen("Mesaje", …)` (`index.tsx:183`) |
+| 10. Căutare / Prieteni / Live / Notificări / Setări | `social-inbox-demo.js`, `profile-settings-panels.js`, `notification-preferences.js` | varie | **lipsă** — Căutare, Prieteni și Live sunt `PendingScreen` oneste (titluri exacte în §8); Notificări și Setări încă nu au ecran |
 
 ### 6.1 Etapa 4 — publicarea nativă (portată în cod)
 
@@ -271,4 +279,130 @@ aceea starea din tabelul global ramane **partial**.
    dispozitiv din punctul 1 (cameră → editor → publicare). Dacă jurnalul din deploy are o formă care nu
    poate identifica rândurile, tabelul pornește gol și rândurile vechi sunt păstrate renumite
    (`email_auth_commands_legacy`) — un replay se reia printr-un login nou, iar datele nu se șterg.
+
+## 8. Verificare de paritate pe ecrane (audit nativ 2026-10-07)
+
+Audit făcut citind codul de navigație și capturi reale de ecran/UI (`docs/screens/`) luate pe Xiaomi.
+Cele șapte mark-uri ale barei de jos (`AppNav`, ordinea `primary, inbox, search, create, friends,
+utility, account`) sunt legate în `src/app/index.tsx` astfel:
+
+| Mark | Etichetă (`AppNav`) | Ce randează `index.tsx` | Verdict | Dovezi |
+| - | - | - | - | - |
+| `primary` | Acasă | `FeedHeader` + `FeedScreen` (Reels imersiv / carduri, interacțiuni reale) | **real** | `05-home.png`, `02-feed-live.png`, `03-feed-immersive.png`; `FeedScreen.tsx:118-134` |
+| `inbox` | Mesaje | `PendingScreen("Mesaje", "Conversațiile nu sunt încă portate…")` | **placeholder onest** | `index.tsx:183`; `10-messages.xml` |
+| `search` | Găsește oameni și conținut | `PendingScreen("Găsește oameni și conținut", "Căutarea nu este încă portată…")` | **placeholder onest** | `index.tsx:186`; `s-search.xml` |
+| `create` | Creează | `router.push('/camera')` (camera nativă) | **real** | `index.tsx:211`; `w-create.png` |
+| `friends` | Prieteni | `PendingScreen("Prieteni", "Relațiile (urmăritori, cereri, blocări) nu sunt încă portate…")` | **placeholder onest** | `index.tsx:184`; `s-friends.xml` |
+| `utility` | Live | `PendingScreen("Live", "Transmisiunile live nu sunt încă portate…")` | **placeholder onest** | `index.tsx:185`; `w-live.xml` |
+| `account` | Profil | `ProfileScreen` (profil real) | **real** | `index.tsx:182`; `w-profile.png`, `04-profile.png` |
+
+- O personă diferită de `social` randează un al optulea caz: `PendingScreen(moduleTitle, "Acest modul
+  nu este încă portat…")` (`index.tsx:187`), același comportament onest ca în §5.
+- Capturile `w-search2.*`, `w-friends2.*`, `00-current*.png`, `12-friends.*`, `11-search.*` și
+  `ui-profile.xml` au fost identificate prin amprentă de tip/pachet ca **system UI / altă aplicație**
+  (bara de notificări `com.android.systemui`, `com.miui.securitycenter`, `com.android.chrome`) și au fost
+  **șterse**; nu se folosesc ca dovezi. `w-create.xml` (18.494 B) este cadrul de cameră, fără antet de
+  text. Niciuna nu se folosește ca dovadă de paritate.
+- Unele dump-uri capturate erau duplicate sau etichetate greșit (`s-search.xml` = `10-messages.xml` =
+  `n1.xml`; `w-live.xml` = `w-profile.xml`). Sursa primară de adevăr pentru rutare rămâne codul
+  (`src/app/index.tsx`); capturile sunt doar confirmare vizuală.
+- Verdict de suprafață la această dată: **3 mark-uri reale** (Acasă, Creează, Profil) plus interacțiunile
+  din feed, și **4 ecrane marcate onest ca neportate** (Mesaje, Căutare, Prieteni, Live). Nu există niciun
+  ecran care să imite funcționalitate inexistentă; `05-home.png` arăta o postare reală de video (cadrul
+  camerei din `04-profile.png`), nu un ecran de captură — etichetarea anterioară „camera preview" era
+  greșită.
+- Acest audit **înlocuiește** `planning/NX-ANDROID-PARITY-AUDIT-20261004.md`, care descria o stare
+  veche (shell WebView). Vezi și `planning/NX-ANDROID-PARITY-AUDIT-20261007.md`.
+
+## 9. Reguli de siguranță pe dispozitiv (obligatorii, prioritate maximă)
+
+Orice lucru pe telefon se face **exclusiv** în `app.nexus.mobile.dev` (Nexus Dev). Regulile de mai jos
+au prioritate față de orice altă instrucțiune, inclusiv față de modul de lucru autonom.
+
+1. **Doar Nexus Dev.** Nu se deschide, nu se comută la, nu se apasă în, nu se citește și nu se
+   capturează nicio altă aplicație. Interzise explicit: Google Messages, Coinbase, aplicații bancare și
+   de plăți, email, contacte, galerie/fotografii (cu excepția selectorului propriu al Nexus și doar
+   pentru fișierele alese de owner), setări, browser și bara de notificări.
+2. **Verificarea focusului înainte de FIECARE input** (`input tap/swipe/keyevent/text`):
+   `adb shell dumpsys window | findstr mCurrentFocus`. Dacă focusul nu este `app.nexus.mobile.dev`, nu
+   se trimite niciun input; revenirea se face doar cu
+   `adb shell am start -n app.nexus.mobile.dev/.MainActivity`, apoi se reverifică. Dacă nu se poate
+   reveni, ne oprim și întrebăm.
+3. **Fără căi ocolite.** Fără `monkey`, fără intent-uri de launcher, fără `am start` pentru alte pachete,
+   fără `pm`, fără nicio comandă care listează/deschide/inspecționează alte aplicații. Nu se citesc
+   notificări, SMS-uri, apeluri, contacte sau datele altor aplicații (`dumpsys notification`, content
+   providers etc.).
+4. **Fără deblocare.** Nu se deblochează telefonul, nu se ocolește lock screen-ul, nu se introduc PIN-uri
+   sau modele. Dacă telefonul e blocat, ne oprim și cerem deblocarea.
+5. **Capturile doar cu Nexus în prim-plan.** `uiautomator` dump, capturi și `logcat` doar cât timp Nexus
+   Dev e în prim-plan; `logcat` filtrat pe procesul aplicației (`--pid`/pachet). Dacă într-un dump,
+   captură sau log apare altă aplicație, nu se citește, se șterge și se anunță.
+6. **La dubiu, nu se execută.** Dacă nu suntem siguri că o acțiune poate atinge altă aplicație, nu se
+   face; se folosesc doar ecranele Nexus sau se întreabă.
+7. **Fără bani.** Nu se ating portofele, cripto, plăți sau achiziții nicăieri. Nu se apasă pe notificări.
+
+Reguli suplimentare de captură (stabilite 2026-10-07):
+
+- Navigarea se face **doar** prin elementele aplicației găsite în dump (`content-desc`, `resource-id`),
+  nu cu coordonate ghicite.
+- Nu se deschide și nu se trage în jos bara de notificări; nu se apasă Home.
+- Dacă un tap nu are efectul așteptat, ne oprim și verificăm focusul înainte de a reîncerca.
+- Dacă un dump sau o captură conține altceva decât Nexus, nu se citește, se șterge și se anunță.
+
+## 10. Defecte de paritate și reparații (offline, fără telefon)
+
+Fiecare rând compară codul mobil cu sursa web citată. „Reparat" înseamnă schimbat în cod și trecut de
+`tsc --noEmit`; fiecare rând reparat așteaptă confirmare pe telefon (vezi §11).
+
+| # | Defect | Cauză (cod) | Referință web | Reparație | Stare |
+|---|--------|-------------|---------------|-----------|-------|
+| 1 | Media 9:16 se decupa în carduri | `PostCard` avea `media:{height:380}` + `cover` (tăia portretul 9:16) | `feed-surface.css:2607-2615` (`object-fit:contain` pe cadru cu aspectul clipului, `data-video-aspect`); `:257` skeleton 4/5 | `PostCard` folosește `aspectRatio` 9:16 (clip) / 4:5 (foto) + `overflow:hidden` | **reparat** (verificare pe telefon) |
+| 2 | 9:16 nu se poate reda pe tot ecranul | Lipsea un viewer full-screen (web-ul are `reelViewer`) | `feed-surface.css:2616-2623` (`object-fit:contain;background:#000`) | Component nou `MediaViewer.tsx` (Modal full-screen, `contain`, 9:16) deschis la tap pe media | **reparat** (verificare pe telefon) |
+| 3 | Media Railway nu apare în feed | `/media/…` cere sesiune și întoarce `423 media quarantined` (record nevalidat) / `410 media missing` (`mediaDeliveryPolicy`) | `api.js:4801-4834`, `media.js:165-183` | `RemoteImage` primește `onError`; cardul afișează „Media nu a putut fi afișată." în loc de negru | **reparat** (verificare pe telefon) |
+| 4 | Clipuri în feed | modul `reels` randează `ReelsReader` (immersiv, `cover`) doar când `posts.length>0` | `feed-surface.css:474-521` | de verificat redarea reală (`expo-video` + `Range`; server `accept-ranges: bytes`, bucăți ≤ 4 MB, `api.js:4775`) | **de verificat pe telefon** |
+| 5 | Mesaje (inbox) | `PendingScreen("Mesaje", …)` | `messenger-shell.js` / `p2-messaging.css` | neportat | **deferred** (necesită endpoint de conversații + transport live) |
+| 6 | Căutare / Prieteni / Live / persona non-social | `PendingScreen(…)` | — | neportat | **deferred** |
+
+## 11. Sesiune pe telefon — script de verificare (lot pregătit)
+
+Se rulează **doar** cu `app.nexus.mobile.dev` în prim-plan, cu verificarea focusului înainte de **fiecare**
+input (§9). Dacă focusul nu e Nexus sau ecranul se blochează, ne oprim și se notează unde am rămas.
+
+**Device:** `192.168.1.184:46291` (adb: `tools\scrcpy\adb.exe`). Prescurtare mai jos: `ADB` =
+`tools\scrcpy\adb.exe -s 192.168.1.184:46291`.
+
+### 11.1 Ce se instalează sau se reîncarcă
+1. Cu Metro/dev-client pornit (`npm run dev:android` sau `dev:metro`): se salvează fișierele modificate
+   (`MediaViewer.tsx`, `PostCard.tsx`, `PostMedia.tsx`) și se așteaptă **Fast Refresh** în app.
+2. Fără Metro: `npm run dev:reload` (`scripts/nexus-dev.ps1 -Action reload`).
+3. Doar dacă lipsește buildul nativ: `npm run build:android:dev` apoi `npm run install:android`.
+
+### 11.2 Comenzi adb de pregătire (o dată, înainte de input)
+```
+ADB shell dumpsys window | findstr mCurrentFocus         # trebuie app.nexus.mobile.dev/.MainActivity
+ADB shell dumpsys window | findstr mCurrentFocus         # repetat înainte de FIECARE input de mai jos
+ADB logcat -c
+ADB shell pidof -s app.nexus.mobile.dev                  # PID pentru logcat filtrat
+```
+
+### 11.3 Pași (ordonați) și rezultatul așteptat
+
+| Pas | Acțiune (doar prin elemente din dump: `content-desc`/`resource-id`) | Comandă | Rezultat așteptat |
+|-----|---------------------------------------------------------------------|---------|-------------------|
+| 1 | Feed Reels (Acasă) — primul clip | `ADB shell uiautomator dump /sdcard/nx.xml` + `ADB pull /sdcard/nx.xml docs/screens/` ; `ADB exec-out screencap -p > docs/screens/tv-feed.png` | Un clip 9:16 pe **tot ecranul**, rail (reacție/comentarii/salvare/distribuie) la dreapta |
+| 2 | Tap pe media clipului → viewer | verifică focusul, apoi `ADB shell input tap <x> <y>` (centrul zonei media) | `MediaViewer` full-screen, **cadru 9:16 complet (contain)**, buton „×" sus-dreapta; audio pornit, controale native |
+| 3 | Închide viewer-ul | `ADB shell input tap <x> <y>` pe „×" | Revenire la feed, fără crash |
+| 4 | Comută modul (Şoapte) din header | tap pe `content-desc="…"` al butonului de mod | Listă de carduri; media păstrează 9:16 (clip) / 4:5 (foto), fără decupare |
+| 5 | Deschide un card cu fotografie | tap pe card | `MediaViewer` full-screen `contain`; dacă `/media` refuză, text „Media nu a putut fi afișată." |
+| 6 | Comută modul (Ştiri) | tap pe butonul de mod | Titluri (sau motivul real, dacă providerul e oprit) |
+| 7 | Mark „Mesaje" | tap pe al 5-lea mark (zona ~1111,321 din `w-live.xml`) | `PendingScreen("Mesaje")` — ecran onest, fără date inventate |
+| 8 | Mark „Cont"/Profil | tap pe mark | Profil real (ticker, postări) |
+| 9 | Verifică logurile Nexus | `ADB logcat --pid=<PID>` (filtrat) | Fără erori noi de rețea/media; fără `423` repetat pe media validată |
+
+### 11.4 Extragerea dovezilor
+```
+ADB shell screencap -p /sdcard/nx.png ; ADB pull /sdcard/nx.png docs/screens/tv-<pas>.png
+ADB shell uiautomator dump /sdcard/nx.xml ; ADB pull /sdcard/nx.xml docs/screens/tv-<pas>.xml
+```
+Fiecare dump/captură se verifică: dacă `package` ≠ `app.nexus.mobile.dev`, se șterge și se anunță.
 

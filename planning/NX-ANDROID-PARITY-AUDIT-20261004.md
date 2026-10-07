@@ -1,5 +1,13 @@
 # Nexus Android — verificare de paritate la 2026-10-04
 
+> **ÎNLOCUIT (2026-10-07).** Acest document descrie o stare veche a clientului Android (shell
+> React Native/Expo cu WebView către serverul web local). Între timp clientul a fost portat nativ:
+> sesiune nativă fără WebView, feed și profil reale, interacțiuni pe card, comentarii și fluxul
+> complet cameră → editor → publicare. Verdictul curent, pe ecrane, este în
+> `planning/NX-ANDROID-PARITY-AUDIT-20261007.md` și în `apps/nexus-mobile/MIGRATION.md` §8.
+> Textul de mai jos se păstrează doar ca istoric; afirmațiile din secțiunea „Diferența față de ținta
+> Android" (WebView, „doar preview și salvare locală") nu mai sunt valabile.
+
 Acesta este un audit de stare, nu o declarație că migrarea nativă sau lansarea în Play Store este terminată.
 
 ## Dovezi verificate
