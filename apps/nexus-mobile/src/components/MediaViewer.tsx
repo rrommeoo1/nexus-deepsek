@@ -41,19 +41,23 @@ const CLAIM_TRAVEL = 24;
 function viewerIntent(dx: number, dy: number): boolean {
   return Math.max(Math.abs(dx), Math.abs(dy)) >= CLAIM_TRAVEL;
 }
-export function MediaViewer({ post, gallery, onClose, onCommentCreated, startWithComments = false }: {
+export function MediaViewer({ post, gallery, onClose, onCommentCreated, onOpenThread, onOpenCommentsRoot, embedded = false, startWithComments = false }: {
   post: SocialPost | null;
   /** The gallery the reader walks; without one it is the single post it was opened on. */
   gallery?: SocialPost[];
   startWithComments?: boolean;
   onClose: () => void;
   onCommentCreated?: (postId: number) => void;
+  onOpenThread?: (post: SocialPost, commentId: number) => void;
+  onOpenCommentsRoot?: (post: SocialPost) => void;
+  embedded?: boolean;
 }) {
   const items = useMemo(
     () => (gallery && gallery.length ? gallery : post ? [post] : []).filter((entry) => postMediaItems(entry).length > 0),
     [gallery, post],
   );
 
+  if (embedded) return post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} startWithComments={startWithComments} /> : null;
   return (
     <Modal
       visible={post !== null}
@@ -63,7 +67,7 @@ export function MediaViewer({ post, gallery, onClose, onCommentCreated, startWit
       statusBarTranslucent
       navigationBarTranslucent
     >
-      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} startWithComments={startWithComments} /> : null}
+      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} onOpenCommentsRoot={onOpenCommentsRoot} startWithComments={startWithComments} /> : null}
     </Modal>
   );
 }
@@ -74,11 +78,13 @@ export function MediaViewer({ post, gallery, onClose, onCommentCreated, startWit
  * two plates and the counter are shown whenever the gallery holds more than one frame, so a clip — whose
  * drags belong to its own controls — can still be walked.
  */
-function GalleryViewer({ post, items, onClose, onCommentCreated, startWithComments }: {
+function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, onOpenCommentsRoot, startWithComments }: {
   post: SocialPost;
   items: SocialPost[];
   onClose: () => void;
   onCommentCreated?: (postId: number) => void;
+  onOpenThread?: (post: SocialPost, commentId: number) => void;
+  onOpenCommentsRoot?: (post: SocialPost) => void;
   startWithComments: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -106,6 +112,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, startWithCommen
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [notice, setNotice] = useState('');
   const current = items[index] ?? post;
+  const openComments = () => onOpenCommentsRoot ? onOpenCommentsRoot(current) : setCommentsOpen(true);
   const commentCount = Math.max(Number(current.comment_count ?? 0), commentCounts[current.id] ?? 0);
   const media = postMediaItems(current)[0] ?? current.media ?? null;
   const isVideo = mediaKindOf(media) === 'video';
@@ -205,7 +212,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, startWithCommen
                 : <Text style={styles.railAvatarText}>{initialsFor(name, handle)}</Text>}
             </View>
             <ReactionControl variant="rail" summary={summary} onReact={react} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={() => setCommentsOpen(true)} style={styles.railButton}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={openComments} style={styles.railButton}>
               <SolidViewerIcon kind="comment" /><Text style={styles.railCount}>{compactCount(commentCount)}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Scoate din salvate' : 'Salvează'} accessibilityState={{ selected: saved }} onPress={save} style={styles.railButton}>
@@ -228,7 +235,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, startWithCommen
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
           </View>
 
-          <Pressable accessibilityRole="button" accessibilityLabel="Adaugă un comentariu" onPress={() => setCommentsOpen(true)} style={[styles.commentShortcut, { bottom: commentBottom }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Adaugă un comentariu" onPress={openComments} style={[styles.commentShortcut, { bottom: commentBottom }]}>
             <Text style={styles.commentShortcutText}>Adaugă un comentariu…</Text><SolidViewerIcon kind="comment" size={21} />
           </Pressable>
 
@@ -261,7 +268,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, startWithCommen
               <Pressable accessibilityRole="button" accessibilityLabel="Distribuie" onPress={() => sharePost(current.id).catch(fail)} style={styles.commentPostMetric}><SolidViewerIcon kind="share" size={19} /></Pressable>
             </View>
           </View>
-          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} onCommentCreated={(postId) => {
+          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} onOpenThread={onOpenThread ? (commentId) => onOpenThread(current, commentId) : undefined} onCommentCreated={(postId) => {
             setCommentCounts((previous) => ({ ...previous, [postId]: Math.max(previous[postId] ?? 0, Number(current.comment_count ?? 0)) + 1 }));
             onCommentCreated?.(postId);
           }} onCountSeen={(postId, count) => setCommentCounts((previous) =>

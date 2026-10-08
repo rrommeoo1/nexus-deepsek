@@ -45,3 +45,47 @@ export function flattenCommentRows(
   for (const comment of comments) if (!structurallyReachable.has(comment.id) && !seen.has(comment.id)) visit(comment, 0);
   return rows;
 }
+
+/** The first comments page is a list of conversations, not an interleaved tree. */
+export function rootCommentRows(comments: CommentView[]): ThreadRow[] {
+  const ids = new Set(comments.map((comment) => comment.id));
+  const counts = new Map<number, number>();
+  for (const comment of comments) {
+    const parentId = Number(comment.parent_id || 0);
+    if (ids.has(parentId)) counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
+  }
+  return comments.filter((comment) => !comment.parent_id || !ids.has(comment.parent_id)).map((comment) => ({
+    kind: 'comment' as const, key: `comment:${comment.id}`, comment, depth: 0,
+    childCount: Math.max(counts.get(comment.id) ?? 0, Number(comment.reply_count ?? 0)), parentId: null,
+  }));
+}
+
+/** A focused conversation contains the selected comment and only its descendants. */
+export function focusedCommentRows(
+  comments: CommentView[], focusId: number,
+  collapsed: Readonly<Record<number, boolean>>,
+  revealed: Readonly<Record<number, number>>,
+): ThreadRow[] {
+  const byId = new Map(comments.map((comment) => [comment.id, comment]));
+  if (!byId.has(focusId)) return [];
+  const children = new Map<number, number[]>();
+  for (const comment of comments) {
+    const parentId = Number(comment.parent_id || 0);
+    const group = children.get(parentId) ?? [];
+    group.push(comment.id);
+    children.set(parentId, group);
+  }
+  const included = new Set<number>([focusId]);
+  const stack = [focusId];
+  while (stack.length) {
+    for (const childId of children.get(stack.pop()!) ?? []) {
+      if (!included.has(childId)) {
+        included.add(childId);
+        stack.push(childId);
+      }
+    }
+  }
+  return flattenCommentRows(comments.filter((comment) => included.has(comment.id)).map((comment) =>
+    comment.id === focusId ? { ...comment, parent_id: null } : comment,
+  ), collapsed, revealed);
+}

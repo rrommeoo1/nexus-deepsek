@@ -9,7 +9,21 @@ const source = readFileSync(resolve(__dirname, '../src/lib/commentRows.ts'), 'ut
 const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
 const moduleShim = { exports: {} };
 new Function('module', 'exports', code)(moduleShim, moduleShim.exports);
-const { flattenCommentRows } = moduleShim.exports;
+const { flattenCommentRows, rootCommentRows, focusedCommentRows } = moduleShim.exports;
+
+test('pagina inițială arată doar rădăcinile, cu numărul răspunsurilor', () => {
+  const comments = [{ id: 1, parent_id: null, reply_count: 8 }, { id: 2, parent_id: 1 }, { id: 3, parent_id: null }];
+  const rows = rootCommentRows(comments);
+  assert.deepEqual(rows.map((row) => row.comment.id), [1, 3]);
+  assert.equal(rows[0].childCount, 8);
+});
+
+test('ecranul unui comentariu nu amestecă alte conversații', () => {
+  const comments = [{ id: 1, parent_id: null }, { id: 2, parent_id: 1 }, { id: 3, parent_id: 2 }, { id: 4, parent_id: null }, { id: 5, parent_id: 4 }];
+  const rows = focusedCommentRows(comments, 1, {}, {});
+  assert.deepEqual(rows.filter((row) => row.kind === 'comment').map((row) => row.comment.id), [1, 2, 3]);
+  assert.equal(rows[0].depth, 0);
+});
 
 test('descendenții sunt în ordine și plafonul inițial este de trei răspunsuri', () => {
   const comments = [{ id: 1, parent_id: null }, ...Array.from({ length: 9 }, (_, index) => ({ id: index + 2, parent_id: 1 }))];

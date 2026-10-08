@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { newMutationKey } from '../lib/idempotency';
-import { flattenCommentRows, type ThreadRow } from '../lib/commentRows';
+import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { createComment, fetchComments, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment } from '../lib/postInteractions';
 import {
   compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
@@ -45,12 +45,14 @@ function commentStamp(value?: number | string | null, now = Date.now()): string 
  * states its own empty and failed cases, and posts a reply through the real endpoint - including the
  * "comentariul a fost oprit de o regulă automată" answer the server gives when a rule blocks it.
  */
-export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, presentation = 'sheet' }: {
+export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, onOpenThread, focusId, presentation = 'sheet' }: {
   post: SocialPost;
   onClose: () => void;
   onCommentCreated?: (postId: number) => void;
   onCountSeen?: (postId: number, count: number) => void;
-  presentation?: 'sheet' | 'viewer';
+  onOpenThread?: (commentId: number) => void;
+  focusId?: number;
+  presentation?: 'sheet' | 'viewer' | 'page';
 }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -69,7 +71,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
   const [reportTarget, setReportTarget] = useState<CommentView | null>(null);
   const [clock, setClock] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
   const requestId = useRef(0);
   const nextTempId = useRef(-1);
   const scrollToComment = useRef<number | null>(null);
@@ -147,7 +149,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
   const send = useCallback(() => {
     const body = draft.trim();
     if (!body || post.publishing?.allowComments === false) return;
-    const entry: PendingComment = { tempId: nextTempId.current--, key: newMutationKey('comment'), body, parentId: replyTo?.id ?? null, createdAt: Date.now(), state: 'sending' };
+    const entry: PendingComment = { tempId: nextTempId.current--, key: newMutationKey('comment'), body, parentId: replyTo === undefined ? focusId ?? null : replyTo?.id ?? null, createdAt: Date.now(), state: 'sending' };
     setPending((items) => [...items, entry]);
     if (entry.parentId) {
       const byId = new Map((page?.comments ?? []).map((comment) => [comment.id, comment]));
@@ -163,9 +165,9 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
       setRevealed((state) => ({ ...state, ...ancestors }));
     }
     setDraft('');
-    setReplyTo(null);
+    setReplyTo(focusId ? undefined : null);
     submitPending(entry);
-  }, [draft, page?.comments, post.publishing?.allowComments, replyTo?.id, submitPending]);
+  }, [draft, focusId, page?.comments, post.publishing?.allowComments, replyTo, submitPending]);
 
   const toggleLike = useCallback((comment: CommentView) => {
     if (likeBusy[comment.id]) return;
@@ -195,7 +197,20 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
     }));
     return [...confirmed, ...provisional];
   }, [page, pending]);
-  const rows = useMemo(() => flattenCommentRows(comments, collapsed, revealed), [comments, collapsed, revealed]);
+  const activeReplyTo = replyTo === undefined && focusId
+    ? { id: focusId, handle: comments.find((comment) => comment.id === focusId)?.handle || 'nexus' }
+    : replyTo;
+  const rows = useMemo(() => focusId
+    ? focusedCommentRows(comments, focusId, collapsed, revealed)
+    : onOpenThread ? rootCommentRows(comments) : flattenCommentRows(comments, collapsed, revealed),
+  [comments, collapsed, focusId, onOpenThread, revealed]);
+  useEffect(() => {
+    if (!focusId || !page?.next_cursor || comments.some((comment) => comment.id === focusId) || loadingMore || error) return;
+    const cursor = Number(page.next_cursor);
+    if (!Number.isSafeInteger(cursor)) return;
+    const timer = setTimeout(() => load(cursor), 0);
+    return () => clearTimeout(timer);
+  }, [comments, error, focusId, load, loadingMore, page?.next_cursor]);
   useEffect(() => {
     const target = scrollToComment.current;
     if (target === null) return;
@@ -210,7 +225,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={[
-            presentation === 'viewer' ? styles.viewerPanel : styles.sheet,
+            presentation === 'sheet' ? styles.sheet : presentation === 'page' ? styles.page : styles.viewerPanel,
             { paddingBottom: insets.bottom },
             keyboardHeight > 0 && Platform.OS === 'android' ? {
               marginBottom: keyboardHeight,
@@ -229,14 +244,14 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
             </Pressable>
           </View> : null}
 
-          <View style={styles.sortBar} accessibilityRole="tablist" accessibilityLabel="Sortarea comentariilor">
+          {!focusId ? <View style={styles.sortBar} accessibilityRole="tablist" accessibilityLabel="Sortarea comentariilor">
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setPage(null); setError(''); setSort('relevant'); } }} style={styles.sortButton}>
               <Text style={[styles.sortText, sort === 'relevant' && styles.sortSelected]}>Relevante</Text>
             </Pressable>
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'newest' }} onPress={() => { if (sort !== 'newest') { setPage(null); setError(''); setSort('newest'); } }} style={styles.sortButton}>
               <Text style={[styles.sortText, sort === 'newest' && styles.sortSelected]}>Cele mai noi</Text>
             </Pressable>
-          </View>
+          </View> : null}
 
           {loading ? <View style={styles.skeletonWrap} accessibilityLabel="Se încarcă comentariile">
             {[0, 1, 2].map((value) => <View key={value} style={styles.skeletonRow}><View style={styles.skeletonAvatar} /><View style={styles.skeletonLines}><View style={styles.skeletonLineShort} /><View style={styles.skeletonLine} /></View></View>)}
@@ -256,7 +271,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
             refreshing={refreshing}
             onRefresh={() => load(0, true)}
             onScrollToIndexFailed={({ index }) => setTimeout(() => list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }), 300)}
-            ListEmptyComponent={!loading && !error ? <Text style={styles.empty}>Niciun comentariu încă.</Text> : null}
+            ListEmptyComponent={!loading && !error && !page?.next_cursor ? <Text style={styles.empty}>{focusId ? 'Comentariul nu este disponibil.' : 'Niciun comentariu încă.'}</Text> : null}
             renderItem={({ item }) => item.kind === 'toggle' ? <Pressable
               accessibilityRole="button"
               accessibilityLabel={item.collapsed ? `${item.hiddenCount} răspunsuri ascunse. Extinde firul` : item.hiddenCount ? `Vezi încă ${item.hiddenCount} răspunsuri` : 'Strânge firul'}
@@ -278,6 +293,9 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
                   setReplyTo({ id: comment.id, handle: comment.handle || comment.author?.handle || 'nexus' });
                   composer.current?.focus();
                 }}
+                onOpenThread={onOpenThread && item.comment.id !== focusId ? () => onOpenThread(item.comment.id) : undefined}
+                childCount={item.childCount}
+                prominent={item.comment.id === focusId}
                 onCollapse={item.parentId ? () => setCollapsed((state) => ({ ...state, [item.parentId!]: true })) : item.childCount ? () => setCollapsed((state) => ({ ...state, [item.comment.id]: !state[item.comment.id] })) : undefined}
                 onMenu={() => setMenuTarget(item.comment)}
                 onError={setError}
@@ -315,7 +333,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
           </View> : null}
 
           <View style={styles.composer}>
-            {replyTo ? <View style={styles.replyBanner}><Text style={styles.replyBannerText}>{`Răspunzi lui @${replyTo.handle}`}</Text><Pressable accessibilityRole="button" accessibilityLabel="Anulează răspunsul" onPress={() => setReplyTo(null)} style={styles.cancelReply}><Text style={styles.cancelReplyText}>×</Text></Pressable></View> : null}
+            {activeReplyTo ? <View style={styles.replyBanner}><Text style={styles.replyBannerText}>{`Răspunzi lui @${activeReplyTo.handle}`}</Text><Pressable accessibilityRole="button" accessibilityLabel="Anulează răspunsul" onPress={() => setReplyTo(null)} style={styles.cancelReply}><Text style={styles.cancelReplyText}>×</Text></Pressable></View> : null}
             <View style={styles.composerLine}>
             <TextInput
               ref={composer}
@@ -343,7 +361,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
         </KeyboardAvoidingView>
   );
 
-  if (presentation === 'viewer') return content;
+  if (presentation !== 'sheet') return content;
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.backdrop}>
@@ -354,7 +372,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, pr
   );
 }
 
-function CommentRow({ comment, depth, now, pending, summary, onLike, onRetry, onReply, onCollapse, onMenu, onError }: {
+function CommentRow({ comment, depth, now, pending, summary, childCount, prominent, onLike, onRetry, onReply, onOpenThread, onCollapse, onMenu, onError }: {
   comment: CommentView;
   depth: number;
   now: number;
@@ -363,6 +381,9 @@ function CommentRow({ comment, depth, now, pending, summary, onLike, onRetry, on
   onLike: () => void;
   onRetry: (entry: PendingComment) => void;
   onReply: (comment: CommentView) => void;
+  onOpenThread?: () => void;
+  childCount: number;
+  prominent: boolean;
   onCollapse?: () => void;
   onMenu: () => void;
   onError: (message: string) => void;
@@ -396,8 +417,8 @@ function CommentRow({ comment, depth, now, pending, summary, onLike, onRetry, on
   return (
     <View style={[styles.rowWrap, { marginLeft: Math.min(depth, C.maxIndent) * C.indentStep }]}>
       {depth > 0 ? <Pressable accessibilityRole="button" accessibilityLabel="Strânge firul" hitSlop={{ left: 15, right: 15 }} onPress={onCollapse} style={styles.threadLine} /> : null}
-      <View style={[styles.row, depth > 0 && styles.replyRow]}>
-      <View style={styles.avatar}>
+      <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, depth > 0 && styles.replyRow, prominent && styles.prominentRow]}>
+      <View style={[styles.avatar, prominent && styles.prominentAvatar]}>
         {avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
           : <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text>}
       </View>
@@ -412,21 +433,21 @@ function CommentRow({ comment, depth, now, pending, summary, onLike, onRetry, on
           <Text style={styles.replyTo} numberOfLines={1}>{`Răspunde lui @${comment.parent_author?.handle || 'utilizator'}`}</Text>
         ) : null}
         {comment.status === 'withdrawn' ? <Text style={styles.tombstone}>Comentariu retras · istoricul este păstrat</Text> : <View>
-          <Text style={styles.rowText} numberOfLines={expanded ? undefined : 5} onTextLayout={(event) => {
+          <Text style={[styles.rowText, prominent && styles.prominentText]} numberOfLines={expanded || prominent ? undefined : 5} onTextLayout={(event) => {
             // The full measurement is rendered off-layout below; length in characters is not a proxy for lines.
             if (expanded && event.nativeEvent.lines.length > 5) setHasMoreLines(true);
           }}>{comment.body}</Text>
           {!hasMoreLines ? <Text style={styles.measureText} onTextLayout={(event) => {
             if (event.nativeEvent.lines.length > 5) setHasMoreLines(true);
           }}>{comment.body}</Text> : null}
-          {hasMoreLines ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Vezi mai puțin' : 'Vezi mai mult'} onPress={() => setExpanded((value) => !value)} style={styles.expandButton}><Text style={styles.expandText}>{expanded ? 'Vezi mai puțin' : 'Vezi mai mult'}</Text></Pressable> : null}
+          {hasMoreLines ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Vezi mai puțin' : 'Vezi mai mult'} onPress={(event) => { event.stopPropagation(); setExpanded((value) => !value); }} style={styles.expandButton}><Text style={styles.expandText}>{expanded ? 'Vezi mai puțin' : 'Vezi mai mult'}</Text></Pressable> : null}
         </View>}
-        {pending ? <Pressable accessibilityRole="button" accessibilityLabel={pending.state === 'failed' ? 'Reîncearcă trimiterea comentariului' : 'Comentariul se trimite'} disabled={pending.state !== 'failed'} onPress={() => onRetry(pending)} style={styles.pendingState}><Text style={styles.pendingText}>{pending.state === 'failed' ? `Nu s-a trimis · Reîncearcă${pending.error ? ` · ${pending.error}` : ''}` : 'Se trimite…'}</Text></Pressable> : null}
+        {pending ? <Pressable accessibilityRole="button" accessibilityLabel={pending.state === 'failed' ? 'Reîncearcă trimiterea comentariului' : 'Comentariul se trimite'} disabled={pending.state !== 'failed'} onPress={(event) => { event.stopPropagation(); onRetry(pending); }} style={styles.pendingState}><Text style={styles.pendingText}>{pending.state === 'failed' ? `Nu s-a trimis · Reîncearcă${pending.error ? ` · ${pending.error}` : ''}` : 'Se trimite…'}</Text></Pressable> : null}
         <View style={styles.rowActions}>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Răspunde la comentariul lui ${name}`} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={() => onReply(comment)} style={styles.rowAction}>
-            <SolidViewerIcon kind="comment" size={C.actionIconSize} color={C.actionMuted} /><Text style={styles.rowActionText}>Răspunde</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={onOpenThread ? `Deschide ${childCount} ${childCount === 1 ? 'răspuns' : 'răspunsuri'} la comentariul lui ${name}` : `Răspunde la comentariul lui ${name}`} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); (onOpenThread ?? (() => onReply(comment)))(); }} style={styles.rowAction}>
+            <SolidViewerIcon kind="comment" size={C.actionIconSize} color={C.actionMuted} /><Text style={styles.rowActionText}>{onOpenThread ? childCount : 'Răspunde'}</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Redistribuie răspunsul" accessibilityState={{ selected: shared }} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={toggleShare} style={styles.rowAction}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Redistribuie răspunsul" accessibilityState={{ selected: shared }} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); toggleShare(); }} style={styles.rowAction}>
             <SolidViewerIcon kind="repost" size={C.actionIconSize} color={shared ? '#ff315f' : C.actionMuted} /><Text style={styles.rowActionText}>{shares}</Text>
           </Pressable>
           <Pressable
@@ -435,20 +456,20 @@ function CommentRow({ comment, depth, now, pending, summary, onLike, onRetry, on
             accessibilityState={{ selected: mine }}
             hitSlop={ACTION_HIT_SLOP}
             disabled={Boolean(pending)}
-            onPress={onLike}
+            onPress={(event) => { event.stopPropagation(); onLike(); }}
             style={styles.rowAction}
           >
             <SolidViewerIcon kind="heart" size={C.actionIconSize} color={mine ? '#ff315f' : C.actionMuted} />
             <Text style={[styles.rowActionText, mine && styles.rowActionOn]}>{reactionTotal(summary) || 0}</Text>
           </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Scoate răspunsul din salvate' : 'Salvează răspunsul'} accessibilityState={{ selected: saved }} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={toggleSave} style={styles.rowAction}>
+          <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Scoate răspunsul din salvate' : 'Salvează răspunsul'} accessibilityState={{ selected: saved }} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); toggleSave(); }} style={styles.rowAction}>
             <SolidViewerIcon kind="save" size={C.actionIconSize} color={saved ? '#ff315f' : C.actionMuted} />
           </Pressable>
-          <Text style={styles.rowMeta}>{comment.reply_count ?? 0} răsp.</Text>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mai multe opțiuni pentru comentariu" hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={onMenu} style={styles.rowAction}><Text style={styles.moreGlyph}>•••</Text></Pressable>
+          {!onOpenThread ? <Text style={styles.rowMeta}>{comment.reply_count ?? childCount} răsp.</Text> : null}
+          <Pressable accessibilityRole="button" accessibilityLabel="Mai multe opțiuni pentru comentariu" hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); onMenu(); }} style={styles.rowAction}><Text style={styles.moreGlyph}>•••</Text></Pressable>
         </View>
       </View>
-      </View>
+      </Pressable>
     </View>
   );
 }
@@ -464,6 +485,7 @@ const styles = StyleSheet.create({
     flex: 1, backgroundColor: C.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
     overflow: 'hidden',
   },
+  page: { flex: 1, backgroundColor: C.surface },
   grabber: { alignSelf: 'center', width: 44, height: 4, borderRadius: 2, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.32)' },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 10 },
   title: { color: '#f5f8fa', fontSize: 15, fontWeight: '800', flex: 1 },
@@ -486,6 +508,9 @@ const styles = StyleSheet.create({
     backgroundColor: C.rowBackgroundTop,
   },
   replyRow: { backgroundColor: C.replyBackgroundTop, borderColor: C.replyBorder },
+  prominentRow: { paddingVertical: C.rowPaddingVertical + 6, borderColor: C.rowBorder },
+  prominentAvatar: { width: C.avatarSize + 8, height: C.avatarSize + 8, borderRadius: (C.avatarSize + 8) / 2 },
+  prominentText: { fontSize: C.bodySize + 3, lineHeight: C.bodyLineHeight + 4 },
   avatar: {
     width: C.avatarSize, height: C.avatarSize, borderRadius: C.avatarSize / 2, overflow: 'hidden', backgroundColor: C.avatarBackground,
     alignItems: 'center', justifyContent: 'center',

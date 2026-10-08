@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { CommentsSheet } from './CommentsSheet';
+import { openCommentsPage } from '../lib/commentNavigation';
 import { ReactionControl } from './ReactionControl';
 import { MediaViewer } from './MediaViewer';
 import { RemoteImage, RemoteImageSource, type MediaFit } from './PostMedia';
@@ -39,7 +39,6 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   const [summary, setSummary] = useState(post.reactions ?? null);
   const [saved, setSaved] = useState(Boolean(post.saved_by_me));
   const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const [confirmedCommentCount, setConfirmedCommentCount] = useState(0);
   const [notice, setNotice] = useState('');
   const mine = viewerReaction(summary);
@@ -82,7 +81,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Postarea lui @${handle}`}
-        onPress={() => { if (onOpen) onOpen(post); else setCommentsOpen(true); }}
+        onPress={() => { if (onOpen) onOpen(post); else openCommentsPage(post); }}
         style={styles.card}
       >
         <View style={styles.head}>
@@ -126,7 +125,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
 
         <View style={styles.actions}>
           <ReactionControl variant="card" summary={summary} onReact={(kind) => react(kind)} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={() => setCommentsOpen(true)} style={styles.action}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={(event) => { event.stopPropagation(); openCommentsPage(post); }} style={styles.action}>
             <Text style={styles.actionGlyph}>💬</Text>
             <Text style={styles.actionText}>Comentarii</Text>
           </Pressable>
@@ -157,11 +156,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
         </View>
       </Pressable>
 
-      {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} onCommentCreated={commentCreated} onCountSeen={(postId, count) => {
-        if (postId === post.id) setConfirmedCommentCount((previous) => Math.max(previous, count));
-      }} /> : null}
-
-      <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} onCommentCreated={commentCreated} />
+      <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} onCommentCreated={commentCreated} onOpenCommentsRoot={(current) => { setViewerOpen(false); openCommentsPage(current); }} />
     </>
   );
 }
