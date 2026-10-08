@@ -15,17 +15,15 @@ export function CommentConversationScreen({ postId, focusId }: { postId: number;
   const [post, setPost] = useState<SocialPost>(() => recalledCommentPost(postId) ?? { id: postId });
   const [postError, setPostError] = useState('');
 
-  // A route reopened after process death can recover its real post from the existing API.
-  // The comment endpoint itself remains usable even if the post is beyond this 100-item window.
+  // A route reopened after process death can recover its real post by ID from the existing API.
   useEffect(() => {
     if (recalledCommentPost(postId)) return;
     let active = true;
-    nexusApi<{ ok: true; posts: SocialPost[] }>('/api/posts?persona=social&limit=100')
+    nexusApi<{ ok: true; post: SocialPost }>(`/api/posts/${postId}`)
       .then((answer) => {
         if (!active) return;
-        const found = answer.posts?.find((candidate) => candidate.id === postId);
-        if (found) { rememberCommentPost(found); setPost(found); }
-        else setPostError('Postarea nu se află în lista disponibilă; comentariile pot fi citite în continuare.');
+        if (answer.post?.id === postId) { rememberCommentPost(answer.post); setPost(answer.post); }
+        else setPostError('Postarea nu este disponibilă; comentariile pot fi citite în continuare.');
       })
       .catch(() => { if (active) setPostError('Media postării nu poate fi încărcată acum; comentariile pot fi citite în continuare.'); });
     return () => { active = false; };
@@ -46,7 +44,7 @@ export function CommentConversationScreen({ postId, focusId }: { postId: number;
   return (
     <View style={[styles.fill, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Înapoi la comentariile principale" onPress={() => router.back()} style={styles.back}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Înapoi la conversația anterioară" onPress={() => router.back()} style={styles.back}>
           <SolidViewerIcon kind="back" size={22} />
         </Pressable>
         <Text style={styles.heading}>Firul comentariului</Text>

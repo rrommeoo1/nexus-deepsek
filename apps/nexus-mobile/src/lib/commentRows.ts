@@ -2,7 +2,9 @@ import type { CommentView } from './socialTypes';
 
 export type ThreadRow =
   | { kind: 'comment'; key: string; comment: CommentView; depth: number; childCount: number; parentId: number | null }
-  | { kind: 'toggle'; key: string; parentId: number; depth: number; hiddenCount: number; collapsed: boolean };
+  | { kind: 'toggle'; key: string; parentId: number; depth: number; hiddenCount: number; collapsed: boolean }
+  | { kind: 'sort-tabs'; key: string }
+  | { kind: 'empty-replies'; key: string };
 
 /** A pure pre-order projection; FlatList never mounts recursive row components. */
 export function flattenCommentRows(
@@ -60,32 +62,20 @@ export function rootCommentRows(comments: CommentView[]): ThreadRow[] {
   }));
 }
 
-/** A focused conversation contains the selected comment and only its descendants. */
-export function focusedCommentRows(
-  comments: CommentView[], focusId: number,
-  collapsed: Readonly<Record<number, boolean>>,
-  revealed: Readonly<Record<number, number>>,
-): ThreadRow[] {
-  const byId = new Map(comments.map((comment) => [comment.id, comment]));
-  if (!byId.has(focusId)) return [];
-  const children = new Map<number, number[]>();
+/** One reading level per screen: the selected comment and all its direct replies. */
+export function focusedCommentRows(comments: CommentView[], focusId: number): ThreadRow[] {
+  const focused = comments.find((comment) => comment.id === focusId);
+  if (!focused) return [];
+  const counts = new Map<number, number>();
   for (const comment of comments) {
     const parentId = Number(comment.parent_id || 0);
-    const group = children.get(parentId) ?? [];
-    group.push(comment.id);
-    children.set(parentId, group);
+    if (parentId) counts.set(parentId, (counts.get(parentId) ?? 0) + 1);
   }
-  const included = new Set<number>([focusId]);
-  const stack = [focusId];
-  while (stack.length) {
-    for (const childId of children.get(stack.pop()!) ?? []) {
-      if (!included.has(childId)) {
-        included.add(childId);
-        stack.push(childId);
-      }
-    }
-  }
-  return flattenCommentRows(comments.filter((comment) => included.has(comment.id)).map((comment) =>
-    comment.id === focusId ? { ...comment, parent_id: null } : comment,
-  ), collapsed, revealed);
+  const row = (comment: CommentView, parentId: number | null): ThreadRow => ({
+    kind: 'comment', key: `comment:${comment.id}`, comment, depth: 0, parentId,
+    childCount: Math.max(counts.get(comment.id) ?? 0, Number(comment.reply_count ?? 0)),
+  });
+  const replies = comments.filter((comment) => Number(comment.parent_id) === focusId).map((comment) => row(comment, focusId));
+  return [row(focused, null), { kind: 'sort-tabs', key: `sort:${focusId}` },
+    ...(replies.length ? replies : [{ kind: 'empty-replies' as const, key: `empty:${focusId}` }])];
 }

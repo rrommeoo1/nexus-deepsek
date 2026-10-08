@@ -20,9 +20,19 @@ test('pagina inițială arată doar rădăcinile, cu numărul răspunsurilor', (
 
 test('ecranul unui comentariu nu amestecă alte conversații', () => {
   const comments = [{ id: 1, parent_id: null }, { id: 2, parent_id: 1 }, { id: 3, parent_id: 2 }, { id: 4, parent_id: null }, { id: 5, parent_id: 4 }];
-  const rows = focusedCommentRows(comments, 1, {}, {});
-  assert.deepEqual(rows.filter((row) => row.kind === 'comment').map((row) => row.comment.id), [1, 2, 3]);
+  const rows = focusedCommentRows(comments, 1);
+  assert.deepEqual(rows.filter((row) => row.kind === 'comment').map((row) => row.comment.id), [1, 2]);
   assert.equal(rows[0].depth, 0);
+  assert.equal(rows[1].kind, 'sort-tabs');
+  assert.deepEqual(focusedCommentRows(comments, 2).filter((row) => row.kind === 'comment').map((row) => row.comment.id), [2, 3]);
+});
+
+test('toate răspunsurile directe sunt vizibile fără buton Vezi încă', () => {
+  const comments = [{ id: 1, parent_id: null, reply_count: 11 }, ...Array.from({ length: 11 }, (_, index) => ({ id: index + 2, parent_id: 1 }))];
+  const rows = focusedCommentRows(comments, 1);
+  assert.equal(rows.filter((row) => row.kind === 'comment').length, 12);
+  assert.equal(rows.some((row) => row.kind === 'toggle'), false);
+  assert.equal(rows[0].childCount, 11);
 });
 
 test('descendenții sunt în ordine și plafonul inițial este de trei răspunsuri', () => {

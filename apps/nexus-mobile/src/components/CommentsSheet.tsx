@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { newMutationKey } from '../lib/idempotency';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
+import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
 import { createComment, fetchComments, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment } from '../lib/postInteractions';
 import {
   compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
@@ -25,19 +26,6 @@ const REPORT_OPTIONS = [
   ['ILLEGAL_GOODS', 'Bunuri ilegale'], ['ILLEGAL_CONTENT', 'Conținut ilegal'],
   ['COPYRIGHT', 'Drepturi de autor'],
 ] as const;
-
-function commentStamp(value?: number | string | null, now = Date.now()): string {
-  const numeric = typeof value === 'number' ? value : /^\d+$/.test(String(value ?? '')) ? Number(value) : NaN;
-  const stamp = Number.isFinite(numeric) ? (numeric < 1e12 ? numeric * 1000 : numeric) : Date.parse(String(value ?? ''));
-  if (!Number.isFinite(stamp) || stamp <= 0) return '';
-  const minutes = Math.max(0, Math.floor((now - stamp) / 60000));
-  if (minutes < 1) return 'acum';
-  if (minutes < 60) return `${minutes}m`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h`;
-  const days = Math.floor(hours / 24);
-  return days < 7 ? `${days}z` : new Date(stamp).toLocaleDateString('ro-RO');
-}
 
 /**
  * The comment thread of one post, read from the same two routes the web reads
@@ -111,7 +99,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
 
   useEffect(() => {
     const initial = setTimeout(() => setClock(Date.now()), 0);
-    const timer = setInterval(() => setClock(Date.now()), 60_000);
+    const timer = setInterval(() => setClock(Date.now()), 1_000);
     return () => { clearTimeout(initial); clearInterval(timer); };
   }, []);
 
@@ -201,7 +189,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
     ? { id: focusId, handle: comments.find((comment) => comment.id === focusId)?.handle || 'nexus' }
     : replyTo;
   const rows = useMemo(() => focusId
-    ? focusedCommentRows(comments, focusId, collapsed, revealed)
+    ? focusedCommentRows(comments, focusId)
     : onOpenThread ? rootCommentRows(comments) : flattenCommentRows(comments, collapsed, revealed),
   [comments, collapsed, focusId, onOpenThread, revealed]);
   useEffect(() => {
@@ -245,10 +233,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
           </View> : null}
 
           {!focusId ? <View style={styles.sortBar} accessibilityRole="tablist" accessibilityLabel="Sortarea comentariilor">
-            <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setPage(null); setError(''); setSort('relevant'); } }} style={styles.sortButton}>
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setError(''); setSort('relevant'); } }} style={styles.sortButton}>
               <Text style={[styles.sortText, sort === 'relevant' && styles.sortSelected]}>Relevante</Text>
             </Pressable>
-            <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'newest' }} onPress={() => { if (sort !== 'newest') { setPage(null); setError(''); setSort('newest'); } }} style={styles.sortButton}>
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'newest' }} onPress={() => { if (sort !== 'newest') { setError(''); setSort('newest'); } }} style={styles.sortButton}>
               <Text style={[styles.sortText, sort === 'newest' && styles.sortSelected]}>Cele mai noi</Text>
             </Pressable>
           </View> : null}
@@ -272,7 +260,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
             onRefresh={() => load(0, true)}
             onScrollToIndexFailed={({ index }) => setTimeout(() => list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }), 300)}
             ListEmptyComponent={!loading && !error && !page?.next_cursor ? <Text style={styles.empty}>{focusId ? 'Comentariul nu este disponibil.' : 'Niciun comentariu încă.'}</Text> : null}
-            renderItem={({ item }) => item.kind === 'toggle' ? <Pressable
+            renderItem={({ item }) => item.kind === 'sort-tabs' ? <View style={styles.detailTabs} accessibilityRole="tablist" accessibilityLabel="Sortarea răspunsurilor">
+              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai relevante" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setError(''); setSort('relevant'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, sort === 'relevant' && styles.detailTabSelected]}>Cele mai relevante</Text></Pressable>
+              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai noi" accessibilityState={{ selected: sort === 'newest' }} onPress={() => { if (sort !== 'newest') { setError(''); setSort('newest'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, sort === 'newest' && styles.detailTabSelected]}>Cele mai noi</Text></Pressable>
+            </View> : item.kind === 'empty-replies' ? <Text style={styles.empty}>Niciun răspuns încă.</Text> : item.kind === 'toggle' ? <Pressable
               accessibilityRole="button"
               accessibilityLabel={item.collapsed ? `${item.hiddenCount} răspunsuri ascunse. Extinde firul` : item.hiddenCount ? `Vezi încă ${item.hiddenCount} răspunsuri` : 'Strânge firul'}
               accessibilityState={{ expanded: !item.collapsed }}
@@ -300,7 +291,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
                 onMenu={() => setMenuTarget(item.comment)}
                 onError={setError}
               />}
-            ListFooterComponent={page?.next_cursor ? (
+            ListFooterComponent={!focusId && page?.next_cursor ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Încarcă mai multe comentarii" disabled={loadingMore} onPress={() => {
                 const cursor = Number(page.next_cursor);
                 if (Number.isSafeInteger(cursor)) load(cursor);
@@ -333,13 +324,12 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
           </View> : null}
 
           <View style={styles.composer}>
-            {activeReplyTo ? <View style={styles.replyBanner}><Text style={styles.replyBannerText}>{`Răspunzi lui @${activeReplyTo.handle}`}</Text><Pressable accessibilityRole="button" accessibilityLabel="Anulează răspunsul" onPress={() => setReplyTo(null)} style={styles.cancelReply}><Text style={styles.cancelReplyText}>×</Text></Pressable></View> : null}
             <View style={styles.composerLine}>
             <TextInput
               ref={composer}
               value={draft}
               onChangeText={setDraft}
-              placeholder={post.publishing?.allowComments === false ? 'Comentariile sunt oprite' : 'Adaugă un comentariu…'}
+              placeholder={post.publishing?.allowComments === false ? 'Comentariile sunt oprite' : activeReplyTo ? `Răspuns pentru @${activeReplyTo.handle}…` : 'Adaugă un comentariu…'}
               placeholderTextColor="#7d8b96"
               style={styles.input}
               multiline
@@ -347,6 +337,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               editable={post.publishing?.allowComments !== false}
               accessibilityLabel="Comentariu nou"
             />
+            {replyTo ? <Pressable accessibilityRole="button" accessibilityLabel="Anulează răspunsul" onPress={() => setReplyTo(focusId ? undefined : null)} style={styles.cancelReply}><Text style={styles.cancelReplyText}>×</Text></Pressable> : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Trimite comentariul"
@@ -426,12 +417,9 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
         <View style={styles.rowHead}>
           <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
           <Text style={styles.rowHandle} numberOfLines={1}>{`@${handle}`}</Text>
-          <Text style={styles.rowTime}>{commentStamp(comment.created_at, now)}</Text>
+          {!prominent ? <Text style={styles.rowTime}>{commentRelativeTime(comment.created_at, now)}</Text> : null}
         </View>
         {comment.pinned_by_owner ? <Text style={styles.pinned}>Fixat de autor</Text> : null}
-        {(depth > C.maxIndent || comment.parent_author?.handle) ? (
-          <Text style={styles.replyTo} numberOfLines={1}>{`Răspunde lui @${comment.parent_author?.handle || 'utilizator'}`}</Text>
-        ) : null}
         {comment.status === 'withdrawn' ? <Text style={styles.tombstone}>Comentariu retras · istoricul este păstrat</Text> : <View>
           <Text style={[styles.rowText, prominent && styles.prominentText]} numberOfLines={expanded || prominent ? undefined : 5} onTextLayout={(event) => {
             // The full measurement is rendered off-layout below; length in characters is not a proxy for lines.
@@ -442,6 +430,7 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
           }}>{comment.body}</Text> : null}
           {hasMoreLines ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Vezi mai puțin' : 'Vezi mai mult'} onPress={(event) => { event.stopPropagation(); setExpanded((value) => !value); }} style={styles.expandButton}><Text style={styles.expandText}>{expanded ? 'Vezi mai puțin' : 'Vezi mai mult'}</Text></Pressable> : null}
         </View>}
+        {prominent && commentFullDate(comment.created_at) ? <Text style={styles.fullDate}>{commentFullDate(comment.created_at)}</Text> : null}
         {pending ? <Pressable accessibilityRole="button" accessibilityLabel={pending.state === 'failed' ? 'Reîncearcă trimiterea comentariului' : 'Comentariul se trimite'} disabled={pending.state !== 'failed'} onPress={(event) => { event.stopPropagation(); onRetry(pending); }} style={styles.pendingState}><Text style={styles.pendingText}>{pending.state === 'failed' ? `Nu s-a trimis · Reîncearcă${pending.error ? ` · ${pending.error}` : ''}` : 'Se trimite…'}</Text></Pressable> : null}
         <View style={styles.rowActions}>
           <Pressable accessibilityRole="button" accessibilityLabel={onOpenThread ? `Deschide ${childCount} ${childCount === 1 ? 'răspuns' : 'răspunsuri'} la comentariul lui ${name}` : `Răspunde la comentariul lui ${name}`} hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); (onOpenThread ?? (() => onReply(comment)))(); }} style={styles.rowAction}>
@@ -496,6 +485,10 @@ const styles = StyleSheet.create({
   sortButton: { minHeight: 34, justifyContent: 'center' },
   sortText: { color: '#92979d', fontSize: 12, fontWeight: '700' },
   sortSelected: { color: '#ffffff', fontWeight: '900', borderBottomWidth: 2, borderBottomColor: '#ffffff' },
+  detailTabs: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: C.rowBorder, marginBottom: C.threadGap, gap: 16 },
+  detailTab: { minHeight: 44, justifyContent: 'center' },
+  detailTabText: { color: C.actionMuted, fontSize: C.handleSize + 2, fontWeight: '700' },
+  detailTabSelected: { color: '#ffffff', fontWeight: '900', borderBottomWidth: 2, borderBottomColor: '#ffffff' },
   list: { flex: 1 },
   listContent: { paddingHorizontal: C.listPaddingHorizontal, paddingTop: C.listPaddingTop, paddingBottom: C.listPaddingBottom },
   listContentNarrow: { paddingHorizontal: 14 },
@@ -522,8 +515,8 @@ const styles = StyleSheet.create({
   rowName: { color: '#ffffff', fontSize: C.nameSize, lineHeight: C.headerHeight, fontWeight: '900', maxWidth: '45%' },
   rowHandle: { color: '#92979d', fontSize: C.handleSize, lineHeight: C.headerHeight, flexShrink: 1 },
   rowTime: { color: '#777d84', fontSize: C.timeSize, lineHeight: C.headerHeight, marginLeft: 'auto' },
+  fullDate: { color: C.actionMuted, fontSize: C.timeSize + 2, marginTop: 5, marginBottom: 3 },
   pinned: { color: '#f0c274', fontSize: 11, fontWeight: '700', marginTop: 2 },
-  replyTo: { color: '#858b91', fontSize: 10, marginTop: 2 },
   rowText: { color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, marginTop: 1 },
   measureText: { position: 'absolute', opacity: 0, zIndex: -1, color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, left: 0, right: 0 },
   expandButton: { minHeight: 44, justifyContent: 'center' },
@@ -556,8 +549,6 @@ const styles = StyleSheet.create({
   moreText: { color: '#ffffff', fontSize: 12, fontWeight: '800' },
   composer: { paddingHorizontal: 10, paddingTop: 7, paddingBottom: 7, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)', backgroundColor: C.surface },
   composerLine: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  replyBanner: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 8 },
-  replyBannerText: { color: C.toggleColor, fontSize: 11, fontWeight: '700' },
   input: {
     flex: 1, minHeight: C.composerInputHeight, maxHeight: 120, color: '#ffffff', fontSize: C.composerInputFontSize, lineHeight: 19,
     backgroundColor: C.composerInputBackground, borderRadius: C.composerInputRadius,
