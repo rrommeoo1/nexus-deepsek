@@ -41,12 +41,13 @@ const CLAIM_TRAVEL = 24;
 function viewerIntent(dx: number, dy: number): boolean {
   return Math.max(Math.abs(dx), Math.abs(dy)) >= CLAIM_TRAVEL;
 }
-export function MediaViewer({ post, gallery, onClose, startWithComments = false }: {
+export function MediaViewer({ post, gallery, onClose, onCommentCreated, startWithComments = false }: {
   post: SocialPost | null;
   /** The gallery the reader walks; without one it is the single post it was opened on. */
   gallery?: SocialPost[];
   startWithComments?: boolean;
   onClose: () => void;
+  onCommentCreated?: (postId: number) => void;
 }) {
   const items = useMemo(
     () => (gallery && gallery.length ? gallery : post ? [post] : []).filter((entry) => postMediaItems(entry).length > 0),
@@ -62,7 +63,7 @@ export function MediaViewer({ post, gallery, onClose, startWithComments = false 
       statusBarTranslucent
       navigationBarTranslucent
     >
-      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} startWithComments={startWithComments} /> : null}
+      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} startWithComments={startWithComments} /> : null}
     </Modal>
   );
 }
@@ -73,10 +74,11 @@ export function MediaViewer({ post, gallery, onClose, startWithComments = false 
  * two plates and the counter are shown whenever the gallery holds more than one frame, so a clip — whose
  * drags belong to its own controls — can still be walked.
  */
-function GalleryViewer({ post, items, onClose, startWithComments }: {
+function GalleryViewer({ post, items, onClose, onCommentCreated, startWithComments }: {
   post: SocialPost;
   items: SocialPost[];
   onClose: () => void;
+  onCommentCreated?: (postId: number) => void;
   startWithComments: boolean;
 }) {
   const insets = useSafeAreaInsets();
@@ -87,6 +89,7 @@ function GalleryViewer({ post, items, onClose, startWithComments }: {
   const [index, setIndex] = useState(() => Math.max(0, items.findIndex((entry) => entry.id === post.id)));
   const [failedId, setFailedId] = useState<number | null>(null);
   const [commentsOpen, setCommentsOpen] = useState(startWithComments);
+  const [commentCounts, setCommentCounts] = useState<Record<number, number>>({});
   const [commentKeyboardOpen, setCommentKeyboardOpen] = useState(false);
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -103,6 +106,7 @@ function GalleryViewer({ post, items, onClose, startWithComments }: {
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const [notice, setNotice] = useState('');
   const current = items[index] ?? post;
+  const commentCount = Math.max(Number(current.comment_count ?? 0), commentCounts[current.id] ?? 0);
   const media = postMediaItems(current)[0] ?? current.media ?? null;
   const isVideo = mediaKindOf(media) === 'video';
   const failed = failedId === current.id;
@@ -202,7 +206,7 @@ function GalleryViewer({ post, items, onClose, startWithComments }: {
             </View>
             <ReactionControl variant="rail" summary={summary} onReact={react} />
             <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={() => setCommentsOpen(true)} style={styles.railButton}>
-              <SolidViewerIcon kind="comment" /><Text style={styles.railCount}>{compactCount(current.comment_count ?? 0)}</Text>
+              <SolidViewerIcon kind="comment" /><Text style={styles.railCount}>{compactCount(commentCount)}</Text>
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Scoate din salvate' : 'Salvează'} accessibilityState={{ selected: saved }} onPress={save} style={styles.railButton}>
               <SolidViewerIcon kind="save" color={saved ? '#ff315f' : '#ffffff'} /><Text accessible={false} style={styles.metricPlaceholder}>•</Text>
@@ -251,13 +255,18 @@ function GalleryViewer({ post, items, onClose, startWithComments }: {
             </View>
             <View style={styles.commentPostActions}>
               <ReactionControl variant="card" summary={summary} onReact={react} />
-              <View style={styles.commentPostMetric}><SolidViewerIcon kind="comment" size={19} /><Text style={styles.commentPostCount}>{compactCount(current.comment_count ?? 0) || '0'}</Text></View>
+              <View style={styles.commentPostMetric}><SolidViewerIcon kind="comment" size={19} /><Text style={styles.commentPostCount}>{compactCount(commentCount) || '0'}</Text></View>
               <Pressable accessibilityRole="button" accessibilityLabel={reposted ? 'Anulează redistribuirea' : 'Redistribuie'} onPress={repost} style={styles.commentPostMetric}><SolidViewerIcon kind="repost" size={19} color={reposted ? '#ff315f' : '#ffffff'} /><Text style={styles.commentPostCount}>{compactCount(current.reposts ?? 0) || '0'}</Text></Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel={saved ? 'Scoate din salvate' : 'Salvează'} onPress={save} style={styles.commentPostMetric}><SolidViewerIcon kind="save" size={19} color={saved ? '#ff315f' : '#ffffff'} /></Pressable>
               <Pressable accessibilityRole="button" accessibilityLabel="Distribuie" onPress={() => sharePost(current.id).catch(fail)} style={styles.commentPostMetric}><SolidViewerIcon kind="share" size={19} /></Pressable>
             </View>
           </View>
-          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} />
+          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} onCommentCreated={(postId) => {
+            setCommentCounts((previous) => ({ ...previous, [postId]: Math.max(previous[postId] ?? 0, Number(current.comment_count ?? 0)) + 1 }));
+            onCommentCreated?.(postId);
+          }} onCountSeen={(postId, count) => setCommentCounts((previous) =>
+            (previous[postId] ?? 0) >= count ? previous : { ...previous, [postId]: count }
+          )} />
         </View>
       )}
 

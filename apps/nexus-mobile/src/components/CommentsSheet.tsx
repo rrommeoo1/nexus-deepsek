@@ -45,9 +45,11 @@ function commentStamp(value?: number | string | null, now = Date.now()): string 
  * states its own empty and failed cases, and posts a reply through the real endpoint - including the
  * "comentariul a fost oprit de o regulă automată" answer the server gives when a rule blocks it.
  */
-export function CommentsSheet({ post, onClose, presentation = 'sheet' }: {
+export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, presentation = 'sheet' }: {
   post: SocialPost;
   onClose: () => void;
+  onCommentCreated?: (postId: number) => void;
+  onCountSeen?: (postId: number, count: number) => void;
   presentation?: 'sheet' | 'viewer';
 }) {
   const insets = useSafeAreaInsets();
@@ -73,6 +75,8 @@ export function CommentsSheet({ post, onClose, presentation = 'sheet' }: {
   const scrollToComment = useRef<number | null>(null);
   const list = useRef<FlatList<ThreadRow>>(null);
   const composer = useRef<TextInput>(null);
+  const countSeen = useRef(onCountSeen);
+  useEffect(() => { countSeen.current = onCountSeen; }, [onCountSeen]);
 
   const load = useCallback((cursor = 0, refresh = false) => {
     const ticket = ++requestId.current;
@@ -88,6 +92,7 @@ export function CommentsSheet({ post, onClose, presentation = 'sheet' }: {
           ...result,
           comments: [...(previous?.comments ?? []), ...result.comments.filter((entry) => !previous?.comments.some((known) => known.id === entry.id))],
         });
+        if (!result.next_cursor && cursor === 0) countSeen.current?.(post.id, result.comments.length);
         setError('');
       })
       .catch((cause) => {
@@ -131,12 +136,13 @@ export function CommentsSheet({ post, onClose, presentation = 'sheet' }: {
         setCollapsed({});
         setRevealed((current) => ({ ...current, ...(entry.parentId ? { [entry.parentId]: 1000 } : {}) }));
         scrollToComment.current = answer.comment.id;
+        onCommentCreated?.(post.id);
       })
       .catch((cause) => {
         const message = cause instanceof Error ? cause.message : 'Comentariul nu a putut fi trimis.';
         setPending((items) => items.map((item) => item.key === entry.key ? { ...item, state: 'failed', error: message } : item));
       });
-  }, [post.id]);
+  }, [onCommentCreated, post.id]);
 
   const send = useCallback(() => {
     const body = draft.trim();

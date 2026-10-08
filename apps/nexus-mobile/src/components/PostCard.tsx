@@ -40,8 +40,13 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   const [saved, setSaved] = useState(Boolean(post.saved_by_me));
   const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [confirmedCommentCount, setConfirmedCommentCount] = useState(0);
   const [notice, setNotice] = useState('');
   const mine = viewerReaction(summary);
+  const commentCount = Math.max(Number(post.comment_count ?? 0), confirmedCommentCount);
+  const commentCreated = (postId: number) => {
+    if (postId === post.id) setConfirmedCommentCount((previous) => Math.max(previous, Number(post.comment_count ?? 0)) + 1);
+  };
 
   function fail(cause: unknown) {
     setNotice(cause instanceof Error ? cause.message : 'Acțiunea nu a putut fi trimisă.');
@@ -116,7 +121,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
         <View style={styles.counters}>
           {compactCount(post.view_stats?.viewers) ? <Text style={styles.counter}>{`${compactCount(post.view_stats?.viewers)} vizualizări`}</Text> : null}
           <Text style={styles.counter}>{`❤ ${reactionTotal(summary) ? compactCount(reactionTotal(summary)) : ''}`.trim()}</Text>
-          {compactCount(post.comment_count) ? <Text style={styles.counter}>{`${compactCount(post.comment_count)} comentarii`}</Text> : null}
+          {compactCount(commentCount) ? <Text style={styles.counter}>{`${compactCount(commentCount)} comentarii`}</Text> : null}
         </View>
 
         <View style={styles.actions}>
@@ -152,9 +157,11 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
         </View>
       </Pressable>
 
-      {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} /> : null}
+      {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} onCommentCreated={commentCreated} onCountSeen={(postId, count) => {
+        if (postId === post.id) setConfirmedCommentCount((previous) => Math.max(previous, count));
+      }} /> : null}
 
-      <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} />
+      <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} onCommentCreated={commentCreated} />
     </>
   );
 }

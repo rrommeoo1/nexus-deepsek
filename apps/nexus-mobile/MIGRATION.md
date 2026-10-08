@@ -1167,6 +1167,10 @@ cinci, actualizează timpul la fiecare minut, oferă refresh, skeleton, stare go
 retry, meniu de raportare/retragere și composer deasupra tastaturii. Comentariul nou apare
 imediat în fir; pe eșec rămâne cu „Nu s-a trimis · Reîncearcă” și aceeași cheie idempotentă.
 Aprecierea LIKE este optimistă și revine la rezumatul anterior dacă API-ul eșuează.
+După confirmarea serverului, contorul comentariilor din card și viewer se actualizează
+local fără a aștepta un refresh al feedului; când pagina completă de comentarii este
+citită, se reconciliază cu numărul real de pe server. Pe Xiaomi, acesta a trecut
+din 17 în 18 după reluarea datelor, fără un nou comentariu de test.
 `Origin` vine din `authHeaders()`, nu dintr-un secret în APK. Tap pe cardul postării
 din feed/profil/căutare deschide comentariile; media poate fi văzută separat în viewer.
 
