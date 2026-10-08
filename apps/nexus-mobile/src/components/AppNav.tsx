@@ -19,11 +19,13 @@ export type AppNavProps = {
   avatarSource?: MediaSource | null;
   /** The number the inbox mark prints: the web prints `unreadMessageCount + unreadActivityCount`. */
   unreadCount?: number;
+  /** Reels keeps the marks, but lets the video remain visible through their shared pane. */
+  immersive?: boolean;
 };
 
 const slots: NavSlot[] = ['primary', 'inbox', 'search', 'create', 'friends', 'utility', 'account'];
 
-export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCount = 0 }: AppNavProps) {
+export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCount = 0, immersive = false }: AppNavProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const tokens = socialTokens.nav;
@@ -32,24 +34,24 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
   const barHeight = tokens.paddingTop + tokens.glass.height + Math.max(tokens.paddingBottomMin, insets.bottom);
 
   return (
-    <View accessibilityRole="toolbar" accessibilityLabel="navigation" style={[styles.bar, { height: barHeight, paddingHorizontal: inline }]}>
-      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+    <View accessibilityRole="toolbar" accessibilityLabel="navigation" style={[styles.bar, immersive && styles.immersiveBar, { height: barHeight, paddingHorizontal: inline }]}>
+      {!immersive ? <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
         <Defs>
           <LinearGradient id="nxBarFill" x1="0" y1="0" x2="0" y2="1">
             {tokens.fill.map((stop) => (
-              <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+              <Stop key={stop.offset} offset={stop.offset} stopColor={svgColor(stop.color)} stopOpacity={svgOpacity(stop.color)} />
             ))}
           </LinearGradient>
         </Defs>
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#nxBarFill)" />
-      </Svg>
+      </Svg> : null}
 
-      <View pointerEvents="none" style={styles.glass}>
+      <View pointerEvents="none" style={[styles.glass, immersive && styles.immersiveGlass]}>
         <Svg width="100%" height="100%">
           <Defs>
             <LinearGradient id="nxGlassFill" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={colors.glassFillTop} />
-              <Stop offset="1" stopColor={colors.glassFillBottom} />
+              <Stop offset="0" stopColor={svgColor(colors.glassFillTop)} stopOpacity={immersive ? 0 : svgOpacity(colors.glassFillTop)} />
+              <Stop offset="1" stopColor={svgColor(colors.glassFillBottom)} stopOpacity={immersive ? 0 : svgOpacity(colors.glassFillBottom)} />
             </LinearGradient>
           </Defs>
           <Rect x={0} y={0} width="100%" height="100%" fill="url(#nxGlassFill)" />
@@ -134,6 +136,14 @@ const navLabels: Record<NavSlot, string> = {
   account: 'Profil',
 };
 
+function svgColor(color: string): string {
+  return color.startsWith('rgba(') ? color.replace(/,\s*[\d.]+\)$/, ')').replace('rgba(', 'rgb(') : color;
+}
+
+function svgOpacity(color: string): number {
+  return color.startsWith('rgba(') ? Number(color.slice(color.lastIndexOf(',') + 1, -1)) : 1;
+}
+
 const styles = StyleSheet.create({
   /**
    * `.appNav.social` — the bar is the gradient itself, with no painted top border (the green block only
@@ -147,6 +157,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: socialTokens.nav.shadowOffsetY },
     elevation: 12,
   },
+  immersiveBar: { elevation: 0, shadowOpacity: 0 },
   /** `.appNav.social:before` — one pane of glass, 50px tall, 6px in from each side and 4px down. */
   glass: {
     position: 'absolute',
@@ -164,6 +175,7 @@ const styles = StyleSheet.create({
     shadowRadius: socialTokens.nav.glass.shadowRadius,
     shadowOffset: { width: 0, height: socialTokens.nav.glass.shadowOffsetY },
   },
+  immersiveGlass: { backgroundColor: 'transparent', shadowOpacity: 0 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,6 +1,7 @@
 import { API_ORIGIN } from './apiOrigin';
 import { mediaUrl } from './nexusApi';
 import { mediaHeaders } from './session';
+import type { StudioManifest } from './studioManifest';
 
 /**
  * The shapes the existing endpoints answer with. They are read from apps/nexus-web/lib/api.js
@@ -42,6 +43,7 @@ export type ReactionSummary = {
 
 export type SocialPost = {
   id: number;
+  publishing?: { allowComments?: boolean } | null;
   user_id?: number;
   persona?: string;
   kind?: string;
@@ -67,8 +69,13 @@ export type SocialPost = {
   reactions?: ReactionSummary | null;
   /** Soundtrack of the clip, when the author attached one (`post.audio` of the web card). */
   audio?: MediaItem | null;
-  external_audio?: { name?: string; attribution?: string; audio_url?: string } | null;
+  external_audio?: {
+    provider?: string; id?: string; name?: string; artist?: string;
+    attribution?: string; audio_url?: string; duration?: number;
+    segment_seconds?: number; preview_offset?: number;
+  } | null;
   audio_attribution?: string | null;
+  creator_studio?: { integrity?: string; manifest?: StudioManifest | null } | null;
   language?: string | null;
   status?: string;
 };
@@ -160,7 +167,10 @@ export function initialsFor(name?: string, handle?: string): string {
 
 /** "acum 3 min" style reading the web prints on a post. */
 export function relativeTime(value?: number | string | null, now = Date.now()): string {
-  const stamp = typeof value === 'number' ? value : Date.parse(String(value ?? ''));
+  // SQLite's unixepoch() travels through the API in seconds. Date.parse handles ISO strings;
+  // a millisecond epoch is already large enough to leave unchanged.
+  const numeric = typeof value === 'number' ? value : /^\d+$/.test(String(value ?? '')) ? Number(value) : NaN;
+  const stamp = Number.isFinite(numeric) ? numeric < 1_000_000_000_000 ? numeric * 1000 : numeric : Date.parse(String(value ?? ''));
   if (!Number.isFinite(stamp) || stamp <= 0) return '';
   const seconds = Math.max(0, Math.round((now - stamp) / 1000));
   if (seconds < 60) return 'acum';
@@ -286,15 +296,25 @@ export type CommentView = {
   post_id?: number;
   user_id?: number;
   parent_id?: number | null;
+  actor_persona?: string;
   body?: string;
   created_at?: number | string | null;
+  /** repo.listComments returns the comment author's fields flat. */
+  handle?: string;
+  display_name?: string;
+  avatar?: string | null;
   author?: PostAuthor | null;
   status?: string;
+  edited_at?: number | string | null;
+  withdrawn_at?: number | string | null;
   reactions?: ReactionSummary | null;
   saved_by_me?: boolean;
   can_pin?: boolean;
   pinned_by_owner?: boolean;
   views?: number;
+  reply_count?: number;
+  reply_shares?: number;
+  shared_by_me?: boolean;
   parent_author?: { id?: number; handle?: string; display_name?: string; withdrawn?: boolean } | null;
   replies?: CommentView[];
 };
@@ -303,6 +323,8 @@ export type CommentView = {
 export type CommentPage = {
   ok: true;
   post_id: number;
+  viewer_id?: number;
+  viewer_persona?: string;
   comments: CommentView[];
   sort?: string;
   cursor?: string;

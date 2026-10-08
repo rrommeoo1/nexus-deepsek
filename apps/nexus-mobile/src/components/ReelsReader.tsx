@@ -3,15 +3,19 @@ import {
   ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View,
   type NativeScrollEvent, type NativeSyntheticEvent, type ViewToken,
 } from 'react-native';
-import { CommentsSheet } from './CommentsSheet';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReactionControl } from './ReactionControl';
-import { RemoteImage, RemoteImageSource, RemoteVideo, type MediaFit } from './PostMedia';
+import { RemoteImage, RemoteImageSound, RemoteImageSource, RemoteVideo } from './PostMedia';
+import { SolidViewerIcon } from './SolidViewerIcon';
+import { PostDecorations } from './PostDecorations';
 import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
 import {
   audioAttributionFor, compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems,
   relativeTime, viewerReaction,
   type MediaItem, type SocialPost,
 } from '../lib/socialTypes';
+import { socialTokens } from '../theme/social';
 
 /**
  * The immersive Reels reader, drawn to the values the web uses for its own immersive presentation:
@@ -25,7 +29,7 @@ import {
  * phone from decoding six videos at once. Every action behind the rail is a real endpoint call
  * (`lib/postInteractions`) - nothing here is a picture of a button.
  */
-export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadingMore, onOpenPost }: {
+export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadingMore, onOpenPost, onOpenComments }: {
   posts: SocialPost[];
   refreshing: boolean;
   onRefresh: () => void;
@@ -33,10 +37,12 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
   loadingMore: boolean;
   /** `tapVideo` (app.js:3216): a single tap opens the reel full screen instead of pausing it. */
   onOpenPost: (post: SocialPost) => void;
+  onOpenComments: (post: SocialPost) => void;
 }) {
+  const insets = useSafeAreaInsets();
+  const navHeight = socialTokens.nav.paddingTop + socialTokens.nav.glass.height + Math.max(socialTokens.nav.paddingBottomMin, insets.bottom);
   const [pageHeight, setPageHeight] = useState(0);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [fit, setFit] = useState<MediaFit>('cover');
   const [muted, setMuted] = useState(true);
   // Both values must stay identity-stable for the life of the reader, so they are memoised instead of
   // held in refs: reading `ref.current` during render is what the React Compiler rule forbids.
@@ -78,12 +84,12 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
             <ReelPage
               post={item}
               height={pageHeight}
+              overlayBottom={navHeight}
               active={index === activeIndex}
-              fit={fit}
               muted={muted}
               onToggleMute={() => setMuted((value) => !value)}
-              onToggleFit={() => setFit((value) => (value === 'cover' ? 'contain' : 'cover'))}
               onOpenPost={() => onOpenPost(item)}
+              onOpenComments={() => onOpenComments(item)}
             />
           )}
           ListFooterComponent={loadingMore ? <ActivityIndicator color="#ffffff" style={styles.footer} /> : null}
@@ -94,15 +100,15 @@ export function ReelsReader({ posts, refreshing, onRefresh, onEndReached, loadin
 }
 
 /** One reel: the whole viewport, the picture, and the rail the reader actually uses. */
-function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit, onOpenPost }: {
+function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, onOpenPost, onOpenComments }: {
   post: SocialPost;
   height: number;
+  overlayBottom: number;
   active: boolean;
-  fit: MediaFit;
   muted: boolean;
   onToggleMute: () => void;
-  onToggleFit: () => void;
   onOpenPost: () => void;
+  onOpenComments: () => void;
 }) {
   const items = postMediaItems(post);
   const cover: MediaItem | null = items[0] ?? post.media ?? null;
@@ -116,7 +122,6 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
   const [saved, setSaved] = useState(Boolean(post.saved_by_me));
   const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
   const [distributeOpen, setDistributeOpen] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
@@ -161,9 +166,10 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
   return (
     <View style={[styles.page, { height }]}>
       {cover && isVideo ? (
-        <RemoteVideo item={cover} fit={fit} style={styles.media} active={plays} muted={muted} onError={() => setMediaFailed(true)} />
+        <RemoteVideo item={cover} fit="portrait-cover" style={styles.media} active={plays} muted={muted} soundtrack={post.external_audio} onError={() => setMediaFailed(true)} onAudioError={setNotice} />
       ) : null}
-      {cover && !isVideo ? <RemoteImage item={cover} fit={fit} style={styles.media} /> : null}
+      {cover && !isVideo ? <RemoteImage item={cover} fit="contain" style={styles.media} onError={() => setMediaFailed(true)} /> : null}
+      {cover && !isVideo ? <RemoteImageSound soundtrack={post.external_audio} active={active && playing && !mediaFailed} muted={muted} onAudioError={setNotice} /> : null}
       {!cover ? <View style={styles.media} /> : null}
 
       {/**
@@ -178,37 +184,31 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
         style={styles.stage}
       />
 
-      <View pointerEvents="none" style={styles.topPlate} />
-      <View pointerEvents="none" style={styles.bottomPlate} />
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="nxReelVeil" x1="0" y1="0" x2="0" y2="1">
+            {socialTokens.reels.veil.map((stop) => (
+              <Stop key={stop.offset} offset={stop.offset} stopColor="#000000" stopOpacity={Number(stop.color.slice(stop.color.lastIndexOf(',') + 1, -1))} />
+            ))}
+          </LinearGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#nxReelVeil)" />
+      </Svg>
+      <PostDecorations post={post} fit={isVideo ? 'cover' : 'contain'} />
 
       {mediaFailed ? (
         <View pointerEvents="none" style={styles.playState}>
-          <Text style={styles.unavailable}>Clipul nu a putut fi redat.</Text>
+          <Text style={styles.unavailable}>Fișierul media nu a putut fi încărcat.</Text>
         </View>
       ) : null}
 
-      <View style={styles.chrome}>
-        {/* `[data-clip-play]` — the web's own playback control, hidden while the clip is running. */}
-        {isVideo ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={playing ? 'Pauză' : 'Redă clipul'}
-            onPress={() => setPlaying((value) => !value)}
-            style={styles.disc}
-          >
-            <Text style={styles.discText}>{playing ? '❚❚' : '▶'}</Text>
-          </Pressable>
-        ) : null}
-        <Pressable accessibilityRole="button" accessibilityLabel="Mod de afișare a imaginii" onPress={onToggleFit} style={styles.disc}>
-          <Text style={styles.discText}>{fit === 'cover' ? '⤢' : '⤡'}</Text>
+      {isVideo && active && !playing ? (
+        <Pressable accessibilityRole="button" accessibilityLabel="Redă clipul" onPress={() => setPlaying(true)} style={styles.playState}>
+          <SolidViewerIcon kind="play" size={54} />
         </Pressable>
-      </View>
-
-      {isVideo && !plays ? (
-        <View pointerEvents="none" style={styles.playState}><Text style={styles.playGlyph}>▶</Text></View>
       ) : null}
 
-      <View style={styles.meta}>
+      <View style={[styles.meta, { bottom: styles.meta.bottom + overlayBottom }]}>
         <View style={styles.creatorRow}>
           <View style={styles.creatorDisc}>
             <RemoteImageSource source={avatar} fit="cover" style={styles.creatorDiscImage} />
@@ -239,7 +239,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
       </View>
 
-      <View style={styles.rail}>
+      <View style={[styles.rail, { bottom: styles.rail.bottom + overlayBottom }]}>
         {/**
          * `.clipQuickActions>.clipRailAvatar` (feed-surface.js:201, feed-surface.css:148-150): the owner moved the
          * profile up the rail, above the reactions, so the mark sits where a thumb already is. It stays the button
@@ -263,11 +263,11 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Comentarii"
-          onPress={() => setCommentsOpen(true)}
+          onPress={onOpenComments}
           style={styles.railButton}
         >
           <View style={styles.railDisc}>
-            <Text style={styles.railGlyph}>💬</Text>
+            <SolidViewerIcon kind="comment" size={socialTokens.reels.railIconSize} />
           </View>
           <Text style={styles.railCount}>{post.comment_count ? compactCount(post.comment_count) : ''}</Text>
         </Pressable>
@@ -280,7 +280,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           style={styles.railButton}
         >
           <View style={styles.railDisc}>
-            <Text style={styles.railGlyph}>{saved ? '🔖' : '🏷'}</Text>
+            <SolidViewerIcon kind="save" size={socialTokens.reels.railIconSize} color={saved ? '#ff315f' : '#ffffff'} />
           </View>
           {/* `.railMetricPlaceholder` — save has no public count, so its metric row is reserved invisibly. */}
           <Text accessible={false} style={[styles.railCount, styles.railCountPlaceholder]}>•</Text>
@@ -293,7 +293,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           style={styles.railButton}
         >
           <View style={styles.railDisc}>
-            <Text style={[styles.railGlyph, reposted && styles.railGlyphOn]}>🔁</Text>
+            <SolidViewerIcon kind="share" size={socialTokens.reels.railIconSize} color={reposted ? '#ff315f' : '#ffffff'} />
           </View>
           <Text style={styles.railCount}>{post.reposts ? compactCount(post.reposts) : ''}</Text>
         </Pressable>
@@ -311,7 +311,7 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
           onPress={onToggleMute}
           style={[styles.musicDisc, muted && styles.musicDiscMuted]}
         >
-          <Text style={styles.musicDiscGlyph}>♫</Text>
+          <SolidViewerIcon kind={muted ? 'mute' : 'sound'} size={socialTokens.reels.railIconSize} />
         </Pressable>
       </View>
 
@@ -327,7 +327,6 @@ function ReelPage({ post, height, active, fit, muted, onToggleMute, onToggleFit,
         </View>
       ) : null}
 
-      {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} /> : null}
     </View>
   );
 }
@@ -341,16 +340,7 @@ const styles = StyleSheet.create({
   media: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
   /** The tap target over the picture: play/pause, exactly the surface the web puts there. */
   stage: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 },
-  topPlate: { position: 'absolute', left: 0, right: 0, top: 0, height: 96, backgroundColor: 'rgba(0,0,0,0.34)' },
-  bottomPlate: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 220, backgroundColor: 'rgba(0,0,0,0.46)' },
-  chrome: { position: 'absolute', top: 14, right: 12, flexDirection: 'row', gap: 8 },
-  disc: {
-    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.48)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
-  },
-  discText: { color: '#ffffff', fontSize: 15, fontWeight: '800' },
   playState: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  playGlyph: { color: 'rgba(255,255,255,0.82)', fontSize: 54, fontWeight: '900' },
   unavailable: { color: '#ffc6c6', fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
   meta: { position: 'absolute', left: 14, right: 84, bottom: 22, gap: 6 },
   creatorRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -384,8 +374,6 @@ const styles = StyleSheet.create({
   /** `.clipQuickActions :is(.clipSolidIcon,.reactionMetric>b)` 36×36 disc on the cell's 39px first row. */
   railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
   /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29, on the row above its metric. */
-  railGlyph: { fontSize: 28, lineHeight: 29 },
-  railGlyphOn: { color: '#ff315f' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
   railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
   /** `.railMetricPlaceholder{visibility:hidden}` — a reserved metric row that prints nothing. */
@@ -398,7 +386,6 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: 'rgba(255,255,255,0.42)', backgroundColor: '#0a0b0e',
   },
   musicDiscMuted: { opacity: 0.72 },
-  musicDiscGlyph: { color: '#ffffff', fontSize: 20 },
   palette: {
     position: 'absolute', right: 10, bottom: 214, flexDirection: 'row', flexWrap: 'wrap', maxWidth: 190,
     justifyContent: 'flex-end', gap: 6, padding: 8, borderRadius: 18,

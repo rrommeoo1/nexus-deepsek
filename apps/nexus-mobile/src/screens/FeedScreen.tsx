@@ -154,9 +154,10 @@ export function FeedScreen({ mode, onModeChange }: {
 
   /** Where the full-screen reader stands: the index of the tapped post inside the media gallery. */
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const openInViewer = useCallback((post: SocialPost) => {
+  const [viewerStartsWithComments, setViewerStartsWithComments] = useState(false);
+  const openInViewer = useCallback((post: SocialPost, comments = false) => {
     const index = gallery.findIndex((entry) => entry.id === post.id);
-    if (index >= 0) setViewerIndex(index);
+    if (index >= 0) { setViewerStartsWithComments(comments); setViewerIndex(index); }
   }, [gallery]);
 
   if (loadedUrl !== url) return <FeedSkeleton />;
@@ -175,6 +176,7 @@ export function FeedScreen({ mode, onModeChange }: {
             onEndReached={onLoadMore}
             loadingMore={loadingMore}
             onOpenPost={openInViewer}
+            onOpenComments={(post) => openInViewer(post, true)}
           />
         </View>
         {/**
@@ -185,7 +187,8 @@ export function FeedScreen({ mode, onModeChange }: {
         <MediaViewer
           post={viewerIndex !== null ? gallery[viewerIndex] ?? null : null}
           gallery={gallery}
-          onClose={() => setViewerIndex(null)}
+          startWithComments={viewerStartsWithComments}
+          onClose={() => { setViewerIndex(null); setViewerStartsWithComments(false); }}
         />
       </>
     );

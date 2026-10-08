@@ -25,6 +25,10 @@ planning/evidence/screenshots/chrome-profile-*/
 *.cer
 *.crt
 
+# Local-only test session cookies / passwords written by
+# apps/nexus-web/scripts/seed-preview-test-data.mjs
+docs/.test-sessions.local
+
 # Runtime databases, uploads and logs
 apps/nexus-web/data/
 tools/cloudflared.exe

@@ -65,10 +65,23 @@ export function fetchComments(postId: number, options: { sort?: 'relevant' | 'ne
   return nexusApi<CommentPage>(`/api/posts/${postId}/comments?${params.toString()}`);
 }
 
-export function createComment(postId: number, body: string, parentId?: number): Promise<CommentCreated> {
+export function createComment(postId: number, body: string, parentId?: number, idempotencyKey?: string): Promise<CommentCreated> {
   return nexusApi<CommentCreated>(`/api/posts/${postId}/comments`, {
     method: 'POST',
+    ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
     body: JSON.stringify(parentId ? { body, parent_id: parentId } : { body }),
+  });
+}
+
+/** Author-only withdrawal: the server keeps the tombstone and every child reply. */
+export function withdrawComment(commentId: number): Promise<{ ok: true; tombstone: true }> {
+  return nexusApi(`/api/comments/${commentId}`, { method: 'DELETE' });
+}
+
+/** A report is recorded, not an automatic deletion. */
+export function reportComment(commentId: number, category: string): Promise<{ ok: true; content_removed: false }> {
+  return nexusApi(`/api/comments/${commentId}/report`, {
+    method: 'POST', body: JSON.stringify({ category, details: '' }),
   });
 }
 
@@ -83,6 +96,14 @@ export function setCommentReaction(commentId: number, kind: string, active: bool
 /** `POST /api/comments/:id/save` — lib/api.js:4191. */
 export function setCommentSaved(commentId: number, active: boolean): Promise<{ ok: true; comment_id?: number; saved: boolean }> {
   return nexusApi<{ ok: true; comment_id?: number; saved: boolean }>(`/api/comments/${commentId}/save`, {
+    method: 'POST',
+    body: JSON.stringify({ active }),
+  });
+}
+
+/** POST /api/comments/:id/share is the web's internal repost action for one reply. */
+export function setCommentShared(commentId: number, active: boolean): Promise<{ ok: true; shared_by_me: boolean; shares: number }> {
+  return nexusApi(`/api/comments/${commentId}/share`, {
     method: 'POST',
     body: JSON.stringify({ active }),
   });

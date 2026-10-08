@@ -28,6 +28,7 @@ import {
   type PostKind, type PublishIntent, type PublishedPost,
 } from './publishClient';
 import type { MeResponse } from './socialTypes';
+import { studioManifestFor } from './studioManifest';
 import {
   extensionOf, uploadFailure, UploadClientError, uploadMimeForName,
   type UploadProgress, type UploadSource,
@@ -74,9 +75,8 @@ export function captureDraftId(capture: LocalCapture): string | null {
 }
 
 /**
- * The `fields` of the backup, in the shape the web's draft library reads back. The catalog track is
- * deliberately absent: `jamendo_track` describes a Jamendo selection the server resolves by its
- * two-hour token, and this editor does not publish one — writing the key would claim otherwise.
+ * The `fields` of the backup, in the shape the web's draft library reads back. The short-lived
+ * Jamendo token stays in the local draft; it is not copied to a long-lived account backup.
  */
 export function captureDraftFields(draft: LocalDraft): Record<string, DraftFieldValue> {
   const localAudio = Boolean(draft.audioUri);
@@ -107,13 +107,12 @@ export function audioUploadMime(draft: LocalDraft): string | null {
 }
 
 /**
- * A catalog pick is a preview the app cannot publish: `POST /api/posts` resolves a Jamendo selection
- * by a token that is valid for two hours, and this editor keeps only the preview URL and its
- * attribution. Refusing it here, in words, is the only honest answer.
+ * A catalog URL without Railway's signed selection token cannot be published. The URL alone is not
+ * proof of a valid license selection.
  */
 export class CatalogAudioError extends Error {
   constructor() {
-    super('Melodia aleasă din catalogul Nexus nu poate fi publicată din aplicație. Alege un fișier audio de pe telefon sau elimină melodia.');
+    super('Melodia Jamendo nu mai are un token de selecție valid. Alege-o din nou din catalog înainte de publicare.');
     this.name = 'CatalogAudioError';
   }
 }
@@ -227,7 +226,7 @@ export type CapturePublishRequest = {
  */
 export async function publishCapture(request: CapturePublishRequest): Promise<PublishedPost> {
   const { capture, draft } = request;
-  if (catalogAudioSelected(draft)) throw new CatalogAudioError();
+  if (catalogAudioSelected(draft) && (!draft.jamendoSelectionToken || !draft.jamendoTrackId)) throw new CatalogAudioError();
   if (!idempotencyKeyIsValid(request.key)) throw publishFailure('PUBLISH_INVALID', 0);
   const source = captureCandidate(capture);
   const audio = audioCandidate(draft);
@@ -237,6 +236,7 @@ export async function publishCapture(request: CapturePublishRequest): Promise<Pu
   // upload: `normalizePublishing` is the exact function `publishPost` runs, only earlier.
   const publishing = normalizePublishing(draft.publishing);
   assertAudioDeclaration(draft, Boolean(audio));
+  const studioManifest = studioManifestFor(capture, draft);
   const kind: PostKind = capture.kind === 'video' ? 'video' : 'image';
   const scope = draftScope(request.identity.userId, request.identity.persona);
   const uploaded = await uploadDraftMedia({
@@ -258,6 +258,9 @@ export async function publishCapture(request: CapturePublishRequest): Promise<Pu
     media: { hash: uploaded.hash, ext: uploaded.ext },
     audioRights: audio ? (draft.audioRights ?? null) : null,
     audioAttribution: audio ? (draft.audioAttribution ?? '') : '',
+    jamendoSelectionToken: catalogAudioSelected(draft) ? draft.jamendoSelectionToken : null,
+    jamendoTrackId: catalogAudioSelected(draft) ? draft.jamendoTrackId : null,
+    studioManifest,
   };
   if (audio) {
     const track = await uploadDraftMedia({

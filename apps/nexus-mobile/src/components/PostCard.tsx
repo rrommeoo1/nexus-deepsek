@@ -77,7 +77,7 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`Postarea lui @${handle}`}
-        onPress={() => onOpen?.(post)}
+        onPress={() => { if (onOpen) onOpen(post); else setCommentsOpen(true); }}
         style={styles.card}
       >
         <View style={styles.head}>

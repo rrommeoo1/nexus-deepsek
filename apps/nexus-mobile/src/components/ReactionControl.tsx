@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SolidViewerIcon } from './SolidViewerIcon';
 import {
   REACTION_GLYPHS, REACTION_TITLES, SOCIAL_REACTIONS, compactCount, reactionSummary, viewerReaction,
   type ReactionSummary,
@@ -49,7 +50,9 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
       >
         {rail ? (
           <View style={styles.railDisc}>
-            <Text style={[styles.railGlyph, mine ? null : styles.railGlyphIdle]}>{railGlyph}</Text>
+            {mine && mine !== 'LIKE'
+              ? <Text style={styles.railGlyph}>{railGlyph}</Text>
+              : <SolidViewerIcon kind="heart" size={29} />}
           </View>
         ) : (
           <View style={styles.metrics}>
@@ -65,7 +68,7 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
       </Pressable>
 
       {open ? (
-        <View accessibilityLabel="Alege reacția" style={styles.palette}>
+        <View accessibilityLabel="Alege reacția" style={[styles.palette, rail && styles.railPalette]}>
           {SOCIAL_REACTIONS.map((kind) => (
             <Pressable
               key={kind}
@@ -101,8 +104,6 @@ const styles = StyleSheet.create({
   railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
   /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29 — drawn at 28px to fill it. */
   railGlyph: { color: '#ffffff', fontSize: 28, lineHeight: 29 },
-  /** Untouched: `solidViewerIcon('heart')` — the same mark in white. */
-  railGlyphIdle: { color: '#ffffff' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
   railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
   /** `.reactionSummaryGlyphs` — up to three glyph+count pairs, in the order the summary ranked them. */
@@ -123,6 +124,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: 'rgba(5,14,20,0.96)',
   },
+  railPalette: { position: 'absolute', right: 64, bottom: 0, marginTop: 0, zIndex: 50 },
   option: {
     width: 60,
     alignItems: 'center',

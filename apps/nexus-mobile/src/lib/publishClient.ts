@@ -21,6 +21,7 @@ import { API_ORIGIN } from './apiOrigin';
 import { idempotencyKeyIsValid, newMutationKey } from './idempotency';
 import { PublishingError, normalizePublishing, type PublishingDetails } from './publishing';
 import { authHeaders } from './session';
+import type { StudioManifest } from './studioManifest';
 
 /** `PROFILE_VISIBILITY` of `lib/repo.js`; anything else is answered with `400 visibility invalid`. */
 export type PostVisibility = 'public' | 'followers' | 'friends' | 'private';
@@ -176,6 +177,11 @@ export type PublishIntent = {
   audio?: MediaRef | null;
   audioRights?: CreatorAudioRights | null;
   audioAttribution?: string | null;
+  /** Signed by Railway's Jamendo endpoint; never a service credential. */
+  jamendoSelectionToken?: string | null;
+  jamendoTrackId?: string | null;
+  jamendoPreviewOffset?: number | null;
+  studioManifest?: StudioManifest | null;
 };
 
 /** The verified answer of `POST /api/posts`; only fields the server really confirmed are kept. */
@@ -209,11 +215,13 @@ export function publishBody(intent: PublishIntent): Record<string, unknown> {
     language: intent.language ?? null,
     provenance: intent.provenance,
     publishing: intent.publishing ?? undefined,
-    studio_manifest: null,
+    studio_manifest: intent.studioManifest ?? null,
     audio_hash: intent.audio?.hash,
     audio_ext: intent.audio?.ext,
     audio_rights: intent.audio ? (intent.audioRights ?? null) : null,
     audio_attribution: intent.audio ? audioAttribution : '',
+    jamendo_selection_token: intent.jamendoSelectionToken ?? undefined,
+    jamendo_preview_offset: intent.jamendoSelectionToken ? (intent.jamendoPreviewOffset ?? undefined) : undefined,
   };
 }
 
@@ -225,6 +233,8 @@ export function publishBody(intent: PublishIntent): Record<string, unknown> {
 export function assertPublishable(intent: PublishIntent): void {
   const caption = nfkcString(intent.caption).slice(0, 2000).trim();
   if (!intent.media && !caption) throw publishFailure('PUBLISH_CAPTION_REQUIRED', 0);
+  if (intent.jamendoSelectionToken && !intent.media) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
+  if (intent.jamendoSelectionToken && intent.audio) throw publishFailure('PUBLISH_AUDIO_CONFLICT', 0);
   if (intent.audio) {
     if (!intent.media) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
     if (!intent.audioRights || !CREATOR_AUDIO_RIGHTS.includes(intent.audioRights)) {
@@ -258,7 +268,7 @@ function readMediaList(value: unknown): MediaRef[] {
  */
 export function readPublishedPost(
   answer: unknown,
-  expected: { userId: number; persona: string; audio?: MediaRef | null; audioRights?: CreatorAudioRights | null; audioAttribution?: string | null },
+  expected: { userId: number; persona: string; audio?: MediaRef | null; audioRights?: CreatorAudioRights | null; audioAttribution?: string | null; jamendoTrackId?: string | null },
 ): PublishedPost | null {
   if (!isRecord(answer) || answer.ok !== true) return null;
   const post = answer.post;
@@ -274,6 +284,10 @@ export function readPublishedPost(
     if (!audio || String(audio.hash) !== expected.audio.hash || String(audio.ext) !== expected.audio.ext) return null;
     if (post.audio_rights !== (expected.audioRights ?? null)) return null;
     if (post.audio_attribution !== (expected.audioAttribution ?? '').trim()) return null;
+  }
+  if (expected.jamendoTrackId) {
+    const selected = isRecord(post.external_audio) ? post.external_audio : null;
+    if (!selected || String(selected.id) !== expected.jamendoTrackId || selected.provider !== 'jamendo') return null;
   }
   const id = Number(post.id);
   if (!Number.isSafeInteger(id) || id < 1) return null;
@@ -373,6 +387,7 @@ export async function publishPost(request: PublishRequest): Promise<PublishedPos
     audio: intent.audio ?? null,
     audioRights: intent.audioRights ?? null,
     audioAttribution: intent.audioAttribution ?? '',
+    jamendoTrackId: intent.jamendoTrackId ?? null,
   });
   // A 200 that does not confirm the post is not a publication: the answer is shown as a failure so
   // the user checks the profile instead of believing a post that may never have been written.

@@ -9,6 +9,14 @@ import {
 
 export type CaptureKind = 'photo' | 'video';
 export type CaptureFraming = '9:16' | '3:4';
+export type LocalSticker = {
+  id: string;
+  type: 'TIME' | 'DATE' | 'LOCATION';
+  text: string;
+  x: number;
+  y: number;
+  timezone: string;
+};
 
 export interface LocalCapture {
   kind: CaptureKind;
@@ -30,6 +38,8 @@ export interface LocalDraft {
   overlayText: string;
   overlayX: number;
   overlayY: number;
+  /** Movable, non-destructive stickers; optional so existing local drafts remain readable. */
+  stickers?: LocalSticker[];
   /**
    * The exact details the server validates: audience, tags, link and the four switches.
    */
@@ -70,7 +80,7 @@ function draftFile(capture: LocalCapture): File {
 export function emptyDraft(capture: LocalCapture): LocalDraft {
   return {
     version: 1, captureName: capture.name, title: '', description: '',
-    overlayText: '', overlayX: 0.5, overlayY: 0.5, publishing: emptyPublishing(),
+    overlayText: '', overlayX: 0.5, overlayY: 0.5, stickers: [], publishing: emptyPublishing(),
     // The two values the composer's own form starts from: a public post, no declaration made.
     visibility: 'public', provenance: 'NOT_DECLARED', updatedAt: Date.now(),
   };
@@ -131,6 +141,14 @@ export function loadDraft(capture: LocalCapture): LocalDraft {
         provenance: readProvenance(draft.provenance),
         audioRights: readAudioRights(draft.audioRights),
         audioAttribution: readAudioAttribution(draft.audioAttribution),
+        stickers: Array.isArray(draft.stickers) ? draft.stickers.filter((entry) =>
+          entry && ['TIME', 'DATE', 'LOCATION'].includes(entry.type)
+          && typeof entry.id === 'string' && /^[a-z0-9-]{8,80}$/i.test(entry.id)
+          && typeof entry.text === 'string' && entry.text.length <= 120
+          && Number.isFinite(entry.x) && entry.x >= 0 && entry.x <= 1
+          && Number.isFinite(entry.y) && entry.y >= 0 && entry.y <= 1
+          && typeof entry.timezone === 'string' && entry.timezone.length <= 64,
+        ).slice(0, 12) : [],
       };
     }
   } catch { /* A corrupt manifest must not hide the original media. */ }

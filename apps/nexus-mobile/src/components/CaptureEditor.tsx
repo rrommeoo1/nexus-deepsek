@@ -1,7 +1,7 @@
 import * as DocumentPicker from 'expo-document-picker';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -14,17 +14,28 @@ import {
 import { deleteCreatorDraft, draftMutationKey, fetchCreatorDrafts } from '../lib/draftsClient';
 import {
   discardCapture, loadDraft, persistLocalAudio, saveDraft, touchDraft,
-  type LocalCapture, type LocalDraft,
+  type LocalCapture, type LocalDraft, type LocalSticker,
 } from '../lib/localCapture';
 import { nexusApi } from '../lib/nexusApi';
 import { publishIntentKey } from '../lib/publishClient';
 import { PublishPanel } from './PublishPanel';
+import { creatorTokens } from '../theme/creator';
 
 type JamendoTrack = {
   id: string; name: string; artist: string; audio_url: string;
   attribution: string; selection_token: string;
 };
 const EMOJI = ['❤️', '😍', '😂', '🔥', '✨', '🥰', '👏', '🎉', '😊', '😭', '💯', '😎', '💜', '⭐', '🥹', '🤩'];
+
+function stickerLabel(sticker: LocalSticker, now: number): string {
+  if (sticker.type === 'LOCATION') return sticker.text;
+  if (!now) return '…';
+  try {
+    return new Intl.DateTimeFormat('ro-RO', sticker.type === 'TIME'
+      ? { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: sticker.timezone }
+      : { day: '2-digit', month: '2-digit', timeZone: sticker.timezone }).format(new Date(now));
+  } catch { return sticker.type === 'TIME' ? 'Ora indisponibilă' : 'Data indisponibilă'; }
+}
 
 function VideoPreview({ uri, muteOriginal }: { uri: string; muteOriginal: boolean }) {
   const player = useVideoPlayer(uri, (instance) => {
@@ -36,12 +47,14 @@ function VideoPreview({ uri, muteOriginal }: { uri: string; muteOriginal: boolea
 }
 
 function MovableText({
-  text, x, y, width, height, onMove,
+  text, x, y, width, height, onMove, stickerType,
 }: {
   text: string; x: number; y: number; width: number; height: number;
   onMove: (x: number, y: number) => void;
+  stickerType?: LocalSticker['type'];
 }) {
   const [drag, setDrag] = useState({ dx: 0, dy: 0 });
+  const [labelSize, setLabelSize] = useState({ width: 0, height: 0 });
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
     onMoveShouldSetPanResponder: () => true,
@@ -56,11 +69,19 @@ function MovableText({
     },
   }), [height, onMove, width, x, y]);
   return (
-    <View {...pan.panHandlers} style={[styles.movable, {
+    <View {...pan.panHandlers} onLayout={(event) => {
+      const { width: nextWidth, height: nextHeight } = event.nativeEvent.layout;
+      setLabelSize((previous) => previous.width === nextWidth && previous.height === nextHeight ? previous : { width: nextWidth, height: nextHeight });
+    }} style={[styles.movable, stickerType && styles.stickerMovable, stickerType === 'LOCATION' && styles.locationMovable,
+      (stickerType === 'TIME' || stickerType === 'DATE') && styles.clockMovable, {
       left: `${x * 100}%`, top: `${y * 100}%`,
-      transform: [{ translateX: -60 + drag.dx }, { translateY: -24 + drag.dy }],
+      transform: [{ translateX: -labelSize.width / 2 + drag.dx }, { translateY: -labelSize.height / 2 + drag.dy }],
     }]}>
-      <Text style={styles.overlayText}>{text}</Text>
+      <Text style={[styles.overlayText, stickerType && styles.stickerText, stickerType && {
+        fontSize: stickerType === 'LOCATION'
+          ? Math.min(creatorTokens.decoration.locationMaxFontSize, Math.max(creatorTokens.decoration.locationMinFontSize, width * creatorTokens.decoration.locationViewportFontRatio))
+          : Math.min(creatorTokens.decoration.maxFontSize, Math.max(creatorTokens.decoration.minFontSize, width * creatorTokens.decoration.viewportFontRatio)),
+      }, stickerType === 'LOCATION' && styles.locationText]}>{text}</Text>
     </View>
   );
 }
@@ -68,8 +89,13 @@ function MovableText({
 export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onExit: () => void }) {
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<LocalDraft>(() => loadDraft(capture));
+  const draftRef = useRef(draft);
   const [page, setPage] = useState<'edit' | 'details'>('edit');
   const [textOpen, setTextOpen] = useState(false);
+  const [stickersOpen, setStickersOpen] = useState(false);
+  const [locationText, setLocationText] = useState('');
+  const [stickerError, setStickerError] = useState('');
+  const [now, setNow] = useState(0);
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
   const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 });
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -96,6 +122,13 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   const mediaAspect = capture.framing === '9:16' ? 9 / 16 : 3 / 4;
   const frameWidth = Math.min(screenSize.width, screenSize.height * mediaAspect);
   const frameHeight = frameWidth / mediaAspect;
+
+  useEffect(() => {
+    if (!(draft.stickers ?? []).some((item) => item.type === 'TIME' || item.type === 'DATE')) return;
+    const first = setTimeout(() => setNow(Date.now()), 0);
+    const timer = setInterval(() => setNow(Date.now()), 30000);
+    return () => { clearTimeout(first); clearInterval(timer); };
+  }, [draft.stickers]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -128,10 +161,11 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
     return () => { active = false; controller.abort(); };
   }, [capture]);
 
-  function updateDraft(patch: Partial<LocalDraft>) {
+  const updateDraft = useCallback((patch: Partial<LocalDraft>) => {
     // `touchDraft` moves the manifest's edit stamp, so the backup key changes per edit: a second "save
     // in account" writes the account copy instead of replaying the previous answer.
-    const next = touchDraft({ ...draft, ...patch });
+    const next = touchDraft({ ...draftRef.current, ...patch });
+    draftRef.current = next;
     setDraft(next);
     // What the server reads has just changed: the account copy is now behind the phone, and the next
     // publish is a new intent, so it gets a fresh idempotency key.
@@ -143,7 +177,56 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
     } catch (error) {
       setSaveError(`Draftul nu a putut fi salvat: ${String(error)}`);
     }
+  }, [capture]);
+
+  function addSticker(type: LocalSticker['type']) {
+    const current = draftRef.current;
+    if ((current.stickers?.length ?? 0) + (current.overlayText.trim() ? 1 : 0) >= 12) {
+      setStickerError('Poți adăuga cel mult 12 texte și stickere pe o captură.');
+      return;
+    }
+    const place = locationText.normalize('NFKC').trim().slice(0, 116);
+    if (type === 'LOCATION' && !place) {
+      setStickerError('Scrie numele real al locului înainte să adaugi stickerul.');
+      return;
+    }
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    const sticker: LocalSticker = {
+      id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type, text: type === 'LOCATION' ? `📍 ${place}` : '',
+      x: 0.5, y: 0.48, timezone,
+    };
+    updateDraft({ stickers: [...(current.stickers ?? []), sticker] });
+    setStickerError('');
+    setStickersOpen(false);
   }
+
+  // The web offers automatic music for a fresh capture. Request the same real Railway catalog once
+  // when this editor opens; never replace a track/file the author already chose or invent a fallback.
+  useEffect(() => {
+    if (draftRef.current.audioUri || draftRef.current.jamendoAudioUrl) return;
+    let cancelled = false;
+    void nexusApi<{ ok: true; tracks: JamendoTrack[] }>('/api/reels/sound-suggestions?duration=30')
+      .then((result) => {
+        if (cancelled || draftRef.current.audioUri || draftRef.current.jamendoAudioUrl) return;
+        const track = result.tracks?.[0];
+        if (!track) {
+          setMusicError('Catalogul Jamendo nu a returnat melodii. Poți continua fără muzică.');
+          return;
+        }
+        updateDraft({
+          audioUri: undefined, audioName: `${track.name} — ${track.artist}`,
+          jamendoTrackId: track.id, jamendoAudioUrl: track.audio_url,
+          jamendoSelectionToken: track.selection_token, jamendoAttribution: track.attribution,
+        });
+        setMusicTracks(result.tracks);
+        setMusicError('');
+      })
+      .catch((error) => {
+        if (!cancelled) setMusicError(error instanceof Error ? error.message : 'Catalogul Jamendo nu este disponibil.');
+      });
+    return () => { cancelled = true; };
+  }, [updateDraft]);
 
   function confirmExit() {
     Alert.alert('Închizi editorul?', 'Poți continua sau păstra draftul. Ștergerea elimină doar această captură locală.', [
@@ -201,6 +284,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
     audioPlayer.pause();
     audioPlayer.replace(track.audio_url);
     updateDraft({ audioUri: undefined, audioName: `${track.name} — ${track.artist}`, jamendoTrackId: track.id, jamendoAudioUrl: track.audio_url, jamendoSelectionToken: track.selection_token, jamendoAttribution: track.attribution });
+    setMusicError('');
     setMusicOpen(false);
   }
 
@@ -322,6 +406,11 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
       }]} onLayout={(event) => setMediaSize(event.nativeEvent.layout)}>
         {capture.kind === 'photo' ? <Image source={{ uri: capture.uri }} style={StyleSheet.absoluteFill} resizeMode="contain" /> : <VideoPreview key={draft.audioUri || draft.jamendoAudioUrl ? 'with-music' : 'original-audio'} uri={capture.uri} muteOriginal={!!(draft.audioUri || draft.jamendoAudioUrl)} />}
         {draft.overlayText ? <MovableText text={draft.overlayText} x={draft.overlayX} y={draft.overlayY} width={mediaSize.width} height={mediaSize.height} onMove={(overlayX, overlayY) => updateDraft({ overlayX, overlayY })} /> : null}
+        {(draft.stickers ?? []).map((sticker) => <MovableText
+          key={sticker.id} stickerType={sticker.type} text={stickerLabel(sticker, now)}
+          x={sticker.x} y={sticker.y} width={mediaSize.width} height={mediaSize.height}
+          onMove={(x, y) => updateDraft({ stickers: (draftRef.current.stickers ?? []).map((entry) => entry.id === sticker.id ? { ...entry, x, y } : entry) })}
+        />)}
       </View>
       <View style={[styles.header, styles.editorHeader, { paddingTop: Math.max(insets.top, 18) + 10 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide editorul" onPress={confirmExit} style={styles.headerButton}><Text style={styles.headerIcon}>×</Text></Pressable>
@@ -329,9 +418,10 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
         <Pressable accessibilityRole="button" accessibilityLabel="Continuă la detalii" onPress={() => setPage('details')} style={styles.nextButton}><Text style={styles.nextText}>Next</Text></Pressable>
       </View>
       <View style={[styles.toolRail, { top: Math.max(insets.top, 18) + 78 }]}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă text" onPress={() => setTextOpen(true)} style={styles.tool}><Text style={styles.toolIcon}>Aa</Text><Text style={styles.toolLabel}>Text</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă emoji" onPress={() => setEmojiOpen(true)} style={styles.tool}><Text style={styles.toolIcon}>☺</Text><Text style={styles.toolLabel}>Emoji</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Alege muzică" onPress={() => setMusicOpen(true)} style={styles.tool}><Text style={styles.toolIcon}>♫</Text><Text style={styles.toolLabel}>Muzică</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă text" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setStickersOpen(false); setTextOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>Aa</Text><Text style={styles.toolLabel}>Text</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă stickere" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setTextOpen(false); setStickersOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>✦</Text><Text style={styles.toolLabel}>Stickere</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă emoji" onPress={() => { setMusicOpen(false); setStickersOpen(false); setTextOpen(false); setEmojiOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>☺</Text><Text style={styles.toolLabel}>Emoji</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Alege muzică" onPress={() => { setStickersOpen(false); setEmojiOpen(false); setTextOpen(false); setMusicOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>♫</Text><Text style={styles.toolLabel}>Muzică</Text></Pressable>
       </View>
       {musicOpen ? (
         <View style={[styles.musicPanel, { bottom: Math.max(insets.bottom, 16) + 14 }]}>
@@ -343,7 +433,25 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
             {musicTracks.map((track) => <Pressable key={track.id} accessibilityRole="button" onPress={() => selectMusic(track)} style={styles.track}><Text style={styles.previewTitle}>{track.name}</Text><Text style={styles.muted}>{track.artist} · CC BY</Text></Pressable>)}
           </ScrollView>
           <Pressable accessibilityRole="button" disabled={audioBusy} onPress={() => void chooseMusic().then(() => setMusicOpen(false))}><Text style={styles.doneText}>Alege fișier audio de pe telefon</Text></Pressable>
-          <Text style={styles.muted}>Melodiile din catalog nu au fișier local, deci nu pot fi publicate din aplicație: doar previzualizare. Un fișier audio de pe telefon se publică, dacă declari dreptul de folosire în pagina Detalii.</Text>
+          <Text style={styles.muted}>Melodiile Jamendo se publică prin selecția semnată de Railway, valabilă două ore. Un fișier de pe telefon necesită declararea dreptului de folosire în Detalii.</Text>
+        </View>
+      ) : stickersOpen ? (
+        <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
+          <View style={styles.textActions}><Text style={styles.label}>Stickere pe captură</Text><Pressable accessibilityRole="button" onPress={() => setStickersOpen(false)}><Text style={styles.doneText}>Gata</Text></Pressable></View>
+          <View style={styles.stickerChoices}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Adaugă ora" onPress={() => addSticker('TIME')} style={styles.audioButton}><Text style={styles.audioButtonText}>◷ Ora</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Adaugă data" onPress={() => addSticker('DATE')} style={styles.audioButton}><Text style={styles.audioButtonText}>▦ Data</Text></Pressable>
+          </View>
+          <TextInput accessibilityLabel="Numele locației pentru sticker" value={locationText} onChangeText={setLocationText} placeholder="Locație" placeholderTextColor="#84909b" maxLength={116} style={styles.input} />
+          <Pressable accessibilityRole="button" accessibilityLabel="Adaugă locația scrisă" onPress={() => addSticker('LOCATION')} style={styles.audioButton}><Text style={styles.audioButtonText}>⌖ Adaugă locația</Text></Pressable>
+          {stickerError ? <Text style={styles.error}>{stickerError}</Text> : null}
+          <ScrollView style={styles.stickerList} keyboardShouldPersistTaps="handled">
+            {(draft.stickers ?? []).map((sticker) => <View key={sticker.id} style={styles.stickerRow}>
+              <Text style={styles.stickerRowLabel} numberOfLines={1}>{stickerLabel(sticker, now)}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel={`Elimină stickerul ${stickerLabel(sticker, now)}`} onPress={() => updateDraft({ stickers: (draftRef.current.stickers ?? []).filter((item) => item.id !== sticker.id) })}><Text style={styles.doneText}>Elimină</Text></Pressable>
+            </View>)}
+          </ScrollView>
+          <Text style={styles.muted}>Trage stickerul peste imagine pentru a-l muta. Locația este introdusă de tine, fără GPS.</Text>
         </View>
       ) : emojiOpen ? (
         <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
@@ -353,7 +461,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
         </View>
       ) : textOpen ? (
         <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
-          <TextInput accessibilityLabel="Text pe captură" autoFocus value={draft.overlayText} onChangeText={(overlayText) => updateDraft({ overlayText })} placeholder="Scrie pe fotografie sau video" placeholderTextColor="#84909b" maxLength={200} style={styles.input} />
+          <TextInput accessibilityLabel="Text pe captură" autoFocus value={draft.overlayText} onChangeText={(overlayText) => updateDraft({ overlayText })} placeholder="Scrie pe fotografie sau video" placeholderTextColor="#84909b" maxLength={120} style={styles.input} />
           <View style={styles.textActions}>
             <Pressable accessibilityRole="button" onPress={() => updateDraft({ overlayText: '' })}><Text style={styles.muted}>Șterge textul</Text></Pressable>
             <Pressable accessibilityRole="button" onPress={() => setTextOpen(false)}><Text style={styles.doneText}>Gata</Text></Pressable>
@@ -368,7 +476,8 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
               <Pressable accessibilityRole="button" accessibilityLabel="Elimină muzica" style={styles.audioButton} onPress={removeMusic}><Text style={styles.audioButtonText}>×</Text></Pressable>
             </View>
           ) : null}
-          <Text style={styles.hint}>Trage textul pentru a-l muta. Muzica din catalog este doar previzualizare; publicarea se face din pagina Detalii.</Text>
+          {musicError && !draft.audioUri && !draft.jamendoAudioUrl ? <Text style={styles.error}>{musicError}</Text> : null}
+          <Text style={styles.hint}>Trage textul pentru a-l muta. Muzica și postarea se verifică în Detalii.</Text>
           {saveError ? <Text style={styles.error}>{saveError}</Text> : <Text style={styles.hint}>Modificările sunt salvate local automat.</Text>}
           <Pressable accessibilityRole="button" style={styles.primaryButton} onPress={() => setPage('details')}><Text style={styles.primaryText}>Next</Text></Pressable>
         </View>
@@ -380,8 +489,13 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#050507' },
   mediaFrame: { position: 'absolute', overflow: 'hidden' },
-  movable: { position: 'absolute', maxWidth: '75%', padding: 8, borderRadius: 8, backgroundColor: '#0005' },
+  movable: { position: 'absolute', maxWidth: '78%', padding: 8, borderRadius: 8, backgroundColor: '#0005' },
+  stickerMovable: { backgroundColor: 'transparent', paddingHorizontal: creatorTokens.decoration.horizontalPadding, paddingVertical: creatorTokens.decoration.verticalPadding },
+  clockMovable: { paddingHorizontal: creatorTokens.decoration.timeHorizontalPadding, paddingVertical: creatorTokens.decoration.timeVerticalPadding },
+  locationMovable: { maxWidth: '86%', backgroundColor: '#ffffff', borderRadius: creatorTokens.decoration.locationRadius },
   overlayText: { color: '#fff', fontSize: 27, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 6, textAlign: 'center' },
+  stickerText: { fontWeight: '800', letterSpacing: creatorTokens.decoration.timeLetterSpacing },
+  locationText: { color: '#111111', textShadowRadius: 0, letterSpacing: 0 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
   editorHeader: { position: 'absolute', left: 0, right: 0 },
   headerButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center' },
@@ -399,7 +513,7 @@ const styles = StyleSheet.create({
   audioButtonText: { color: '#fff', fontWeight: '700' },
   audioName: { color: '#fff', flex: 1, fontSize: 12 },
   hint: { color: '#fff', fontSize: 12, textAlign: 'center', textShadowColor: '#000', textShadowRadius: 7 },
-  textPanel: { position: 'absolute', left: 16, right: 16, backgroundColor: '#111c', padding: 14, borderRadius: 18, gap: 12 },
+  textPanel: { position: 'absolute', left: 16, right: 16, backgroundColor: '#111c', padding: 14, borderRadius: 18, gap: 12, maxHeight: '70%' },
   textActions: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 4 },
   doneText: { color: '#ff6384', fontWeight: '800' },
   musicPanel: { position: 'absolute', left: 12, right: 12, backgroundColor: '#111e', padding: 16, borderRadius: 18, gap: 10, maxHeight: '70%' },
@@ -408,6 +522,10 @@ const styles = StyleSheet.create({
   emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   emojiButton: { width: '23%', paddingVertical: 8, alignItems: 'center' },
   emojiText: { fontSize: 28 },
+  stickerChoices: { flexDirection: 'row', gap: 10 },
+  stickerList: { maxHeight: 180 },
+  stickerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
+  stickerRowLabel: { color: '#ffffff', flex: 1, fontSize: 13 },
   detailsScreen: { flex: 1, backgroundColor: '#101318', paddingHorizontal: 16, gap: 16 },
   previewTitle: { color: '#fff', fontWeight: '800' },
   muted: { color: '#aab5c2', fontSize: 12, lineHeight: 18 },

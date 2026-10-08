@@ -115,7 +115,9 @@ function Get-NexusDeviceSerials {
 # Alegem transportul IP:port, stabil și acceptat de scrcpy/Gradle.
 function Resolve-NexusDeviceSerial {
   param([string]$Adb, [string]$Preferred)
-  $serials = Get-NexusDeviceSerials -Adb $Adb
+  # PowerShell unwraps a single pipeline item to a string; indexing that string
+  # would select its first character ("a") instead of the full mDNS ADB serial.
+  $serials = @(Get-NexusDeviceSerials -Adb $Adb)
   if ($Preferred) {
     if ($serials -contains $Preferred) { return $Preferred }
     $byPrefix = @($serials | Where-Object { $_ -like "$Preferred*" } | Select-Object -First 1)

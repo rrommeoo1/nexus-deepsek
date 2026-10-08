@@ -30,6 +30,14 @@
     "plugins": [
       "expo-router",
       "expo-status-bar",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "hidden": false,
+          "style": "light"
+        }
+      ],
       "expo-video",
       "expo-audio"
     ]

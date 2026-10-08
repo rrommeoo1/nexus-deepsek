@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource } from '../lib/socialTypes';
+import { useAudioPlayer } from 'expo-audio';
+import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource, type SocialPost } from '../lib/socialTypes';
 
 /**
  * How a frame is filled, read from the web stylesheets - not chosen here:
@@ -15,6 +16,11 @@ import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource } from '.
  * is the "fit" the reader can switch to and the one the post page uses to preserve the whole frame.
  */
 export type MediaFit = 'cover' | 'contain';
+export type VideoFit = MediaFit | 'portrait-cover';
+
+/** Decoded display orientation is shared by the feed and viewer for the same media object. */
+const displayedPortraitByHash = new Map<string, boolean>();
+const portraitProbeByHash = new Map<string, Promise<boolean>>();
 
 /** `<Image source={{uri,headers}}>` — the session travels with the request (`mediaHeaders`). */
 export function RemoteImage({ item, fit = 'contain', style, onError }: {
@@ -53,26 +59,70 @@ export function RemoteImageSource({ source, fit = 'contain', style, onError }: {
  * list play only the reel the reader is looking at. The player is created from the same
  * `{uri, headers}` source so `/media/…` resolves exactly like it does on the web.
  */
-export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false, onError }: {
+export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false, soundtrack, onError, onAudioError }: {
   item?: MediaItem | null;
-  fit?: MediaFit;
+  fit?: VideoFit;
   style?: StyleProp<ViewStyle>;
   active: boolean;
   muted?: boolean;
   loop?: boolean;
   nativeControls?: boolean;
+  soundtrack?: SocialPost['external_audio'];
   onError?: () => void;
+  onAudioError?: (message: string) => void;
 }) {
   const source = mediaSourceFor(item);
+  const jamendo = soundtrack?.provider === 'jamendo' && /^https:\/\//i.test(soundtrack.audio_url ?? '') ? soundtrack : null;
+  const soundtrackPlayer = useAudioPlayer(jamendo?.audio_url ?? null);
   const player = useVideoPlayer(source, (instance) => {
     instance.loop = loop;
-    instance.muted = muted;
+    instance.muted = muted || Boolean(jamendo);
   });
+  const [portraitVideo, setPortraitVideo] = useState(() => item?.hash ? displayedPortraitByHash.get(item.hash) ?? false : false);
 
   // The failure handler lives in a ref so a caller's inline arrow does not re-subscribe the listener
   // on every render.
   const failure = useRef(onError);
   useEffect(() => { failure.current = onError; }, [onError]);
+  const audioFailure = useRef(onAudioError);
+  useEffect(() => { audioFailure.current = onAudioError; }, [onAudioError]);
+
+  // The web plays a Jamendo track as a separate source, seeking to its signed preview segment as
+  // the video advances. Do the same with the installed expo-audio player; the original clip is muted
+  // only when an actual HTTPS catalog track is present. A failed seek must never surface as LogBox.
+  useEffect(() => {
+    if (!jamendo) return;
+    const subscription = soundtrackPlayer.addListener('playbackStatusUpdate', (status) => {
+      if (status.error) audioFailure.current?.('Melodia Jamendo nu a putut fi redată. Verifică conexiunea sau alege altă melodie.');
+    });
+    return () => subscription.remove();
+  }, [jamendo, soundtrackPlayer]);
+
+  useEffect(() => {
+    if (!jamendo || !active || muted) {
+      soundtrackPlayer.pause();
+      return;
+    }
+    let seeking = false;
+    let alive = true;
+    const segment = Math.max(15, Math.min(60, Number(jamendo.segment_seconds) || 30));
+    const duration = Math.max(0, Number(jamendo.duration) || 0);
+    const offset = Math.max(0, Math.min(Math.max(0, duration - segment), Number(jamendo.preview_offset) || 0));
+    const sync = () => {
+      if (!soundtrackPlayer.isLoaded) return;
+      const wanted = offset + (Math.max(0, player.currentTime || 0) % segment);
+      if (!seeking && Math.abs(soundtrackPlayer.currentTime - wanted) > 0.45) {
+        seeking = true;
+        void soundtrackPlayer.seekTo(wanted).catch(() => {
+          if (alive) audioFailure.current?.('Sincronizarea melodiei Jamendo a eșuat.');
+        }).finally(() => { seeking = false; });
+      }
+      if (!soundtrackPlayer.playing) soundtrackPlayer.play();
+    };
+    sync();
+    const interval = setInterval(sync, 500);
+    return () => { alive = false; clearInterval(interval); soundtrackPlayer.pause(); };
+  }, [active, jamendo, muted, player, soundtrackPlayer]);
 
   // `/media/…` answers 423 for an unvalidated record and 410 for one whose bytes are gone, and a
   // dropped network answers the same way; expo-video reports all of them as `status: 'error'`, which
@@ -85,13 +135,57 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
     return () => subscription.remove();
   }, [player]);
 
+  // The API omits dimensions, so read the actual decoded track. A vertical clip fills the tall
+  // display; landscape clips retain their complete frame instead of being cropped into a slit.
+  useEffect(() => {
+    let alive = true;
+    let thumbnailRequested = false;
+    const update = (tracks: typeof player.availableVideoTracks) => {
+      const size = tracks.find((track) => track.size.width > 0 && track.size.height > 0)?.size;
+      if (!size) return;
+      if (size.height > size.width) {
+        if (item?.hash) displayedPortraitByHash.set(item.hash, true);
+        setPortraitVideo(true);
+      } else if (fit === 'portrait-cover' && !thumbnailRequested && !(item?.hash && displayedPortraitByHash.has(item.hash))) {
+        // A rotated video can report landscape track dimensions while displaying portrait.
+        // The native thumbnail has the display transform applied, unlike VideoTrack.size.
+        thumbnailRequested = true;
+        const hash = item?.hash;
+        let probe = hash ? portraitProbeByHash.get(hash) : undefined;
+        if (!probe) {
+          probe = player.generateThumbnailsAsync(0, { maxWidth: 64, maxHeight: 64 })
+            .then(([thumbnail]) => {
+              if (!thumbnail) throw new Error('Video thumbnail unavailable');
+              const portrait = thumbnail.height > thumbnail.width;
+              if (hash) displayedPortraitByHash.set(hash, portrait);
+              return portrait;
+            });
+          if (hash) {
+            portraitProbeByHash.set(hash, probe);
+            void probe.then(
+              () => { portraitProbeByHash.delete(hash); },
+              () => { portraitProbeByHash.delete(hash); },
+            );
+          }
+        }
+        probe.then((portrait) => { if (alive) setPortraitVideo(portrait); }).catch(() => {});
+      }
+    };
+    update(player.availableVideoTracks);
+    const loaded = player.addListener('sourceLoad', ({ availableVideoTracks }) => update(availableVideoTracks));
+    const changed = player.addListener('videoTrackChange', ({ videoTrack }) => {
+      if (videoTrack?.size) update([videoTrack]);
+    });
+    return () => { alive = false; loaded.remove(); changed.remove(); };
+  }, [fit, item?.hash, player]);
+
   // A live player is a mutable native handle: expo-video exposes no declarative prop for these two,
   // so assigning them on the handle is the documented way to change them — exactly what the
   // `react-hooks/immutability` rule cannot see.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
-    player.muted = muted;
-  }, [muted, player]);
+    player.muted = muted || Boolean(jamendo);
+  }, [jamendo, muted, player]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/immutability
@@ -104,15 +198,61 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
   }, [active, player]);
 
   if (!source) return null;
+  const resolvedFit = fit === 'portrait-cover' ? (portraitVideo ? 'cover' : 'contain') : fit;
   return (
     <VideoView
+      key={resolvedFit}
       style={style}
       player={player}
-      contentFit={fit}
+      contentFit={resolvedFit}
       nativeControls={nativeControls}
       fullscreenOptions={{ enable: false }}
     />
   );
+}
+
+/** A catalog soundtrack can accompany a still image too. Keep it inside the signed preview segment. */
+export function RemoteImageSound({ soundtrack, active, muted, onAudioError }: {
+  soundtrack?: SocialPost['external_audio'];
+  active: boolean;
+  muted: boolean;
+  onAudioError?: (message: string) => void;
+}) {
+  const jamendo = soundtrack?.provider === 'jamendo' && /^https:\/\//i.test(soundtrack.audio_url ?? '') ? soundtrack : null;
+  const player = useAudioPlayer(jamendo?.audio_url ?? null);
+  const audioFailure = useRef(onAudioError);
+  useEffect(() => { audioFailure.current = onAudioError; }, [onAudioError]);
+
+  useEffect(() => {
+    if (!jamendo) return;
+    const subscription = player.addListener('playbackStatusUpdate', (status) => {
+      if (status.error) audioFailure.current?.('Melodia Jamendo nu a putut fi redată.');
+    });
+    return () => subscription.remove();
+  }, [jamendo, player]);
+
+  useEffect(() => {
+    if (!jamendo || !active || muted) { player.pause(); return; }
+    const segment = Math.max(15, Math.min(60, Number(jamendo.segment_seconds) || 30));
+    const duration = Math.max(0, Number(jamendo.duration) || 0);
+    const offset = Math.max(0, Math.min(Math.max(0, duration - segment), Number(jamendo.preview_offset) || 0));
+    let seeking = false;
+    let alive = true;
+    const sync = () => {
+      if (!player.isLoaded) return;
+      if (!seeking && (player.currentTime < offset - 0.45 || player.currentTime >= offset + segment - 0.2)) {
+        seeking = true;
+        void player.seekTo(offset).catch(() => {
+          if (alive) audioFailure.current?.('Melodia Jamendo nu a putut fi reluată.');
+        }).finally(() => { seeking = false; });
+      }
+      if (!player.playing) player.play();
+    };
+    sync();
+    const interval = setInterval(sync, 500);
+    return () => { alive = false; clearInterval(interval); player.pause(); };
+  }, [active, jamendo, muted, player]);
+  return null;
 }
 
 /** True when the item is something `RemoteImage` can print. */

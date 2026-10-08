@@ -134,7 +134,7 @@ export function PublishPanel(props: PublishPanelProps) {
   const refusals: string[] = [];
   if (publishedId === null) {
     if (!props.accountReady) refusals.push('Contul nu a putut fi citit, deci postarea nu poate fi trimisă acum. Verifică conexiunea și redeschide editorul.');
-    if (props.catalogAudio) refusals.push('Melodia aleasă din catalog are doar previzualizare: serverul are nevoie de fișierul audio încărcat. Alege un fișier de pe telefon sau elimină melodia.');
+    if (props.catalogAudio && (!draft.jamendoSelectionToken || !draft.jamendoTrackId)) refusals.push('Selecția Jamendo nu mai este valabilă. Alege din nou melodia din catalog.');
     if (props.captureMime === null) refusals.push('Serverul acceptă fotografii JPEG, PNG, WebP și clipuri MP4 sau WebM. Formatul acestei capturi nu este acceptat; filmează din nou într-un format acceptat.');
     if (audioFile && props.audioMime === null) refusals.push('Pentru audio, serverul acceptă MP3, WAV sau OGG. Fișierul ales rămâne doar în previzualizare.');
   }
@@ -336,7 +336,7 @@ export function PublishPanel(props: PublishPanelProps) {
               <Text style={styles.muted}>
                 {draft.jamendoAttribution
                   ? `Melodie din catalog, licență CC BY. Atribuirea obligatorie: ${draft.jamendoAttribution}`
-                  : 'Melodie din catalog, pentru previzualizare.'}
+                  : 'Melodie din catalogul Jamendo.'}
               </Text>
             )}
           </>

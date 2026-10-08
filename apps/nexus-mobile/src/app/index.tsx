@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader, headerFloats, type AppHeaderSwitch } from '../components/AppHeader';
 import { AppNav } from '../components/AppNav';
 import { FeedDrawer } from '../components/FeedDrawer';
@@ -53,6 +53,7 @@ function PendingScreen({ title, detail }: { title: string; detail: string }) {
 }
 
 export default function NativeHomeScreen() {
+  const insets = useSafeAreaInsets();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -250,6 +251,7 @@ export default function NativeHomeScreen() {
     <AppHeader
       variant="feed"
       modeId={feedMode}
+      topInset={headerFloats('feed', feedMode) ? insets.top : 0}
       build={backendVersion}
       onPressWordmark={goHome}
       onOpenDrawer={() => setDrawerOpen(true)}
@@ -294,7 +296,7 @@ export default function NativeHomeScreen() {
   })();
 
   return (
-    <SafeAreaView edges={['top']} style={styles.shell}>
+    <SafeAreaView edges={floatingHeader ? [] : ['top']} style={styles.shell}>
       {floatingHeader ? (
         <View pointerEvents="box-none" style={styles.floatingHeader}>{header}</View>
       ) : header}
@@ -307,13 +309,16 @@ export default function NativeHomeScreen() {
           </Pressable>
         </View>
       ) : null}
-      <AppNav
-        active={slot}
-        onSelect={onSelectSlot}
-        onOpenCreate={() => router.push('/camera')}
-        avatarSource={avatarSource}
-        unreadCount={unreadCount}
-      />
+      <View pointerEvents="box-none" style={floatingHeader ? styles.immersiveNav : undefined}>
+        <AppNav
+          active={slot}
+          onSelect={onSelectSlot}
+          onOpenCreate={() => router.push('/camera')}
+          avatarSource={avatarSource}
+          unreadCount={unreadCount}
+          immersive={floatingHeader}
+        />
+      </View>
       <FeedDrawer
         open={drawerOpen}
         activeModule={me.persona}
@@ -331,6 +336,8 @@ const styles = StyleSheet.create({
   shell: { flex: 1, backgroundColor: '#000000' },
   /** `#phoneHeader` over a Reels feed: out of the flow, over the clip (feed-surface.css:96-98). */
   floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 },
+  /** The 9:16 reel remains underneath the seven controls, all the way to the screen edge. */
+  immersiveNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40 },
   body: { flex: 1 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000' },
   bootText: { color: socialTokens.colors.muted, fontSize: 14 },

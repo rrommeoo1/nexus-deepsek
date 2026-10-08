@@ -1,4 +1,4 @@
-# Setul de date de test (Nexus, local)
+# Setul de date de test (Nexus: local și preview)
 
 > Scop: un set **realist, determinist și offline** de conturi și conținut, ca
 > ecranele native (Feed, Profil, Mesaje, Notificări, Viewere) să poată fi
@@ -174,5 +174,192 @@ refolosit), iar `media_upload_grants` conținea 8 acorduri `social_post`.
   (`seedSocialFixtures`), importabilă și dintr-un test.
 - `apps/nexus-web/scripts/dev-social-fixtures.mjs` — CLI-ul (`npm run dev:fixtures`).
 - `apps/nexus-web/scripts/dev-test-account.mjs` — contul de autentificare.
+- `apps/nexus-web/scripts/seed-preview-test-data.mjs` — seed-ul de preview prin API-ul public (§10).
 - `docs/PARITY-MATRIX.md` — matricea de paritate; comparația de geometrie/culori
   se face pe `docs/web-ref/<ecran>/*.dom.json`, **nu** pe PNG-uri.
+
+## 10. Seed pe deployment-ul de preview (Railway, doar prin API-ul public)
+
+Secțiunile 1–9 descriu setul **local** (`npm run dev:fixtures`, prin `lib/repo.js`). Această
+secțiune descrie setul **de pe deployment-ul public**, scris exclusiv prin API-ul public (fără
+acces la bază, fără modificări de configurație): `https://nexus-deepsek-production.up.railway.app`.
+
+Scopul este verificarea pe dispozitiv: ecranele native (Feed, Profil, Stories, Mesaje,
+Notificări, Viewere) primesc date reale de la serverul real, nu stări goale.
+
+### 10.1 Cum se rulează
+
+```powershell
+cd apps/nexus-web
+
+# 0. verifică primitivele locale (fără rețea): PNG, plan de părți, cookie de sesiune
+node scripts/seed-preview-test-data.mjs --self-test
+
+# 1. verifică ținta fără să creeze nimic (Origin, /health, mod preview pentru sign-up)
+node scripts/seed-preview-test-data.mjs --preflight --target=nexus-deepsek-production.up.railway.app
+
+# 2. seed-ul propriu-zis (creează 5 conturi + conținut)
+node scripts/seed-preview-test-data.mjs --target=nexus-deepsek-production.up.railway.app --confirm
+
+# 3. reluare fără signup, cu sesiunile salvate (a doua rulare și următoarele)
+node scripts/seed-preview-test-data.mjs --target=nexus-deepsek-production.up.railway.app --confirm --resume
+```
+
+Comanda este **fail-fast**: primul răspuns neașteptat oprește rularea (fără reîncercări), păstrează
+ce s-a scris deja și raportează. Endpoint-ul public de înscriere permite **5 conturi pe oră per IP**,
+deci o rulare completă *este* acel buget: `--resume` există exact ca să nu fie cheltuit a doua oară.
+
+### 10.2 Cele cinci conturi (preview)
+
+| handle | user_id | email | nume afișat | personae |
+|---|---|---|---|---|
+| `urailwaytest01a20d` | 2 | `railway-test-01@nexus.test` | Nexus Test 01 | social |
+| `urailwaytest02cb2b` | 3 | `railway-test-02@nexus.test` | Nexus Test 02 | social |
+| `urailwaytest03850c` | 4 | `railway-test-03@nexus.test` | Nexus Test 03 | social |
+| `urailwaytest043941` | 5 | `railway-test-04@nexus.test` | Nexus Test 04 | social |
+| `urailwaytest05313a` | 6 | `railway-test-05@nexus.test` | Nexus Test 05 | social |
+
+Fiecare cont s-a înscris prin `/auth/email/signup` (deci are identitatea de portofel cerută la
+înscriere: adresă MultiversX + cheie, în fișierul de secrete) și are:
+profil social **public**, bio `[test] Cont de test Nexus (Railway preview). Fără valoare.`,
+1 fotografie sau 1 clip + 1 Tweet public, 1 story publică, 5 urmăriri (vezi 10.6).
+
+### 10.3 Inventarul exact (id-uri canonice)
+
+| cont | postare foto/clip | Tweet | story |
+|---|---|---|---|
+| `urailwaytest01a20d` | **14** (image, PNG 720×720 generat local) | **15** | **4** |
+| `urailwaytest02cb2b` | **16** (video, Wikimedia Commons, CC BY-SA 4.0) | **17** | **5** |
+| `urailwaytest03850c` | **18** (image, PNG generat local) | **19** | **6** |
+| `urailwaytest043941` | **20** (video, Wikimedia Commons, CC BY 3.0) | **21** | **7** |
+| `urailwaytest05313a` | **22** (image, PNG generat local) | **23** | **8** |
+
+Toate postările au `visibility: public`, limbă `ro`, `provenance: NOT_DECLARED` și caption-ul
+marcat `[test] … Cont de test Nexus (Railway preview). Fără valoare.`; clipurile poartă în caption
+sursa, autorul și licența. Story-urile au `duration_hours: 168` (7 zile) — expiră **2026-10-14,
+~11:38 UTC**. Fotografiile/story-urile sunt PNG-uri generate local (gradient, fără terți), deci
+fără obligații de licență; clipurile sunt singurele materiale de la terți și sunt liber licențiate.
+
+**Duplicatе cunoscute (de la o rulare mai veche, azi ~11:34 UTC).** Postările **6–13** și story-urile
+**1–3** sunt ale acelorași conturi, cu exact aceleași caption-uri: provin dintr-o primă încercare a
+acestui script făcută înainte de schema deterministă de `Idempotency-Key`, când o rerulare a fost
+tratată de server ca o mutație nouă. Per cont: `6+7`, `8+9`, `10+11`, `12+13` (postări) și `1`, `2`,
+`3` (story-uri); `@urailwaytest05313a` nu are duplicate. **Nu s-a șters nimic** (ștergerea cere
+aprobare); efectul este doar vizual (postări în plus în feed și în grila profilului).
+
+### 10.4 Comentarii (7)
+
+| comentariu | autor | pe postarea |
+|---|---|---|
+| **12** | `urailwaytest01a20d` | **5** (a lui `test`) |
+| **13** | `urailwaytest03850c` | **5** (a lui `test`) |
+| **7** | `urailwaytest01a20d` | 16 (`urailwaytest02cb2b`) |
+| **8** | `urailwaytest02cb2b` | 18 (`urailwaytest03850c`) |
+| **9** | `urailwaytest03850c` | 20 (`urailwaytest043941`) |
+| **10** | `urailwaytest043941` | 22 (`urailwaytest05313a`) |
+| **11** | `urailwaytest05313a` | 14 (`urailwaytest01a20d`) |
+
+Două comentarii ajung direct pe postarea cea mai nouă a lui `test` (post 5, „Verificare nativa…") —
+deci comentariile se văd pe propriul conținut, nu doar pe al conturilor de test; cinci formează un
+inel, fiecare cont comentând postarea cu media a următorului.
+
+### 10.5 Conversație și mesaj (1 + 1)
+
+- conversație `id=1`: `urailwaytest01a20d` → `test`;
+- mesaj `id=1`, **text simplu** (fără E2EE): „[test] Mesaj simplu de verificare de la
+  @urailwaytest01a20d către @test. …".
+
+Expeditorul îl urmărește pe `test`, deci firul este permis, iar `test` îl vede în inbox ca mesaj
+necitit și primește o notificare de tip `message` (serverul emite notificarea la trimiterea
+mesajului, `lib/api.js` → `notifyWithInvalidation(..., "message", …)`).
+
+### 10.6 Ce vede `test@nexus.ro` (verificat pe deployment)
+
+| ecran | ce apare | citirea folosită ca dovadă |
+|---|---|---|
+| Profilurile celor 5 | `public`, bio `[test] …`, 2–4 postări, inel de stories | `GET /api/profiles/<handle>` |
+| Feed „Pentru tine" | **23 postări**, toate publice — inclusiv ale conturilor pe care `test` nu le urmărește | `GET /api/social/feed?lens=for-you&format=all` |
+| Stories (tray) | **8 stories**, deși `test` nu urmărește pe nimeni | `GET /api/stories?state=all` |
+| Comentarii | 2 comentarii pe postarea 5 | `GET /api/posts/5/comments` |
+| Mesaje | conversația 1 în inbox, 1 mesaj necitit | `GET /api/chat/conversations?box=inbox` |
+| Notificări | 1 × `message` | (urmăritorii nu notifică, vezi 10.11) |
+| Urmăritori | 5 urmăritori, 0 urmăriri | `GET /api/profiles/test` |
+
+### 10.7 De ce profilurile sunt publice
+
+O personă nouă are `visibility` implicit `friends` (= doar urmăritori reciproci). Cum `test` nu
+urmărește pe nimeni, acel implicit ar ascunde *tot* conținutul de contul pentru care se face tot
+exercițiul — exact bug-ul care a făcut prima încercare de comentarii să răspundă `404`. De aceea
+seed-ul scrie explicit `visibility: "public"` pe fiecare profil și creează postările/story-urile cu
+`visibility: public`. Bio-ul există pe **două** înregistrări, scrise de două rute: `/api/profile`
+(al contului, ce poartă payload-ul „me") și `/api/persona/social` (cel citit de un vizitator pe
+pagina de profil); prima rulare a scris doar prima, iar profilurile au rămas cu bio gol.
+
+### 10.8 Idempotency și `--resume` (cum se poate rerula în siguranță)
+
+- Fiecare mutație poartă `Idempotency-Key` = `sha256(RUN_SEED + opKey(op))` în hex (64 caractere,
+  în alfabetul acceptat `[A-Za-z0-9._:-]`, lungime 16–128). Rerularea aceleiași operații
+  **rejoacă** răspunsul memorat, nu creează un al doilea obiect.
+- Serverul memorează răspunsul **fiecărei** mutații, inclusiv eșecurile: o cheie folosită de un
+  apel care a răspuns `404` rămâne „otrăvită". Etichetele sunt de aceea **versionate**
+  (`comment-v2-<handle>-<post>`, `account-bio-<handle>`, `profile-bio-<handle>`).
+- Cheia este unică pe `(user_id, actor_persona, idempotency_key)`, **nu** pe rută: aceeași etichetă
+  nu are voie să numească două rute diferite pentru același cont.
+- Upload-ul reluat: `POST /api/uploads` rejoacă sesiunea, dar o sesiune **încheiată** refuză
+  părțile; scriptul detectează starea `completed` și reia direct `POST /api/uploads/:id/complete`,
+  care întoarce aceeași înregistrare media. Nimic nu se încarcă de două ori.
+- `--resume` încarcă sesiunile din `docs/.test-sessions.local`, le verifică pe fiecare cu
+  `GET /api/me` și sare peste înscriere (bugetul nu se cheltuie a doua oară).
+
+### 10.9 Secrete și raport
+
+- `docs/.test-sessions.local` (gitignored) — cookie-uri de sesiune, parolele de test (14 caractere)
+  și cheile de portofel, per cont. **Nu se comite.**
+- Raportul public, fără niciun secret: `%TEMP%\nexus-preview-seed-report.md` (conturi, pași, id-uri).
+- Media folosită la upload: `%TEMP%\nexus-preview-seed-media` (PNG-urile generate; clipurile sunt
+  descărcate în memorie, nu pe disc).
+
+### 10.10 Verificare pe dispozitiv (checklist)
+
+Autentificare cu `test@nexus.ro` (parola nu este în repo), apoi:
+
+1. Feed → apar postările 14–23 (foto/clip + Tweet), cu autori diferiți și comentarii numărabile.
+2. Stories → 8 inele, toate cu media; inelul „@test" nu există (contul nu are story).
+3. Profil `@urailwaytest01a20d` → bio `[test] …`, 1 fotografie + 1 Tweet, buton „Urmărește".
+4. Postarea 5 (a contului) → cele două comentarii 12 și 13.
+5. Mesaje → conversația cu `@urailwaytest01a20d` și un mesaj nou.
+6. Notificări → una de tip mesaj.
+
+### 10.11 Limitări cunoscute (preview)
+
+- **Duplicatе** postări 6–13 / story-uri 1–3 (10.3), rămase din prima încercare; nu se șterg fără aprobare.
+- **Urmăririle și comentariile nu generează notificări pe server**: `repo.notify` este apelat doar de
+  verticalele Work/Dating/Market/Travel/Beauty, de mesaje și de evenimente de securitate. Deci
+  panoul de notificări al lui `test` arată doar notificarea de mesaj; cele 5 urmăriri se văd în
+  lista de urmăritori, nu ca notificări.
+- Story-urile trăiesc 7 zile de la seed (`duration_hours: 168`), spre deosebire de 24h în setul local.
+- Conturile de preview sunt create de script (nu de `lib/preview-test-account.js`), deci au
+  identitate de portofel generată local, nu wallet conectat de un om.
+
+### 10.12 Arborele de comentarii native · 8 octombrie 2026
+
+Postarea publică `5` a primit, numai prin API-ul public de pe Railway, 15 comentarii de
+test suplimentare: o rădăcină cu text peste cinci rânduri, un lanț de patru niveluri
+sub ea, o a doua rădăcină cu nouă răspunsuri directe și trei aprecieri `LIKE` de la
+conturi de test diferite. După rulare, `GET /api/posts/5/comments?sort=oldest&cursor=0`
+a întors `root_count=4`, `comments.length=17`; rădăcina cu nouă răspunsuri are `id=20`.
+Nu s-a șters sau modificat niciun comentariu anterior. Serverul nu suportă media în
+comentarii, deci nu s-a creat o fotografie fictivă.
+
+Verificarea pe Xiaomi a adăugat, prin interfața nativă și același endpoint public,
+răspunsul `TestNexusAndroid20261008` sub comentariul `20` și un `LIKE` al contului de
+test la același comentariu. Firul are acum zece răspunsuri; acestea sunt date de test
+adiționale, nu au înlocuit fixture-ul inițial.
+
+Reproducere sigură: `node apps/nexus-mobile/scripts/seed-comment-thread.mjs` execută numai
+preflight (sesiuni `GET /api/me` și citirea comentariilor). `--apply` execută adăugarea.
+Scriptul citește exclusiv sesiunile locale gitignored `docs/.test-sessions.local`, verifică
+URL-ul Railway și ID-urile conturilor, trimite `Origin` și câte un `Idempotency-Key`
+determinist per mutație, apoi recitește arborele. El recunoaște textul deja adăugat și
+refuză un părinte diferit, ca o reluare să nu dubleze firul. Nu afișează și nu comite
+cookie-uri, parole ori chei.

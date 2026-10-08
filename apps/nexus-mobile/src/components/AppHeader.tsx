@@ -30,6 +30,8 @@ export type AppHeaderSwitch = {
 
 export type AppHeaderProps = {
   variant: AppHeaderVariant;
+  /** Reels extends its existing veil through the system status inset, without moving the controls. */
+  topInset?: number;
   /** The reading that is open; the feed bar prints its glyph. */
   modeId?: string;
   /** The build the reader is on, printed in `.wordmarkBuild` under the wordmark. */
@@ -92,7 +94,7 @@ export function headerFloats(variant: AppHeaderVariant, modeId?: string): boolea
   return variant === 'feed' && (modeId ?? socialTokens.feedModes[0].id) === 'reels';
 }
 
-export function AppHeader({ variant, modeId, build, switches = [], onPressWordmark, onOpenDrawer, onCycleMode }: AppHeaderProps) {
+export function AppHeader({ variant, modeId, topInset = 0, build, switches = [], onPressWordmark, onOpenDrawer, onCycleMode }: AppHeaderProps) {
   const mode = socialTokens.feedModes.find((entry) => entry.id === modeId) ?? socialTokens.feedModes[0];
   const floating = headerFloats(variant, modeId);
 
@@ -102,8 +104,9 @@ export function AppHeader({ variant, modeId, build, switches = [], onPressWordma
       style={[
         styles.bar,
         variant === 'feed' ? styles.feedBar : styles.screenBar,
+        floating && topInset > 0 && { height: feedHeader.height + topInset },
         variant === 'feed' && {
-          paddingTop: feedHeader.paddingTop,
+          paddingTop: feedHeader.paddingTop + (floating ? topInset : 0),
           paddingBottom: feedHeader.paddingBottom,
           paddingHorizontal: feedHeader.paddingInline,
           gap: feedHeader.gap,
@@ -128,7 +131,7 @@ export function AppHeader({ variant, modeId, build, switches = [], onPressWordma
           <Defs>
             <LinearGradient id="nxHeaderFill" x1="0" y1="0" x2="0" y2="1">
               {feedHeader.fillReels.map((stop) => (
-                <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+                <Stop key={stop.offset} offset={stop.offset} stopColor="#02060c" stopOpacity={Number(stop.color.slice(stop.color.lastIndexOf(',') + 1, -1))} />
               ))}
             </LinearGradient>
           </Defs>

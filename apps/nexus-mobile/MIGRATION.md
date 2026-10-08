@@ -4,6 +4,13 @@ Memoria migrării. Se actualizează continuu: ce e gata, ce rămâne, deciziile 
 Referința este versiunea web (`apps/nexus-web`) și site-ul live de pe Railway. Regula de aur: se
 transcriu valorile exacte din CSS/cod, nu se estimează și nu se redesenează nimic.
 
+> **Gate curent stabilit de owner (2026-10-07): audit exhaustiv înainte de orice ecran nou.**
+> Secțiunile 0–17 sunt jurnal istoric și pot conține verdicturi „gata” date după implementarea în cod,
+> nu după aprobarea vizuală. Pentru decizia de migrare, prevalează §18 de mai jos: doar loginul este
+> aprobat; niciun alt ecran nu primește statusul **gata** fără fișă completă, capturi comparate pe
+> Railway/Xiaomi și aprobarea explicită a owner-ului. Nu se continuă cu portarea Etapei 1 până la
+> închiderea inventarului de surse și confirmarea fișei ecranului următor.
+
 Legendă stare: **gata** = portat și verificat pe Xiaomi · **parțial** = portat, neverificat pe dispozitiv
 sau cu detalii lipsă · **lipsă** = neportat.
 
@@ -12,7 +19,7 @@ sau cu detalii lipsă · **lipsă** = neportat.
 | # | Etapă | Stare |
 | - | - | - |
 | 1 | Sesiune persistentă, navigație Social (7 poziții), feed + profil reale, meniu, refresh, stări de încărcare/eroare/reluare | **gata** (codul), verificare pe dispozitiv în curs |
-| 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **gata** (codul) — camera există (9:16, 0,7×, 3:4 la 1×, import galerie, permisiuni) și captura se întoarce în composer (`camera.tsx` → `CaptureEditor` → `PublishPanel`); verificare pe dispozitiv în curs |
+| 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **gata** (codul) — 9:16 implicit pentru foto/video, comutare directă 3:4, selfie, lumină, timer, import galerie și selecție Jamendo prin Railway; captura ajunge în composer (`camera.tsx` → `CaptureEditor` → `PublishPanel`); verificarea comenzilor noi pe Xiaomi este încă necesară |
 | 3 | Editor (text, emoji/stickere mutabile, muzică Jamendo, randare finală) | **parțial** — text mutabil + emoji + căutare/previzualizare Jamendo în draft; compunere finală lipsă |
 | 4 | Publicare (copertă, titlu, descriere, hashtaguri, mențiuni, locație, link, vizibilitate, comentarii, repost, AI, descărcare, watermark, draft, postare reală, fără dublare la retry) | **parțial** — formular complet (titlu, descriere, #/@, locație + precizie, link, vizibilitate, comentarii/repostare/descărcare/watermark, declarație AI, drepturi audio + atribuire), salvare în cont și publicare reală din aplicație, cu cheie de idempotency per intenție; rămân neportate: compunerea finală a fișierului (watermark/overlay ars), salvarea pe dispozitiv și etichetarea persoanelor după id |
 | 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **parțial** — comentariile sunt portate (fir citit/scris prin API-ul real, `CommentsSheet`); mesaje (`MessagesScreen`), căutare (`SearchScreen`), prieteni (`FriendsScreen`) și live (`LiveScreen`) sunt **portate nativ** pe endpoint-urile reale (§12), cu stări oneste; rămân **lipsă**: notificări și setări |
@@ -174,7 +181,7 @@ mici / stare) înainte de a începe fiecare ecran. Ce se știe acum din auditul 
 
 | Fișă | Sursă principală | API | Stare |
 | - | - | - | - |
-| 5. Camera nativă | `reel-camera-surface.js/.css`, `reel-camera-framing.js`, `reel-camera-quality.js` | niciunul (local) | **gata** (codul) — 9:16 UHD, 0,7× pe obiectivul virtual, 3:4 la 1×, import galerie, permisiuni refuzabile fără blocare; captura se întoarce în composer (editor → „Detalii postare") |
+| 5. Camera nativă | `reel-camera-surface.js/.css`, `reel-camera-framing.js`, `reel-camera-quality.js` | local + `/api/reels/sound-suggestions` pentru Add sound | **gata** (codul) — 9:16 UHD implicit, 0,7× pe obiectivul virtual, 3:4 la 1×, selfie, lumină, timer, import galerie, selecție Jamendo și permisiuni refuzabile fără blocare; verificare Xiaomi pentru comenzile noi încă lipsă |
 | 6. Editor / reel | `reel-editor-overlays.js`, `clip-options.js`, `reel-sticker-catalog.js`, `composer-emoji.js` | `/api/reels/sound-suggestions` | **parțial** — text mutabil + emoji + sugestii Jamendo; stickere, redimensionare, efecte, randare finală lipsesc |
 | 7. Publicare | `post-publishing.js/.css`, `creator-draft-sync.js`, `draft-policy.js` | `/api/uploads` (resumable), `/api/posts` | **parțial** — vezi 6.1 |
 | 8. Comentarii | `post-detail.js/.css`, `double-tap-heart.js` | `/api/posts/:id/comments`, `/api/comments/:id/reaction` | **parțial** — firul se citește și se scrie real (`CommentsSheet`: listă, răspuns cu `parent_id`, reacție LIKE, răspunsurile-părinte afișate `↩ @autor`); lipsesc pagina dedicată de postare și inimioara de dublu-tap pe media |
@@ -216,9 +223,9 @@ Reguli păstrate din web, aici ca invarianți ai codului:
   un post pe jumătate;
 - un backup eșuat nu blochează publicarea, iar o publicare reușită șterge copia din cont (dacă ștergerea
   eșuează, se spune, nu se preface reușită);
-- audio din catalog (Jamendo) **nu** poate fi publicat din aplicație: serverul are nevoie de fișierul
-  urcat, deci panoul explică refuzul în loc să încerce (`CatalogAudioError`);
-- un buton se oferă doar când acțiunea poate reuși: MIME refuzat (HEIC/MOV), catalog audio sau cont
+- audio Jamendo se publică prin tokenul semnat de Railway, fără a încărca fișierul Jamendo; un URL
+  fără token valid este refuzat (`CatalogAudioError`), iar tokenul expirat este refuzat de server;
+- un buton se oferă doar când acțiunea poate reuși: MIME refuzat (HEIC/MOV), catalog fără token sau cont
   necitit transformă „Publică” într-o propoziție care explică de ce nu.
 
 Ce rămâne neportat din fișa 7 (declarat explicit în interfață, nu ascuns):
@@ -763,4 +770,458 @@ PNG), `tools/parity/compare.mjs` (comparația numerică web ↔ nativ), `tools/p
 Rămâne de reparat, în ordinea notelor (§17.5 și INDEX): bara de sus a inbox-ului, dialogul
 postării deschise cu comentarii/like-uri/reacții, arborele de răspunsuri, bara de reacții,
 rail-ul viewer-ului și overlay-ul de creator.
+
+## 18. Gate nou: audit exhaustiv înainte de următorul ecran (2026-10-07)
+
+Această secțiune este **starea de decizie curentă**. Secțiunile anterioare documentează lucrări
+istorice; „gata (codul)” de acolo nu înseamnă paritate aprobată. Loginul este singurul ecran aprobat
+explicit de owner. Nu s-a modificat niciun ecran nativ în acest audit.
+
+### 18.1 Inventar de surse și progresul lecturii
+
+`rg --files apps/nexus-web` cu extensiile HTML/CSS/JS/MJS/JSX/TS/TSX identifică **298 de fișiere**:
+102 în `public/` (interfață, inclusiv `wc-bundle.js` și `device-wallet.js` generate), 31 în `lib/`,
+119 în `test/`, 43 în `scripts/`, plus `server.js`, `client/device-wallet-entry.js` și
+`src/wc-client.js`. Asseturile publice relevante (SVG/PNG/WebP) sunt inventariate separat (10).
+
+- **Inspectate direct pentru acest gate:** `public/index.html` (ordinea stylesheeturilor),
+  `app.js` (MODULES/NAV, `renderHeader`, `renderView`, feed/search/profile și apelurile API),
+  `profile-experience.js/.css`, `feed-surface.css`, sursele de module prin referințele API,
+  `lib/api.js` prin rutele sale, `src/app/index.tsx` și ecranele native prin apelurile API.
+  Auditul anterior `docs/PARITY-MATRIX.md` și `docs/web-ref/` oferă măsurători, dar nu înlocuiesc
+  verificarea tuturor stărilor cerute acum.
+- **De verificat integral înainte de aprobarea unei fișe:** toate cele 298 de fișiere, inclusiv
+  logica de validare/permisiuni din `lib/`, cele 119 teste, modulele de UI încă neparcurse complet,
+  variantele CSS finale după cascade/media queries, toate cele patru limbi din
+  `interface-locale.js`, toate stările de eroare/goale/offline și răspunsurile concrete ale API.
+  Pachetele generate se verifică față de fișierele-sursă și build scripts, fără a le trata ca un
+  design separat. **Auditul exhaustiv nu este încă închis; nu se solicită încă aprobare de ecran.**
+- Tokens centrali existenți: `src/theme/tokens.ts` (login), `src/theme/social.ts` (Social) și
+  `src/theme/webTokens.ts` (variabile CSS extrase din `docs/web-ref/_tokens`). Nu se introduc valori
+  noi până la verificarea cascadei și a stilului *computed* live pentru ecranul aprobat.
+
+Site-ul **live Railway** a fost deschis la viewport de 469×1022 CSS px (referință Xiaomi) și arată
+buildul web **1.11**, cu Social 7 poziții: Home, Messages, Find, Create, Friends, Live, Profile.
+Capturi read-only: `planning/evidence-feed-railway-mobile-20261007.png`,
+`planning/evidence-profile-railway-mobile-loaded-20261007.png`,
+`planning/evidence-profile-menu-railway-mobile-20261007.png`. Capturile din `docs/screens/` și
+`docs/parity-report/` sunt istorice: pot arăta alt conținut și nu sunt aprobarea owner-ului.
+
+### 18.2 Lista de paritate — ecrane și funcții
+
+Starea de mai jos este **funcțională în cod**, nu verdict vizual. „Parțial” înseamnă că o parte din
+funcție există, dar fișa/captura/aprobarea lipsesc sau s-a măsurat diferență. Fiecare rând devine o
+fișă completă (vizual/stări, comportamente, date, detalii mici, permisiuni, cache, eroare) înainte
+de orice portare/corecție a acelui ecran. Sursele sunt `public/` dacă nu e precizat altfel.
+
+| Ecran / funcție web | Sursa principală | API / date | Android acum | Fișa completă? |
+| --- | --- | --- | --- | --- |
+| Login / sesiune | `app.js`, `client.js`, `styles.css`, `p3-visual-foundation.css` | `/auth/email/login`, `/api/me`, `/api/providers`; cookie/token | **gata** prin aprobarea owner-ului | istorică §2; de completat pentru audit global |
+| Shell Social / 7 poziții / drawer | `app.js`, `nav-marks.js`, `feed-hub.js`, `feed-surface.css` | `/api/chat/conversations`, `/api/notifications` (badge); `/api/persona/switch` | **parțial** | nu |
+| Feed Reels, Whispers, News și toate lentilele | `app.js`, `feed-surface.js/.css`, `social-gesture.js` | `/api/social/feed?lens&format&cursor`, `/api/social/impressions` | **parțial** | nu |
+| Card postare / acțiuni / traducere / Trust | `app.js`, `post-detail.js`, `caption-translation.js`, `ranking-reasons.js` | `/api/posts/:id/*`, `/api/social/posts/:id/trust`, feedback | **parțial** | nu |
+| Viewer foto/video / postare deschisă | `app.js`, `post-detail.js/.css`, `clip-options.js` | postare, comentarii, media cu sesiune | **parțial** | nu |
+| Comentarii / răspunsuri / sortare | `app.js`, `post-detail.js/.css` | `/api/posts/:id/comments`, `/api/comments/:id/*` | **parțial** | nu |
+| Stories / viewer / highlights | `app.js`, `contact-stories.js` | `/api/stories*`, `/api/story-highlights*` | **parțial** | nu |
+| Căutare Social / trenduri / taguri | `app.js`, `social-inbox-demo.js` | `/api/social/search`, `/api/social/tags*` | **parțial** | nu |
+| Prieteni / followers / following / cereri | `app.js` | `/api/social/relations`, `/api/follow*` | **parțial** | nu |
+| Live / studio / competiții | `app.js` | `/api/social/live*` (`GATED_NO_SFU` pentru stream) | **parțial** | nu |
+| Profil propriu / ticker / taburi / grilă | `app.js`, `profile-experience.js/.css`, `profile-ticker.js` | `/api/account`, `/api/profiles/:handle?persona=` | **parțial** | nu |
+| Profil public / acces privat | `app.js`, `profile-private-access.css`, `creator-profile.js` | `/api/profiles/:handle`, `/api/social/private-access/*` | **parțial/lipsă** | nu |
+| Editare profil / copertă / avatar / locație | `profile-hero-edit.js`, `profile-location.js`, `profile-settings-panels.js` | `/api/persona/:id`, `/api/uploads` | **lipsă** | nu |
+| Meniu profil / wallet / acces / privacy / aspect | `profile-menu.js`, `profile-settings-panels.js`, `app.js` | `/api/account*`, `/api/persona/:id`, `/auth/logout*` | **lipsă** (sertarul feed este alt meniu) | nu |
+| Mesaje: inbox / activity / requests / filtre | `app.js`, `messenger-shell.js`, `messenger-spaces.css` | `/api/chat/conversations`, `/api/notifications*` | **parțial** | nu |
+| Conversație / atașamente / E2EE / apel | `app.js`, `chat-crypto.js`, `call-client.js`, `conversation-menu.js` | `/api/chat/conversations/:id/*`, `/api/chat/devices`, `/api/uploads` | **parțial** | nu |
+| Notificări și preferințe | `app.js`, `notification-preferences.js` | `/api/notifications*`, `/api/notification-preferences` | **lipsă/parțial** (activity în inbox) | nu |
+| Cameră / layout / permisiuni / import | `reel-camera-*.js/.css`, `composer-camera.js/.css` | local; fără API la captură | **parțial**, nativă existentă; etapă ulterioară | nu |
+| Editor / overlays / sticker / emoji | `reel-editor-overlays.js`, `reel-sticker-catalog.js`, `composer-emoji.js` | local, apoi upload | **parțial**, etapă ulterioară | nu |
+| Muzică / căutare / preview | `reel-auto-sound.js`, `music-grow-module.js` | `/api/reels/sound-suggestions`; `JAMENDO_CLIENT_ID` doar server | **parțial**, etapă ulterioară | nu |
+| Drafturi / ieșire / reluare | `creator-draft-sync.js`, `composer-exit.js`, `draft-policy.js` | `/api/creator/drafts*`, `/api/uploads` | **parțial**, etapă ulterioară | nu |
+| Publicare / toate câmpurile / retry | `post-publishing.js/.css`, `app.js` | `/api/uploads`, `/api/posts`, `/api/stories` | **parțial**, etapă ulterioară | nu |
+| Market / Stay / Ride / Beauty | `fair-verticals.js/.css`, `work-module.js` | `/api/market/*`, `/api/stay/*`, `/api/ride/*`, `/api/business/*` | **lipsă** | nu |
+| Work | `work-module.js/.css` | `/api/work/*`, `/api/business/*` | **lipsă** | nu |
+| Dating / Privé | `dating-module.js/.css` | `/api/dating/*`, `/api/prive/status` | **lipsă** | nu |
+| Watch / Kids / family | `watch-module.js/.css`, `kids.html/js/css` | `/api/watch/*`, `/api/family*`, `/api/kids/*` | **lipsă** | nu |
+| Music / Grow | `music-grow-module.js/.css` | `/api/music/*`, `/api/grow/*` | **lipsă** | nu |
+| Creator / Pay / Node | `m12-module.js/.css` | `/api/creator/*`, `/api/pay/*`, `/api/node/*` | **lipsă** | nu |
+| Onboarding / recuperare / wallet | `app.js`, `onboarding.js`, `device-wallet.js` | `/api/onboarding*`, `/auth/*`, `/wallets/*` | **lipsă**, exceptând login email | nu |
+
+### 18.3 Fișă de lucru: feed Social (neconfirmată — implementarea rămâne oprită)
+
+- **Vizual:** live Railway are wordmark SVG + versiune `1.11` sub el, selectorul unic al lecturii,
+  acțiuni în dreapta, scenă neagră full-screen în Reels cu media centrată, rail vertical cu avatar,
+  reacții, comentarii, salvare, distribuire și sunet, apoi caption/creator în partea de jos. Bara
+  Social are 7 poziții și SVG-urile din `nav-marks.js`. CSS-ul este o cascadă cu multe suprascrieri în
+  `feed-surface.css`; **nu** se folosește prima valoare găsită ca token final. Captura live este în
+  §18.1. Stările `:active`, `:disabled`, `:focus-visible` și modurile Whispers/News nu sunt încă
+  documentate punct-cu-punct aici.
+- **Geometrie calculată pe live** (469×1022 CSS px, profil Social, Reels, înainte de scroll):
+  `.appHeader.feedHeader` `[0,0,469.6,72]`, padding `10px 12px 9px`;
+  `.wordmark` `[12,15.5,80,42]` (include versiunea), `.feedModes` `[98,16.5,38,40]`,
+  `.feedHeaderIcon` `[415.6,15.5,42,42]`, `.clipPost` / `.clipStage`
+  `[0,0,469.6,970.5]`, `.appNav.social` `[0,970.5,469.6,60]`, butonul „+”
+  `[200.8,966.5,68,50]`. Fontul calculat al shellului: `Inter, ui-sans-serif, -apple-system,
+  BlinkMacSystemFont, "Segoe UI", sans-serif`; acestea sunt rezultate ale cascadei, nu ale primei
+  declarații CSS. Se verifică din nou pentru fiecare mod/stare și pentru limba română.
+- **Comportament confirmat în sursă:** modurile Reels → Whispers → News; swipe orizontal la
+  `|dx| >= 72` și dominanță `> |dy|*1.2`; pull-to-refresh de sus la `dy >= 64` și dominanță
+  `> |dx|*1.15`; paginația prin `next_cursor`; menține poziția separată a fiecărei lecturi.
+  `feedScrollMemory` restabilește `scrollTop` separat per mod/lens/format; schimbarea lentilei
+  începe la top. Paginarea este automată prin `IntersectionObserver` cu `rootMargin` 420px, cu
+  buton „mai mult” ca fallback accesibil și gardă single-flight; o pagină ce repetă un ID existent
+  este refuzată. Reel-ul pornește la vizibilitate ≥65% și se oprește când iese; impresia pe card
+  nemedia pornește la ≥55%. Dublu-tap și toate timerele secundare rămân de completat.
+- **Dinamic:** badge necitite din inbox+notificări, indicator „Pull to refresh”, rail cu contoare,
+  media/versiune după server. Skeleton, stare goală, eroare/retry, providerul News, SSE/polling și
+  textele exacte în toate limbile rămân de verificat. Nu se inventează conținut la provider oprit.
+- **Stări confirmate în `loadFeed`:** `feedSkeletonMarkup` (3 elemente, `aria-busy=true`);
+  răspuns invalid/eroare → `feedErrorMarkup` + retry + toast; `provider.ready` → titlurile sursei
+  aprobate; `provider.disabled` → notice dedicat; `near.consent_required` → notice cu deschidere
+  Profil; `posts=[]` → `feedEmptyMarkup`; la refresh indicatorul schimbă textul și blochează
+  al doilea refresh. Conținutul este exclusiv cel întors de API, fără seed client-side.
+- **Date:** `GET /api/social/feed?lens=<...>&format=<clips|tweets|posts>&cursor=<...>`;
+  `/api/social/impressions` pentru afișări; postările poartă media protejată de sesiune. Mutările
+  (reacție, save, repost, follow) cer `Idempotency-Key`. Contractul complet al răspunsurilor,
+  cache-ul, invalidarea, vizibilitatea și toate codurile de eroare rămân de verificat în `lib/api.js`
+  și `lib/repo.js` înainte de confirmare.
+- **Android:** codul citește Railway și are 7 mărci, dar paritatea vizuală/comportamentală nu este
+  aprobată; componentele `FeedScreen`, `ReelsReader`, `PostCard`, `AppNav` sunt **parțiale**.
+- **Limbă decisă de owner:** comparațiile web–Xiaomi se fac **în română pe ambele ecrane**. Sesiunea
+  Railway observată inițial era în engleză (`interface_locale=EN` afișat în panoul „Theme and
+  appearance”); capturile din §18.1 sunt dovezi de structură, nu comparația finală de copy.
+  Web-ul rezolvă limba din `interface_locale` al persoanei, apoi din limba dispozitivului
+  (`app.js:609–614`); selectorul oferă `auto`, `ro`, `en`, `pl`, `ar`
+  (`profile-settings-panels.js:49`). Nicio preferință a contului Railway nu a fost schimbată
+  în acest checkpoint. „Meniu” în Etapa 1 include atât sertarul feedului, cât și meniul de
+  setări al profilului până la clarificare, fără a înlocui unul cu celălalt.
+
+### 18.3a Incident feed pe Xiaomi — 130434.jpg (diagnostic, fără modificarea ecranului)
+
+Referința este postarea reală „Venice” (`post_id=2`, `@test`, 6 comentarii) din
+Railway 1.11. În sesiunea web autentificată, tap pe video a deschis dialogul
+„Nexus media viewer”; tap pe „Comments” a deschis panoul conversației în același
+viewer. Captura Xiaomi atașată de owner are 588×1280 px. Telefonul era în
+`com.openai.chatgpt` la verificarea ADB, deci nu am atins Nexus Dev și nu am
+declarat un test nou efectuat pe dispozitiv. Pagina web live era încă în engleză;
+textele exacte românești trebuie validate în comparația finală cerută de owner.
+
+| Detaliu | Web (cod + observație live) | Android actual / diferență |
+| --- | --- | --- |
+| Antet Reels | `app.js` afișează wordmark SVG, versiune sub el, selector lectură și buton module; la 469 CSS px antetul ocupă 72 px și cuvântul începe la x=12, y=15,5. | `index.tsx` pune `floatingHeader` cu `position:absolute;top:0` în `SafeAreaView edges=['top']`. În captura 130434, logo-ul și `1.11` intră sub iconițele barei de stare Android. Antetul nu este integral vizibil. De verificat pe telefon insetul efectiv înainte de corectarea poziției; nu se ascunde status bar doar ca să mascheze eroarea. |
+| Cele două benzi | Web `.clipStage:before` are gradient continuu `rgba(0,0,0,.34)` → transparent la 23–64% → `rgba(0,0,0,.52)` jos (`feed-surface.css`); fără margini drepte ale unei plăci. | `ReelsReader.tsx` desenează **două dreptunghiuri uniforme**, `topPlate` 96 cu `rgba(0,0,0,.34)` și `bottomPlate` 220 cu `rgba(0,0,0,.46)`. Acestea explică liniile drepte vizibile peste imagine. Bara Android de jos este o suprafață separată; paritatea ei se măsoară după eliminarea plăcilor, nu prin crop al videoului. |
+| Încadrare | Web `feed-surface.css:2610–2623` suprascrie `object-fit` la **contain** pentru video în Reels și viewer, cu fundal negru când raportul sursei nu corespunde ecranului; păstrează cadrul complet. | `ReelsReader` pornește cu `fit='cover'` și oferă comutatorul `contain`; `MediaViewer` folosește mereu `contain`. Feedul poate decupa mai mult decât web-ul, iar viewerul schimbă brusc încadrarea. |
+| Acțiuni și reacții | Web `app.js:3567` are exact `LIKE ♥, LOVE 💗, HAHA 😂, WOW 😮, SAD 😢, ANGRY 😠, FAKE_OPINION ◆, DISLIKE ▼`; reacția selectată `SAD` și totalul `1` apar în postarea Venice. Restul rail-ului folosește `solidViewerIcon` cu SVG-uri proprii pentru comentariu, bookmark/save și share/repost, nu emoji. Selectorul afișează opt reacții și starea selectată. | `ReactionControl` are aceleași opt **tipuri** și glife text, dar React Native folosește randarea emoji Android, diferită de Chromium. `ReelsReader` folosește `💬`, `🏷/🔖`, `🔁` și `♫` ca text în locul SVG-urilor web; astfel forma, culoarea și stările acțiunilor nu corespund. `ReelsReader` nu are exact meniul și metrica web pentru toate stările. Fără a înlocui tipurile de reacție server-side; diferența este în desenare și control. |
+| Tap media → fullscreen | Web `openMediaViewer` construiește `reelViewer`: scena media, buton Back, overlay creator/caption, rail cu avatar + reacție/comentarii/save/share/sunet, comentariu rapid și navigare între postări. Tap pe media deschide viewer; dublu-tap are acțiunea de reacție. | `MediaViewer.tsx` este un modal negru cu media `contain`, „×”, săgeți, contor și maxim 4 linii de caption. Nu reproduce headerul, rail-ul, creatorul, selectorul de reacții sau comentariile web. Pe video gesturile viewerului sunt dezactivate în favoarea controalelor native; comportamentul diferă. |
+| Arbore comentarii | Web `renderCommentThread` construiește relații după `parent_id`, sortează „Relevant/Newest”, oferă „Vezi răspunsuri (+N)” / ascundere, răspuns la comentariu cu `parent_id`, expandarea textului, acțiuni/reacții/save/repost pe fiecare răspuns și „mai multe” prin cursor. În postarea Venice se văd 5 rădăcini și un răspuns extins. Viewerul comprimă media la 34dvh și pune panoul în restul înălțimii. | `CommentsSheet.tsx` este modal transparent peste feed, nu panoul viewerului. Cere doar prima pagină, fără sortare/retry/paginare; `CommentRow` afișează `replies` ca text simplu și nu reconstruiește arborele din `parent_id`; composer-ul apelează `createComment` fără `parentId`. Butonul „răspunde” și ramurile pliante lipsesc. |
+| Date, stare, acces | Feed `GET /api/social/feed?...`; viewer lucrează cu postările din feed și media autentificată; comentarii `GET /api/posts/:id/comments?sort=<relevant|newest>&cursor=<n>` cu `next_cursor`; mutații reale `POST /api/posts/:id/reaction`, `/save`, `/repost`, `POST /api/posts/:id/comments` cu `parent_id`, respectiv acțiuni pe `/api/comments/:id/*`. Web verifică persona, viewerul și cursorul, previne duplicatele, arată loading/empty/error/retry și folosește chei de idempotency. Share extern este oprit pe server; nu se simulează succesul. | Nativul citește date reale, dar contractul complet al comment tree, vizibilitatea, codurile de eroare și toate acțiunile pe comentariu nu sunt implementate/verificate. Nu se modifică backend-ul sau datele pentru un fix vizual. |
+
+**Corecția propusă, după confirmarea fișei:** (1) măsurarea insetului pe Nexus
+Dev în prim-plan, apoi poziționarea antetului în aria sigură; (2) înlocuirea
+plăcilor uniforme cu gradientul extras din CSS și verificarea înălțimii scenei
+față de navigația Social; (3) păstrarea cadrului complet ca pe web; (4) portarea
+SVG-urilor/acțiunilor și a selectorului exact; (5) reconstruirea viewerului și
+a panoului de comentarii cu arbore, sortare, paginare și mutații reale. După
+fiecare corecție: capturi web/Xiaomi **în română**, verificare funcțională,
+typecheck/lint. Nu necesită APK nou pentru schimbări JS/SVG existente; doar
+dacă măsurarea impune configurare nativă se cere aprobarea acelei alternative.
+
+**Necunoscute ce blochează verdictul final:** inseturile/sistem UI măsurate în
+Nexus Dev (nu în ChatGPT), cascadele CSS pentru toate breakpoints/stările,
+contractul complet al comment API pentru fiecare rol/permisiune și comparația
+live română–română. Auditul global §18.1 și fișa integrală §18.3 rămân
+neînchise; această fișă de incident nu constituie aprobarea feedului.
+
+### 18.4 Diferență certă descoperită în profilul live
+
+Fișa istorică §4 transcrie coperta **72 px** și avatarul **78 px**, dar cascadele ulterioare din
+`profile-experience.css` schimbă rezultatul. Pe live, la 469 CSS px și profilul propriu cu copertă,
+`getComputedStyle` + `getBoundingClientRect` dau **copertă 168 px**, **avatar 104 px**, identitate
+suprapusă cu **−46 px**, ticker ~36 px, bara de taburi ~47 px. `--portraitSize:104px` apare în CSS la
+linia 322, iar `.ownerCover{height:168px}` la linia 235. Profilul nativ din captura istorică
+`docs/parity-report/profile/native-own-0.png` are alt antet, altă grilă și altă ordine a elementelor;
+nu poate fi declarat „gata” pe baza datelor reale afișate sau a tokenilor vechi. Varianta live are
+meniul propriu „Account and settings” cu **Profile, Wallet and username, Access and security,
+Privacy, Notifications, Theme and appearance, Log out** — nu este sertarul de module din feed.
+
+### 18.5 Regula de continuare
+
+1. Completează auditul de surse și câte o fișă **pentru fiecare rând** din §18.2, cu stări vizuale,
+   gesturi, keyboard/back/scroll, dinamică, date/permisiuni/cache, copy/validări/localizare și
+   întrebări necunoscute. Marchează explicit ceea ce nu poate fi observat fără acțiuni de scriere;
+   nu le executa pe Railway doar pentru audit.
+2. Cere aprobarea owner-ului pentru fișa ecranului următor. Până atunci **nu edita ecranele**.
+3. După aprobare, modifică doar ecranul respectiv și tokens verificați; rulează typecheck/lint/teste,
+   compară capturile live web vs Nexus Dev pe Xiaomi, corectează și cere aprobare vizuală. Niciun
+   ecran următor și nicio etapă 2–5 fără aprobarea corespunzătoare.
+
+### 18.6 Verificare a acestui checkpoint de audit
+
+- `npm run typecheck`: **0 erori**.
+- `npm run lint`: **eșuează** cu 4 erori `react-hooks/set-state-in-effect` în
+  `ActivityCenter.tsx` și `MessagesScreen.tsx`, plus 1 avertisment de import nefolosit în
+  `ActivityCenter.tsx`. Aceste fișiere nu au fost editate în checkpoint; reparația se planifică după
+  aprobarea fișelor aferente, nu se ascunde și nu se atribuie documentației.
+- `git diff --check -- apps/nexus-mobile/MIGRATION.md`: **0 erori**.
+- Xiaomi nu a fost atins în acest checkpoint: transportul Wireless Debugging s-a schimbat la
+  `192.168.1.184:35627`, iar `mCurrentFocus` este `NotificationShade`, nu `app.nexus.mobile.dev`.
+  Conform regulilor §9, nu s-au trimis inputuri și nu s-a luat captură nativă nouă.
+- Nu s-a generat APK, nu s-a instalat nimic și nu s-a făcut deploy.
+
+### 18.7 Corecție feed verificată pe Nexus Dev · 7 octombrie 2026
+
+Owner-ul a autorizat corecțiile punctuale în Nexus Dev fără confirmare înaintea fiecărei ajustări.
+Aceasta nu este aprobarea migrării altor ecrane sau a etapelor 2–5.
+
+- Antetul Reels este poziționat sub insetul barei de stare; în captura actuală logo-ul și versiunea
+  `1.11` sunt complet vizibile (`docs/parity-report/feed/native-feed-after-viewer-20261007.png`).
+- Cele două plăci întunecate cu margini drepte au fost înlocuite de gradientul exact din
+  `feed-surface.css`, cu opacitatea transmisă explicit prin `stopOpacity`. Prima încercare care
+  trimitea `rgba()` direct în `stopColor` a acoperit media în negru pe Android; captura
+  `docs/parity-report/feed/native-feed-gradient-fixed-20261007.png` confirmă corecția.
+- Iconițele de comentarii, salvare, distribuire și sunet folosesc căile SVG din
+  `reels-reference.js`; cele opt reacții și ordinea lor rămân cele din web. Glifele emoji ale
+  reacțiilor non-LIKE folosesc randarea sistemului Android, care poate diferi de Chromium.
+- Tap pe conținut deschide viewerul cu rail-ul, creatorul și comentariul rapid. Tap pe comentarii
+  în feed deschide același viewer direct cu conversația, nu un modal separat.
+- Conversația reconstruiește rădăcinile/răspunsurile prin `parent_id`, poate extinde/ascunde
+  răspunsuri, sorta, pagina, trimite răspunsuri și folosește endpoint-urile reale pentru reacție,
+  salvare și redistribuirea comentariului. Numele și avatarul sunt citite din câmpurile plate
+  ale răspunsului API. Composer-ul este deasupra barei Android. Capturi:
+  `docs/parity-report/comments/native-direct-stable-20261007.png` și
+  `docs/parity-report/comments/native-tree-expanded-20261007.png`.
+- Timestamp-urile Unix în secunde sunt convertite înainte de formatare; captura
+  `docs/parity-report/comments/native-time-fixed-20261007.png` nu mai afișează anul 1970.
+- Clipurile orizontale au în continuare spațiu negru sus/jos în zona **media**, fiindcă ultima
+  cascadă web cere `object-fit:contain` (linia ~2610). Și captura web
+  `planning/evidence-feed-railway-mobile-20261007.png` arată această încadrare. Eliminarea acelor
+  spații ar cere crop (`cover`) sau un fundal duplicat; nu s-a făcut o abatere tacită de la web.
+  Benzile sistemului Android din jurul status/navigation bar sunt distincte de vechile plăci.
+- Verificare: `npm run typecheck` trece; ESLint pe toate fișierele native editate trece.
+  `npm run lint` global rămâne roșu numai pe 4 erori și 1 avertisment preexistente din
+  `ActivityCenter.tsx` și `MessagesScreen.tsx`. Nu s-a generat/instalat APK și nu s-a făcut deploy;
+  modificările JS/SVG s-au văzut pe Xiaomi prin Fast Refresh. Captura web live de control era în
+  engleză, deci comparația textuală finală română–română rămâne de aprobat separat.
+
+### 18.8 Benzile la clipurile verticale · 8 octombrie 2026
+
+Capturile owner-ului `130460.jpg` (feed) și `130458.jpg` (viewer) arată benzi negre la marginea
+superioară și inferioară a clipului vertical. În feed, cauzele erau `SafeAreaView` care rezerva zona
+de status și `AppNav` în fluxul layout-ului; în viewer, `contain` lăsa spațiu la un raport de ecran
+mai înalt decât clipul, iar modalul nu se întindea sub bara de navigație Android.
+
+- Modul Reels lasă media să ocupe suprafața de sub status și sub bara cu 7 iconițe. Antetul și
+  navigația sunt overlay-uri; doar controalele respectă insets. Rail-ul și metadatele sunt ridicate
+  deasupra navigației ca să rămână apăsabile.
+- Fundalul gradient al navigației și umplerea aproape opacă a sticlei sunt omise **numai** în
+  Reels; geometriile, iconițele SVG și celelalte ecrane rămân neschimbate. Opacitatea SVG a
+  gradientului din antet este transmisă explicit (`stopOpacity`), nu prin `rgba()` în `stopColor`.
+- Pista decodată `expo-video` decide încadrarea: media video verticală folosește `cover`, cea
+  orizontală `contain`; viewerul cu comentarii deschise păstrează `contain`, deoarece panoul
+  reduce zona media la 34%. Unele fișiere declară pista `1024×576` deși rotația de afișare
+  este portret; pentru aceste cazuri, un thumbnail nativ la 64 px furnizează orientarea vizibilă
+  (`36×64` pentru clipul de test), memorată după hash. Clipurile orizontale rămân `contain`.
+  Modalul folosește `navigationBarTranslucent` și `statusBarTranslucent`.
+- Bara Android cu 3 butoane rămânea gri chiar după corecțiile JS. S-a adăugat
+  `expo-navigation-bar` cu contrast forțat dezactivat și culoare transparentă în configurația
+  nativă; `<NavigationBar style="light" />` păstrează pictogramele albe. Aceasta **a cerut APK nou**:
+  `npm run build:android:dev` a reușit, iar `adb install -r` pe Xiaomi a reușit fără resetarea
+  datelor aplicației. Nu s-a făcut deploy Railway sau Play Store.
+- Xiaomi 17 Pro a fost conectat prin transportul Wireless Debugging descoperit automat de ADB;
+  conexiunea directă la `192.168.1.184:39165` a fost refuzată. Capturile după instalare arată
+  clipul portret până sub status bar, navigația Nexus și butoanele Android, fără benzi opace:
+  `docs/parity-report/feed/native-playing-games-nav-transparent-20261008.png` și
+  `docs/parity-report/viewer/native-playing-games-nav-transparent-20261008.png`. Captura
+  `docs/parity-report/feed/native-video-landscape-overlay-20261008.png` documentează separat
+  păstrarea clipului orizontal în `contain`. Este verificare vizuală pe dispozitiv, nu aprobarea
+  finală a owner-ului pentru paritatea întregului feed.
+- `npm run typecheck`, ESLint focalizat pe fișierele ecranului/overlay-urilor și `git diff --check`
+  trec. Lint-ul global păstrează cele 4 erori și 1 avertisment preexistente din
+  `ActivityCenter.tsx` / `MessagesScreen.tsx`; nu s-au editat aceste ecrane.
+
+### 18.9 Corecție după feedback-ul owner-ului · 8 octombrie 2026
+
+Captura `130488.jpg` a surprins două defecte după §18.8: o muchie întunecată sub bara de stare
+și notificarea `Uncaught (in promise) ... ExpoNavigationBar.setHidden ... The current activity is
+no longer available`. Textul complet a fost confirmat prin UI dump numai cu Nexus Dev în prim-plan.
+
+- `<NavigationBar style="light" />` din layout-ul React Native declanșa apeluri native asincrone
+  neprotejate la schimbarea activității. Componenta a fost eliminată; stilul pictogramelor Android
+  este definit în pluginul nativ `expo-navigation-bar` (`style: light` generează
+  `android:windowLightNavigationBar=false`). Bara rămâne transparentă, cu contrastul forțat oprit.
+- Antetul Reels își extinde gradientul original și peste insetul de status, păstrând conținutul
+  la aceeași poziție. Astfel nu mai există trecerea abruptă dintre zona sistemului și antet.
+- `npm run build:android:dev` a reușit (`BUILD SUCCESSFUL`), iar `adb install -r` pe Xiaomi a
+  reușit. După pornire curată prin development serverul LAN, captura feed
+  `docs/parity-report/feed/native-venice-final-no-seam-20261008.png` și captura viewer
+  `docs/parity-report/feed/native-venice-final-20261008.png` arată zona de sus continuă și
+  butoanele sistemului lizibile peste video. UI dump nu mai conține notificarea `Uncaught` după
+  pornire și revenirea din viewer în feed. Nu s-a făcut deploy pe Railway.
+- `npm run typecheck`, ESLint focalizat pe fișierele atinse și `git diff --check` au trecut.
+
+### 18.10 Viewer, Jamendo și formatul camerei · 8 octombrie 2026
+
+Feedback-ul `130503.jpg` arată că vechiul gradient întuneca tot fundul viewerului și că rail-ul
+de muzică și descrierea intrau peste bara „Adaugă un comentariu”. Gradientul viewerului este acum
+transparent la baza scenei; pozițiile rail-ului și descrierii sunt calculate din insetul barei
+Android și din înălțimea barei de comentarii. Nu se decupează mai mult din clip pentru a ascunde
+aceste benzi.
+
+Aplicația avea numai căutare/previzualizare Jamendo și refuza publicarea unei selecții de catalog,
+deși `POST /api/posts` acceptă `jamendo_selection_token`. Contractul nativ trimite acum tokenul
+semnat de Railway, verifică `external_audio.id` în răspuns și refuză local un URL fără token.
+Catalogul este cerut automat o singură dată la deschiderea unei capturi noi, fără a suprascrie
+muzica deja aleasă. Dacă API-ul nu are `JAMENDO_CLIENT_ID` sau nu răspunde, editorul arată
+eroarea reală și permite continuarea fără muzică. Fișierele Jamendo și cheia serviciului nu sunt
+stocate în APK. Clipurile și fotografiile publicate cu `external_audio.provider=jamendo` au acum
+redare separată prin `expo-audio`; pentru video, timpul piesei urmează segmentul de previzualizare
+semnat și poziția clipului. Controlul de format existent din dreapta arată valoarea curentă
+(`9:16` sau `3:4`); captura rămâne implicit `9:16`.
+
+Editorul păstrează acum stickerele mutabile de oră, dată și locație introdusă de autor în
+draftul local. Pentru postare construiește `studio_manifest` cu cheile acceptate de
+`creator-studio.js`, iar feedul/viewerul nativ citesc decorurile numai când serverul întoarce
+`creator_studio.integrity=VERIFIED`. Fonturile decorative suplimentare și localizarea GPS
+rămân neimplementate până la alegerea explicită a variantei de font și a metodei de locație;
+nu se presupune o poziție. Poziționarea decorurilor față de media importată cu un raport
+necunoscut și randarea finală a fișierului exportat necesită încă verificare pe Xiaomi. Aceasta
+nu este paritate completă a editorului.
+
+Verificare locală: `npm run typecheck` și ESLint pe fișierele atinse trec. `npm run lint` global
+rămâne roșu pe aceleași 4 erori din ActivityCenter/MessagesScreen și un avertisment. Nu există
+transport ADB conectat la finalul acestei iterații, deci noul layout și sunetul nu au încă
+verificare vizuală/auditivă pe Xiaomi. Sunt numai schimbări JS/TS; Fast Refresh este suficient
+după reconectare, fără APK nou. Nu s-a făcut deploy Railway.
+Manifestele generate pentru fotografie și video, fiecare în 9:16 și 3:4, cu text, oră, dată și
+locație, au trecut direct prin `normalizeCreatorStudio` din backend în testul local, fără scriere
+de postări.
+
+### 18.12 Audit offline · arborele de comentarii native · 8 octombrie 2026
+
+Surse citite înainte de implementare: `public/app.js` (`commentSurfaceMarkup`,
+`renderCommentThread`, `renderBranch`, `[data-reply-to]`), `public/feed-surface.css`
+(cascada finală a comentariilor), `public/interface-locale.js`, `lib/api.js`, `lib/repo.js`,
+`lib/db.js`, `lib/moderation.js` și clientul nativ existent. Nu se modifică web-ul/backend-ul.
+
+**Forma datelor.** `GET /api/posts/:id/comments` răspunde cu `ok`, `post_id`, `viewer_id`,
+`viewer_persona`, `comments[]`, `sort`, `cursor`, `next_cursor`, `root_count`, `relevance`.
+Fiecare comentariu are `id`, `post_id`, `user_id`, `actor_persona`, `parent_id`, `body`,
+`status`, `created_at`, `edited_at`, `withdrawn_at`, `version`, `handle`, `display_name`,
+`avatar`, `reply_count`, `reaction_count`, `reactions:{counts,viewer_reaction}`,
+`parent_author`, plus `can_pin`, `pinned_by_owner`, `saved_by_me`, `views`,
+`view_impressions`, `note_requests`, `reply_shares`, `shared_by_me`. Nu există câmp media.
+`withdrawn` are `body:""` și rămâne în fir; `hidden`/`in_moderation` nu sunt statusuri
+livrate de acest endpoint. Comentariile blocate/amuțite nu sunt livrate cititorului, cu
+excepția tombstone-urilor retrase. Postările inaccesibile dau 404.
+
+**Rute confirmate.** `GET /api/posts/:id/comments?sort=relevant|newest|oldest&cursor=N`
+acceptă cursor multiplu de 20, între 0 și 2000; pagina cuprinde maxim 20 rădăcini **și
+toți descendenții vizibili ai lor** din plafonul de 1000 comentarii. `next_cursor` paginează
+numai rădăcinile. Sortarea `relevant` este pin, `reaction_count+2*reply_count`, apoi
+recență; `newest`/`oldest` ordonează cronologic. Nu există endpoint separat pentru
+răspunsuri: „Vezi încă N răspunsuri” în client dezvăluie local cele deja primite, fără să
+pretindă o cerere de pagină la server. `POST /api/posts/:id/comments` primește
+`{body,parent_id?}`, text nevid sanitizat la 1000 caractere, returnează 201 cu comentariul.
+Părintele trebuie să aparțină aceleiași postări; postarea cu `publishing.allowComments=false`
+dă 403, iar blocarea automată dă 422. `POST /api/comments/:id/reaction` cu
+`{kind:"LIKE",active:boolean}` întoarce noul rezumat; `DISLIKE` este interzis.
+`DELETE /api/comments/:id` retrage numai comentariul propriu, păstrează istoricul/firul.
+`POST /api/comments/:id/report` primește categoria validă de moderare și detalii de maxim
+500 de caractere; un raport individual nu elimină conținutul. Mai există PATCH editare,
+POST pin al proprietarului postării, POST save/share, dar arborele curent nu le extinde.
+
+**Limite de server.** Nu există poze/clipuri în comentarii, upload atașat, `scan_status`
+pentru comentariu, limită de număr de poze ori paginare separată a unui singur fir. Nu
+afișăm un control activ de galerie sau o previzualizare de poză fictivă. API-ul nu trimite
+un indicator distinct `comments_disabled` la listare; clientul citește
+`post.publishing.allowComments` când este disponibil și tratează 403 la trimitere.
+
+**Design extras, nu estimat.** Cascada finală `feed-surface.css:3174-3240` suprascrie
+valorile intermediare de la 2513 și 2744. Lista are fundal `#0b0d10` și padding
+`5px 28px 8px` (sub 360px: 14px lateral); firul max-width 480 și margin-bottom 4; rândul are min-height 64,
+margin-bottom 4, padding `5px 8px`, rază 10, grilă avatar 36 + gap 7, adâncime
+`min(depth,3)*10px`. Avatarul este 36×36, circular. Nume 12/900, handle 10, timp 9,
+antet 16; text 12/16, culoare `#f1f2f3`; acțiuni 20 înălțime, icon 14, contor 9.
+Răspunsul are fundal gradient `#14171b→#0f1114`, bordură
+`rgba(255,255,255,.065)`. Firul vertical este 1px
+`rgba(255,255,255,.12)` din `.commentReplyChildren`; controlul răspunsurilor este
+`#aeb4ba`, font 10/800, înălțime 25. Composerul: fundal `#0b0d10`, input
+`#141414`, 42px, rază 23, font 15, bordură `rgba(255,255,255,.15)`, trimitere
+alb/#050505. Aceste valori intră în `src/theme/social.ts`. Limita web de 3 rânduri
+este înlocuită de cerința explicită a owner-ului de 5 rânduri; aceasta este o diferență
+intenționată, nu o aproximare. Textele locale existente: „Niciun comentariu încă.”,
+„Vezi mai mult”, „Vezi mai puțin”, „Mai multe conversații”, „Comentariu retras ·
+istoricul este păstrat”.
+
+**Stare înainte de lucru.** Nativul avea deja un arbore reconstruit din `parent_id`, dar
+randat recursiv sub un `FlatList` de rădăcini; stare locală per subcomponentă pierdută la
+virtualizare, text tăiat la 3 rânduri după lungimea în caractere, trimitere fără rând
+optimist și like fără rollback optimist. De înlocuit cu rânduri plate virtualizate, stare
+de fir la nivelul foii, măsurarea reală a liniilor și retry idempotent.
+
+**Implementare locală.** `commentRows.ts` proiectează datele plate într-o singură secvență
+pre-order pentru `FlatList`; controlează deschiderea primelor trei răspunsuri, dezvăluirea
+câte trei și strângerea firului, fără componente recursiv imbricate. `CommentsSheet.tsx`
+păstrează starea cât foaia rămâne deschisă, plafonează indentarea la nivelul 3, afișează
+contextul autorului părinte, măsoară liniile reale prin `onTextLayout` pentru limita de
+cinci, actualizează timpul la fiecare minut, oferă refresh, skeleton, stare goală, eroare,
+retry, meniu de raportare/retragere și composer deasupra tastaturii. Comentariul nou apare
+imediat în fir; pe eșec rămâne cu „Nu s-a trimis · Reîncearcă” și aceeași cheie idempotentă.
+Aprecierea LIKE este optimistă și revine la rezumatul anterior dacă API-ul eșuează.
+`Origin` vine din `authHeaders()`, nu dintr-un secret în APK. Tap pe cardul postării
+din feed/profil/căutare deschide comentariile; media poate fi văzută separat în viewer.
+
+**Date și verificare.** Cele 15 comentarii și 3 LIKE de pe postarea 5 sunt documentate în
+`docs/TEST-DATA.md`; serverul a întors 17 comentarii sub 4 rădăcini, cu 9 răspunsuri la
+comentariul 20. `node scripts/test-comment-rows.cjs` a trecut 3/3 teste, inclusiv 250
+de comentarii și un ciclu malformat. `npm run typecheck` și ESLint pe fișierele atinse
+trec. `npm run lint` global rămâne roșu pe patru erori preexistente din
+`ActivityCenter.tsx` și `MessagesScreen.tsx` (plus un avertisment). Browserul web a fost
+capturat pe aceeași postare la viewport 469×1021 în
+`docs/parity-report/comments/web-post-5-20261008.jpg`; geometria DOM este în JSON-ul
+alăturat. Browserul disponibil a raportat DPR 1, nu DPR 2,6, deci cerința exactă de DPR
+nu este îndeplinită.
+
+**Verificare pe Xiaomi, după reconectare.** `app.nexus.mobile.dev` a fost verificată în
+prim-plan înainte de fiecare input. Captura nativă și dump-ul comprimat sunt în
+`docs/parity-report/comments/native-post-5-20261008.{png,xml}`. Pe postarea 5 s-au
+verificat direct: deschiderea, dezvăluirea următoarelor răspunsuri, strângerea firului
+prin linie, „Vezi mai mult”/„Vezi mai puțin”, LIKE optimist cu confirmarea 3→4,
+selectarea autorului pentru răspuns și trimiterea unui răspuns real. Răspunsul a rămas
+după Fast Refresh; rădăcina 20 arată acum 10 răspunsuri. Tastatura Xiaomi acoperea
+inițial butonul de trimitere; `CommentsSheet` ridică acum composerul deasupra marginii
+tastaturii (butonul y=1359–1474 px, tastatura începe la y=1492 px), iar viewerul
+folosește întreaga înălțime disponibilă. Captura și XML-ul sunt în
+`docs/parity-report/comments/native-keyboard-20261008.{png,xml}`. Nu s-au modificat
+setările telefonului, aplicații externe ori backend-ul.
+
+**Comparație numerică parțială.** La lățimea de 469 CSS px, web-ul are marginea
+rândului la x=27,99; nativul folosește paddingul extras de 28 dp. Poziția textului
+din primul rând este x=208/2,6=80 dp, față de x≈79 CSS px calculat din margine,
+paddingul 8, avatarul 36 și gap-ul 7 (diferență ≈1 dp). Composerul web începe la
+y=958,3 CSS px, cel nativ la y=2403/2,6=924,2 dp (diferență absolută ≈34 dp,
+corelată cu insets/viewport-ul sistemului). Antetul primului rând este cu ≈29 dp
+mai sus în nativ; după alinierea offsetului sistemului, diferența relativă este
+≈5 dp. Geometria măsurabilă primește **9/10** după normalizarea insets, dar acesta
+nu este scorul final al întregii experiențe: web DPR 2,6, refresh, meniurile,
+raportarea și proba cu 200+ comentarii pe telefon rămân neverificate. Pozele în
+comentarii nu pot fi probate până nu există suport pe server. Modificările rămân
+JS/TS și se văd cu Fast Refresh; nu este nevoie de APK nou.
+
+### 18.11 Comenzi pentru camera nativă · 8 octombrie 2026
+
+Ruta `+` din navigația Social continuă să deschidă `camera.tsx`. Foto și video pornesc în
+9:16 pe întregul ecran; controlul din dreapta comută direct la 3:4 (cadrul mediu) și înapoi,
+fără schimbarea rezoluțiilor deja folosite sau zoom artificial. În aceeași bară există acum
+comutare spate/selfie, lumină pentru obiectivele care oferă torch sau flash și timer
+0 → 3 → 10 → 0 secunde. Numărătoarea poate fi anulată și se oprește la schimbarea modului,
+obiectivului ori cadrului. „Add sound” caută și previzualizează piese prin
+`GET /api/reels/sound-suggestions`; selecția semnată este scrisă în draftul local al capturii,
+iar editorul nu o înlocuiește automat. Dacă `JAMENDO_CLIENT_ID` lipsește pe Railway, se arată
+eroarea API-ului, nu o listă fictivă. Nu există cheie Jamendo în client.
+
+Verificat local: typecheck și ESLint focalizat trec; cele 9 teste existente de contract audio
+trec. `npm run lint` global rămâne roșu numai pe cele 4 erori preexistente din
+ActivityCenter/MessagesScreen (plus un avertisment). Xiaomi nu apare momentan în ADB, deci
+comportamentul vizual, torch și temporizatorul nu sunt încă validate pe dispozitiv. Modificarea
+este numai JS/TS și ajunge prin Fast Refresh; nu s-a creat APK nou și nu s-a făcut deploy.
 
