@@ -104,9 +104,9 @@ export function AppHeader({ variant, modeId, topInset = 0, build, switches = [],
       style={[
         styles.bar,
         variant === 'feed' ? styles.feedBar : styles.screenBar,
-        floating && topInset > 0 && { height: feedHeader.height + topInset },
+        floating && topInset > 0 && { height: feedHeader.height + topInset + 6 },
         variant === 'feed' && {
-          paddingTop: feedHeader.paddingTop + (floating ? topInset : 0),
+          paddingTop: feedHeader.paddingTop + (floating ? topInset + 6 : 0),
           paddingBottom: feedHeader.paddingBottom,
           paddingHorizontal: feedHeader.paddingInline,
           gap: feedHeader.gap,
@@ -213,7 +213,8 @@ const styles = StyleSheet.create({
   pressed: { transform: [{ scale: 0.96 }] },
   spacer: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
   /** `.appHeader .wordmark` — 80px on the feed, 124px off it, 42px tall with the build badge inside. */
-  wordmarkFeed: { width: feedHeader.wordmarkWidth, height: 42, justifyContent: 'center', alignItems: 'center' },
+  // A restrained TV channel bug around the original SVG; the drawing and build remain unchanged.
+  wordmarkFeed: { width: feedHeader.wordmarkWidth + 10, height: 46, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(3,4,7,0.48)' },
   wordmarkScreen: { width: appHeader.wordmarkWidth, height: 42, justifyContent: 'center', alignItems: 'center' },
   build: {
     position: 'absolute',

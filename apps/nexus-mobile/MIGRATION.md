@@ -1229,3 +1229,27 @@ ActivityCenter/MessagesScreen (plus un avertisment). Xiaomi nu apare momentan î
 comportamentul vizual, torch și temporizatorul nu sunt încă validate pe dispozitiv. Modificarea
 este numai JS/TS și ajunge prin Fast Refresh; nu s-a creat APK nou și nu s-a făcut deploy.
 
+### 18.13 Ajustare cerută de owner · antet și comentarii · 8 octombrie 2026
+
+Această cerință suprascrie intenționat fișa CSS istorică §18.12 pentru prezentarea
+comentariilor: rândurile nu mai au chenar, rază, fundal alternativ sau linie verticală;
+au numai separator orizontal, iar răspunsurile păstrează indentarea limitată la 3 niveluri.
+Nu se adaugă textura de carte propusă anterior, deoarece owner-ul a cerut un rezultat
+mai discret și explicit „fără chenar”. Meniul fiecărui rând este un SVG cu trei puncte
+verticale mici și țintă tactilă de minimum 44 dp. Bara de stare primește o bandă
+translucidă pe toate rutele cu notificări vizibile; camera rămâne excepție deoarece își
+ascunde bara de sistem. În feed-ul imersiv, antetul/wordmark-ul original SVG coboară 6 dp,
+iar wordmark-ul stă într-o ramă discretă de tip emblemă TV, cu versiunea păstrată.
+
+Contractul real pentru editare este `PATCH /api/comments/:id` cu `{body}` (maxim 1000
+caractere), iar istoricul este `GET /api/comments/:id/versions` cu lista
+`{version,body,content_commitment,created_at}`. Ambele sunt restrânse pe server la
+**autorul comentariului și persona lui**, nu la proprietarul postării. Nativul arată
+„Editează” și „Istoricul editărilor” numai acelui autor; editarea se reflectă local după
+răspunsul serverului. Istoricul și panoul de editare au fost deschise pe Xiaomi pentru
+un comentariu propriu; istoricul real s-a încărcat. Trimiterea unei editări nu a fost
+probată pe datele Railway pentru a nu modifica un comentariu existent. Pe comentariul
+altui autor, meniul a afișat doar opțiunea de raportare. În dump-ul nativ, banda de
+stare ocupă y=0–150 px fizici, iar logo-ul feed-ului începe la y=201 px. Typecheck și
+lint globale trec. Doar JS/TS și documentație; Fast Refresh, fără APK nou și fără deploy.
+

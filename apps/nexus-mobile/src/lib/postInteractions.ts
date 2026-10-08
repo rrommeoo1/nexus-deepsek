@@ -81,6 +81,16 @@ export function createComment(postId: number, body: string, parentId?: number, i
   });
 }
 
+/** The server only permits the original comment author/persona to edit and inspect versions. */
+export function editComment(commentId: number, body: string): Promise<{ ok: true; comment_id: number; comment: CommentView; edited: true }> {
+  return nexusApi(`/api/comments/${commentId}`, { method: 'PATCH', body: JSON.stringify({ body }) });
+}
+
+export type CommentVersion = { version: number; body: string; created_at: number; content_commitment: string };
+export function fetchCommentVersions(commentId: number): Promise<{ ok: true; versions: CommentVersion[] }> {
+  return nexusApi(`/api/comments/${commentId}/versions`);
+}
+
 /** Actors and authored citations are server records; an old Railway backend returns an explicit error. */
 export function fetchCommentEngagement(commentId: number, kind: 'likes' | 'quotes', cursor = 0): Promise<CommentEngagementPage> {
   return nexusApi<CommentEngagementPage>(`/api/comments/${commentId}/${kind}?cursor=${cursor}&limit=20`);

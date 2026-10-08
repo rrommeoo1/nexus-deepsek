@@ -4,11 +4,12 @@ import {
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 import { newMutationKey } from '../lib/idempotency';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
-import { createComment, fetchCommentEngagement, fetchComments, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
-  type CommentEngagementItem, type CommentEngagementPage } from '../lib/postInteractions';
+import { createComment, editComment, fetchCommentEngagement, fetchComments, fetchCommentVersions, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
+  type CommentEngagementItem, type CommentEngagementPage, type CommentVersion } from '../lib/postInteractions';
 import { NexusApiError } from '../lib/nexusApi';
 import {
   compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
@@ -62,6 +63,13 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const [likes, setLikes] = useState<Record<number, ReactionSummary>>({});
   const [likeBusy, setLikeBusy] = useState<Record<number, boolean>>({});
   const [menuTarget, setMenuTarget] = useState<CommentView | null>(null);
+  const [editTarget, setEditTarget] = useState<CommentView | null>(null);
+  const [editDraft, setEditDraft] = useState('');
+  const [editBusy, setEditBusy] = useState(false);
+  const [historyTarget, setHistoryTarget] = useState<CommentView | null>(null);
+  const [history, setHistory] = useState<CommentVersion[]>([]);
+  const [historyError, setHistoryError] = useState('');
+  const [historyBusy, setHistoryBusy] = useState(false);
   const [reportTarget, setReportTarget] = useState<CommentView | null>(null);
   const [clock, setClock] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -212,6 +220,33 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
       .finally(() => setLikeBusy((state) => ({ ...state, [comment.id]: false })));
   }, [likeBusy, likes]);
 
+  const loadHistory = (commentId: number) => {
+    setHistoryBusy(true);
+    setHistoryError('');
+    fetchCommentVersions(commentId)
+      .then((answer) => setHistory(answer.versions))
+      .catch((cause) => setHistoryError(cause instanceof Error ? cause.message : 'Istoricul nu poate fi încărcat.'))
+      .finally(() => setHistoryBusy(false));
+  };
+
+  const saveEdit = () => {
+    if (!editTarget || !editDraft.trim() || editBusy) return;
+    const targetId = editTarget.id;
+    setEditBusy(true);
+    editComment(targetId, editDraft.trim())
+      .then((answer) => {
+        setPage((current) => current ? {
+          ...current,
+          comments: current.comments.map((comment) => comment.id === targetId
+            ? { ...comment, body: answer.comment.body, edited_at: answer.comment.edited_at } : comment),
+        } : current);
+        setEditTarget(null);
+        setEditDraft('');
+      })
+      .catch((cause) => setError(cause instanceof Error ? cause.message : 'Editarea nu a reușit.'))
+      .finally(() => setEditBusy(false));
+  };
+
   const comments = useMemo(() => {
     const confirmed = page?.comments ?? [];
     const provisional: CommentView[] = pending.map((entry) => ({
@@ -333,7 +368,6 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
                 onOpenThread={onOpenThread && item.comment.id !== focusId ? () => onOpenThread(item.comment.id) : undefined}
                 childCount={item.childCount}
                 prominent={item.comment.id === focusId}
-                onCollapse={item.parentId ? () => setCollapsed((state) => ({ ...state, [item.parentId!]: true })) : item.childCount ? () => setCollapsed((state) => ({ ...state, [item.comment.id]: !state[item.comment.id] })) : undefined}
                 onMenu={() => setMenuTarget(item.comment)}
                 onError={setError}
               />}
@@ -360,6 +394,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
 
           {menuTarget ? <View style={styles.actionMenu}>
             <Pressable accessibilityRole="button" accessibilityLabel="Închide meniul comentariului" onPress={() => setMenuTarget(null)} style={styles.actionMenuButton}><Text style={styles.actionMenuText}>Închide</Text></Pressable>
+            {menuTarget.user_id === page?.viewer_id && menuTarget.actor_persona === page?.viewer_persona ? <>
+              {menuTarget.status !== 'withdrawn' ? <Pressable accessibilityRole="button" accessibilityLabel="Editează comentariul" style={styles.actionMenuButton} onPress={() => { setEditDraft(menuTarget.body ?? ''); setEditTarget(menuTarget); setMenuTarget(null); }}><Text style={styles.actionMenuText}>Editează</Text></Pressable> : null}
+              <Pressable accessibilityRole="button" accessibilityLabel="Vezi istoricul editărilor" style={styles.actionMenuButton} onPress={() => { const target = menuTarget; setMenuTarget(null); setHistoryTarget(target); setHistory([]); loadHistory(target.id); }}><Text style={styles.actionMenuText}>Istoricul editărilor</Text></Pressable>
+            </> : null}
             {menuTarget.user_id === page?.viewer_id && menuTarget.actor_persona === page?.viewer_persona ? <Pressable accessibilityRole="button" accessibilityLabel="Retrage comentariul" style={styles.actionMenuButton} onPress={() => {
               const target = menuTarget; setMenuTarget(null);
               Alert.alert('Retrage comentariul?', 'Textul va dispărea, dar firul și istoricul rămân.', [
@@ -368,6 +406,25 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               ]);
             }}><Text style={styles.actionMenuText}>Retrage</Text></Pressable> : null}
             <Pressable accessibilityRole="button" accessibilityLabel="Raportează comentariul" style={styles.actionMenuButton} onPress={() => { setReportTarget(menuTarget); setMenuTarget(null); }}><Text style={styles.actionMenuText}>Raportează</Text></Pressable>
+          </View> : null}
+          {editTarget ? <View style={styles.editPanel}>
+            <Text style={styles.reportTitle}>Editează comentariul</Text>
+            <TextInput accessibilityLabel="Textul comentariului de editat" value={editDraft} onChangeText={setEditDraft} maxLength={1000} multiline style={styles.editInput} />
+            <View style={styles.editActions}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Anulează editarea" style={styles.actionMenuButton} onPress={() => setEditTarget(null)}><Text style={styles.actionMenuText}>Anulează</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel="Salvează comentariul editat" disabled={!editDraft.trim() || editBusy} style={styles.actionMenuButton} onPress={saveEdit}><Text style={styles.actionMenuText}>{editBusy ? 'Se salvează…' : 'Salvează'}</Text></Pressable>
+            </View>
+          </View> : null}
+          {historyTarget ? <View style={styles.historyPanel}>
+            <Text style={styles.reportTitle}>Istoricul editărilor</Text>
+            <ScrollView style={styles.historyScroll}>
+              {historyBusy ? <Text style={styles.historyText}>Se încarcă…</Text> : null}
+              {historyError ? <Text style={styles.error}>{historyError}</Text> : null}
+              {historyError ? <Pressable accessibilityRole="button" accessibilityLabel="Reîncearcă încărcarea istoricului" style={styles.actionMenuButton} onPress={() => loadHistory(historyTarget.id)}><Text style={styles.actionMenuText}>Reîncearcă</Text></Pressable> : null}
+              {!historyBusy && !historyError && history.length === 0 ? <Text style={styles.historyText}>Nu există versiuni disponibile.</Text> : null}
+              {history.map((version) => <View key={version.version} style={styles.historyVersion}><Text style={styles.historyMeta}>{`Versiunea ${version.version} · ${commentFullDate(version.created_at)}`}</Text><Text style={styles.historyText}>{version.body}</Text></View>)}
+            </ScrollView>
+            <Pressable accessibilityRole="button" accessibilityLabel="Închide istoricul editărilor" style={styles.actionMenuButton} onPress={() => setHistoryTarget(null)}><Text style={styles.actionMenuText}>Închide</Text></Pressable>
           </View> : null}
           {reportTarget ? <View style={styles.reportMenu}>
             <Text style={styles.reportTitle}>De ce raportezi acest comentariu?</Text>
@@ -418,7 +475,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   );
 }
 
-function CommentRow({ comment, depth, now, pending, summary, childCount, prominent, onLike, onRetry, onReply, onOpenThread, onCollapse, onMenu, onError }: {
+function CommentRow({ comment, depth, now, pending, summary, childCount, prominent, onLike, onRetry, onReply, onOpenThread, onMenu, onError }: {
   comment: CommentView;
   depth: number;
   now: number;
@@ -430,7 +487,6 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   onOpenThread?: () => void;
   childCount: number;
   prominent: boolean;
-  onCollapse?: () => void;
   onMenu: () => void;
   onError: (message: string) => void;
 }) {
@@ -461,9 +517,8 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   };
 
   return (
-    <View style={[styles.rowWrap, { marginLeft: Math.min(depth, C.maxIndent) * C.indentStep }]}>
-      {depth > 0 ? <Pressable accessibilityRole="button" accessibilityLabel="Strânge firul" hitSlop={{ left: 15, right: 15 }} onPress={onCollapse} style={styles.threadLine} /> : null}
-      <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, depth > 0 && styles.replyRow, prominent && styles.prominentRow]}>
+    <View style={styles.rowWrap}>
+      <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, { paddingLeft: C.rowPaddingHorizontal + Math.min(depth, C.maxIndent) * C.indentStep }, prominent && styles.prominentRow]}>
       <View style={[styles.avatar, prominent && styles.prominentAvatar]}>
         {avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
           : <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text>}
@@ -510,7 +565,7 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
             <SolidViewerIcon kind="save" size={C.actionIconSize} color={saved ? '#ff315f' : C.actionMuted} />
           </Pressable>
           {!onOpenThread ? <Text style={styles.rowMeta}>{comment.reply_count ?? childCount} răsp.</Text> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Mai multe opțiuni pentru comentariu" hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); onMenu(); }} style={styles.rowAction}><Text style={styles.moreGlyph}>•••</Text></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Mai multe opțiuni pentru comentariu" hitSlop={ACTION_HIT_SLOP} disabled={Boolean(pending)} onPress={(event) => { event.stopPropagation(); onMenu(); }} style={[styles.rowAction, styles.menuAction]}><Svg width={16} height={20} accessibilityElementsHidden><Circle cx={8} cy={4} r={1.6} fill={C.actionMuted} /><Circle cx={8} cy={10} r={1.6} fill={C.actionMuted} /><Circle cx={8} cy={16} r={1.6} fill={C.actionMuted} /></Svg></Pressable>
         </View>
       </View>
       </Pressable>
@@ -562,16 +617,14 @@ const styles = StyleSheet.create({
   list: { flex: 1 },
   listContent: { paddingHorizontal: C.listPaddingHorizontal, paddingTop: C.listPaddingTop, paddingBottom: C.listPaddingBottom },
   listContentNarrow: { paddingHorizontal: 14 },
-  rowWrap: { position: 'relative', marginBottom: C.threadGap, maxWidth: C.threadMaxWidth },
-  threadLine: { position: 'absolute', left: -7, top: 0, bottom: 0, width: 14, borderLeftWidth: 1, borderLeftColor: C.threadLine, minHeight: 44 },
+  rowWrap: { position: 'relative', maxWidth: C.threadMaxWidth },
   row: {
-    flexDirection: 'row', gap: C.columnGap, minHeight: C.rowMinHeight, marginBottom: C.rowMarginBottom,
+    flexDirection: 'row', gap: C.columnGap, minHeight: C.rowMinHeight,
     paddingVertical: C.rowPaddingVertical, paddingHorizontal: C.rowPaddingHorizontal,
-    borderWidth: 1, borderColor: C.rowBorder, borderRadius: C.rowRadius,
-    backgroundColor: C.rowBackgroundTop,
+    borderBottomWidth: 1, borderBottomColor: C.rowBorder,
+    backgroundColor: 'transparent',
   },
-  replyRow: { backgroundColor: C.replyBackgroundTop, borderColor: C.replyBorder },
-  prominentRow: { paddingVertical: C.rowPaddingVertical + 6, borderColor: C.rowBorder },
+  prominentRow: { paddingVertical: C.rowPaddingVertical + 6 },
   prominentAvatar: { width: C.avatarSize + 8, height: C.avatarSize + 8, borderRadius: (C.avatarSize + 8) / 2 },
   prominentText: { fontSize: C.bodySize + 3, lineHeight: C.bodyLineHeight + 4 },
   avatar: {
@@ -596,10 +649,18 @@ const styles = StyleSheet.create({
   pendingText: { color: '#ff9b9b', fontSize: 11 },
   rowActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: C.actionHeight },
   rowAction: { minWidth: 44, minHeight: C.actionHeight, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  menuAction: { flexGrow: 0 },
   rowActionText: { color: C.actionMuted, fontSize: C.actionCounterSize, fontWeight: '700' },
   rowActionOn: { color: '#ff315f' },
   rowMeta: { color: '#7d8b96', fontSize: C.actionCounterSize, textAlign: 'center', minWidth: 44 },
-  moreGlyph: { color: C.actionMuted, fontSize: 20, fontWeight: '800' },
+  editPanel: { borderTopWidth: 1, borderColor: C.rowBorder, backgroundColor: C.surface, paddingHorizontal: 12 },
+  editInput: { color: '#ffffff', fontSize: C.bodySize, minHeight: 64, maxHeight: 160, borderWidth: 1, borderColor: C.rowBorder, borderRadius: 8, padding: 10, textAlignVertical: 'top' },
+  editActions: { flexDirection: 'row', justifyContent: 'space-between' },
+  historyPanel: { maxHeight: 300, borderTopWidth: 1, borderColor: C.rowBorder, backgroundColor: C.surface, paddingHorizontal: 12 },
+  historyScroll: { flexGrow: 0 },
+  historyVersion: { paddingVertical: 10, borderBottomWidth: 1, borderColor: C.rowBorder },
+  historyMeta: { color: C.actionMuted, fontSize: 11, marginBottom: 4 },
+  historyText: { color: '#ffffff', fontSize: C.bodySize, lineHeight: C.bodyLineHeight },
   engagementRow: { flexDirection: 'row', gap: C.columnGap, paddingVertical: 11, paddingHorizontal: 8, borderBottomWidth: 1, borderColor: C.rowBorder, minHeight: 58 },
   engagementFooter: { paddingBottom: 12 },
   repliesToggle: { minHeight: 44, justifyContent: 'center' },
@@ -609,7 +670,7 @@ const styles = StyleSheet.create({
   empty: { color: '#96a2ad', fontSize: 13, textAlign: 'center', paddingVertical: 24 },
   disabled: { color: '#aeb4ba', fontSize: 12, textAlign: 'center', paddingVertical: 8 },
   skeletonWrap: { paddingHorizontal: C.listPaddingHorizontal, paddingTop: C.listPaddingTop },
-  skeletonRow: { flexDirection: 'row', gap: C.columnGap, minHeight: C.rowMinHeight, padding: C.rowPaddingHorizontal, marginBottom: C.threadGap, borderRadius: C.rowRadius, backgroundColor: C.rowBackgroundBottom },
+  skeletonRow: { flexDirection: 'row', gap: C.columnGap, minHeight: C.rowMinHeight, padding: C.rowPaddingHorizontal, borderBottomWidth: 1, borderBottomColor: C.rowBorder },
   skeletonAvatar: { width: C.avatarSize, height: C.avatarSize, borderRadius: C.avatarSize / 2, backgroundColor: '#25282d' },
   skeletonLines: { flex: 1, justifyContent: 'center', gap: 8 },
   skeletonLineShort: { width: '45%', height: 8, borderRadius: 4, backgroundColor: '#25282d' },
