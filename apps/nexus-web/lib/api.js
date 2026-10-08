@@ -4170,6 +4170,56 @@ export async function handleRequest(req, res, ctx) {
     });
   }
 
+  const commentEngagementMatch = path.match(/^\/api\/comments\/(\d+)\/(likes|quotes)$/);
+  if (commentEngagementMatch && method === "GET") {
+    const commentId = Number(commentEngagementMatch[1]);
+    const comment = repo.getCommentById(commentId);
+    const post = comment ? repo.getPostById(comment.post_id) : null;
+    if (!comment || !new Set(["active", "withdrawn"]).has(comment.status) || !post || !repo.canViewPost(auth.user.id, auth.persona, post)) {
+      return json(res, 404, { ok: false, error: "comment not found" });
+    }
+    const cursor = Number(url.searchParams.get("cursor") ?? 0);
+    const limit = Number(url.searchParams.get("limit") ?? 20);
+    if (!Number.isSafeInteger(cursor) || cursor < 0 || cursor > 2000 || !Number.isSafeInteger(limit) || limit < 1 || limit > 50) {
+      return json(res, 400, { ok: false, error: "comment engagement pagination invalid" });
+    }
+    const page = commentEngagementMatch[2] === "likes"
+      ? repo.listCommentLikes(commentId, { viewerId: auth.user.id, viewerPersona: auth.persona, offset: cursor, limit })
+      : repo.listCommentQuotes(commentId, { viewerId: auth.user.id, viewerPersona: auth.persona, offset: cursor, limit });
+    return json(res, 200, { ok: true, comment_id: commentId, post_id: post.id, ...page });
+  }
+
+  if (commentEngagementMatch?.[2] === "quotes" && method === "POST") {
+    const commentId = Number(commentEngagementMatch[1]);
+    const comment = repo.getCommentById(commentId);
+    const post = comment ? repo.getPostById(comment.post_id) : null;
+    if (!comment || comment.status !== "active" || !post || !repo.canViewPost(auth.user.id, auth.persona, post)) {
+      return json(res, 404, { ok: false, error: "comment not found" });
+    }
+    const body = await readJson(req);
+    if (!exactObject(body, new Set(["body"]))) return json(res, 400, { ok: false, error: "quote fields invalid" });
+    const text = sanitizeText(body.body, 1000);
+    if (!text) return json(res, 400, { ok: false, error: "empty quote" });
+    const assessment = assessSocialContent({ text, provenance: "NOT_DECLARED", mediaKind: "text" });
+    if (assessment.decision === "BLOCK") return json(res, 422, {
+      ok: false, error: "Citarea a fost oprită de o regulă automată de siguranță",
+      statement_of_reasons: { policy_version: assessment.policyVersion, reason_codes: assessment.labels.map((label) => label.code), automated_only: true },
+    });
+    const quote = repo.createCommentQuote({ commentId, userId: auth.user.id, actorPersona: auth.persona, body: text });
+    return json(res, 201, { ok: true, comment_id: commentId, post_id: post.id, quote });
+  }
+
+  const commentQuoteMatch = path.match(/^\/api\/comment-quotes\/(\d+)$/);
+  if (commentQuoteMatch && method === "DELETE") {
+    const quoteId = Number(commentQuoteMatch[1]);
+    const quote = repo.getCommentQuoteById(quoteId);
+    if (!quote || quote.status !== "active" || quote.user_id !== auth.user.id || quote.actor_persona !== auth.persona) {
+      return json(res, 404, { ok: false, error: "quote not found" });
+    }
+    repo.withdrawCommentQuote(quoteId, auth.user.id, auth.persona);
+    return json(res, 200, { ok: true, quote_id: quoteId, withdrawn: true });
+  }
+
   if (method === "POST" && path.match(/^\/api\/comments\/\d+\/reaction$/)) {
     const commentId = Number(path.split("/")[3]);
     const comment = repo.getCommentById(commentId);

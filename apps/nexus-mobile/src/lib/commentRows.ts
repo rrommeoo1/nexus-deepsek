@@ -1,10 +1,12 @@
 import type { CommentView } from './socialTypes';
+import type { CommentEngagementItem } from './postInteractions';
 
 export type ThreadRow =
   | { kind: 'comment'; key: string; comment: CommentView; depth: number; childCount: number; parentId: number | null }
   | { kind: 'toggle'; key: string; parentId: number; depth: number; hiddenCount: number; collapsed: boolean }
   | { kind: 'sort-tabs'; key: string }
-  | { kind: 'empty-replies'; key: string };
+  | { kind: 'empty-replies'; key: string }
+  | { kind: 'engagement'; key: string; item: CommentEngagementItem; engagementKind: 'likes' | 'quotes' };
 
 /** A pure pre-order projection; FlatList never mounts recursive row components. */
 export function flattenCommentRows(

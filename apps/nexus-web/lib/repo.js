@@ -2352,6 +2352,49 @@ export function createRepo(db) {
       const mine = viewerId ? this.db.prepare(`SELECT kind FROM comment_reactions WHERE user_id = ? AND actor_persona = ? AND comment_id = ?`).get(viewerId, normalizedViewerPersona, commentId) : null;
       return { counts: Object.fromEntries(rows.map((row) => [row.kind, Number(row.count)])), viewer_reaction: mine?.kind ?? null };
     },
+    listCommentLikes(commentId, { viewerId, viewerPersona = "social", offset = 0, limit = 20 } = {}) {
+      const rows = this.db.prepare(`SELECT cr.user_id, cr.actor_persona, cr.created_at,
+          u.handle, COALESCE(p.name, u.display_name) AS display_name, p.avatar
+        FROM comment_reactions cr JOIN users u ON u.id = cr.user_id
+        LEFT JOIN personas p ON p.user_id = cr.user_id AND p.persona = cr.actor_persona
+        WHERE cr.comment_id = ? AND cr.kind = 'LIKE'
+        ORDER BY cr.created_at DESC, cr.user_id DESC, cr.actor_persona DESC`).all(commentId);
+      const visible = rows.filter((row) => viewerId == null ||
+        (!this.isBlockedBetween(viewerId, viewerPersona, row.user_id, row.actor_persona)
+          && !this.isMuted(viewerId, viewerPersona, row.user_id)));
+      return { items: visible.slice(offset, offset + limit), total_visible: visible.length,
+        next_cursor: offset + limit < visible.length ? String(offset + limit) : null };
+    },
+    createCommentQuote({ commentId, userId, actorPersona = "social", body }) {
+      const persona = normalizePersona(actorPersona);
+      const contentCommitment = sha256Hex(JSON.stringify({ commentId, userId, actorPersona: persona, body }));
+      const info = this.db.prepare(`INSERT INTO comment_quotes
+        (comment_id, user_id, actor_persona, body, content_commitment)
+        VALUES (?, ?, ?, ?, ?)`).run(commentId, userId, persona, body, contentCommitment);
+      return this.db.prepare(`SELECT * FROM comment_quotes WHERE id = ?`).get(Number(info.lastInsertRowid));
+    },
+    getCommentQuoteById(quoteId) {
+      return this.db.prepare(`SELECT * FROM comment_quotes WHERE id = ?`).get(Number(quoteId)) ?? null;
+    },
+    listCommentQuotes(commentId, { viewerId, viewerPersona = "social", offset = 0, limit = 20 } = {}) {
+      const rows = this.db.prepare(`SELECT cq.id, cq.comment_id, cq.user_id, cq.actor_persona,
+          cq.body, cq.created_at, u.handle, COALESCE(p.name, u.display_name) AS display_name, p.avatar
+        FROM comment_quotes cq JOIN users u ON u.id = cq.user_id
+        LEFT JOIN personas p ON p.user_id = cq.user_id AND p.persona = cq.actor_persona
+        WHERE cq.comment_id = ? AND cq.status = 'active'
+        ORDER BY cq.created_at DESC, cq.id DESC`).all(commentId);
+      const visible = rows.filter((row) => viewerId == null ||
+        (!this.isBlockedBetween(viewerId, viewerPersona, row.user_id, row.actor_persona)
+          && !this.isMuted(viewerId, viewerPersona, row.user_id)));
+      return { items: visible.slice(offset, offset + limit), total_visible: visible.length,
+        next_cursor: offset + limit < visible.length ? String(offset + limit) : null };
+    },
+    withdrawCommentQuote(quoteId, userId, actorPersona = "social") {
+      const result = this.db.prepare(`UPDATE comment_quotes SET status = 'withdrawn', body = '', withdrawn_at = unixepoch()
+        WHERE id = ? AND user_id = ? AND actor_persona = ? AND status = 'active'`)
+        .run(quoteId, userId, normalizePersona(actorPersona));
+      return result.changes === 1;
+    },
     setSavedPost(userId, actorPersona, postId, active = true) {
       actorPersona = normalizePersona(actorPersona);
       if (active) this.db.prepare(`INSERT OR IGNORE INTO saved_posts (user_id, actor_persona, post_id) VALUES (?, ?, ?)`).run(userId, actorPersona, postId);

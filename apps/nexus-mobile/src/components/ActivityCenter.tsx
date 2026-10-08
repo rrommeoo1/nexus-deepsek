@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
 
 /**
@@ -83,13 +83,13 @@ export function ActivityCenter({ filter, activePersona, viewerId }: {
 
   useEffect(() => {
     let alive = true;
-    setError('');
     Promise.all([
       nexusApi<Record<string, any>>(`/api/notifications?persona=${encodeURIComponent(listPersona)}`).catch(() => null),
       nexusApi<Record<string, any>>(`/api/notification-preferences?persona=${encodeURIComponent(settingsPersona)}`).catch(() => null),
     ]).then(([notifications, prefs]) => {
       if (!alive) return;
       if (!notifications?.ok || !prefs?.ok) { setError(COPY.loadError); return; }
+      setError('');
       const list = (Array.isArray(notifications.notifications) ? notifications.notifications : [])
         .filter((row: NotificationRow) => row && Number.isSafeInteger(Number(row.id)) && Number(row.id) > 0 && TYPES.has(String(row.type)));
       setRows(list);

@@ -219,7 +219,7 @@ export const socialTokens = {
   /** Final compact comment cascade: feed-surface.css:3182-3240, 3032-3036, 2533-2538. */
   comments: {
     surface: '#0b0d10',
-    listPaddingHorizontal: 28,
+      listPaddingHorizontal: 12,
     listPaddingTop: 5,
     listPaddingBottom: 8,
     threadMaxWidth: 480,
@@ -248,9 +248,9 @@ export const socialTokens = {
     bodySize: 12,
     bodyLineHeight: 16,
     bodyColor: '#f1f2f3',
-    actionHeight: 20,
-    actionIconSize: 14,
-    actionCounterSize: 9,
+      actionHeight: 44,
+      actionIconSize: 20,
+      actionCounterSize: 11,
     actionMuted: '#8b9197',
     toggleHeight: 25,
     toggleColor: '#aeb4ba',

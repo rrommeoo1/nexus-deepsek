@@ -131,14 +131,17 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   /** The row whose avatar was pressed: `#messengerContact` (`messenger-contact.js:82`). */
   const [contactFor, setContactFor] = useState<Conversation | null>(null);
   /** `#inbox-message-results` (`messenger-search.js:58`) — the two server searches of the field. */
-  const [conversationHits, setConversationHits] = useState<MessageSearchResult & { conversations?: Conversation[] }>({ state: 'idle', messages: [] });
-  const [messageHits, setMessageHits] = useState<MessageSearchResult>({ state: 'idle', messages: [] });
+  const [conversationSearch, setConversationSearch] = useState<{ key: string; result: MessageSearchResult & { conversations?: Conversation[] } } | null>(null);
+  const [messageSearch, setMessageSearch] = useState<{ key: string; result: MessageSearchResult } | null>(null);
   const searchTicket = useRef(0);
 
 
   /** `inboxFilter` (`app.js:196`, `:7801`): it starts as the active profile and is reset with the context. */
-  const [moduleChoice, setModuleChoice] = useState(activePersona);
-  useEffect(() => { setModuleChoice(activePersona); }, [activePersona]);
+  const [moduleSelection, setModuleSelection] = useState({ persona: activePersona, choice: activePersona });
+  const moduleChoice = moduleSelection.persona === activePersona ? moduleSelection.choice : activePersona;
+  const searchKey = JSON.stringify([query.trim(), box, moduleChoice, activePersona, owner.id]);
+  const conversationHits = conversationSearch?.key === searchKey ? conversationSearch.result : { state: 'idle' as const, messages: [] };
+  const messageHits = messageSearch?.key === searchKey ? messageSearch.result : { state: 'idle' as const, messages: [] };
 
   /**
    * The unseen shelf. A refused read (another persona, a viewer the answer does not belong to) leaves
@@ -161,7 +164,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   // plate chose is part of the address the way `app.js:7828` makes it part of the web's own call. The
   // activity box is not a conversation list at all (`app.js:7824-7827`), so it asks for nothing here.
   useEffect(() => {
-    if (box === 'activity') { setLoading(false); setRefreshing(false); return; }
+    if (box === 'activity') return;
     let alive = true;
     nexusApi<ConversationsPage>(`/api/chat/conversations?persona=${encodeURIComponent(moduleChoice)}&box=${box}&limit=30`)
       .then((page) => { if (alive) { setConversations(page.conversations ?? []); setError(''); } })
@@ -202,11 +205,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   useEffect(() => {
     const trimmed = query.trim();
     const ticket = ++searchTicket.current;
-    if (trimmed.length < SEARCH_MIN_LENGTH || box === 'activity') {
-      setConversationHits({ state: 'idle', messages: [] });
-      setMessageHits({ state: 'idle', messages: [] });
-      return;
-    }
+    if (trimmed.length < SEARCH_MIN_LENGTH || box === 'activity') return;
     const timer = setTimeout(() => {
       if (ticket !== searchTicket.current) return;
       const context = { persona: moduleChoice, viewerId: Number(owner.id), viewerPersona: activePersona, box };
@@ -214,20 +213,20 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
         kind: 'conversations',
         context,
         current: () => ticket === searchTicket.current,
-        render: (result) => setConversationHits(result),
+        render: (result) => setConversationSearch({ key: searchKey, result }),
         validateConversation: (row) => Number.isSafeInteger(Number(row?.id)) && Number(row.id) > 0,
       });
       const messageSearch = createMessageSearch({
         kind: 'messages',
         context,
         current: () => ticket === searchTicket.current,
-        render: (result) => setMessageHits(result),
+        render: (result) => setMessageSearch({ key: searchKey, result }),
       });
       void conversationsSearch.load();
       void messageSearch.load();
     }, 300);
     return () => clearTimeout(timer);
-  }, [activePersona, box, moduleChoice, owner.id, query]);
+  }, [activePersona, box, moduleChoice, owner.id, query, searchKey]);
 
   /** `query.trim().length >= 2` (`messenger-search.js:102`) — the results replace the list from there. */
   const serverSearching = query.trim().length >= SEARCH_MIN_LENGTH;
@@ -248,7 +247,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
     <View style={styles.plates}>
       <InboxModulePlate
         module={moduleChoice}
-        onSelect={(id) => { setModuleChoice(id); if (id !== 'all') onSelectModule?.(id); }}
+        onSelect={(id) => { setModuleSelection({ persona: activePersona, choice: id }); if (id !== 'all') onSelectModule?.(id); }}
       />
       <InboxToolsPlate
         box={box}

@@ -383,6 +383,20 @@ CREATE TABLE IF NOT EXISTS comment_shares (
 );
 CREATE INDEX IF NOT EXISTS idx_comment_shares_reply ON comment_shares(comment_id, channel);
 CREATE INDEX IF NOT EXISTS idx_comment_shares_profile ON comment_shares(user_id, actor_persona, channel, created_at);
+-- A quote is an authored, moderated text with a reference to its source comment.
+-- It is not the existing text-free repost in comment_shares.
+CREATE TABLE IF NOT EXISTS comment_quotes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  comment_id INTEGER NOT NULL REFERENCES comments(id) ON DELETE CASCADE,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  actor_persona TEXT NOT NULL,
+  body TEXT NOT NULL,
+  content_commitment TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','withdrawn')),
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  withdrawn_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_comment_quotes_source ON comment_quotes(comment_id, status, created_at DESC, id DESC);
 -- A post can carry an ordered set of media. The posts.media_id column stays the cover (the first
 -- one), so every existing reader keeps working while the carousel reads this table.
 CREATE TABLE IF NOT EXISTS post_media (

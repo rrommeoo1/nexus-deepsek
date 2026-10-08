@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable,
+  Alert, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { newMutationKey } from '../lib/idempotency';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
-import { createComment, fetchComments, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment } from '../lib/postInteractions';
+import { createComment, fetchCommentEngagement, fetchComments, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
+  type CommentEngagementItem, type CommentEngagementPage } from '../lib/postInteractions';
+import { NexusApiError } from '../lib/nexusApi';
 import {
   compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
   type CommentPage, type CommentView, type ReactionSummary, type SocialPost,
@@ -49,6 +51,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState<PendingComment[]>([]);
   const [sort, setSort] = useState<'relevant' | 'newest'>('relevant');
+  const [engagementKind, setEngagementKind] = useState<'likes' | 'quotes' | null>(null);
+  const [engagementPage, setEngagementPage] = useState<CommentEngagementPage | null>(null);
+  const [engagementError, setEngagementError] = useState('');
+  const [engagementLoading, setEngagementLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>({});
@@ -61,6 +67,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
   const requestId = useRef(0);
+  const engagementTicket = useRef(0);
   const nextTempId = useRef(-1);
   const scrollToComment = useRef<number | null>(null);
   const list = useRef<FlatList<ThreadRow>>(null);
@@ -96,6 +103,35 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
     const timer = setTimeout(() => load(0), 0);
     return () => { clearTimeout(timer); requestId.current += 1; };
   }, [load]);
+
+  const loadEngagement = useCallback((kind: 'likes' | 'quotes', cursor = 0) => {
+    if (!focusId) return;
+    const ticket = ++engagementTicket.current;
+    setEngagementLoading(true);
+    setEngagementError('');
+    fetchCommentEngagement(focusId, kind, cursor)
+      .then((result) => {
+        if (ticket !== engagementTicket.current) return;
+        if (result.comment_id !== focusId || !Array.isArray(result.items)) throw new Error('Lista de interacțiuni nu este validă.');
+        setEngagementPage((previous) => cursor === 0 ? result : {
+          ...result, items: [...(previous?.items ?? []), ...result.items.filter((item) =>
+            !previous?.items.some((known) => kind === 'quotes' ? known.id === item.id : known.user_id === item.user_id && known.actor_persona === item.actor_persona))],
+        });
+      })
+      .catch((cause) => {
+        if (ticket !== engagementTicket.current) return;
+        setEngagementError(cause instanceof NexusApiError && cause.status === 404
+          ? 'Lista nu este disponibilă pe versiunea actuală a backend-ului Railway.'
+          : cause instanceof Error ? cause.message : 'Lista nu poate fi încărcată.');
+      })
+      .finally(() => { if (ticket === engagementTicket.current) setEngagementLoading(false); });
+  }, [focusId]);
+
+  useEffect(() => {
+    if (!focusId || !engagementKind) return;
+    const timer = setTimeout(() => loadEngagement(engagementKind), 0);
+    return () => { clearTimeout(timer); engagementTicket.current += 1; };
+  }, [engagementKind, focusId, loadEngagement]);
 
   useEffect(() => {
     const initial = setTimeout(() => setClock(Date.now()), 0);
@@ -189,9 +225,17 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
     ? { id: focusId, handle: comments.find((comment) => comment.id === focusId)?.handle || 'nexus' }
     : replyTo;
   const rows = useMemo(() => focusId
-    ? focusedCommentRows(comments, focusId)
+    ? engagementKind
+      ? [
+        ...focusedCommentRows(comments, focusId).slice(0, 2),
+        ...(engagementPage?.items ?? []).map((item, index): ThreadRow => ({
+          kind: 'engagement', key: engagementKind === 'quotes' ? `quote:${item.id}` : `like:${item.user_id}:${item.actor_persona}:${index}`,
+          item, engagementKind,
+        })),
+      ]
+      : focusedCommentRows(comments, focusId)
     : onOpenThread ? rootCommentRows(comments) : flattenCommentRows(comments, collapsed, revealed),
-  [comments, collapsed, focusId, onOpenThread, revealed]);
+  [comments, collapsed, engagementKind, engagementPage?.items, focusId, onOpenThread, revealed]);
   useEffect(() => {
     if (!focusId || !page?.next_cursor || comments.some((comment) => comment.id === focusId) || loadingMore || error) return;
     const cursor = Number(page.next_cursor);
@@ -256,14 +300,16 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
             initialNumToRender={12}
             maxToRenderPerBatch={12}
             windowSize={9}
-            refreshing={refreshing}
-            onRefresh={() => load(0, true)}
+            refreshing={engagementKind ? engagementLoading : refreshing}
+            onRefresh={() => engagementKind ? loadEngagement(engagementKind) : load(0, true)}
             onScrollToIndexFailed={({ index }) => setTimeout(() => list.current?.scrollToIndex({ index, animated: true, viewPosition: 0.5 }), 300)}
             ListEmptyComponent={!loading && !error && !page?.next_cursor ? <Text style={styles.empty}>{focusId ? 'Comentariul nu este disponibil.' : 'Niciun comentariu încă.'}</Text> : null}
-            renderItem={({ item }) => item.kind === 'sort-tabs' ? <View style={styles.detailTabs} accessibilityRole="tablist" accessibilityLabel="Sortarea răspunsurilor">
-              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai relevante" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setError(''); setSort('relevant'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, sort === 'relevant' && styles.detailTabSelected]}>Cele mai relevante</Text></Pressable>
-              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai noi" accessibilityState={{ selected: sort === 'newest' }} onPress={() => { if (sort !== 'newest') { setError(''); setSort('newest'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, sort === 'newest' && styles.detailTabSelected]}>Cele mai noi</Text></Pressable>
-            </View> : item.kind === 'empty-replies' ? <Text style={styles.empty}>Niciun răspuns încă.</Text> : item.kind === 'toggle' ? <Pressable
+            renderItem={({ item }) => item.kind === 'sort-tabs' ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.detailTabs} accessibilityRole="tablist" accessibilityLabel="Răspunsuri și interacțiuni">
+              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai relevante" accessibilityState={{ selected: !engagementKind && sort === 'relevant' }} onPress={() => { setEngagementKind(null); if (sort !== 'relevant') { setError(''); setSort('relevant'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, !engagementKind && sort === 'relevant' && styles.detailTabSelected]}>Cele mai relevante</Text></Pressable>
+              <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai noi" accessibilityState={{ selected: !engagementKind && sort === 'newest' }} onPress={() => { setEngagementKind(null); if (sort !== 'newest') { setError(''); setSort('newest'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, !engagementKind && sort === 'newest' && styles.detailTabSelected]}>Cele mai noi</Text></Pressable>
+              <Pressable accessibilityRole="tab" accessibilityLabel="View likes" accessibilityState={{ selected: engagementKind === 'likes' }} onPress={() => { if (engagementKind !== 'likes') { setEngagementPage(null); setEngagementKind('likes'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, engagementKind === 'likes' && styles.detailTabSelected]}>Aprecieri</Text></Pressable>
+              <Pressable accessibilityRole="tab" accessibilityLabel="View quotes" accessibilityState={{ selected: engagementKind === 'quotes' }} onPress={() => { if (engagementKind !== 'quotes') { setEngagementPage(null); setEngagementKind('quotes'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, engagementKind === 'quotes' && styles.detailTabSelected]}>Citări</Text></Pressable>
+            </ScrollView> : item.kind === 'engagement' ? <EngagementRow item={item.item} kind={item.engagementKind} now={clock} /> : item.kind === 'empty-replies' ? <Text style={styles.empty}>Niciun răspuns încă.</Text> : item.kind === 'toggle' ? <Pressable
               accessibilityRole="button"
               accessibilityLabel={item.collapsed ? `${item.hiddenCount} răspunsuri ascunse. Extinde firul` : item.hiddenCount ? `Vezi încă ${item.hiddenCount} răspunsuri` : 'Strânge firul'}
               accessibilityState={{ expanded: !item.collapsed }}
@@ -291,7 +337,16 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
                 onMenu={() => setMenuTarget(item.comment)}
                 onError={setError}
               />}
-            ListFooterComponent={!focusId && page?.next_cursor ? (
+            ListFooterComponent={engagementKind ? <View style={styles.engagementFooter}>
+              {engagementLoading && !engagementPage ? <Text style={styles.empty}>Se încarcă lista…</Text> : null}
+              {engagementError ? <Text style={styles.error}>{engagementError}</Text> : null}
+              {engagementError ? <Pressable accessibilityRole="button" accessibilityLabel="Reîncearcă încărcarea listei" onPress={() => loadEngagement(engagementKind)} style={styles.more}><Text style={styles.moreText}>Reîncearcă</Text></Pressable> : null}
+              {!engagementLoading && !engagementError && engagementPage?.items.length === 0 ? <Text style={styles.empty}>{engagementKind === 'likes' ? 'Nicio apreciere încă.' : 'Nicio citare încă.'}</Text> : null}
+              {engagementPage?.next_cursor && !engagementError ? <Pressable accessibilityRole="button" accessibilityLabel="Încarcă mai multe" disabled={engagementLoading} onPress={() => {
+                const cursor = Number(engagementPage.next_cursor);
+                if (Number.isSafeInteger(cursor)) loadEngagement(engagementKind, cursor);
+              }} style={styles.more}><Text style={styles.moreText}>{engagementLoading ? 'Se încarcă…' : 'Mai multe'}</Text></Pressable> : null}
+            </View> : !focusId && page?.next_cursor ? (
               <Pressable accessibilityRole="button" accessibilityLabel="Încarcă mai multe comentarii" disabled={loadingMore} onPress={() => {
                 const cursor = Number(page.next_cursor);
                 if (Number.isSafeInteger(cursor)) load(cursor);
@@ -463,6 +518,21 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   );
 }
 
+function EngagementRow({ item, kind, now }: { item: CommentEngagementItem; kind: 'likes' | 'quotes'; now: number }) {
+  const avatar = mediaSourceForPath(item.avatar);
+  const name = item.display_name || item.handle;
+  return <View style={styles.engagementRow}>
+    <View style={styles.avatar}>{avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
+      : <Text style={styles.avatarInitials}>{initialsFor(name, item.handle)}</Text>}</View>
+    <View style={styles.body}>
+      <View style={styles.rowHead}><Text style={styles.rowName} numberOfLines={1}>{name}</Text>
+        <Text style={styles.rowHandle} numberOfLines={1}>{`@${item.handle}`}</Text>
+        <Text style={styles.rowTime}>{commentRelativeTime(item.created_at, now)}</Text></View>
+      {kind === 'quotes' ? <Text style={styles.rowText}>{item.body}</Text> : null}
+    </View>
+  </View>;
+}
+
 const styles = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.62)' },
   dismiss: { flex: 1 },
@@ -524,12 +594,14 @@ const styles = StyleSheet.create({
   tombstone: { color: '#83969d', fontSize: 10, fontStyle: 'italic', marginTop: 2 },
   pendingState: { minHeight: 44, justifyContent: 'center' },
   pendingText: { color: '#ff9b9b', fontSize: 11 },
-  rowActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: C.actionHeight, height: C.actionHeight },
-  rowAction: { minWidth: 40, minHeight: C.actionHeight, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
+  rowActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: C.actionHeight },
+  rowAction: { minWidth: 44, minHeight: C.actionHeight, flexGrow: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2 },
   rowActionText: { color: C.actionMuted, fontSize: C.actionCounterSize, fontWeight: '700' },
   rowActionOn: { color: '#ff315f' },
-  rowMeta: { color: '#7d8b96', fontSize: C.actionCounterSize },
-  moreGlyph: { color: C.actionMuted, fontSize: 15, fontWeight: '800' },
+  rowMeta: { color: '#7d8b96', fontSize: C.actionCounterSize, textAlign: 'center', minWidth: 44 },
+  moreGlyph: { color: C.actionMuted, fontSize: 20, fontWeight: '800' },
+  engagementRow: { flexDirection: 'row', gap: C.columnGap, paddingVertical: 11, paddingHorizontal: 8, borderBottomWidth: 1, borderColor: C.rowBorder, minHeight: 58 },
+  engagementFooter: { paddingBottom: 12 },
   repliesToggle: { minHeight: 44, justifyContent: 'center' },
   repliesToggleText: { color: C.toggleColor, fontSize: 10, fontWeight: '800' },
   replyLine: { color: '#cbd7df', fontSize: 13, lineHeight: 18 },

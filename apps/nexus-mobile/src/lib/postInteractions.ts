@@ -27,6 +27,14 @@ export type SaveAnswer = { ok: true; post_id: number; saved: boolean; private?: 
 export type RepostAnswer = ReactionSummary & { ok: true; post_id: number; active: boolean; reposted_by_me?: boolean };
 
 export type CommentCreated = { ok: true; post_id: number; parent_id: number | null; comment: CommentView };
+export type CommentEngagementItem = {
+  id?: number; user_id: number; actor_persona: string; handle: string; display_name: string;
+  avatar?: string | null; body?: string; created_at: number;
+};
+export type CommentEngagementPage = {
+  ok: true; comment_id: number; post_id: number; items: CommentEngagementItem[];
+  total_visible: number; next_cursor: string | null;
+};
 
 export function setPostReaction(postId: number, kind: string, active: boolean): Promise<ReactionAnswer> {
   return nexusApi<ReactionAnswer>(`/api/posts/${postId}/reaction`, {
@@ -71,6 +79,11 @@ export function createComment(postId: number, body: string, parentId?: number, i
     ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
     body: JSON.stringify(parentId ? { body, parent_id: parentId } : { body }),
   });
+}
+
+/** Actors and authored citations are server records; an old Railway backend returns an explicit error. */
+export function fetchCommentEngagement(commentId: number, kind: 'likes' | 'quotes', cursor = 0): Promise<CommentEngagementPage> {
+  return nexusApi<CommentEngagementPage>(`/api/comments/${commentId}/${kind}?cursor=${cursor}&limit=20`);
 }
 
 /** Author-only withdrawal: the server keeps the tombstone and every child reply. */
