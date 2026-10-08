@@ -26,5 +26,5 @@ export default function RootLayout() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  statusBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, backgroundColor: 'rgba(7,9,13,0.66)' },
+  statusBand: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 100, backgroundColor: '#000000' },
 });

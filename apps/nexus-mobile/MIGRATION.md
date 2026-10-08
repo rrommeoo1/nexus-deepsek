@@ -1253,3 +1253,16 @@ altui autor, meniul a afișat doar opțiunea de raportare. În dump-ul nativ, ba
 stare ocupă y=0–150 px fizici, iar logo-ul feed-ului începe la y=201 px. Typecheck și
 lint globale trec. Doar JS/TS și documentație; Fast Refresh, fără APK nou și fără deploy.
 
+Corecție după captura 130548: banda translucidă lăsa video-ul să se vadă prin zona
+notificărilor. Fundalul benzii este acum negru opac, fără mutarea sau decuparea
+clipului. Pentru comentariile lungi, textul rămâne plafonat la cinci rânduri, dar
+„Vezi mai mult”/„Vezi mai puțin” sunt acțiuni italice la finalul textului, nu un
+rând separat înalt. Previzualizarea rezervă spațiu folosind liniile măsurate nativ,
+iar ultima zonă a textului are o țintă tactilă transparentă de 44 dp; acțiunile
+de sub text nu se mai extind peste ea.
+După revenirea Nexus Dev în prim-plan, `uiautomator` a măsurat rândul lung la
+y=1515–1912 px fizici, față de 1515–2026 px înainte: 114 px fizici, circa 44 dp
+economisiți. Pe Xiaomi s-au verificat deschiderea și închiderea prin noua țintă de
+44 dp; atingerea în afara ei încă deschide firul comentariului. Typecheck și lint
+trec. Banda de sus este opacă în cod; nu s-a făcut o comparație vizuală nouă pe pixel.
+

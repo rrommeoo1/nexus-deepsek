@@ -20,7 +20,8 @@ import { SolidViewerIcon } from './SolidViewerIcon';
 
 type PendingComment = { tempId: number; key: string; body: string; parentId: number | null; createdAt: number; state: 'sending' | 'failed'; error?: string };
 const C = socialTokens.comments;
-const ACTION_HIT_SLOP = { top: 12, bottom: 12, left: 2, right: 2 } as const;
+// Every action already has a 44 dp target; vertical hit slop would cover the inline text above it.
+const ACTION_HIT_SLOP = { left: 2, right: 2 } as const;
 const REPORT_OPTIONS = [
   ['HARASSMENT_THREAT', 'Hărțuire sau amenințări'], ['HATE', 'Ură'],
   ['SCAM_FRAUD', 'Înșelătorie'], ['PERSONAL_DATA', 'Date personale'],
@@ -356,6 +357,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               style={[styles.repliesToggle, { marginLeft: Math.min(item.depth, C.maxIndent) * C.indentStep + 54 }]}
             ><Text style={styles.repliesToggleText}>{item.collapsed ? `▸ ${item.hiddenCount} răspunsuri ascunse` : item.hiddenCount ? `▾ Vezi încă ${item.hiddenCount} răspunsuri` : '▾ Strânge firul'}</Text></Pressable>
               : <CommentRow
+                key={`${item.comment.id}:${item.comment.body ?? ''}`}
                 comment={item.comment} depth={item.depth} now={clock}
                 pending={pending.find((entry) => entry.tempId === item.comment.id)}
                 summary={likes[item.comment.id] ?? item.comment.reactions ?? null}
@@ -495,6 +497,7 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   const [shares, setShares] = useState(comment.reply_shares ?? 0);
   const [expanded, setExpanded] = useState(false);
   const [hasMoreLines, setHasMoreLines] = useState(false);
+  const [previewBody, setPreviewBody] = useState('');
   const avatar = mediaSourceForPath(comment.avatar || comment.author?.avatar);
   const handle = comment.handle || comment.author?.handle || 'nexus';
   const name = comment.display_name || comment.author?.display_name || handle;
@@ -531,14 +534,22 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
         </View>
         {comment.pinned_by_owner ? <Text style={styles.pinned}>Fixat de autor</Text> : null}
         {comment.status === 'withdrawn' ? <Text style={styles.tombstone}>Comentariu retras · istoricul este păstrat</Text> : <View>
-          <Text style={[styles.rowText, prominent && styles.prominentText]} numberOfLines={expanded || prominent ? undefined : 5} onTextLayout={(event) => {
-            // The full measurement is rendered off-layout below; length in characters is not a proxy for lines.
-            if (expanded && event.nativeEvent.lines.length > 5) setHasMoreLines(true);
-          }}>{comment.body}</Text>
+          <Text style={[styles.rowText, prominent && styles.prominentText]} numberOfLines={!prominent && hasMoreLines && !expanded ? 5 : undefined}>
+            {!prominent && hasMoreLines && !expanded ? previewBody : comment.body}
+            {hasMoreLines && !prominent ? <Text style={styles.expandInline}>{expanded ? ' Vezi mai puțin' : '… Vezi mai mult'}</Text> : null}
+          </Text>
           {!hasMoreLines ? <Text style={styles.measureText} onTextLayout={(event) => {
-            if (event.nativeEvent.lines.length > 5) setHasMoreLines(true);
+            const lines = event.nativeEvent.lines;
+            if (lines.length <= 5) return;
+            // Reserve room on line five for the inline action, using the actual native line layout.
+            const measuredLength = lines.slice(0, 5).reduce((total, line) => total + line.text.length, 0);
+            const limit = Math.max(0, measuredLength - 30);
+            const raw = (comment.body ?? '').slice(0, limit).trimEnd();
+            const lastSpace = raw.lastIndexOf(' ');
+            setPreviewBody(lastSpace > limit - 18 ? raw.slice(0, lastSpace) : raw);
+            setHasMoreLines(true);
           }}>{comment.body}</Text> : null}
-          {hasMoreLines ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Vezi mai puțin' : 'Vezi mai mult'} onPress={(event) => { event.stopPropagation(); setExpanded((value) => !value); }} style={styles.expandButton}><Text style={styles.expandText}>{expanded ? 'Vezi mai puțin' : 'Vezi mai mult'}</Text></Pressable> : null}
+          {hasMoreLines && !prominent ? <Pressable accessibilityRole="button" accessibilityLabel={expanded ? 'Vezi mai puțin' : 'Vezi mai mult'} onPress={(event) => { event.stopPropagation(); setExpanded((value) => !value); }} style={styles.expandOverlay} /> : null}
         </View>}
         {prominent && commentFullDate(comment.created_at) ? <Text style={styles.fullDate}>{commentFullDate(comment.created_at)}</Text> : null}
         {pending ? <Pressable accessibilityRole="button" accessibilityLabel={pending.state === 'failed' ? 'Reîncearcă trimiterea comentariului' : 'Comentariul se trimite'} disabled={pending.state !== 'failed'} onPress={(event) => { event.stopPropagation(); onRetry(pending); }} style={styles.pendingState}><Text style={styles.pendingText}>{pending.state === 'failed' ? `Nu s-a trimis · Reîncearcă${pending.error ? ` · ${pending.error}` : ''}` : 'Se trimite…'}</Text></Pressable> : null}
@@ -642,8 +653,8 @@ const styles = StyleSheet.create({
   pinned: { color: '#f0c274', fontSize: 11, fontWeight: '700', marginTop: 2 },
   rowText: { color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, marginTop: 1 },
   measureText: { position: 'absolute', opacity: 0, zIndex: -1, color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, left: 0, right: 0 },
-  expandButton: { minHeight: 44, justifyContent: 'center' },
-  expandText: { color: '#d3d6da', fontSize: 10, fontWeight: '800' },
+  expandInline: { color: '#d3d6da', fontSize: C.bodySize, fontStyle: 'italic', fontWeight: '600' },
+  expandOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 44 },
   tombstone: { color: '#83969d', fontSize: 10, fontStyle: 'italic', marginTop: 2 },
   pendingState: { minHeight: 44, justifyContent: 'center' },
   pendingText: { color: '#ff9b9b', fontSize: 11 },
