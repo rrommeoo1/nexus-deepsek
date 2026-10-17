@@ -96,6 +96,13 @@ Alfabetul acceptat (alfanumeric, majuscule) se confirmă la emitere, când devne
 tranzacția `issue`. `JBK` rămâne rezerva dacă `JUNGLE` e deja ocupat pe devnet. Ticker-ul este o chestiune
 de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu simbol scurt afișat.
 
+**Verificat pe 17 oct 2026, în citire:** `GET https://devnet-api.multiversx.com/tokens?search=JUNGLE&size=10`
+a întors trei tokenuri numite `jungleverse` (`JGVV2-4e46c5`, `JGVV3-b79a90`, `JGVV4-5a6476`), niciunul
+cu ticker-ul `JUNGLE`; `GET /esdt/tokens?search=JUNGLE` nu există (404). Căutarea este pe nume și pe
+identificator, deci rezultatul **nu dovedește** că ticker-ul e liber — dovedește doar că niciun token
+cunoscut nu poartă numele. Disponibilitatea se stabilește numai la emitere (`issue` pe devnet), cu
+portofelul de test; până atunci `JUNGLE` rămâne propunerea, iar `JBK` rezerva.
+
 **Zecimale:** 2, deci unitatea întreagă minimă este **1 JBc = 0,01 JB**. Registrul ține doar întregi în
 JBc; nu există float nicăieri în lanțul de calcul.
 
