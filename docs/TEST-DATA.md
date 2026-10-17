@@ -313,6 +313,50 @@ anulare) → #3/#5 (acceptarea din lista de cereri) → aceeași stare verificat
 în listă → #6 (block: dispariția din feed/căutare/listă) → deblocare → #7 (`Mesaj` cu politică restrictivă).
 
 Notă: pașii distructivi (#6) se fac **doar** între conturile de test, cu revenirea de mai sus executată imediat
+cookie-uri, parole ori chei.
+
+## 11. Starea pe deployment la 17 octombrie 2026 (după deploy-ul `joined_at`)
+
+Verificat cu sesiunea contului `test` (tokenul din aplicația de pe telefon) direct pe
+`https://nexus-deepsek-production.up.railway.app`, fără nicio scriere:
+
+| Ce s-a citit | Rezultat |
+|---|---|
+| `GET /api/posts/5/comments` | **20** de comentarii, inclusiv ale altor conturi (user 3 = `urailwaytest02cb2b`, user 4 = `urailwaytest03850c`) — starea „comentariu al altui cont pe o postare a lui `@test`” **există** |
+| `GET /api/stories?state=all` | **0** — toate story-urile create de seed au expirat (durata 168 h, expirare 14 oct) |
+| `GET /api/chat/conversations` | **0** — conversația 1 din §10.5 nu mai există |
+| `GET /api/follow/requests?direction=incoming` | **0** — nicio cerere primită, deci nici starea „cont privat + cereri în ambele sensuri” |
+
+### 11.1 De ce nu s-au putut adăuga astăzi prin API-ul public
+
+Toate cele patru stări cer **sesiunea altui cont**, iar conturile de test de pe Railway nu mai pot fi
+autentificate:
+
+* `POST /auth/email/login` cu emailul și parola din `docs/.test-sessions.local` → **403** „verifică adresa
+  de email înainte de autentificare” pentru toate cele cinci (`@nexus.test` este un domeniu fără inbox,
+  deci emailul nu poate fi verificat niciodată);
+* cookie-urile salvate în același fișier → **401** (sesiunile create la signup au expirat);
+* `POST /auth/email/signup` → cere dovada portofelului (`wallet_proof` semnat), pe care doar scriptul de
+  seed o poate produce, și refuză un email/handle deja folosit.
+
+Consecința: aceste conturi sunt **conturi cu o singură sesiune** — utile doar în rularea care le
+creează. Orice conținut nou de la ele trebuie scris fie în aceeași rulare de seed, fie după ce
+proprietarul verifică un cont real (sau creează unul cu inbox accesibil) și îl dă ca al doilea cont.
+
+### 11.2 Rețeta, gata de rulat când există al doilea cont
+
+Toate apelurile poartă `Origin: https://nexus-deepsek-production.up.railway.app` și un
+`Idempotency-Key` unic; niciunul nu șterge nimic.
+
+| Stare | Apel | Revenire |
+|---|---|---|
+| story străin | ca al doilea cont: `POST /api/stories` `{ "caption": "[test] Story de verificare", "visibility": "public", "duration_hours": 168 }` | `POST /api/stories/:id/archive` |
+| mesaj către `@test` | ca al doilea cont: `POST /api/chat/conversations` `{ "username": "test" }`, apoi `POST /api/chat/conversations/:id/messages` cu text simplu | — (rămâne în inbox) |
+| cont privat | ca al doilea cont: `PATCH /api/persona/social` `{ "visibility": "private" }` | `PATCH` cu `{ "visibility": "public" }` |
+| cerere către contul privat | ca `test`: `POST /api/follow` `{ "user_id": <id>, "persona": "social", "active": true }` → **202** | `POST /api/follow` cu `active: false` |
+| cerere de la contul privat către `test` | ca al doilea cont: `POST /api/follow` cu `user_id` = 1 → **202** | idem, `active: false` |
+
+
 după verificare.
 
 Cele trei suprafețe adăugate în lotul de închidere al §19.4 se verifică în aceeași sesiune, cu aceleași stări:

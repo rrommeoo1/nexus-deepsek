@@ -48,6 +48,38 @@ Preview mode intentionally keeps the test email account enabled while xPortal
 is not configured. WalletConnect/xPortal can be enabled later with the Reown
 project variables required by `apps/nexus-web/lib/env.js`.
 
+## Backup before a deploy that touches data
+
+The whole mutable state is one SQLite database on the volume: `/data/nexus.sqlite` (with `-wal` and
+`-shm` next to it). A backup must be taken **by SQLite**, not by copying a live WAL set with `cp`:
+`VACUUM INTO` writes a consistent, single-file snapshot while the server keeps serving.
+
+With a shell in the running service (Railway dashboard → the service → its shell / `railway ssh` with
+the CLI: `npm i -g @railway/cli`, `railway login`, `railway link`):
+
+```sh
+node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('/data/nexus.sqlite');db.exec(\"VACUUM INTO '/data/nexus-backup-2026-10-17.sqlite'\");db.close();"
+ls -l /data/nexus-backup-*.sqlite
+```
+
+If the service has no interactive shell, run the same `node -e …` as a one-off command/job on the same
+volume (the image already ships Node 24, and `node:sqlite` ships with it — no `sqlite3` binary needed).
+
+Then, for a copy that survives the volume itself, download the file and check it locally:
+
+```sh
+# macOS / Linux
+railway ssh cat /data/nexus-backup-2026-10-17.sqlite > nexus-backup-2026-10-17.sqlite
+node -e "const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync('nexus-backup-2026-10-17.sqlite',{readOnly:true});console.log(db.prepare('select count(*) c from users').get());"
+```
+
+Do **not** redirect binary output through Windows PowerShell (`>` / `Out-File` corrupts it — the same
+failure that `tools/images/safe-screencap.ps1` exists to avoid); use `base64` on the remote side and
+decode locally, or download the file with the CLI's own file transfer.
+
+Rollback of a bad deploy that only changed code: redeploy the previous commit and, if it also wrote
+data, restore the snapshot above into `/data/nexus.sqlite` while the service is stopped.
+
 ## Persistence acceptance check
 
 1. Sign in and create a post with an uploaded image.

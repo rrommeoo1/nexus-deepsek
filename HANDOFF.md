@@ -41,7 +41,10 @@ Consecințe practice:
 | Antetul nu mai tipărește bio/loc/vârstă (o citire, un singur loc) | `ProfileHeader.tsx` fără blocul `about`; test-hero-parity actualizat la decizia nouă |
 | Ciclul de dezvoltare: `docs/DEV-WORKFLOW.md` + `tools/dev-start.ps1` + `API: Railway` lângă versiune | commit `f412178`; script rulat pe telefon (Metro pornit, reverse 8081, app în prim-plan, deep link LAN) |
 | Ușa notificărilor: clopoțel în `FeedDrawer` → inbox pe cutia `Activitate` (`ActivityCenter`) | commit `f412178`; `MessagesScreen.initialBox`; verificat pe telefon |
-| `joined_at` aditiv în payload-ul de profil (necesar pentru „Membru din”) | commit `c430839` pe **`backend/profile-joined-at`**, test `test/profile-joined-at.test.js` 2/2 + 19 teste de profil verzi; **fără push, fără deploy** |
+| `joined_at` aditiv în payload-ul de profil (necesar pentru „Membru din”) | commit `c430839` (branch `backend/profile-joined-at`) **adus pe `main` ca `5b8be80`** prin cherry-pick + rebase pe `origin/main`, test `test/profile-joined-at.test.js` 2/2 + 14 teste de profil verzi, **deployat pe Railway**; `/health` 200, `/api/profiles/test` are `joined_at`, telefonul tipărește «Membru din septembrie 2026» |
+| Banda se mișcă **mereu** (fără `reduce motion` al sistemului), pauză/reluare pe atingere, `ⓘ` de 44 dp pentru foaie, fade lateral | commit `5f61170`; `ProfileBand.tsx`, `lib/bandMotion.ts`, `MIGRATION.md` §20.2; `scripts/test-band-motion.cjs` 9/9 + `test-profile-band` 12/12; verificat pe telefon (§2.3) |
+| Comutatorul „Banda derulantă” în sertar (implicit pornit, `nexus-prefs/band.json`) | commit `5f61170`; `lib/bandPrefs.ts`, `FeedDrawer.tsx`; starea se vede în dump ca `android.widget.Switch checked=true` |
+| Lotul web/parity rămas necomis, arhivat local | branch **`wip/web-archive`** (commit `ba7bb84`, 43 de fișiere, **fără push**); `main` rămâne curat de ele; diagnosticile noi sunt în `.gitignore` |
 
 ## 2. Ce lucrez acum
 
@@ -120,21 +123,34 @@ Observație de unealtă: `uiautomator dump --compressed` întoarce uneori doar f
 când o animație tocmai rulează; o a doua rulare după 2 s dă arborele complet. Nu este un defect al
 ecranului (defectul 7 din lista veche).
 
+### 2.3 Sesiunea a treia pe telefon — 17 octombrie 2026, banda care se mișcă mereu
+
+Telefonul s-a trezit cu `scripts/nexus-dev.ps1 -Action wake` (ecranul era `OFF`; fără Home/Back/cortină și
+fără nicio setare schimbată), Nexus Dev a fost readus în prim-plan cu `monkey -p app.nexus.mobile.dev …`,
+iar bundle-ul nou a intrat prin deep link-ul `nexusdev://expo-development-client/?url=…:8081` — Fast
+Refresh nu prinsese editările făcute cât timp ecranul era stins (dump-ul arăta încă eticheta veche,
+`Detalii profil: …`).
+
+| Ce s-a verificat | Rezultat |
+|---|---|
+| Banda se mișcă fără nicio setare a telefonului | **verificat**: `uiautomator dump` eșuează cu „could not get idle state” cât timp banda aleargă și reușește imediat după o atingere; două capturi la ~1 s (`band-live-a/b.jpg`) diferă în **15 133 px** în dreptunghiul benzii și **0** în restul ecranului |
+| Atingerea = pauză exactă | **verificat**: eticheta devine `… (bandă oprită)`, iar două capturi în pauză (`band-hold-a/b.jpg`) diferă în **0 px** |
+| A doua atingere = reluare din același punct | **verificat**: două capturi după reluare (`band-resume-a/b.jpg`) diferă în **15 313 px**; pauză → reluare → pauză după ~0,25 s (`band-p1/p2.jpg`) arată o deplasare de **7 px** (≈ 0,6 s de mers, cât au durat cele două `input tap`), nu un salt la zero |
+| `ⓘ` deschide foaia | **verificat**: nod `Detalii profil` la `[1061,837][1176,957]` px = **44,2 × 46,2 dp** (densitate 416), peste fade; atins → foaia cu Descriere / Locație / **Membru din septembrie 2026** / Vârstă / Tipul contului |
+| Comutatorul „Banda derulantă” | **verificat**: în sertar, `android.widget.Switch`, `checked=true`; oprit → banda devine text static (0 px între două capturi) și `ⓘ` rămâne; repornit → mișcarea reia din poziția înghețată |
+| Subsolul sertarului | **verificat**: `Android 0.1.0 · API: Railway` la `[799,928][1156,966]` px |
+
+Deploy-ul `joined_at` (commit `c430839` adus pe `main` ca `5b8be80`, după rebase pe `origin/main`):
+`/health` → 200 `ready`, `GET /api/me` → `@test`, `GET /api/profiles/test?persona=social` → `joined_at`
+prezent, iar pe telefon rândul «Membru din septembrie 2026» apare atât în bandă, cât și în foaie.
+
 ## 3. Pași următori (în ordine)
 
-1. **Aprobarea backend-ului** pentru `joined_at` (`branch backend/profile-joined-at`, commit `c430839`,
-   test 2/2). Până la aprobare și deploy, banda nu tipărește «Membru din». După deploy, rândul apare fără
-   nicio modificare în aplicație (Fast Refresh).
-2. **Date de test lipsă și sesiunea pe telefon** — stările care cer date, nu cod: story viewer cu chip,
-   fișa de contact din Mesaje, chip pe comentariul altcuiva, cerere la cont privat, acceptare din liste
-   (`Cereri` gol), `Urmărește înapoi` (serverul nu are `following_me`, defectul 9). Se pot face pe seed-ul
-   local (`TEST-DATA.md` §4) sau pe preview după ce se creează o conversație și un cont privat. Capturile
-   **numai** cu `safe-screencap.ps1`.
-3. **„Reduce motion” pe telefon**: proprietarul decide dacă pornește scalele de animație; banda se mișcă
-   atunci. Nu se schimbă setarea din ADB.
-4. Lotul de fișiere web/război rămase necomise (43 de fișiere din `apps/nexus-web/public/*`,
-   `tools/parity/device-batch.ps1`, `tools/web-ref/*`, `docs/parity-report/*`) — **nu mai fac parte din
-   produs**; se comit doar dacă proprietarul cere, separat de munca nativă.
+1. ~~**Aprobarea backend-ului** pentru `joined_at`~~ — **închis 17 oct 2026**: cherry-pick `c430839` → `5b8be80` pe `main`, rebase pe `origin/main`, teste verzi, push, deploy; `/health` 200 și telefonul arată «Membru din septembrie 2026».
+2. **Datele de test pentru stările rămase** — blocat pe credențiale, nu pe cod (vezi `docs/TEST-DATA.md` §11): conturile de test de pe Railway (`urailwaytest01a20d` … `urailwaytest05313a`) au emailuri `@nexus.test`, **neverificabile**, deci `POST /auth/email/login` răspunde 403 și sesiunile salvate în `docs/.test-sessions.local` dau 401; `/auth/email/signup` cere dovadă de portofel. Ce **există** acum pe deploy: comentarii ale altor conturi pe postarea 5 a lui `@test` (20, autori 3 și 4) — verificat prin `GET /api/posts/5/comments`. Ce lipsește: story străin (toate au expirat pe 14 oct), conversație/mesaj (0 conversații), cont privat + cereri în ambele sensuri (0 cereri primite). Deblocare: fie proprietarul verifică un cont real și îl dă ca al doilea cont, fie se rulează din nou seed-ul (`scripts/seed-preview-test-data.mjs`) cu conturi noi, într-o singură rulare (sesiunea se naște la signup; limita e 5 conturi/oră/IP).
+3. **`uiautomator dump` și animația continuă**: cât timp banda aleargă, dump-ul cere idle și **eșuează** (`could not get idle state`); pentru măsurători se atinge banda (pauză), apoi se citește arborele. Capturile: `safe-screencap.ps1`.
+4. **„Urmărește înapoi”** — nu mai e o limită de server: `GET /api/social/relations?kind=followers|following` întoarce `following_me` pe fiecare persoană (verificat live: user 3 → `following_me: true`), iar `lib/relations.ts` îl citește deja (`rememberPeople` → `followsMe` → eticheta `Urmărește înapoi`). Ce lipsește: `GET /api/profiles/:handle` nu are câmpul, deci un profil deschis „rece”, fără ca acel cont să fi apărut într-o listă sau într-o postare, nu poate ști sensul invers. Dacă se vrea corect și acolo, câmpul de adăugat e `following_me: repo.isFollowing(target.id, auth.user.id, persona)`.
+5. **Lotul web/parity** — arhivat pe `wip/web-archive` (commit `ba7bb84`), fără push. `main` nu îl conține.
 
 ## 4. Defecte deschise
 
@@ -148,7 +164,7 @@ ecranului (defectul 7 din lista veche).
 | 6 | runda 4 nemăsurată pe telefon | `docs/parity-report/profile-header/` | `00-now.png` era corupt (acum `.bad`); se reface cu `safe-screencap.ps1` |
 | ~~7~~ | ~~`uiautomator dump` întoarce 0 noduri pe profil~~ | unealta, nu ecranul | **explicat 17 oct 2026**: dump-ul poate prinde un cadru de animație sau doar fundalul unui modal; o a doua rulare după 2 s dă arborele complet. Nu mai e nevoie de `-ReduceMotion` pentru măsurători |
 | ~~8~~ | ~~4 erori ESLint preexistente~~ | `eslint src` | **curat** din `c7da4f3`; reverificat 17 oct după lotul benzii: fără ieșire |
-| 9 | payload-ul de postare **și de profil** nu are `following_me` | server (`socialPostView`, ruta de profil) | documentat în `MIGRATION.md` §19.3; verificat 17 oct pe telefon: un cont deja în `Următori` apare cu chipul `Urmărește`, nu `Urmărește înapoi`. Clientul nu ghicește |
+| ~~9~~ | ~~payload-ul de postare **și de profil** nu are `following_me`~~ | server (`socialPostView`, ruta de profil) | **corectat 17 oct 2026**: `GET /api/social/relations?kind=followers\|following` **are** `following_me` pe fiecare persoană (verificat live), iar `lib/relations.ts` îl citește și tipărește `Urmărește înapoi`. Rămâne o singură lipsă, mai mică: `GET /api/profiles/:handle` nu poartă câmpul, deci un profil deschis fără ca acel cont să fi apărut într-o listă sau într-o postare nu știe sensul invers — câmpul de adăugat e `following_me: repo.isFollowing(target.id, auth.user.id, persona)` |
 | ~~10~~ | ~~săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap~~ | `src/app/profile/[handle].tsx` | **reparat și verificat pe telefon 17 oct 2026**: ruta nu avea `insets.top`; acum `useSafeAreaInsets`. Nodul `Înapoi` măsurat la `[36,181][151,296]` px fizici (sub ceas), tap → revenire în listă |
 
 
