@@ -56,6 +56,54 @@ devine produs tip real, split prin `splitAmount`, `debit_enabled:false` → `DEM
    apoi commit separat pentru F2.c (fără `main`).
 
 
+## 0.2 Continuarea din 17 octombrie 2026, seara — profilul propriu și meniul lui
+
+**Commit-uri făcute la începutul sesiunii (pe `codex/camera-draft-stability`, push făcut):**
+
+| Commit | Ce conține |
+|---|---|
+| `d0a5384` | `.gitattributes` + `tools/normalize-eol.mjs` — worktree-ul rămâne LF, deci contractele în bytes și cele cu `\n    ` măsoară ce trebuie |
+| `69b0177` | F2.c backend: `lib/creator-pricing.js`, `creator_action_prices`, `repo.getCreatorActionPricing`/`setCreatorActionPricing`/`getCreatorPricingForViewer`, rutele `GET/PUT /api/creator/pricing` + `GET /api/creator/pricing/:handle`, `test/creator-pricing.test.js` |
+| `2a8161d` | partea de mobil a F2.c (`creatorPricing.ts`, `SupportConfirmSheet`, `MonetizationScreen`, `test-creator-pricing.cjs`) + `HANDOFF.md` + `MONETIZATION-SPEC.md` |
+
+Teste înainte de fiecare commit: web `791/791`, mobil `tsc` 0 erori și `npm test` exit 0.
+
+**Pasul 1 — profilul propriu, exact cum a cerut proprietarul.** Ce s-a schimbat, în cod:
+
+* `src/lib/profileActions.ts` (nou, pur): geometria rândului proprietarului (`OWNER_ROW`: 40 dp, rază 20,
+  gol 8, rotund 40/țintă 44), cuvintele (`Editează profilul`, `Monetizează profilul`, `Distribuie profilul`)
+  și decizia „încape sau se scurtează" (`estimateLabelWidth`, `ownerWideLabelRoom`, `ownerRowLabels`).
+  La 469 dp / scara 1.0 ies ambele etichete lungi; la 1.3 iese `Monetizează`; la 360 dp / 1.0 tot
+  `Monetizează`. Eticheta nu se truncează niciodată cu „…".
+* `src/components/ProfileHeader.tsx`: rândul propriu are **trei** butoane — editor neutru (lat), monetizare
+  verde plin (lat), distribuire rotundă doar cu glifa `share` (`SolidViewerIcon`), fără text. `⋯` a ieșit
+  din rând. Butonul `≡` din antet are eticheta `Deschide meniul profilului` și starea `expanded`.
+  Rândul vizitatorului (`Urmărește`/`Mesaj`/`⋯`) este neatins.
+* `src/lib/profileMenu.ts` (nou) + `src/components/ProfileMenuSheet.tsx` (nou): meniul profilului, în ordinea
+  cerută — Portofel, Venituri, Cheltuieli, Notificări, Monetizează profilul, Setări — fiecare rând cu ce
+  deschide; o poartă fără ecran nu se desenează. `DRAWER_ONLY_WORDS` fixează ce nu are voie să apară:
+  deconectare, schimbarea profilului, postare nouă.
+* `src/screens/SettingsScreen.tsx` (nou): `Banda derulantă` (comutatorul real din `lib/bandPrefs.ts`), plus
+  lectura `Android <versiune> · API: <origine>` și marcajul de build JS. Nu deconectează și nu schimbă
+  profilul: spune unde sunt porțile acelea (sertarul din Acasă).
+* `src/screens/WalletScreen.tsx`: `initialSheet` — `Venituri` și `Cheltuieli` din meniu deschid portofelul
+  direct pe partea lui de registru; titlul rămâne `Portofel`.
+* `src/app/index.tsx`: `ownerPanel` are acum `monetize | wallet | income | spending | settings`; profilul nu
+  mai primește `onMenu`/`menuOpen`, deci **nu are nicio cale către sertar**. Sertarul rămâne pe Feed, din
+  butonul lui.
+* `src/lib/buildStamp.ts` + `scripts/stamp-build.mjs` (`npm run stamp`): marcajul de build JS (hash scurt +
+  momentul, cu `+` când arborele era murdar), tipărit în subsolul sertarului sub linia de versiune.
+* Teste: `scripts/test-profile-menu.cjs` (8 teste: ordinea celor șase porți, refuzul cuvintelor din sertar,
+  poarta fără ecran, geometria 40/20/44, etichetele la 1.0 și 1.3, ecranul îngust, antetul fără `⋯`,
+  profilul fără `setDrawerOpen`) și `scripts/test-pricing.cjs` (5 teste, mutate din `test-owner-menu.cjs`,
+  care a fost șters odată cu `ownerMenu.ts` / `ProfileOwnerMenu.tsx`). `test-hero-parity.cjs` a fost
+  actualizat: săgețile promit meniul profilului, nu setările.
+
+**Rezultat:** `tsc --noEmit` 0 erori, `npm test` exit 0 (toate suitele, inclusiv cele 8 + 5 noi).
+
+**Ce nu s-a dovedit încă:** nimic din pasul acesta nu a fost văzut pe telefon în această rundă — dump-urile
+`uiautomator` cer telefonul conectat (vezi §5) și sunt trecute în tabelul de la Pasul 6.
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este

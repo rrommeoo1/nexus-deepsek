@@ -13,6 +13,7 @@ import { ProfileBand } from '../components/ProfileBand';
 import { ProfileEditSheet } from '../components/ProfileEditSheet';
 import { ProfileEmptyState } from '../components/ProfileEmptyState';
 import { ProfileHeader } from '../components/ProfileHeader';
+import { ProfileMenuSheet } from '../components/ProfileMenuSheet';
 import { ProfileMomentsShelf } from '../components/ProfileMomentsShelf';
 import { ProfileSharedReplyCard, ProfileWhisperCard } from '../components/ProfileWhisperCard';
 import { ProfileTile } from '../components/ProfileTile';
@@ -61,8 +62,8 @@ export function visibilityWord(visibility?: string | null): string {
   return 'Public';
 }
 
-/** `profileMenu.open` of the ro-RO bundle: what the three bars say when a reader reaches them. */
-export const PROFILE_MENU_WORD = 'Deschide meniul de setări';
+/** `profileMenu.open` of the ro-RO bundle, in the one place the sheet reads it (`lib/profileMenu.ts`). */
+export { PROFILE_MENU_WORD } from '../lib/profileMenu';
 
 
 /**
@@ -71,28 +72,29 @@ export const PROFILE_MENU_WORD = 'Deschide meniul de setări';
  * endpoint the web reads (`GET /api/profiles/:handle?persona=social`). The five content tabs are real
  * filters over the payload the server returns, so no tab is a button that pretends to do something.
  */
-export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen = false, onBack, onShare, onMessage, onMonetize, onWallet, viewerUserId, onRelationChanged }: {
+export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, onMessage, onMonetize, onWallet, onIncome, onSpending, onNotifications, onSettings, viewerUserId, onRelationChanged }: {
   handle: string;
   reloadKey?: number;
   onDoor?: (door: TickerDoor, arg: string) => void;
-  /**
-   * The index of doors this app already has, handed in by whoever hosts the screen — the same arrangement
-   * the band's doors use. The web's three bars open the profile menu (`profile-menu.js`), the index of
-   * every setting; on this shell that index is the drawer, and only a host that owns one can offer it. A
-   * screen with no index prints no bars rather than a button that opens nothing.
-   */
-  onMenu?: () => void;
-  /** Whether that index is open right now: the web prints it as `aria-expanded` on the same button. */
-  menuOpen?: boolean;
   /** A visitor's header opens with the arrow back to the screen the reader came from. */
   onBack?: () => void;
   /** `Distribuie profilul`. Without one the screen falls back to the platform's own share sheet. */
   onShare?: () => void;
-  /** `Mesaj Nexus`: the inbox owns conversations, and only a host that can open one hands this in. */
+  /** `Mesaj Jungle Book`: the inbox owns conversations, and only a host that can open one hands this in. */
   onMessage?: () => void;
-  /** The owner's own doors, handed in by the shell that owns those screens. */
+  /**
+   * The owner's own doors, handed in by the shell that owns those screens. They are the rows of the
+   * profile menu (`lib/profileMenu.ts`), which the three bars open; a door without a screen behind it is
+   * not drawn (`profileMenuFor`), so this screen never paints a row that opens nothing.
+   */
   onMonetize?: () => void;
   onWallet?: () => void;
+  /** The two halves of the ledger, opened on their own tab of the wallet. */
+  onIncome?: () => void;
+  onSpending?: () => void;
+  /** The account's activity, which is the inbox's own activity box (`ActivityCenter`). */
+  onNotifications?: () => void;
+  onSettings?: () => void;
   /** Who is reading: the relation store needs it to recognise the reader's own record. */
   viewerUserId?: number | null;
   /** Anything that depends on a relation reloads through here after a change lands (`MIGRATION.md` §19.4). */
@@ -109,6 +111,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
   const [error, setError] = useState('');
   /** The editor the pencil opens: the whole header at once (`ProfileEditSheet`). */
   const [editOpen, setEditOpen] = useState(false);
+  /** The profile menu of the three bars: the owner's doors, never the drawer (`ProfileMenuSheet`). */
+  const [menuOpen, setMenuOpen] = useState(false);
   const [pending, setPending] = useState(0);
   const [attempted, setAttempted] = useState('');
   const key = `${address}#${reloadKey}#${pending}`;
@@ -258,9 +262,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
         onBack={onBack}
         onShare={onShare ? onShare : shareProfile}
         onEditProfile={() => setEditOpen(true)}
-        onMenu={onMenu}
+        onProfileMenu={() => setMenuOpen(true)}
         onMonetize={onMonetize}
-        onWallet={onWallet}
         menuOpen={menuOpen}
         onMessage={onMessage}
         onDoor={onDoor}
@@ -403,6 +406,24 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
       persona={String(profile?.persona ?? 'social')}
       onClose={() => setEditOpen(false)}
       onSaved={(patch) => setData((previous) => (previous ? { ...previous, profile: { ...previous.profile, ...patch } } : previous))}
+    />
+
+    {/**
+     * The profile menu (`lib/profileMenu.ts`): the owner's doors in the owner's order, one row each. It is a
+     * sheet over the screen and not a dropdown inside the header — the measured reason is in
+     * `ProfileMenuSheet`. The drawer is not here: its own words never enter this list.
+     */}
+    <ProfileMenuSheet
+      open={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      handlers={{
+        wallet: onWallet,
+        income: onIncome,
+        spending: onSpending,
+        notifications: onNotifications,
+        monetize: onMonetize,
+        settings: onSettings,
+      }}
     />
     </>
   );

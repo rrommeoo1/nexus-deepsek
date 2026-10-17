@@ -1,10 +1,12 @@
 import { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { HEADER_WORDS, deriveRelationUi, type RelationTarget, type RelationView } from '../lib/relations';
 import { initialsFor, mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
+import { OWNER_ROW, ownerRowLabels } from '../lib/profileActions';
+import { PROFILE_MENU_WORD } from '../lib/profileMenu';
 import { socialTokens } from '../theme/social';
 import { MessageButton, RelationButton, RelationMenuButton } from './RelationButton';
-import { ProfileOwnerMenu } from './ProfileOwnerMenu';
+import { SolidViewerIcon } from './SolidViewerIcon';
 import { RemoteImageSource } from './PostMedia';
 import type { TickerDoor } from './ProfileTicker';
 
@@ -19,7 +21,12 @@ import type { TickerDoor } from './ProfileTicker';
  *     fixed counters under that — and the big circle (~92dp) on the right, with the story ring when the
  *     record has a story this reader has not seen;
  *   * the row of full-width buttons under it: the relation button (what `deriveRelationUi` says), `Mesaj`,
- *     and the round entry that holds the relations menu — or, on my own record, the editor and the share.
+ *     and the round entry that holds the relations menu — or, on my own record, the editor, the green
+ *     monetisation door and a round share that carries no word (`lib/profileActions.ts`).
+ *
+ * The owner's index of doors is not in this row: the three bars at the top open `ProfileMenuSheet`, which
+ * holds the wallet, the two sides of the ledger, the notifications, the monetisation and the settings.
+ * The drawer — profiles, new post, bell, logout — belongs to the feed and is opened by its own button.
  *
  * The description, the place and the age used to stand under the buttons; they left this header with the
  * band that now carries them (`MIGRATION.md` §20.1), so every reading of a record is printed once in the
@@ -27,8 +34,8 @@ import type { TickerDoor } from './ProfileTicker';
  * app's one answer for the same pair of accounts on every screen.
  */
 export function ProfileHeader({
-  profile, relation, viewerUserId, hasUnseenStory = false, onBack, onShare, onEditProfile, onMenu, menuOpen, onMessage, onDoor,
-  onMonetize, onWallet,
+  profile, relation, viewerUserId, hasUnseenStory = false, onBack, onShare, onEditProfile, onProfileMenu, menuOpen, onMessage, onDoor,
+  onMonetize,
   presence = '', visibility = '', visibilityWord: visibilitySay = '', style,
 }: {
   profile?: ProfileView | null;
@@ -42,12 +49,10 @@ export function ProfileHeader({
   /** `Distribuie profilul`: the platform's own share sheet, no server call and no new dependency. */
   onShare?: () => void;
   onEditProfile?: () => void;
-  /** My own record's round entry opens the app's index of doors (the drawer, the web's profile menu). */
-  onMenu?: () => void;
+  /** My own record's three bars open the profile menu (`lib/profileMenu.ts`), never the drawer. */
+  onProfileMenu?: () => void;
   /** The first door of the owner's menu: the monetisation screen. */
   onMonetize?: () => void;
-  /** The wallet door of the owner's menu: balance, payouts, history. */
-  onWallet?: () => void;
   menuOpen?: boolean;
   onMessage?: () => void;
   /** The counters that lead somewhere: `following` and `followers` open their lists (`api.js:4537`). */
@@ -67,6 +72,14 @@ export function ProfileHeader({
   }), [profile?.handle, profile?.name, profile?.persona, profile?.user_id]);
   const ui = useMemo(() => deriveRelationUi(relation, target, { userId: viewerUserId }), [relation, target, viewerUserId]);
   const isSelf = ui.kind === 'self';
+
+  /**
+   * The owner's row decides its own labels from the screen it is drawn on and the font scale the reader
+   * set (`lib/profileActions.ts`): a long label that would truncate is replaced by its short form, and the
+   * test holds both ends of that rule without a phone.
+   */
+  const { width: windowWidth, fontScale } = useWindowDimensions();
+  const ownerLabels = useMemo(() => ownerRowLabels({ screenWidth: windowWidth, fontScale }), [fontScale, windowWidth]);
 
   /** The counters come from the store first: a follow anywhere in the app already moved them. */
   const counts = relation?.counts ?? profile?.counts ?? {};
@@ -95,22 +108,22 @@ export function ProfileHeader({
   return (
     <View style={[styles.header, style]}>
       {/**
-       * The top row. A visitor gets the arrow back and the share; my own record gets the three bars, because
-       * the account screen wears no bar of the shell and those bars are its only door to the drawer
-       * (`profile-experience.js:372`).
+       * The top row. A visitor gets the arrow back and the share; my own record gets the three bars, which
+       * open the **profile menu** (`ProfileMenuSheet`, `lib/profileMenu.ts`) — not the drawer: the drawer
+       * belongs to the first page of the feed and to its own button (the owner's rule, 17 October 2026).
        *
        * There is no bell here: notifications are an account-wide list (`GET /api/notifications`,
-       * `api.js:5619`) with no per-account route, so a bell on this row would open nothing (`MIGRATION.md`
-       * §19.1). It is not drawn rather than drawn empty.
+       * `api.js:5619`) with no per-account route, and that list is one row of the profile menu instead
+       * (`MIGRATION.md` §19.1).
        */}
       <View style={styles.topRow}>
         {isSelf ? (
-          onMenu ? (
+          onProfileMenu ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel="Deschide meniul de setări"
+              accessibilityLabel={PROFILE_MENU_WORD}
               accessibilityState={{ expanded: Boolean(menuOpen) }}
-              onPress={onMenu}
+              onPress={onProfileMenu}
               style={({ pressed }) => [styles.icon, (pressed || menuOpen) && styles.iconOn]}
             >
               <View accessible={false} style={styles.bars}>
@@ -230,24 +243,42 @@ export function ProfileHeader({
       ) : null}
 
       {isSelf ? (
-        <View style={styles.buttons}>
-          <RelationButton
-            target={target}
-            relation={relation}
-            viewerUserId={viewerUserId}
-            onEditProfile={onEditProfile}
-            style={styles.buttonFill}
-          />
+        <View style={styles.ownerRow}>
+          {/** The editor: neutral, wide, and the word still comes from the relation library. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={ownerLabels.edit}
+            onPress={onEditProfile}
+            style={({ pressed }) => [styles.ownerWide, styles.ownerNeutral, pressed && styles.ownerPressed]}
+          >
+            <Text numberOfLines={1} style={styles.ownerNeutralLabel}>{ownerLabels.edit}</Text>
+          </Pressable>
           {/**
-           * The owner's row is one wide button and one round entry (`MONETIZATION-SPEC.md` §2): the share
-           * left this row and lives in the menu, first door after the monetisation.
+           * The money door: green, filled, wide — the one action of the row that is not neutral. It opens
+           * the monetisation screen itself, not a menu: the rest of the owner's index is behind the bars.
            */}
-          <ProfileOwnerMenu
-            onMonetize={onMonetize}
-            onShare={onShare}
-            onWallet={onWallet}
-            onSettings={onMenu}
-          />
+          {onMonetize ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={ownerLabels.monetize}
+              onPress={onMonetize}
+              style={({ pressed }) => [styles.ownerWide, styles.ownerPrimary, pressed && styles.ownerPressed]}
+            >
+              <Text numberOfLines={1} style={styles.ownerPrimaryLabel}>{ownerLabels.monetize}</Text>
+            </Pressable>
+          ) : null}
+          {/** The round entry: the share glyph alone, no word drawn, 44 dp aimed. */}
+          {onShare ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={ownerLabels.share}
+              onPress={onShare}
+              hitSlop={4}
+              style={({ pressed }) => [styles.ownerRound, pressed && styles.ownerPressed]}
+            >
+              <SolidViewerIcon kind="share" size={OWNER_ROW.shareGlyph} color={socialTokens.relations.neutralInk} />
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -352,4 +383,51 @@ const styles = StyleSheet.create({
     marginTop: socialTokens.identity.buttonTopGap,
   },
   buttonFill: { flex: 1, minWidth: 0 },
+  /**
+   * The owner's own row (`lib/profileActions.ts`): ~40 dp tall, fully round, one neutral editor, one green
+   * money door and a round share with no word. It is drawn here and not with `RelationButton` because the
+   * owner named these three shapes, and the relation button belongs to somebody else's record.
+   */
+  ownerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: OWNER_ROW.gap,
+    marginTop: socialTokens.identity.buttonTopGap,
+  },
+  ownerWide: {
+    flex: 1,
+    minWidth: 0,
+    height: OWNER_ROW.height,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: OWNER_ROW.labelPaddingInline,
+    borderRadius: OWNER_ROW.radius,
+  },
+  ownerNeutral: {
+    borderWidth: 1,
+    borderColor: socialTokens.relations.neutralBorder,
+    backgroundColor: socialTokens.relations.neutralSurface,
+  },
+  ownerPrimary: { backgroundColor: socialTokens.relations.accent },
+  ownerPressed: { opacity: 0.82 },
+  ownerNeutralLabel: {
+    color: socialTokens.relations.neutralInk,
+    fontSize: OWNER_ROW.labelSize,
+    fontWeight: OWNER_ROW.labelWeight,
+  },
+  ownerPrimaryLabel: {
+    color: socialTokens.relations.accentInk,
+    fontSize: OWNER_ROW.labelSize,
+    fontWeight: OWNER_ROW.labelWeight,
+  },
+  ownerRound: {
+    width: OWNER_ROW.shareSize,
+    height: OWNER_ROW.shareSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: OWNER_ROW.shareSize / 2,
+    borderWidth: 1,
+    borderColor: socialTokens.relations.neutralBorder,
+    backgroundColor: socialTokens.relations.neutralSurface,
+  },
 });

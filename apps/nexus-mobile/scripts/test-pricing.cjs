@@ -1,6 +1,6 @@
 /* global __dirname */
-// Meniul `⋯` al profilului propriu, ca ordine de date: patru intrări, monetizarea prima, iar o intrare
-// fără handler dispare în loc să rămână un buton care nu deschide nimic.
+// Banii așa cum are voie clientul să-i spună (`src/lib/pricing.ts`): sumele primite se tipăresc, ce
+// tastează proprietarul devine cenți fără rotunjiri ascunse, iar refuzurile serverului devin propoziții.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -9,38 +9,23 @@ const ts = require('typescript');
 
 const ROOT = resolve(__dirname, '..');
 
-function load(relative, fileName) {
-  const source = readFileSync(resolve(ROOT, relative), 'utf8');
+const pricing = (() => {
+  const source = readFileSync(resolve(ROOT, 'src/lib/pricing.ts'), 'utf8');
   const code = ts.transpileModule(source, {
-    fileName,
+    fileName: 'pricing.ts',
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const shim = { exports: {} };
   new Function('module', 'exports', 'require', code)(shim, shim.exports, require);
   return shim.exports;
-}
+})();
 
-const menu = load('src/lib/ownerMenu.ts', 'ownerMenu.ts');
-const pricing = load('src/lib/pricing.ts', 'pricing.ts');
+const unit = pricing.CURRENCY_LABEL;
 
-test('meniul are patru intrări, în ordinea cerută', () => {
-  assert.deepEqual(menu.OWNER_MENU.map((entry) => entry.id), ['monetize', 'share', 'wallet', 'settings']);
-  assert.deepEqual(menu.OWNER_MENU.map((entry) => entry.label),
-    ['Monetizează profilul', 'Distribuie profilul', 'Portofel', 'Setări']);
-  assert.equal(menu.OWNER_MENU_WORD, 'Deschide meniul profilului');
-});
-
-test('o intrare fără handler nu este desenată', () => {
-  const entries = menu.ownerMenuFor({ monetize: () => {}, settings: () => {} });
-  assert.deepEqual(entries.map((entry) => entry.id), ['monetize', 'settings']);
-  for (const entry of entries) assert.equal(typeof entry.run, 'function');
-  assert.deepEqual(menu.ownerMenuFor({}).map((entry) => entry.id), []);
-});
-
-test('prețul se scrie în JBc cu două zecimale, iar ce nu e preț nu se ghicește', () => {
-  assert.equal(pricing.formatJbc(200), '2,00 JB');
-  assert.equal(pricing.formatJbc(50), '0,50 JB');
-  assert.equal(pricing.formatJbc(123456), '1.234,56 JB');
+test('prețul se scrie cu două zecimale și simbolul unității', () => {
+  assert.equal(pricing.formatJbc(200), `2,00 ${unit}`);
+  assert.equal(pricing.formatJbc(50), `0,50 ${unit}`);
+  assert.equal(pricing.formatJbc(123456), `1.234,56 ${unit}`);
   assert.equal(pricing.formatJbc(null), '—');
   assert.equal(pricing.formatJbc(-5), '—');
 });

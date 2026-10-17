@@ -98,8 +98,10 @@ test('antetul este blocurile cerute, din tokenurile produsului', () => {
   assert.match(screenSource, /<ProfileBand profile=\{profile\} \/>/, 'așezată imediat sub antet');
   assert.match(headerSource, /styles\.avatarRing/, 'inelul de story al cercului mare');
   assert.match(headerSource, /hasUnseenStory/);
-  // The reader's own row is the bars; somebody else's is the arrow and the share.
-  assert.match(headerSource, /Deschide meniul de setări/);
+  // The reader's own row is the bars — which open the profile menu, not the drawer (17 October 2026);
+  // somebody else's is the arrow and the share.
+  assert.match(headerSource, /PROFILE_MENU_WORD/);
+  // The word itself lives in the menu's data file and is asserted by `test-profile-menu.cjs`.
   assert.match(headerSource, /accessibilityLabel="Înapoi"/);
   assert.match(headerSource, /HEADER_WORDS\.share/);
   // The three counters are named and ordered as the owner asked, with the third one a real count of posts.

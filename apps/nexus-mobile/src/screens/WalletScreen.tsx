@@ -28,7 +28,11 @@ type LedgerResponse = {
   totals: { available_cents: number; earned_cents: number; paid_out_cents: number; currency: string };
 };
 
-export function WalletScreen({ onClose }: { onClose: () => void }) {
+export function WalletScreen({ onClose, initialSheet = 'income' }: {
+  onClose: () => void;
+  /** Which half of the ledger the screen opens on: the profile menu has a row for each (`lib/profileMenu.ts`). */
+  initialSheet?: 'income' | 'spending';
+}) {
   const insets = useSafeAreaInsets();
   const [ledger, setLedger] = useState<LedgerResponse | null>(null);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -37,7 +41,7 @@ export function WalletScreen({ onClose }: { onClose: () => void }) {
   const [notice, setNotice] = useState('');
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sheet, setSheet] = useState<'income' | 'spending'>('income');
+  const [sheet, setSheet] = useState<'income' | 'spending'>(initialSheet);
 
   const load = useCallback(async () => {
     setLoading(true);

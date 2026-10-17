@@ -26,7 +26,9 @@ import { MessagesScreen } from '../screens/MessagesScreen';
 import { MonetizationScreen } from '../screens/MonetizationScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { WalletScreen } from '../screens/WalletScreen';
+import { buildLine } from '../lib/buildStamp';
 import { socialTokens, profileModules as socialModules } from '../theme/social';
 import { nexusTokens } from '../theme/tokens';
 
@@ -68,8 +70,11 @@ export default function NativeHomeScreen() {
   const [slot, setSlot] = useState<NavSlot>('primary');
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  /** The two screens the owner's `⋯` menu opens; `null` means the shell is showing its own slot. */
-  const [ownerPanel, setOwnerPanel] = useState<'monetize' | 'wallet' | null>(null);
+  /**
+   * The screens the profile menu opens (`lib/profileMenu.ts`): the wallet on one of its two halves, the
+   * monetisation and the settings. `null` means the shell is showing its own slot.
+   */
+  const [ownerPanel, setOwnerPanel] = useState<'monetize' | 'wallet' | 'income' | 'spending' | 'settings' | null>(null);
   /** `Banda derulantă`, the drawer's own switch: on unless the reader turned it off (`lib/bandPrefs.ts`). */
   const bandScrolling = useBandScrolling();
   const [profileKey, setProfileKey] = useState(0);
@@ -336,28 +341,47 @@ export default function NativeHomeScreen() {
   const floatingHeader = onFeed && headerFloats('feed', feedMode);
   const screen = (() => {
     /**
-     * The account screen wears no bar of this shell (`header` above is null for it, `profile-experience.css:1`),
-     * so the three bars the hero prints at the end of the name line are its only door to the drawer: the five
-     * profiles, the new post and the logout. That drawer is what the web's profile menu (`profile-menu.js`) is
-     * on this shell — the one index of doors — so the hero's bars and the drawer's own state are one state:
-     * `menuOpen` is `drawerOpen`, which the button reads out as `aria-expanded`
-     * (`profile-experience.js:372`).
+     * The owner's own doors. The profile's three bars open its own menu (`ProfileMenuSheet`) and never the
+     * drawer, and each row of that menu lands on a screen the shell owns:
+     *
+     *   Portofel / Venituri / Cheltuieli → the wallet, on its own half of the ledger;
+     *   Notificări → the inbox's activity box, the one surface for `GET /api/notifications`;
+     *   Monetizează profilul → the monetisation screen;
+     *   Setări → the settings screen, which is where the band switch and the build marker live.
      */
     if (ownerPanel === 'monetize') {
       return <MonetizationScreen handle={me.user.handle} onClose={() => setOwnerPanel(null)} />;
     }
-    if (ownerPanel === 'wallet') {
-      return <WalletScreen onClose={() => setOwnerPanel(null)} />;
+    if (ownerPanel === 'wallet' || ownerPanel === 'income' || ownerPanel === 'spending') {
+      return (
+        <WalletScreen
+          key={ownerPanel}
+          initialSheet={ownerPanel === 'spending' ? 'spending' : 'income'}
+          onClose={() => setOwnerPanel(null)}
+        />
+      );
+    }
+    if (ownerPanel === 'settings') {
+      return (
+        <SettingsScreen
+          onClose={() => setOwnerPanel(null)}
+          version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
+          bandScrolling={bandScrolling}
+          onBandScrolling={(on) => setBandScrolling(on)}
+        />
+      );
     }
     if (slot === 'account') return (
       <ProfileScreen
         handle={me.user.handle}
         reloadKey={profileKey}
         onDoor={openProfileTickerDoor}
-        onMenu={() => setDrawerOpen(true)}
-        menuOpen={drawerOpen}
         onMonetize={() => setOwnerPanel('monetize')}
         onWallet={() => setOwnerPanel('wallet')}
+        onIncome={() => setOwnerPanel('income')}
+        onSpending={() => setOwnerPanel('spending')}
+        onNotifications={openNotifications}
+        onSettings={() => setOwnerPanel('settings')}
         viewerUserId={me.user.id}
         onMessage={openInbox}
         onRelationChanged={onRelationChanged}
@@ -424,6 +448,7 @@ export default function NativeHomeScreen() {
         bandScrolling={bandScrolling}
         onBandScrolling={(on) => setBandScrolling(on)}
         version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
+        build={buildLine()}
       />
     </SafeAreaView>
   );
