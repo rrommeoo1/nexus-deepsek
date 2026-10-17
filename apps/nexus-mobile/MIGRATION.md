@@ -16,13 +16,18 @@ sau cu detalii lipsă · **lipsă** = neportat.
 
 ## 0. Stare globală
 
+**Direcția (17 octombrie 2026):** produsul este aplicația nativă. Web-ul rămâne doar backend pe Railway
+(`docs/BACKEND-ONLY.md`) și sursă de comportament; nu se mai lucrează pe UI-ul lui și nu se mai aliniază
+nimic la el. Ciclul de lucru: `docs/DEV-WORKFLOW.md` + `tools/dev-start.ps1` (Metro, Fast Refresh, fără
+release).
+
 | # | Etapă | Stare |
 | - | - | - |
 | 1 | Sesiune persistentă, navigație Social (7 poziții), feed + profil reale, meniu, refresh, stări de încărcare/eroare/reluare | **gata** (codul), verificare pe dispozitiv în curs |
 | 2 | „+" și camera nativă conectată la flux (foto/video/zoom/import/previzualizare, permisiuni) | **gata** (codul) — 9:16 implicit pentru foto/video, comutare directă 3:4, selfie, lumină, timer, import galerie și selecție Jamendo prin Railway; captura ajunge în composer (`camera.tsx` → `CaptureEditor` → `PublishPanel`); verificarea comenzilor noi pe Xiaomi este încă necesară |
 | 3 | Editor (text, emoji/stickere mutabile, muzică Jamendo, randare finală) | **parțial** — text mutabil + emoji + căutare/previzualizare Jamendo în draft; compunere finală lipsă |
 | 4 | Publicare (copertă, titlu, descriere, hashtaguri, mențiuni, locație, link, vizibilitate, comentarii, repost, AI, descărcare, watermark, draft, postare reală, fără dublare la retry) | **parțial** — formular complet (titlu, descriere, #/@, locație + precizie, link, vizibilitate, comentarii/repostare/descărcare/watermark, declarație AI, drepturi audio + atribuire), salvare în cont și publicare reală din aplicație, cu cheie de idempotency per intenție; rămân neportate: compunerea finală a fișierului (watermark/overlay ars), salvarea pe dispozitiv și etichetarea persoanelor după id |
-| 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **parțial** — comentariile sunt portate (fir citit/scris prin API-ul real, `CommentsSheet`); mesaje (`MessagesScreen`), căutare (`SearchScreen`), prieteni (`FriendsScreen`) și live (`LiveScreen`) sunt **portate nativ** pe endpoint-urile reale (§12), cu stări oneste; rămân **lipsă**: notificări și setări |
+| 5 | Restul ecranelor (comentarii, notificări, mesaje, căutare, setări etc.) | **parțial** — comentariile sunt portate (fir citit/scris prin API-ul real, `CommentsSheet`); mesaje (`MessagesScreen`), căutare (`SearchScreen`), prieteni (`FriendsScreen`) și live (`LiveScreen`) sunt **portate nativ** pe endpoint-urile reale (§12), cu stări oneste; **notificările au acum ușă** (clopoțel în `FeedDrawer` → cutia `Activitate`, §22, verificat pe telefon); rămân **lipsă**: setări |
 
 ## 1. Decizii tehnice (și de ce)
 

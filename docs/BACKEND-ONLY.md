@@ -68,8 +68,9 @@ Compatibil înapoi: câmp adăugat, niciun câmp existent nu se schimbă; clien�
 Test: `apps/nexus-web/test/profile-joined-at.test.js` — citește profilul altcuiva și al propriu, verifică
 `joined_at` egal cu `users.created_at` și absența lui din răspunsurile de eroare.
 
-Stare: **pregătit pe branch-ul `backend/profile-joined-at`, testat local pe o bază veche (fixture cu
-`openDb(':memory:')` + `createRepo`), fără push și fără deploy.** Aplicarea pe Railway se face numai după
+Stare: **pregătit pe branch-ul `backend/profile-joined-at` (commit `c430839`), testat local pe o bază veche
+(fixture cu `openDb(':memory:')` + `createRepo`): `node --test test/profile-joined-at.test.js` 2/2, plus
+celelalte teste de profil (19/19). Fără push și fără deploy.** Aplicarea pe Railway se face numai după
 aprobarea proprietarului.
 
 ### 4.2 Data nașterii pentru cititorii altor profiluri — **nu** se schimbă

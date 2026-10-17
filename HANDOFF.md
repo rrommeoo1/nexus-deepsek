@@ -1,8 +1,24 @@
 # HANDOFF — Nexus nativ (branch `codex/camera-draft-stability`)
 
-Ultima actualizare: **17 octombrie 2026** (lotul „imagini sigure + antet de profil”).
+Ultima actualizare: **17 octombrie 2026** (banda de profil restaurată nativ + ciclul de dezvoltare + ușa
+notificărilor).
 Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să
 repete greșeala care a blocat task-urile anterioare.
+
+## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
+
+**Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este
+interfață: nu se mai aliniază nimic la el și nu se mai lucrează pe codul lui de UI. Codul web rămâne în
+repository ca sursă de comportament unde lipsește ceva și, mai ales, ca **backend** (API, SQLite, fișiere)
+pe Railway — neatins, mai puțin modificările aditive cerute explicit.
+
+Consecințe practice:
+
+* designul se decide în aplicația nativă (`MIGRATION.md` §20–§22), nu prin paritate cu stylesheet-ul;
+* `docs/BACKEND-ONLY.md` ține inventarul endpoint-urilor folosite, cerințele Railway și singura modificare
+  aditivă propusă (`joined_at`), cu branch separat și teste — **fără push și fără deploy** până la aprobare;
+* ciclul de lucru este Metro + Fast Refresh (`docs/DEV-WORKFLOW.md`, `tools/dev-start.ps1`), fără release,
+  fără keystore, fără Play Store; „APK NOU necesar” se spune numai când se schimbă ceva nativ.
 
 ## 1. Ce e gata
 
@@ -21,6 +37,11 @@ repete greșeala care a blocat task-urile anterioare.
 | Bio/loc/vârstă/handle **o singură dată**: rândul benzii scos din `ProfileScreen` (stilurile `bandRow`/`bandCell` odată cu el) | `tickerItems(profile, counters = true, identity = true)`; `ProfileTicker` rămâne pentru suprafețele fără antet |
 | Spațiul dintre antet și bara de file | token nou `identity.paddingBottom` (12) în `theme/social.ts`, folosit de `ProfileHeader.styles.header` |
 | Verificarea reparației | `tsc` 0 erori; `test-hero-parity` 6/6, `test-ticker-parity` 13/13, `test-relations` 20/20, `test-profile-content-parity` 8/8, `test-profile-edit` 9/9, `test-comment-rows` 6/6, `test-comment-time` 2/2 |
+| Banda de profil restaurată **nativ** (bio · locație · membru din · vârstă · tip cont), cu buclă pe driver nativ, reduce motion și foaie cu tragere | commit `f412178`; `ProfileBand.tsx`, `lib/profileBand.ts`, `MIGRATION.md` §20; `scripts/test-profile-band.cjs` 12/12 |
+| Antetul nu mai tipărește bio/loc/vârstă (o citire, un singur loc) | `ProfileHeader.tsx` fără blocul `about`; test-hero-parity actualizat la decizia nouă |
+| Ciclul de dezvoltare: `docs/DEV-WORKFLOW.md` + `tools/dev-start.ps1` + `API: Railway` lângă versiune | commit `f412178`; script rulat pe telefon (Metro pornit, reverse 8081, app în prim-plan, deep link LAN) |
+| Ușa notificărilor: clopoțel în `FeedDrawer` → inbox pe cutia `Activitate` (`ActivityCenter`) | commit `f412178`; `MessagesScreen.initialBox`; verificat pe telefon |
+| `joined_at` aditiv în payload-ul de profil (necesar pentru „Membru din”) | commit `c430839` pe **`backend/profile-joined-at`**, test `test/profile-joined-at.test.js` 2/2 + 19 teste de profil verzi; **fără push, fără deploy** |
 
 ## 2. Ce lucrez acum
 
@@ -80,27 +101,40 @@ input”), nu s-a mai trimis nimic: reparația este **compilată și lint-curat�
 Reluarea cere doar deblocarea telefonului și readucerea Nexus Dev în prim-plan; pașii sunt: Prieteni →
 Următori → un rând → săgeata „Înapoi” trebuie să fie vizibilă sub ceas și să funcționeze.
 
+### 2.2 Sesiunea a doua pe telefon — 17 octombrie 2026, după schimbarea de direcție
+
+Telefonul s-a trezit cu `input keyevent 224` (fără Home/Back/cortină, fără modificarea setărilor), iar
+Nexus Dev a fost readus în prim-plan cu `am start -n app.nexus.mobile.dev/.MainActivity`. Metro a fost
+pornit de `tools/dev-start.ps1` și telefonul s-a conectat prin LAN (`http://192.168.1.153:8081`).
+
+| Ce s-a verificat | Rezultat |
+|---|---|
+| Defectul 10 — săgeata „Înapoi” pe profilul pushuit | **verificat**: nodul `Înapoi` la `[36,181][151,296]` px fizici (sub ceas), tap → revenire în lista `Urmărești` |
+| Banda de profil, sub butoane | **verificat**: `Detalii profil: … · Kraków, Polonia · 25 ani · Cont public`, măsurată `y=868–914` px fizici, imediat sub rândul de butoane `y=673–772` |
+| Foaia benzii (atingere) | **verificat**: rândurile Descriere / Locație / Vârstă / Tipul contului, plus `🔓 Cont public`; «Membru din» lipsește, pentru că serverul nu trimite încă `joined_at` |
+| Închiderea foii prin tragere | **verificat** după ce mânerul a devenit tot capul foii (înainte, gestul nu era prins); se închide și prin atingerea fundalului |
+| Mișcarea benzii | **mișcă pe driver nativ**, dar telefonul raportează „reduce motion” activ, deci banda stă pe loc, exact cum cere regula. Cu `reduceMotion` ocolit temporar (editare locală, revenită imediat), două capturi la 0,9 s distanță diferă. **Nu s-a modificat nicio setare a telefonului**; pentru animație în uz normal, proprietarul trebuie să dezactiveze „Remove animations” / să pornească scalele de animație |
+| Ușa notificărilor | **verificat**: sertar → `Notificări` → `ACTIVITATE · SOCIAL`, „1 necitite”, „Marchează tot citit”, rând de mesaj, preferințe — încărcate din Railway |
+
+Observație de unealtă: `uiautomator dump --compressed` întoarce uneori doar fundalul modalului (sau 0 noduri)
+când o animație tocmai rulează; o a doua rulare după 2 s dă arborele complet. Nu este un defect al
+ecranului (defectul 7 din lista veche).
+
 ## 3. Pași următori (în ordine)
 
-1. Ecranul de notificări (rândul „lipsă” din `MIGRATION.md` §0) — **recon făcut 17 oct**: pe web notificările nu
-   sunt o pagină de sine stătătoare, ci un **panou al profilului**, al șaselea rând din meniul de setări
-   (`profile-menu.js:12-20`, `id: "notifications"` → view `notifications`). Portul are deja conținutul:
-   `src/components/ActivityCenter.tsx` citește exact cele cinci endpointuri ale webului și aduce și copy-ul
-   `activity.*`; el se randează azi **doar** în cutia `activity` din Mesaje. Ce lipsește este **ușa**: meniul
-   de pe telefon (`FeedDrawer`) are cinci profiluri + postare nouă + logout, fără cele șapte porți ale webului.
-   Deci lotul este „poarta + panoul”, nu un ecran nou: intrare în drawer → panou care randează `ActivityCenter`
-   cu `viewerId`/`activePersona` deja disponibile, fără component nou. Structura se citește din
-   `docs/web-ref/` înainte de desen.
-2. Sesiune pe telefon: prima rundă este făcută (§2.1). Rămân stările care cer **date**, nu cod: story viewer
-   cu chip, fișa de contact, chip pe comentariul altcuiva, cerere la cont privat, acceptare din liste. Se pot
-   face fie pe seed-ul local (`TEST-DATA.md` §4: cele cinci conturi `ana_popescu`… plus 4 conversații), fie pe
-   preview după ce se creează o conversație și un cont privat. Capturile **numai** cu `safe-screencap.ps1`.
-   Primul pas la reluare, înainte de orice: reparația defectului 10 (profil pushuit → săgeata „Înapoi”
-   vizibilă sub ceas și funcțională).
-3. Măsurători `uiautomator dump --compressed` (px fizici ÷ 2.6) + compozit în
-   `docs/parity-report/profile-header/`; apoi notele numerice în `PARITY-MATRIX.md` și
-   `parity-report/INDEX.md` (runda 4 este „implementat, nemăsurat”).
-4. Regenerează `docs/screens/` doar dacă e nevoie; originalul corupt rămâne `.bad`, nu se rescrie.
+1. **Aprobarea backend-ului** pentru `joined_at` (`branch backend/profile-joined-at`, commit `c430839`,
+   test 2/2). Până la aprobare și deploy, banda nu tipărește «Membru din». După deploy, rândul apare fără
+   nicio modificare în aplicație (Fast Refresh).
+2. **Date de test lipsă și sesiunea pe telefon** — stările care cer date, nu cod: story viewer cu chip,
+   fișa de contact din Mesaje, chip pe comentariul altcuiva, cerere la cont privat, acceptare din liste
+   (`Cereri` gol), `Urmărește înapoi` (serverul nu are `following_me`, defectul 9). Se pot face pe seed-ul
+   local (`TEST-DATA.md` §4) sau pe preview după ce se creează o conversație și un cont privat. Capturile
+   **numai** cu `safe-screencap.ps1`.
+3. **„Reduce motion” pe telefon**: proprietarul decide dacă pornește scalele de animație; banda se mișcă
+   atunci. Nu se schimbă setarea din ADB.
+4. Lotul de fișiere web/război rămase necomise (43 de fișiere din `apps/nexus-web/public/*`,
+   `tools/parity/device-batch.ps1`, `tools/web-ref/*`, `docs/parity-report/*`) — **nu mai fac parte din
+   produs**; se comit doar dacă proprietarul cere, separat de munca nativă.
 
 ## 4. Defecte deschise
 
@@ -110,12 +144,12 @@ Următori → un rând → săgeata „Înapoi” trebuie să fie vizibilă sub 
 | ~~2~~ | ~~butonul de relație lipsește pe rândurile de comentarii~~ | ~~`CommentRow`/`CommentsSheet`~~ | **reparat 17 oct 2026**: chip compact, `viewerId` din `page.viewer_id`; rândul cititorului rămâne fără chip |
 | ~~3~~ | ~~butonul de relație lipsește în story rail/viewer~~ | ~~`StoryRail.tsx`, `StoryViewer.tsx`~~ | **reparat 17 oct 2026** în viewer; railul rămâne fără chip, deliberat (geometria măsurată 98×126 și banda numelui nu încap un al doilea element) — `MIGRATION.md` §19.4 |
 | ~~4~~ | ~~butonul de relație lipsește pe rândul de contact din Mesaje~~ | ~~`MessagesScreen.tsx` / `ContactCard.tsx`~~ | **reparat 17 oct 2026**: `participants[].id` era deja în payload; chipul stă între persona și acțiunile rapide |
-| 5 | ecranul de notificări nu este portat | rând „lipsă” în `MIGRATION.md` §0 | nu se inventează. Recon 17 oct: conținutul **există** (`ActivityCenter`, cinci endpointuri, copy `activity.*`), lipsește **poarta** — pe web notificările sunt al șaselea rând al meniului de profil (`profile-menu.js:12-20`), iar `FeedDrawer` de pe telefon nu are acele porți (§3.1) |
+| ~~5~~ | ~~ecranul de notificări nu este portat~~ | `FeedDrawer`, `MessagesScreen`, `ActivityCenter` | **reparat 17 oct 2026**: clopoțel în sertar → inbox pe cutia `Activitate` (`initialBox`), panoul `ActivityCenter` cu cele cinci endpointuri; verificat pe telefon (`MIGRATION.md` §22) |
 | 6 | runda 4 nemăsurată pe telefon | `docs/parity-report/profile-header/` | `00-now.png` era corupt (acum `.bad`); se reface cu `safe-screencap.ps1` |
-| 7 | `uiautomator dump` întoarce 0 noduri pe profil | banda de ticker se animă continuu | folosește `device-batch.ps1 -ReduceMotion` (pune scalele la loc în `finally`) |
-| 8 | 4 erori ESLint preexistente | `ActivityCenter`, `MessagesScreen` | neatinse de loturile curente |
+| ~~7~~ | ~~`uiautomator dump` întoarce 0 noduri pe profil~~ | unealta, nu ecranul | **explicat 17 oct 2026**: dump-ul poate prinde un cadru de animație sau doar fundalul unui modal; o a doua rulare după 2 s dă arborele complet. Nu mai e nevoie de `-ReduceMotion` pentru măsurători |
+| ~~8~~ | ~~4 erori ESLint preexistente~~ | `eslint src` | **curat** din `c7da4f3`; reverificat 17 oct după lotul benzii: fără ieșire |
 | 9 | payload-ul de postare **și de profil** nu are `following_me` | server (`socialPostView`, ruta de profil) | documentat în `MIGRATION.md` §19.3; verificat 17 oct pe telefon: un cont deja în `Următori` apare cu chipul `Urmărește`, nu `Urmărește înapoi`. Clientul nu ghicește |
-| 10 | săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap | `src/app/profile/[handle].tsx` | **reparat în cod 17 oct**: ruta nu avea `insets.top`, deci rândul de sus al antetului ieșea sub ceas; acum cere `useSafeAreaInsets`. Compilat + lint curat, **neverificat pe telefon** (sesiunea s-a oprit cu `NotificationShade`/`Dozing`). Dovezi: `batch3-state.jpg`, `batch3-back-try.jpg` |
+| ~~10~~ | ~~săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap~~ | `src/app/profile/[handle].tsx` | **reparat și verificat pe telefon 17 oct 2026**: ruta nu avea `insets.top`; acum `useSafeAreaInsets`. Nodul `Înapoi` măsurat la `[36,181][151,296]` px fizici (sub ceas), tap → revenire în listă |
 
 
 ## 5. Note despre telefon (verificate, nu presupuse)
