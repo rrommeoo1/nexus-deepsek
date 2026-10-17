@@ -1451,15 +1451,40 @@ de butoane al antetului:
   (`bandCopies`), iar la `-runWidth` poziția revine la 0 exact când o copie stă unde stătea prima;
 * ciclul: 48 s pe o coloană de 360 dp (`bandCycleMs`), ca viteza să rămână aceeași pe un bio mai lung;
   minim 48 s, maxim 120 s;
-* „reduce motion” oprește animația și lasă textul static (`AccessibilityInfo.isReduceMotionEnabled` +
-  `reduceMotionChanged`);
+* **nu mai depinde de setarea sistemului**: banda se mișcă indiferent de „reduce motion” al telefonului;
+  singurul lucru care o oprește este comutatorul propriu **„Banda derulantă”** din sertar (implicit pornit);
 * conținutul, în ordine: **bio · locație · «Membru din <lună an>» · vârstă · tipul contului** (cu lacăt);
   fiecare citire apare numai dacă payload-ul o are, deci nu rămân goluri și nici separatoare duble;
-* atingerea deschide o foaie de jos (`Detalii profil`) cu aceleași fapte pe rânduri — Descriere, Locație,
-  Membru din, Vârstă, Tipul contului — care se închide prin tragere (mânerul este tot capul foii) sau prin
+* atingerea benzii **oprește și repornește** mișcarea; foaia `Detalii profil` se deschide din pictograma `ⓘ`
+  de la capătul din dreapta (44 dp, peste un fade), cu aceleași fapte pe rânduri — Descriere, Locație,
+  Membru din, Vârstă, Tipul contului — și se închide prin tragere (mânerul este tot capul foii) sau prin
   atingerea fundalului.
 
-### 20.2 Vârsta, recalculată la fiecare randare
+### 20.2 Pauza, reluarea și comutatorul „Banda derulantă”
+
+Regula proprietarului (17 octombrie): banda se mișcă **mereu**, cu driverul nativ; o atingere o oprește
+**exact** unde este, a doua o pornește din același punct, cu viteza obișnuită, iar starea de pauză ține cât
+timp ecranul profilului este deschis și se resetează la reintrare. Conținutul schimbat (alt profil, o
+editare) repornește banda de la început. Setarea sistemului nu mai are niciun cuvânt.
+
+`src/lib/bandMotion.ts` ține totul ca aritmetică, pentru că valoarea animată **nu poate fi citită** în
+timpul mișcării când `useNativeDriver: true`: copia din JS rămâne la punctul de plecare. De aceea un
+segment memorează `{ from, startedAt }`, iar poziția la un moment dat este
+`(from + elapsedMs · runWidth / cycleMs) mod runWidth`:
+
+* **pauza** citește ceasul o dată, oprește animația (`shift.stopAnimation()`) și fixează poziția aceea;
+* **reluarea** pornește din ea și durează exact partea rămasă din ciclu (`bandResumePlan`), deci nu sare
+  la cusătură și nu reia de la zero;
+* **fundalul**: la revenirea în aplicație (`AppState` → `active`) segmentul este reancorat din ceas, iar
+  timpul petrecut plecat contează la fel — inclusiv peste un ciclu întreg, când poziția se înfășoară;
+* **un ceas care dă înapoi** nu aruncă banda înainte: un segment cu început în viitor stă în `from`.
+
+Comutatorul stă în sertar, sub grilă: `Banda derulantă`, rol `switch`, implicit **pornit**
+(`lib/bandPrefs.ts`, `BAND_SCROLLING_DEFAULT = true`). Se scrie ca sesiunea — fișier temporar apoi
+redenumit — în `nexus-prefs/band.json`, fără dependențe noi (`expo-file-system`). Când este oprit, banda
+este un rând static de text (citit în întregime de cititorul de ecran), iar `ⓘ` rămâne disponibil.
+
+### 20.3 Vârsta, recalculată la fiecare randare
 
 `bandAge(birthDate, now, timeZone)` citește ziua de naștere ca **dată calendaristică** și o compară cu ziua
 cititorului, în fusul lui (`Intl.DateTimeFormat`), nu în UTC-ul serverului. `ProfileScreen` are deci o
@@ -1468,30 +1493,36 @@ vârsta se calculează aici; când nu (orice alt profil), se tipărește `age` p
 recalculare. Ceasul este recitit la miezul nopții locale și la revenirea în aplicație (`AppState`), deci o
 zi de naștere care trece peste noapte apare fără reload.
 
-### 20.3 Ce lipsește din payload
+### 20.4 Ce lipsește din payload
 
 `joined_at` (data creării contului) **nu există** în răspunsul de profil: rândul «Membru din» nu apare pe
 telefon până când backend-ul nu îl trimite. Modificarea aditivă este pregătită pe un branch separat, cu
 teste, și **nu este deployată**: vezi `docs/BACKEND-ONLY.md`.
 
-### 20.4 Teste și verificare
+### 20.5 Teste și verificare
 
-`scripts/test-profile-band.cjs` (12 teste): data de naștere validă/invalidă, ziua de naștere azi/mâine/ieri,
-29 februarie în an bisect și nebisect, fusul cititorului în jurul miezului nopții, data viitoare, varsta
-afișată (dată de naștere vs. număr server), «Membru din» pe fusuri, toate combinațiile prezent/absent,
-lacătul, ciclul, numărul de copii, plus garda pe componentă (driver nativ, reduce motion, `AppState`,
-`Modal`, `PanResponder`).
+`scripts/test-band-motion.cjs` (9 teste): poziția liniară în timp, înfășurarea la capăt, pauza care
+păstrează poziția, reluarea care durează exact restul ciclului, capetele de ciclu (o milisecundă minim),
+timpul petrecut în fundal (inclusiv peste un ciclu), ceasul dat înapoi, semnătura conținutului și garda pe
+componentă (fără `AccessibilityInfo`, driver nativ, `stopAnimation`, `AppState`, `ⓘ` de 44 dp cu `hitSlop`,
+fade, comutatorul din sertar). `scripts/test-profile-band.cjs` (12 teste) rămâne peste citiri și ciclu.
 
-Pe Xiaomi (17 octombrie, 13:1x):
-* banda apare sub butoane, măsurată `y=868–914` px fizici, cu citirile reale
-  (`Cont public pentru testarea interfeței Nexus. · Kraków, Polonia · 25 ani · Cont public`);
-* atingerea deschide foaia, cu patru rânduri (fără «Membru din», cât timp backend-ul nu trimite data);
-* tragerea de pe capul foii o închide; atingerea fundalului, de asemenea;
-* **mișcarea**: telefonul raportează „reduce motion” activ (`AccessibilityInfo` → `true`), deci banda stă
-  pe loc, exact cum cere regula. Cu `reduceMotion` ocolit temporar (editare locală, revenită imediat), două
-  capturi la 0,9 s distanță diferă — deci animația rulează pe driver nativ. Pentru a o vedea în uz normal,
-  proprietarul trebuie să dezactiveze „Remove animations” / să pornească scalele de animație; nu s-a
-  modificat nicio setare a telefonului.
+Pe Xiaomi (17 octombrie, 13:5x), **fără nicio modificare a setărilor telefonului** (telefonul raportează
+în continuare „reduce motion” activ):
+
+* `uiautomator dump` **eșuează cu „could not get idle state”** cât timp banda se mișcă și **reușește**
+  imediat după o atingere — semnalul binar al mișcării;
+* două capturi la ~1 s distanță (`band-live-a/b.jpg`): **15 133 px** diferiți în dreptunghiul benzii,
+  zero în restul ecranului; aceleași două capturi în pauză (`band-hold-a/b.jpg`): **0 px**;
+* reluarea: două capturi după al doilea tap → **15 313 px** (mișcare pornită din nou);
+* continuitatea: pauză → reluare → pauză după ~0,25 s (`band-p1/p2.jpg`) → deplasare de **7 px** scorată
+  (≈ 0,6 s de mers, cât au durat cele două comenzi `input tap`), nu un salt la zero;
+* pictograma `ⓘ`: `[1061,837][1176,957]` px la densitatea 416 → **44,2 × 46,2 dp**, peste fade; atinsă,
+  deschide foaia cu `Detalii profil`, `Descriere`, `Locație`, `Vârstă`, `Tipul contului`;
+* comutatorul din sertar: `android.widget.Switch`, `content-desc="Banda derulantă"`, `checked=true`
+  inițial; oprit → banda devine text static (0 px diferență între două capturi) și `ⓘ` rămâne; repornit →
+  mișcarea reia din poziția înghețată;
+* subsolul sertarului: `Android 0.1.0 · API: Railway` la `[799,928][1156,966]`.
 
 ## 21. Ciclu de dezvoltare (fără release)
 

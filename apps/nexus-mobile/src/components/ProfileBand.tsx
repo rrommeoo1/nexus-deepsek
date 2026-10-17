@@ -1,28 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AccessibilityInfo, Animated, AppState, Easing, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View,
-} from 'react-native';
+import { Animated, AppState, Easing, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { bandCopies, bandCycleMs, bandItems, bandLabel, bandRows, type BandItem, type BandRow } from '../lib/profileBand';
+import { bandPositionAt, bandResumePlan, bandSignature, type BandSegment } from '../lib/bandMotion';
+import { useBandScrolling } from '../lib/bandPrefs';
 import type { ProfileView } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
 /**
  * The profile's band, under the header's buttons: one slow line carrying the description, the place, the
- * month the account was created, the age and the kind of account (`MIGRATION.md` §20.1). The owner asked
- * for it back after the header was rebuilt, and asked for it native: the line drifts leftwards in a loop
- * with no visible seam (the run is followed by copies of itself, and the translation restarts exactly
- * where a copy stands where the first one did), it stands still when the system asks for reduced motion,
- * and touching it opens the sheet with the same five facts on rows.
+ * month the account was created, the age and the kind of account (`MIGRATION.md` §20.1). It travels
+ * leftwards in a loop with no visible seam — the run is followed by copies of itself, and the translation
+ * restarts exactly where a copy stands where the first one did.
  *
- * Three things this component is careful about:
+ * Four things this component is careful about:
  *
  *   1. the clock. The age is derived at every render from the date of birth, and a new day is not an
  *      event anything announces — so the band re-reads the clock at the local midnight and whenever the
  *      app comes back to the foreground (`AppState`), which is when a birthday could have happened;
  *   2. the pace. `bandCycleMs` keeps the 48 seconds of the web's band on a 360-wide column, so a longer
  *      description travels at the same speed instead of finishing sooner;
- *   3. the reading. The whole line is one control for the screen reader, and the travelling copies are
- *      hidden from it, so the five facts are heard once, in order.
+ *   3. the pause. A touch stops the line exactly where it stands and the next one sends it on from the
+ *      same point; the motion never depends on the system's animation settings, only on the reader's own
+ *      `Banda derulantă` switch (`MIGRATION.md` §20.2, `lib/bandMotion.ts`). The position is arithmetic
+ *      over a start point and a clock, never a read of the native animated value;
+ *   4. the reading. The whole line is one control for the screen reader, the travelling copies are hidden
+ *      from it, and the sheet opens from its own `ⓘ` — a 44dp target at the right end of the band — so a
+ *      tap on the words means "pause", not "open a panel".
  */
 
 const { band } = socialTokens;
@@ -30,9 +34,12 @@ const { band } = socialTokens;
 export function ProfileBand({ profile }: { profile: ProfileView }) {
   const [clock, setClock] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
-  const [held, setHeld] = useState(false);
-  /** `prefers-reduced-motion` of this shell: the band stands still instead of travelling. */
-  const [reduceMotion, setReduceMotion] = useState(false);
+  /**
+   * The reader's pause, remembered against the words it was asked for: a different profile or an edit is
+   * a different line, so it starts unpaused without an effect that would reset it after the fact.
+   */
+  const [pausedFor, setPausedFor] = useState<string | null>(null);
+  const scrolling = useBandScrolling();
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -46,77 +53,151 @@ export function ProfileBand({ profile }: { profile: ProfileView }) {
     return () => { if (timer) clearTimeout(timer); subscription.remove(); };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    void AccessibilityInfo.isReduceMotionEnabled().then((enabled) => { if (mounted) setReduceMotion(enabled); });
-    const subscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (enabled) => setReduceMotion(enabled));
-    return () => { mounted = false; subscription.remove(); };
-  }, []);
-
   const rows = useMemo(() => bandRows(profile, clock), [profile, clock]);
   const items = useMemo(() => bandItems(rows), [rows]);
+  const signature = useMemo(() => bandSignature(items), [items]);
+  const paused = pausedFor === signature;
+
   if (!items.length) return null;
 
   return (
     <>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Detalii profil: ${bandLabel(items)}`}
-        accessibilityHint="Deschide toate detaliile profilului"
-        onPress={() => { setHeld(false); setOpen(true); }}
-        onPressIn={() => setHeld(true)}
-        onPressOut={() => setHeld(false)}
-        style={styles.band}
-      >
-        <BandTrack items={items} held={held} reduceMotion={reduceMotion} />
-      </Pressable>
+      <View style={styles.band}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={scrolling && paused ? `${bandLabel(items)} (bandă oprită)` : bandLabel(items)}
+          accessibilityHint={scrolling
+            ? (paused ? 'Atinge pentru a porni banda' : 'Atinge pentru a opri banda')
+            : 'Banda este oprită din meniu'}
+          disabled={!scrolling}
+          onPress={() => setPausedFor(paused ? null : signature)}
+          style={styles.touch}
+        >
+          <BandTrack items={items} signature={signature} scrolling={scrolling} paused={paused} />
+        </Pressable>
+        {scrolling ? <BandFade /> : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Detalii profil"
+          accessibilityHint="Deschide toate detaliile profilului"
+          hitSlop={{ top: 4, bottom: 4, left: 4, right: 0 }}
+          onPress={() => setOpen(true)}
+          style={styles.info}
+        >
+          <Text accessible={false} style={styles.infoGlyph}>ⓘ</Text>
+        </Pressable>
+      </View>
       <ProfileBandSheet visible={open} rows={rows} onClose={() => setOpen(false)} />
     </>
   );
 }
 
 /**
+ * The fade the `ⓘ` sits on, so a reading does not run into the icon. It is a real gradient over the
+ * band's own surface (`react-native-svg`, already the app's drawing library), drawn from transparent to
+ * the colour that surface resolves to on black, and it never takes a touch.
+ */
+function BandFade() {
+  return (
+    <View pointerEvents="none" style={styles.fade}>
+      <Svg width="100%" height="100%">
+        <Defs>
+          <LinearGradient id="bandFade" x1="0" y1="0" x2="1" y2="0">
+            <Stop offset="0" stopColor={band.fadeInk} stopOpacity={0} />
+            <Stop offset="1" stopColor={band.fadeInk} stopOpacity={1} />
+          </LinearGradient>
+        </Defs>
+        <Rect x={0} y={0} width="100%" height="100%" fill="url(#bandFade)" />
+      </Svg>
+    </View>
+  );
+}
+
+/**
  * One run of readings and the copies that close the loop behind it. The strip travels exactly one run's
  * width and starts again from zero, which is not a jump: at that instant the second copy stands where
- * the first one did. When a finger lands on the band it holds, and lifting lets it travel on from where
- * it stands (`travelled` keeps the position outside React).
+ * the first one did.
+ *
+ * Pause and resume do not read the animated value: with the native driver the value lives on the native
+ * side, so a read mid-flight answers with the point the travel started at. Instead `segment` remembers
+ * where and when this stretch left, and `resting` is the point a pause froze it at — both fed to the
+ * arithmetic of `lib/bandMotion.ts`. A new segment is re-anchored from the clock whenever the app comes
+ * back to the foreground, so time spent in the background is not a jump either.
  */
-function BandTrack({ items, held, reduceMotion }: { items: BandItem[]; held: boolean; reduceMotion: boolean }) {
+function BandTrack({ items, signature, scrolling, paused }: {
+  items: BandItem[];
+  signature: string;
+  scrolling: boolean;
+  paused: boolean;
+}) {
   const shift = useState(() => new Animated.Value(0))[0];
   const [runWidth, setRunWidth] = useState(0);
   const [bandWidth, setBandWidth] = useState(0);
-  const travelled = useRef(0);
+  /** Bumped when the app returns to the foreground: the stretch is re-anchored to the clock. */
+  const [resync, setResync] = useState(0);
+  const segment = useRef<BandSegment | null>(null);
+  const resting = useRef(0);
   const copies = bandCopies(runWidth, bandWidth);
 
   useEffect(() => {
-    const id = shift.addListener(({ value }) => { travelled.current = value; });
-    return () => shift.removeListener(id);
-  }, [shift]);
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') setResync((tick) => tick + 1);
+    });
+    return () => subscription.remove();
+  }, []);
+
+  /** New words: from the beginning, whatever the pause was. */
+  useEffect(() => {
+    segment.current = null;
+    resting.current = 0;
+    shift.setValue(0);
+  }, [signature, shift]);
 
   useEffect(() => {
-    if (runWidth <= 0 || held || reduceMotion) return;
-    let released = false;
+    if (!scrolling) { shift.stopAnimation(); return; }
+    if (runWidth <= 0) return;
     const cycle = bandCycleMs(runWidth);
-    const roll = (from: number) => {
-      const left = Math.max(0, 1 - Math.min(1, Math.abs(from) / runWidth));
-      const animation = Animated.timing(shift, {
-        toValue: -runWidth,
-        duration: Math.max(1, Math.round(cycle * left)),
+    if (!cycle) return;
+
+    if (paused) {
+      /** Freeze exactly where the clock says the line stands — no snap back, no snap forward. */
+      const position = segment.current
+        ? bandPositionAt(segment.current, Date.now(), runWidth, cycle)
+        : resting.current;
+      shift.stopAnimation();
+      segment.current = null;
+      resting.current = position;
+      shift.setValue(-position);
+      return;
+    }
+
+    const from = segment.current
+      ? bandPositionAt(segment.current, Date.now(), runWidth, cycle)
+      : resting.current;
+    let released = false;
+    const roll = (position: number) => {
+      const plan = bandResumePlan(position, runWidth, cycle);
+      segment.current = { from: position, startedAt: Date.now() };
+      shift.setValue(-position);
+      Animated.timing(shift, {
+        toValue: plan.toValue,
+        duration: plan.duration,
         easing: Easing.linear,
         useNativeDriver: true,
-      });
-      animation.start(({ finished }) => {
+      }).start(({ finished }) => {
         if (!finished || released) return;
+        /** The seam: the second copy stands exactly where the first one stood, so zero is the same picture. */
+        segment.current = { from: 0, startedAt: Date.now() };
+        resting.current = 0;
         shift.setValue(0);
-        travelled.current = 0;
         roll(0);
       });
     };
-    roll(travelled.current);
+    roll(from);
     return () => { released = true; shift.stopAnimation(); };
-  }, [held, reduceMotion, runWidth, shift]);
+  }, [paused, scrolling, runWidth, signature, resync, shift]);
 
-  if (reduceMotion) {
+  if (!scrolling) {
     return (
       <View style={styles.viewport}>
         <Text numberOfLines={1} style={styles.staticLine}>{bandLabel(items)}</Text>
@@ -148,7 +229,6 @@ function BandTrack({ items, held, reduceMotion }: { items: BandItem[]; held: boo
     </View>
   );
 }
-
 
 /**
  * The sheet the band opens: the same five facts, one to a row, with the drag the owner asked for. The
@@ -216,7 +296,11 @@ function ProfileBandSheet({ visible, rows, onClose }: { visible: boolean; rows: 
 }
 
 const styles = StyleSheet.create({
-  /** The band's own surface, one line tall, with the travels clipped by the viewport inside it. */
+  /**
+   * The band's own surface, one line tall, with the travels clipped by the viewport inside it. The `ⓘ` and
+   * the fade it sits on are absolute children of this surface, so they cover the same pixels the reading
+   * passes under; the words themselves are the pause control (`styles.touch`).
+   */
   band: {
     minHeight: band.minHeight,
     paddingHorizontal: band.paddingInline,
@@ -230,6 +314,20 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     justifyContent: 'center',
   },
+  touch: { justifyContent: 'center' },
+  /** The gradient under the `ⓘ`: readings fade out before they reach it, and it takes no touch. */
+  fade: { position: 'absolute', top: 0, bottom: 0, right: 0, width: band.fadeWidth },
+  /** The sheet's door: 44dp wide and as tall as the band, which is the smallest target a hand needs. */
+  info: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    right: 2,
+    width: band.infoSize,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoGlyph: { color: band.infoInk, fontSize: 16, lineHeight: 20 },
   viewport: { overflow: 'hidden' },
   strip: { flexDirection: 'row' },
   run: { flexDirection: 'row', alignItems: 'center' },

@@ -1,4 +1,4 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { CloseMark, LogoutMark } from './NexusMark';
 import { drawerMarks, profileModules, socialTokens } from '../theme/social';
 
@@ -24,6 +24,13 @@ export type FeedDrawerProps = {
    */
   onNotifications: () => void;
   /**
+   * `Banda derulantă`: the reader's own switch for the profile band's motion (`MIGRATION.md` §20.2). The
+   * band no longer asks the system for reduced motion; this switch — on by default — is the only way to
+   * stop it, and the drawer is the one index an account can open from every screen.
+   */
+  bandScrolling: boolean;
+  onBandScrolling: (on: boolean) => void;
+  /**
    * The build line printed at the foot of the drawer: the app version and which backend it talks to
    * (`Android 0.1.0 · API: Railway`). The login screen prints the same pair, and the drawer is the one
    * surface an already-signed-in reader can always open, so the origin is never a guess.
@@ -31,7 +38,7 @@ export type FeedDrawerProps = {
   version: string;
 };
 
-export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, onNewPost, onNotifications, version }: FeedDrawerProps) {
+export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, onNewPost, onNotifications, bandScrolling, onBandScrolling, version }: FeedDrawerProps) {
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable accessibilityRole="button" accessibilityLabel="Închide meniul" onPress={onClose} style={styles.backdrop} />
@@ -74,6 +81,22 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
             <Text style={styles.tileGlyph}>🔔</Text>
           </Pressable>
         </View>
+        {/* The reader's own switch for the band's motion: the product's rule, not the system's. */}
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel="Banda derulantă"
+          accessibilityState={{ checked: bandScrolling }}
+          onPress={() => onBandScrolling(!bandScrolling)}
+          style={styles.pref}
+        >
+          <Text style={styles.prefLabel}>Banda derulantă</Text>
+          <Switch
+            value={bandScrolling}
+            pointerEvents="none"
+            trackColor={{ false: 'rgba(255,255,255,0.2)', true: '#2fbdb3' }}
+            thumbColor="#eef8fb"
+          />
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Ieși din cont"
@@ -140,6 +163,16 @@ const styles = StyleSheet.create({
     borderRadius: drawer.tileSize / 2,
     backgroundColor: socialTokens.colors.drawerSurface,
   },
+  /** The switch row: the same width as the grid, so the drawer reads as one column. */
+  pref: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: drawer.gridColumns * (drawer.tileSize + drawer.tileGap),
+    minHeight: 44,
+    paddingHorizontal: 2,
+  },
+  prefLabel: { color: 'rgba(255,255,255,0.82)', fontSize: 12.5 },
   /** The build line under the logout: small, quiet, and readable to a screen reader. */
   version: { alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 10.5, textAlign: 'center' },
 });

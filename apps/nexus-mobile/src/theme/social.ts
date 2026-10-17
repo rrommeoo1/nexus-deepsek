@@ -643,7 +643,14 @@ export const socialTokens = {
     iconInk: '#8fe9e0',
     separator: '#2fbdb3',
     fade: 26,
-    minHeight: 44,
+    /** The gradient under the `ⓘ`, and the colour the band's own surface resolves to on black. */
+    fadeWidth: 76,
+    fadeInk: '#071016',
+    /** The door to the details sheet: a 44dp target, the smallest a finger can be asked for. */
+    infoSize: 44,
+    infoInk: '#bfe9e4',
+    /** One line of text plus its padding, tall enough that the `ⓘ` inside it is a 44dp target. */
+    minHeight: 48,
     paddingInline: 14,
     paddingBlock: 10,
     fontSize: 13,

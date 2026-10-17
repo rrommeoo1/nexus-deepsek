@@ -168,18 +168,19 @@ test('destule copii ca cusatura buclei sa nu lase un gol', () => {
   assert.equal(bandCopies(10, 4000), 12, 'plafonat');
 });
 
-test('componenta: driver nativ, reduce motion si foaia la atingere', () => {
+test('componenta: driver nativ, pauza pe atingere si foaia pe pictograma', () => {
   const component = readFileSync(resolve(ROOT, 'src/components/ProfileBand.tsx'), 'utf8');
   assert.match(component, /useNativeDriver: true/, 'translateX merge pe driverul nativ');
   assert.match(component, /translateX: shift/, 'benzile calatoresc pe orizontala');
-  assert.match(component, /AccessibilityInfo\.isReduceMotionEnabled/, 'reduce motion este citit');
-  assert.match(component, /reduceMotionChanged/, 'si urmarit cand se schimba');
   assert.match(component, /AppState\.addEventListener/, 'ceasul este citit din nou la revenirea in aplicatie');
   assert.match(component, /getDate\(\) \+ 1/, 'si la miezul noptii locale');
   assert.match(component, /<Modal/, 'foaia este un modal');
   assert.match(component, /PanResponder\.create/, 'foaia se inchide prin tragere');
-  assert.match(component, /accessibilityRole="button"/, 'banda este un singur buton pentru cititorul de ecran');
-  assert.match(component, /bandLabel\(items\)/, 'si isi citeste toate cele cinci fapte o data');
+  assert.match(component, /accessibilityRole="button"/, 'banda este un buton pentru cititorul de ecran');
+  assert.match(component, /bandLabel\(items\)/, 'si isi citeste toate faptele o data');
+  // Atingerea este pauza, nu foaia: foaia are usa ei, cu numele ei (`MIGRATION.md` §20.2).
+  assert.match(component, /onPress=\{\(\) => setPausedFor\(paused \? null : signature\)\}/, 'atingerea opreste si porneste banda');
+  assert.ok(!/onPress=\{\(\) => \{ setHeld\(false\); setOpen\(true\); \}\}/.test(component), 'atingerea nu mai deschide foaia');
   // Antetul nu mai tipareste ce duce banda.
   const header = readFileSync(resolve(ROOT, 'src/components/ProfileHeader.tsx'), 'utf8');
   assert.ok(!header.includes('styles.about'), 'descrierea a plecat din antet');

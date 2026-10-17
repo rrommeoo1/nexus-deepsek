@@ -12,6 +12,7 @@ import type { NavSlot } from '../components/NexusMark';
 import type { TickerDoor } from '../components/ProfileTicker';
 import type { InboxBox } from '../lib/messageSearch';
 import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
+import { setBandScrolling, useBandScrolling } from '../lib/bandPrefs';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
@@ -65,6 +66,8 @@ export default function NativeHomeScreen() {
   const [slot, setSlot] = useState<NavSlot>('primary');
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /** `Banda derulantă`, the drawer's own switch: on unless the reader turned it off (`lib/bandPrefs.ts`). */
+  const bandScrolling = useBandScrolling();
   const [profileKey, setProfileKey] = useState(0);
   /**
    * What the band's doors carry into the screens they open. The web keeps both of these as its own last
@@ -393,6 +396,8 @@ export default function NativeHomeScreen() {
         onLogout={() => void onLogout()}
         onNewPost={() => router.push('/camera')}
         onNotifications={openNotifications}
+        bandScrolling={bandScrolling}
+        onBandScrolling={(on) => setBandScrolling(on)}
         version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
       />
     </SafeAreaView>
