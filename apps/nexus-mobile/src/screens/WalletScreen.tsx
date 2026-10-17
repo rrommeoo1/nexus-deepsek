@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { newMutationKey } from '../lib/idempotency';
 import { NexusApiError, nexusApi } from '../lib/nexusApi';
 import { formatJbc, parseJbc, supportErrorMessage } from '../lib/pricing';
+import { serverErrorWords } from '../lib/serverErrors';
 import { jungle } from '../theme/jungle';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 
@@ -56,7 +57,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
       setLedger(book);
       setPayouts(history.payouts ?? []);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Portofelul nu este disponibil.');
+      setError(serverErrorWords(cause, 'Portofelul nu este disponibil.', 'Portofelul nu este încă activat pe server.'));
     } finally {
       setLoading(false);
     }
@@ -109,7 +110,19 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
       </View>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {loading ? <ActivityIndicator color="#5cf6e7" style={styles.spinner} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorRow}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reîncearcă încărcarea portofelului"
+              onPress={() => void load()}
+              style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+            >
+              <Text style={styles.retryLabel}>Reîncearcă</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         <View style={styles.hero}>
@@ -218,6 +231,18 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingBottom: 40, gap: 10 },
   spinner: { marginVertical: 12 },
   error: { color: '#ff9a9a', fontSize: 13, lineHeight: 18 },
+  /** The same shape as the monetisation screen: the words, then the one button that tries again. */
+  errorRow: { gap: 8, alignItems: 'flex-start' },
+  retry: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: jungle.border,
+    backgroundColor: jungle.surfaceRaised,
+  },
+  retryLabel: { color: '#eaf6ff', fontSize: 13, fontWeight: '800' },
   notice: { color: '#5cf6e7', fontSize: 13, lineHeight: 18 },
   hero: { padding: 16, borderRadius: 18, backgroundColor: jungle.surface, borderWidth: 1, borderColor: jungle.border, gap: 4 },
   heroLabel: { color: '#8fa3b4', fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },

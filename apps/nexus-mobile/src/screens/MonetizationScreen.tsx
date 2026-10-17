@@ -8,24 +8,27 @@ import { JungleBackdrop } from '../components/JungleBackdrop';
 import { jungle } from '../theme/jungle';
 import {
   ACTION_HINTS, ACTION_KEYS, FREE_LABEL, SESSION_BUDGET_CENTS, UNAVAILABLE_LABEL,
-  draftFromPreset, draftFromView, fanPreview, loadOwnPricing, presetOfDraft, pricingErrorWords,
+  centsToInput, draftFromView, fanPreview, loadOwnPricing, pricingErrorWords,
   saveOwnPricing, validateDraft,
   type ActionKey, type PricingDraft, type PricingView,
 } from '../lib/creatorPricing';
 import { NexusApiError, nexusApi } from '../lib/nexusApi';
-import { PRESET_LABELS, formatJbc, type PresetId } from '../lib/pricing';
+import { formatJbc } from '../lib/pricing';
+import { serverErrorWords } from '../lib/serverErrors';
 
 /**
  * `Monetizează profilul` (`MONETIZATION-SPEC.md` §3.5, §5.1).
  *
  * Every number on this screen comes from `GET /api/creator/pricing` and every change goes back
  * through `PUT /api/creator/pricing`, so the price the owner edits is the price a fan is quoted —
- * the same tip product, the same split. `Totul gratuit` is the default state of a profile with no
- * priced action, the two presets are the server's own 2/3/3 and 3/5/5, and the advanced mode only
- * changes how the same three fields are typed.
+ * the same tip product, the same split. `Totul gratuit` is the default state; a creator who charges
+ * writes each of the three prices himself (owner's rule, 18 October 2026 — the two presets are gone,
+ * because a creator sets what a like or a comment costs, not the app).
  *
  * An action the server did not price stays disabled and labelled `Indisponibil`; the preview at the
- * bottom is the reader's exact view of the same rows, confirmation sheet included.
+ * bottom is the reader's exact view of the same rows, confirmation sheet included. A server without
+ * the route (404/501/503) or a server that does not answer at all is said in words a reader can act
+ * on, with a `Reîncearcă` button — never as the transport's raw `not found`.
  */
 type CatalogProduct = { id: number; kind: string; title: string; price_cents: number; status: string };
 
@@ -38,7 +41,6 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [advanced, setAdvanced] = useState(false);
   const [preview, setPreview] = useState<ActionKey | null>(null);
 
   const load = useCallback(async () => {
@@ -49,7 +51,8 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
       setView(pricing);
       setDraft(draftFromView(pricing));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Prețurile profilului nu sunt disponibile.');
+      setView(null);
+      setError(serverErrorWords(cause, 'Prețurile profilului nu sunt disponibile.'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +70,6 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
   useEffect(() => { void load(); }, [load]);
 
   const locked = !view || !view.available || !view.can_edit;
-  const savedPreset = view ? presetOfDraft(draft, view) : null;
   const dirty = useMemo(() => {
     if (!view) return false;
     if (draft.free !== view.free) return true;
@@ -100,7 +102,7 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
         : `Salvat: apreciere ${formatJbc(saved.actions.appreciation.price_cents)}, comentariu ${formatJbc(saved.actions.comment.price_cents)}, distribuire ${formatJbc(saved.actions.share.price_cents)}.`);
     } catch (cause) {
       const code = cause instanceof NexusApiError ? cause.code : undefined;
-      setError(pricingErrorWords(code, cause instanceof Error ? cause.message : 'Prețurile nu au putut fi salvate.'));
+      setError(pricingErrorWords(code, serverErrorWords(cause, 'Prețurile nu au putut fi salvate.')));
     } finally {
       setSaving(false);
     }
@@ -112,18 +114,15 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
       void persist({ ...draft, free: true });
       return;
     }
-    // Leaving `Totul gratuit` needs three prices, so it starts from the friendlier preset instead of
-    // saving a half-written policy.
-    setDraft(view ? draftFromPreset(view.presets.prietenos) : draft);
-    setAdvanced(true);
-    setNotice('Alege prețurile, apoi salvează: un profil plătit are nevoie de toate trei.');
-  };
-
-  const choosePreset = (id: PresetId) => {
-    if (locked || !view) return;
-    setDraft(draftFromPreset(view.presets[id]));
-    setNotice('');
-    setError('');
+    /**
+     * Leaving `Totul gratuit` seeds the three fields with the usual price (the saved one, or the floor
+     * that covers settlement) so the owner edits numbers instead of an empty form — the prices are still
+     * his to change, one by one (owner's rule: no presets).
+     */
+    const floor = view ? centsToInput(view.floor_cents) : '';
+    const saved = view && view.actions.appreciation.price_cents > 0 ? draftFromView(view) : null;
+    setDraft(saved ?? { free: false, appreciation: floor, comment: floor, share: floor });
+    setNotice('Scrie prețul fiecărei acțiuni, apoi salvează.');
   };
 
   return (
@@ -137,7 +136,19 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
       </View>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {loading ? <ActivityIndicator color="#5cf6e7" style={styles.spinner} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <View style={styles.errorRow}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Reîncearcă încărcarea prețurilor"
+              onPress={() => void load()}
+              style={({ pressed }) => [styles.retry, pressed && styles.pressed]}
+            >
+              <Text style={styles.retryLabel}>Reîncearcă</Text>
+            </Pressable>
+          </View>
+        ) : null}
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
         <Pressable
@@ -159,26 +170,9 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
         {locked && view ? <Unavailable note="Serverul nu permite editarea prețurilor acestui profil." /> : null}
 
         <Text style={styles.section}>Prețuri pe acțiune</Text>
-        <View style={styles.presets}>
-          {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => (
-            <Pressable
-              key={id}
-              accessibilityRole="button"
-              accessibilityState={{ selected: savedPreset === id, disabled: locked }}
-              accessibilityLabel={`Presetarea ${PRESET_LABELS[id]}`}
-              disabled={locked}
-              onPress={() => choosePreset(id)}
-              style={[styles.preset, savedPreset === id && styles.presetOn]}
-            >
-              <Text style={[styles.presetLabel, savedPreset === id && styles.presetLabelOn]}>{PRESET_LABELS[id]}</Text>
-              <Text style={styles.presetHint}>
-                {view
-                  ? `${formatJbc(view.presets[id].appreciation)} · ${formatJbc(view.presets[id].comment)} · ${formatJbc(view.presets[id].share)}`
-                  : '—'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        <Text style={styles.rowHint}>
+          Scrie tu cât costă fiecare acțiune, în JUNGLE. Pragul minim acoperă decontarea; sub el serverul refuză.
+        </Text>
 
         {ACTION_KEYS.map((key) => {
           const quote = view?.actions[key];
@@ -190,7 +184,7 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
                 <Text style={styles.rowTitle}>{quote?.label ?? key}</Text>
                 <Text style={styles.rowHint}>{ACTION_HINTS[key]}</Text>
               </View>
-              {advanced && !unavailable ? (
+              {!draft.free && !unavailable ? (
                 <TextInput
                   accessibilityLabel={`Prețul pentru ${key}`}
                   value={value}
@@ -211,23 +205,6 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
         {view && !view.free && ACTION_KEYS.some((key) => !view.actions[key]?.chargeable) ? (
           <Unavailable note="O acțiune fără preț pe server rămâne oprită și spune «Indisponibil»: un buton care ar eșua la atingere ar fi o minciună." />
         ) : null}
-
-        <Pressable
-          accessibilityRole="switch"
-          accessibilityLabel="Mod avansat"
-          accessibilityState={{ checked: advanced, disabled: locked }}
-          disabled={locked}
-          onPress={() => setAdvanced((current) => !current)}
-          style={({ pressed }) => [styles.row, (locked) && styles.disabledRow, pressed && styles.pressed]}
-        >
-          <View style={styles.rowWords}>
-            <Text style={styles.rowTitle}>Mod avansat</Text>
-            <Text style={styles.rowHint}>Scrie separat prețul fiecărei acțiuni, cu cel mult două zecimale.</Text>
-          </View>
-          <View style={[styles.switchTrack, advanced && styles.switchTrackOn]}>
-            <View style={[styles.switchThumb, advanced && styles.switchThumbOn]} />
-          </View>
-        </Pressable>
 
         {view ? (
           <View style={styles.caps}>
@@ -317,6 +294,18 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingBottom: 40, gap: 10 },
   spinner: { marginVertical: 12 },
   error: { color: '#ff9a9a', fontSize: 13, lineHeight: 18 },
+  /** A failure the reader can act on: the words, and the one button that tries again. */
+  errorRow: { gap: 8, alignItems: 'flex-start' },
+  retry: {
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: jungle.border,
+    backgroundColor: jungle.surfaceRaised,
+  },
+  retryLabel: { color: '#eaf6ff', fontSize: 13, fontWeight: '800' },
   notice: { color: jungle.primary, fontSize: 13, lineHeight: 18 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowWords: { flex: 1, minWidth: 0, gap: 2 },
