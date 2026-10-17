@@ -54,8 +54,13 @@ if (-not $slug) { throw 'numele capturii este gol după curățare' }
 
 function Invoke-Adb {
   param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Arguments)
-  $output = & $adb -s $script:serial @Arguments 2>&1
-  if ($LASTEXITCODE -ne 0) { throw ("adb a eșuat ({0}): {1}" -f $LASTEXITCODE, ($output -join ' ')) }
+  # Windows PowerShell 5.1 ridică `NativeCommandError` când o comandă nativă scrie pe stderr cu
+  # `$ErrorActionPreference = 'Stop'`, iar adb își tipărește acolo progresul: ieșirea se citește cu
+  # preferința oprită o clipă, apoi se judecă după codul de ieșire, nu după textul de pe stderr.
+  $savedPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { $output = & $adb -s $script:serial @Arguments 2>&1 } finally { $ErrorActionPreference = $savedPreference }
+  if ($LASTEXITCODE -ne 0) { throw (("adb a eșuat ({0}): {1}" -f $LASTEXITCODE, (($output | ForEach-Object { $_.ToString() }) -join ' '))) }
   return $output
 }
 
@@ -103,7 +108,10 @@ $local = Join-Path $tempFolder ("$slug-{0}.png" -f [guid]::NewGuid().ToString('N
 $ok = $false
 try {
   Invoke-Adb -Arguments @('shell', 'screencap', '-d', $Display, '-p', $remote) | Out-Null
-  $pulled = & $adb -s $script:serial pull $remote $local 2>&1
+  # `adb pull` își tipărește progresul pe stderr: aceeași grijă ca în `Invoke-Adb` (PS 5.1 + Stop).
+  $savedPreference = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { $pulled = & $adb -s $script:serial pull $remote $local 2>&1 } finally { $ErrorActionPreference = $savedPreference }
   if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $local)) {
     throw ("adb pull a eșuat: {0}" -f (($pulled | ForEach-Object { $_.ToString() }) -join ' '))
   }
