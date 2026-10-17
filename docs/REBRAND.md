@@ -15,6 +15,10 @@ pentru `scripts/test-brand.cjs`, care pică dacă în `src/` reapare un text viz
 Nu s-a atins **web-ul** (`apps/nexus-web`) și nici **backend-ul**: rebrand-ul este al aplicației native.
 Datele de test de pe server (de exemplu numele „Test Nexus”) rămân exact cum sunt.
 
+Documentele istorice de produs din `docs/00…24` descriu specificația scrisă sub numele vechi și **nu** au
+fost rescrise: sunt arhivă, nu interfață. S-au schimbat doar titlurile documentelor vii (README, HANDOFF,
+MIGRATION, DEV-WORKFLOW) și s-a adăugat acest fișier.
+
 ## 2. Ce s-a schimbat (vizibil)
 
 | Fișier | Text / identificator | Categorie | Decizie | Motiv |
