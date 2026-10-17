@@ -96,7 +96,9 @@ singură bucată, când se atinge backend-ul:
 * Ieșire în `apps/nexus-mobile/assets/brand/`: `jb-logo-1024.png`, `jb-logo-circle-256.png`,
   `jb-logo-header-{1x,2x,3x}.png` (36/72/108 px = 36 dp), `jb-icon-foreground-1024.png`,
   `jb-icon-background-1024.png`, `jb-icon-1024.png`, `jb-icon-monochrome-1024.png`,
-  `jb-splash-1080x1920.png`.
+  `jb-splash-1080x1920.png`. Fișierele vechi din `assets/` (`icon.png`, `android-icon-*.png`,
+  `splash-icon.png`, `favicon.png`) au rămas pe disc dar **nu mai sunt referite de `app.json`**; se pot șterge
+  într-un lot separat, după ce noul APK e confirmat pe telefon.
 * Verificare numerică la fiecare rulare (scriptul iese cu cod 1 dacă nu se potrivește): dimensiunile fiecărui
   fișier, colțul opac = culoarea câmpului eșantionat, colțurile straturilor transparente au alfa 0, centrul
   are alfa 255 (monocromul poate avea centrul transparent — literele nu umplu mijlocul).

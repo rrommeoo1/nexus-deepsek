@@ -192,8 +192,8 @@ schimbat nicio setare. Ce rămâne de verificat, cu ce se așteaptă:
 
 | Ecran | Înainte | După (așteptat) | Stare |
 |---|---|---|---|
-| Launcher / recents | „Nexus Dev”, iconiță veche | „Jungle Book Dev”, iconița cu J+B din fructe | **doar compilat** (APK nou) |
-| Splash | fundal alb implicit | marca în centru; fundal verde doar după `expo-splash-screen` | **doar compilat** (APK nou) |
+| Launcher / recents | „Nexus Dev”, iconiță veche | „Jungle Book Dev”, iconița cu J+B din fructe | **APK construit** (`aapt`: label „Jungle Book Dev”), neinstalat |
+| Splash | fundal alb implicit | marca în centru; fundal verde doar după `expo-splash-screen` | **APK construit**, fundal încă alb |
 | Login | glif + „NEXUS” | logo mare + „JUNGLE BOOK” + versiunea dedesubt | **doar compilat** (Fast Refresh), de verificat pe telefon |
 | Antet feed | wordmark SVG | logo 36 dp în stânga, aceeași ușă spre Feed | **doar compilat**, de verificat |
 | Bara de jos | `+` în cercul central | logo circular, eticheta „Creează” neschimbată | **doar compilat**, de verificat |
@@ -214,7 +214,7 @@ schimbat nicio setare. Ce rămâne de verificat, cu ce se așteaptă:
 4. **„Urmărește înapoi” pe un profil** — **închis pe 17 oct 2026**: `GET /api/profiles/:handle` are acum `following_me` (commit `cf2c0a8`, deployat), pe payload-ul normal **și** pe shell-ul blocat. Telefonul îl citește în `lib/relations.ts` (`patchFromProfile` → `followsMe`), iar `test-relations.cjs` ține cazul: profil deschis „rece”, profil privat blocat, pereche mutuală și payload fără câmp. Dovada pe ecran rămâne captura din §9.3, rândul 4.
 5. **Lotul web/parity** — arhivat pe `wip/web-archive` (commit `ba7bb84`), fără push. `main` nu îl conține.
 6. **F0 monetizare** — **scris 17 oct 2026**: `docs/MONETIZATION-SPEC.md` (inventarul real: produse `tip`/`membership`, intenții cu split versionat și `CHECK` de conservare, Nexus Pay ca intenție locală, ledger hash-only) și `docs/MONETIZATION-RISKS.md` (14 întrebări, zero decizii). Urmează: aprobarea owner-ului pe RISKS #1–#5, apoi F1 (settle/refund/ledger/payouts, invarianții I1–I8) și abia apoi F2 (ecranele, plus meniul `⋯`).
-7. **Rebrand „Jungle Book”** — **făcut în cod 17 oct 2026**: `docs/REBRAND.md` ține inventarul (vizibil / tehnic / documentație), `BrandLogo` este singurul încărcător de marcă, `app.json` se numește `Jungle Book Dev`, iar `scripts/test-brand.cjs` pică dacă reapare un text vizibil cu numele vechi. Rămân două lucruri care nu țin de cod: **APK nou** (numele de pe launcher, iconița, splash-ul) și **verificarea pe telefon** — telefonul nu era vizibil în `adb` la momentul scrierii (`adb mdns services` gol), deci §9.3 rămâne neîncepută.
+7. **Rebrand „Jungle Book”** — **făcut în cod 17 oct 2026**: `docs/REBRAND.md` ține inventarul (vizibil / tehnic / documentație), `BrandLogo` este singurul încărcător de marcă, `app.json` se numește `Jungle Book Dev`, iar `scripts/test-brand.cjs` pică dacă reapare un text vizibil cu numele vechi. **APK nou construit local**: `apps/nexus-mobile/builds/nexus-dev-arm64.apk` (112 MB, debug, arm64), `aapt dump badging` confirmă `package='app.nexus.mobile.dev'` și `application-label:'Jungle Book Dev'`. Instalarea și verificarea pe telefon **nu s-au făcut**: telefonul nu era vizibil în `adb` (`adb devices` și `adb mdns services` goale), deci §9.3 rămâne neîncepută.
 8. **Token și prețuri (decizia de test)** — **scris 17 oct 2026** în `MONETIZATION-SPEC.md` §3.5: `JUNGLE` ca ticker ESDT (3–10 caractere; `JB` nu e valid), simbol afișat `JB`, 2 zecimale, `reference_eur_per_jb = 1` doar pentru test, prețuri 2/3/3 și 3/5/5 JBc, plus `tools/monetization/simulate.mjs`, care citește gazul real de pe devnet și ia cursul ca parametru. Noile invarianți I9–I11 și întrebările #15–#17 (MiCA, gazul, soldul intern) sunt în documente.
 
 ## 4. Defecte deschise
