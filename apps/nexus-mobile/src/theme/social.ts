@@ -416,6 +416,12 @@ export const socialTokens = {
     paddingHorizontal: 14,
     /** `.ownerHero{padding:12px 14px 0}` keeps the hero's own top inset, and this header keeps it too. */
     paddingTop: 12,
+    /**
+     * The hero left its bottom at 0 because the band's row came next. The band is gone — the header prints
+     * every reading it carried (`MIGRATION.md` §19.2) — so the header keeps the breathing room before the tab
+     * bar itself, instead of an empty row standing in the scroll view just to hold a gap.
+     */
+    paddingBottom: 12,
   },
   /**
    * The relation controls (`lib/relations.ts`). One button, drawn from these values on every screen, so the

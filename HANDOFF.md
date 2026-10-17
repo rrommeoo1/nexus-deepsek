@@ -17,39 +17,36 @@ repete greșeala care a blocat task-urile anterioare.
 | Modelul unificat de relații + `RelationButton` | commit `991a861`; aplicat în profil, feed, prieteni, căutare, live (`0c031ff`) |
 | Auditul de relații, decizia owner-ului, datele de test | commit `75c40d9`; `MIGRATION.md` §19, `PARITY-MATRIX.md` §13, `TEST-DATA.md` §8 |
 | Teste locale existente | `test-relations.cjs` 20/20, `tsc --noEmit` 0 erori, suitele de profil/ticker/comentarii verzi |
+| Bio/loc/vârstă/handle **o singură dată**: rândul benzii scos din `ProfileScreen` (stilurile `bandRow`/`bandCell` odată cu el) | `tickerItems(profile, counters = true, identity = true)`; `ProfileTicker` rămâne pentru suprafețele fără antet |
+| Spațiul dintre antet și bara de file | token nou `identity.paddingBottom` (12) în `theme/social.ts`, folosit de `ProfileHeader.styles.header` |
+| Verificarea reparației | `tsc` 0 erori; `test-hero-parity` 6/6, `test-ticker-parity` 13/13, `test-relations` 20/20, `test-profile-content-parity` 8/8, `test-profile-edit` 9/9, `test-comment-rows` 6/6, `test-comment-time` 2/2 |
 
 ## 2. Ce lucrez acum
 
-1. **Testul final de imagine** (pasul 7): se citește **o singură dată** cea mai mică imagine validă
-   din `docs/vision/` — `web-ref__feed__drawer-open.jpg` (8.3 KB, 900×1959). Rezultatul se scrie
-   mai jos, în §7, și decide dacă modelul poate face verificări vizuale.
-2. **Defectul antetului de profil**: bio, loc și vârsta apar de două ori — o dată sub butoane
-   (`ProfileHeader.about`) și o dată în banda `ProfileTicker` (`tickerItems` le pune mereu, doar
-   contoarele sunt oprite cu `counters={false}`). Se păstrează o singură apariție, sub butoane,
-   conform deciziei owner-ului din `MIGRATION.md` §19.2.
+1. Reparația duplicării din antet este **încheiată și verificată** (`MIGRATION.md` §19.2, paragraful „Defect
+   reparat”): o citire stă într-un singur loc, sub butoanele antetului. Urmează commit-ul ei.
+2. Următorul lot: sistemul de relații unde `MIGRATION.md` §19.4 spune **parțial** — rândurile de
+   comentarii, story rail/viewer și rândul de contact din Mesaje.
 
 ## 3. Pași următori (în ordine)
 
-1. Repară duplicarea din antet: banda primește un comutator pentru identitate (bio/loc/vârstă) și
-   `ProfileScreen` îl oprește, la fel cum oprește deja contoarele. Testul `test-ticker-parity.cjs`
-   se extinde cu cazul „o singură apariție”.
-2. Continuă sistemul de relații acolo unde e marcat **parțial** în `MIGRATION.md` §19.4:
+1. Continuă sistemul de relații acolo unde e marcat **parțial** în `MIGRATION.md` §19.4:
    rândurile de comentarii, story rail/viewer și rândul de contact din Mesaje (are nevoie de
    `user_id`-ul celuilalt participant). Notificările rămân **lipsă** ca ecran.
-3. Sesiune pe telefon (una singură, cu lista de stări din `TEST-DATA.md` §8): profil propriu,
+2. Sesiune pe telefon (una singură, cu lista de stări din `TEST-DATA.md` §8): profil propriu,
    profil public (Urmărește → Urmărești → Nu mai urmări), profil privat (Cere → Solicitat →
    anulare), acceptare din liste, aceeași stare în căutare/feed/live, block + dispariție, deblocare,
    `Mesaj` cu politică restrictivă. Capturile **numai** cu `safe-screencap.ps1`.
-4. Măsurători `uiautomator dump --compressed` (px fizici ÷ 2.6) + compozit în
+3. Măsurători `uiautomator dump --compressed` (px fizici ÷ 2.6) + compozit în
    `docs/parity-report/profile-header/`; apoi notele numerice în `PARITY-MATRIX.md` și
    `parity-report/INDEX.md` (runda 4 este „implementat, nemăsurat”).
-5. Regenerează `docs/screens/` doar dacă e nevoie; originalul corupt rămâne `.bad`, nu se rescrie.
+4. Regenerează `docs/screens/` doar dacă e nevoie; originalul corupt rămâne `.bad`, nu se rescrie.
 
 ## 4. Defecte deschise
 
 | # | Defect | Unde | Notă |
 |---|---|---|---|
-| 1 | bio + loc + vârstă tipărite de două ori | `ProfileHeader.tsx` (`about`) + `ProfileTicker.tsx` (`tickerItems`) | de reparat acum; aceeași regulă ca la contoare |
+| ~~1~~ | ~~bio + loc + vârstă tipărite de două ori~~ | ~~`ProfileHeader.tsx` + `ProfileTicker.tsx`~~ | **reparat 17 oct 2026**: banda nu se mai desenează pe profil; o citire, un singur loc (`MIGRATION.md` §19.2 „Defect reparat”) |
 | 2 | butonul de relație lipsește pe rândurile de comentarii | `CommentRow`/`CommentsSheet` | `MIGRATION.md` §19.4 „parțial” |
 | 3 | butonul de relație lipsește în story rail/viewer | `StoryRail.tsx`, `StoryViewer.tsx` | payload-ul trebuie trecut prin `rememberPayload` |
 | 4 | butonul de relație lipsește pe rândul de contact din Mesaje | `MessagesScreen.tsx` / `ContactCard.tsx` | are nevoie de `user_id`-ul celuilalt participant |
@@ -95,11 +92,16 @@ repete greșeala care a blocat task-urile anterioare.
 
 ## 7. Rezultatul testului de imagine
 
-- [ ] Reușit — modelul citește imagini din `docs/vision/`.
-- [ ] Eșuat — modelul/providerul nu acceptă imagini; verificările vizuale se fac doar numeric și
-      prin descrierile owner-ului.
+- [x] **Reușit** — modelul citește imagini din `docs/vision/`.
+  - `web-ref__feed__drawer-open.jpg` (cea mai mică, 8.3 KB): cadru aproape negru, fără UI vizibil
+    (luminozitate medie 18/255, măsurată cu System.Drawing) — captura a prins doar scrim-ul drawer-ului.
+  - `screens__w-create.jpg` (900×1959): ecranul de creare, cameră live. Se văd clar: `×` în stânga sus,
+    titlul `NEXUS` centrat, coloana din dreapta sus (flash, rotire, dinți, butonul `Cadru`), controlul de
+    zoom `− 0,7× +`, pastilele `PHOTO` / `VIDEO`, declanșatorul alb, `Galerie` în stânga jos, `Ultima
+    captură` în dreapta jos, bara de sistem Android jos. Textul și pozițiile sunt lizibile la 900 px.
+- Concluzie: verificările vizuale se pot face pe imaginile din `docs/vision/`, în continuare **una pe
+  rând** și numai după validare.
 
-(se completează imediat după citirea celei mai mici imagini valide, o singură dată)
 
 ## 8. Comenzi utile
 

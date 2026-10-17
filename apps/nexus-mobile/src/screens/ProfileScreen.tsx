@@ -15,7 +15,7 @@ import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileMomentsShelf } from '../components/ProfileMomentsShelf';
 import { ProfileSharedReplyCard, ProfileWhisperCard } from '../components/ProfileWhisperCard';
 import { ProfileTile } from '../components/ProfileTile';
-import { ProfileTicker, type TickerDoor } from '../components/ProfileTicker';
+import type { TickerDoor } from '../components/ProfileTicker';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -261,18 +261,12 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
       />
 
       {/**
-       * The band, under the header's words: the readings the owner asked to keep — the description, the place,
-       * the age and the handle — with the three counters left to the fixed row above it, so no number in this
-       * column is printed twice (`MIGRATION.md` §19.2). The pencil that used to close this row is gone with the
-       * cover: `Editează profilul` is one of the header's two wide buttons now.
+       * No band under the header. The band used to carry the description, the place, the age, the handle and
+       * then the counters, and the owner's header now prints every one of them - the three counters in the
+       * fixed row, the rest under the buttons (`MIGRATION.md` §19.2). Keeping it would print the same words
+       * twice in one column, which is the defect this row is removed for; `ProfileTicker` stays the module's
+       * transcription for any surface that has no header of its own (`tickerItems` keeps both switches on).
        */}
-      {profile ? (
-        <View style={styles.bandRow}>
-          <View style={styles.bandCell}>
-            <ProfileTicker profile={profile} onDoor={onDoor} counters={false} />
-          </View>
-        </View>
-      ) : null}
 
       {/**
        * `.ownerTabsRegion` + `nav.ownerContentTabs[role=tablist][aria-label="Conținut profil"]`: the bar
@@ -428,24 +422,18 @@ const styles = StyleSheet.create({
   content: { paddingBottom: 18 },
   loader: { marginTop: 80 },
   /**
-   * The cover band, the 78dp disc, the presence dot and the lock chip of the web hero used to be described
-   * here. The owner moved the whole identity into `ProfileHeader` — no cover, a ~92dp circle, the three
-   * counters in a fixed row (`MIGRATION.md` §19.2, `docs/PARITY-MATRIX.md`) — so those rules live there now
-   * and this screen keeps only the band and the content region.
+   * The cover band, the 78dp disc, the presence dot and the chip of the web hero used to be described here.
+   * The owner moved the whole identity into `ProfileHeader` — no cover, a ~92dp circle, the three counters in
+   * a fixed row, the description and the place under the buttons (`MIGRATION.md` §19.2) — so those rules live
+   * there and this screen keeps only the tab bar and the content region. The band's own row left with the
+   * duplication it caused: the header prints every reading the band used to carry.
    */
-  /**
-   * The band's own row (`.ownerTickerRow{display:flex;align-items:center;gap:6px}`), now with nothing beside
-   * it: the pencil that used to close it is gone with the cover, because the editor is one of the header's two
-   * wide buttons (`MIGRATION.md` §19.2).
-   */
-  bandRow: { flexDirection: 'row', alignItems: 'center', gap: socialTokens.ticker.rowGap },
-  /** `.ownerTickerRow .ownerTicker{flex:1;min-width:0}` — the band's own cell, which is what its mask clips. */
-  bandCell: { flex: 1, minWidth: 0 },
   sub: { color: '#9eacb5', fontSize: 12, lineHeight: 16 },
   /**
    * The bar and the arrow are one region (`.ownerTabsRegion`), and the readings open anchored under them.
-   * The region carries no margin of its own: the band's row ends exactly where the tabs begin — measured
-   * `ownerTickerRow` bottom 268 = `ownerTabsRegion` top 268 in `docs/web-ref/profile/own-0.dom.json`.
+   * The region carries no margin of its own: it begins where the header ends, and on the web the band's row
+   * ends exactly where the tabs begin — `ownerTickerRow` bottom 268 = `ownerTabsRegion` top 268 in
+   * `docs/web-ref/profile/own-0.dom.json`.
    */
   tabsBlock: { position: 'relative', backgroundColor: '#000000' },
   tabsRegion: {

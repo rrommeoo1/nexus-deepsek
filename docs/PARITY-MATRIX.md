@@ -377,10 +377,14 @@ marcate ca **deviate prin decizie**, nu ca `diferit` de corectat.
 | fără butoane de relație în antet | **rând de butoane** pe toată lățimea: relația (accent), `Mesaj Nexus`, buton rotund de meniu; pe propriul profil: `Editează profilul`, `Distribuie profilul`, meniu | acțiunea corectă lângă fiecare cont, peste tot |
 | creion `✎` la capătul rândului benzii | **eliminat**; editorul este primul buton lat al antetului | o singură ușă către editor, în rândul de butoane |
 | fără latură de bio în hero | descriere (cu `Vezi mai mult`), adresă apăsabilă din descriere, loc și vârstă | informația contului, sub butoane |
+| banda derulantă de sub hero (`ownerTickerRow`) | **scoasă din ecranul de profil**: antetul tipărește deja descrierea, locul, vârsta, handle-ul și contoarele, iar banda le repeta pe toate | o citire stă într-un singur loc; componenta `ProfileTicker` rămâne pentru suprafețele fără antet propriu, iar spațiul dintre antet și bară îl ține `identity.paddingBottom` |
 
 ### 13.2 Ce rămâne paritate 1:1 (neatins de decizie)
 
-* banda derulantă (`ownerTicker`): aceleași citiri, același ritm, aceleași uși — **minus cele trei contoare**, care au urcat în rândul fix (decizie §13.1). `scripts/test-ticker-parity.cjs` păstrează valorile webului;
+* banda derulantă (`ownerTicker`), ca **componentă**: aceleași citiri, același ritm, aceleași uși, cu două
+  comutatoare (`counters`, `identity`, amândouă implicite `true`). Pe ecranul de profil nu se mai desenează:
+  antetul §13.1 tipărește fiecare citire o singură dată. `scripts/test-ticker-parity.cjs` păstrează valorile
+  webului în componentă și apără absența rândului din `ProfileScreen`;
 * bara de file (≡ ▶ ▦ ❝ ✦ ⌄) și regiunea de conținut de sub ea: neschimbate (`scripts/test-profile-content-parity.cjs`);
 * bara de sus a ecranului de cont: continuă să fie ascunsă de shell (`profile-experience.css:1`), iar cele trei bare ale antetului rămân singura ușă către sertar;
 

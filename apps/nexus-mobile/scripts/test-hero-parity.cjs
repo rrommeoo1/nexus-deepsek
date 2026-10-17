@@ -116,11 +116,20 @@ test('ce nu există pe server nu se desenează', () => {
   assert.match(headerSource, /Vezi mai mult/);
 });
 
-test('banda păstrează citirile webului fără contoare, iar baril și conținutul rămân neatinse', () => {
-  assert.match(screenSource, /<ProfileTicker profile=\{profile\} onDoor=\{onDoor\} counters=\{false\} \/>/);
-  assert.match(tickerSource, /export function tickerItems\(profile: ProfileView \| null, counters = true\)/);
+test('antetul tipărește fiecare citire o singură dată, iar bara și conținutul rămân neatinse', () => {
+  // §19.2 asked for the description, the address inside it, the place and the age under the buttons, and the
+  // three counters in the fixed row above them. The band under the header used to print the same words again,
+  // so this screen no longer draws one: the header is the only place a reading stands, and the column carries
+  // each of them exactly once.
+  assert.doesNotMatch(screenSource, /<ProfileTicker/, 'the band no longer repeats what the header prints');
+  assert.doesNotMatch(screenSource, /styles\.bandRow|styles\.bandCell/, 'its row and cell went with it');
+  // The component keeps the module's full list for any surface that has no header of its own. Both switches
+  // are on by default: `counters` and `identity`, the two groups the owner's header took over.
+  assert.match(tickerSource, /export function tickerItems\(profile: ProfileView \| null, counters = true, identity = true\)/);
   // The band still carries the counters when nothing else prints them: the module's own list stays intact.
   assert.match(tickerSource, /if \(counters\) \{[\s\S]*kind: 'posts'[\s\S]*kind: 'followers'[\s\S]*kind: 'following'/);
+  // And the identity readings (description, place, age, handle) too, in the module's order.
+  assert.match(tickerSource, /if \(identity\) \{[\s\S]*kind: 'bio'[\s\S]*kind: 'location'[\s\S]*kind: 'age'[\s\S]*kind: 'handle'/);
   // The bar of tabs and the content region are the wave-17 work, untouched here.
   assert.match(screenSource, /accessibilityRole="tablist"/);
   assert.match(screenSource, /styles\.tabsBlock/);

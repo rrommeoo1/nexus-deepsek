@@ -20,9 +20,9 @@ import { socialTokens } from '../theme/social';
  * Two things are the phone's own, and both are written down instead of hidden:
  *
  * 1. The owner's own words open the band (`PROFILE_TICKER_ROWS` here is `[bio, location, age, handle]`,
- *    while the module's list ends that row with `bio`), and the description is read nowhere else: the
- *    hero keeps one paragraph for a description on the web, and this screen keeps none, so the reading
- *    that carries it is no longer hidden from a screen reader either.
+ *    while the module's list ends that row with `bio`). The description is read nowhere else *in this
+ *    component*: a hero that prints it keeps one paragraph for it, so the band must not hide it from a
+ *    screen reader either.
  * 2. The band travels on the module's own speed knob rather than on its default: `tickerSpanFor` applies
  *    `PROFILE_TICKER_SPEEDS.fast` (0.62), so the readings a real profile prints loop in 25-35 seconds
  *    instead of the 48 and more the `medium` multiplier gives. The arithmetic is the module's; only the
@@ -117,32 +117,37 @@ export function tickerSpanFor(slots: number, factor = TICKER_SPEED_FACTOR): numb
 }
 
 /**
- * `profileTickerItems`: place, age, handle, the three counters, then the owner's own words. `counters` is the
- * one switch the profile screen turns off, because those three numbers now stand in the header's fixed row
- * (`MIGRATION.md` §19.2); every other reading a real record prints is unchanged.
+ * `profileTickerItems`: the place, the age, the handle and the owner's own words, then the three counters.
+ *
+ * Two switches, both on: `counters` and `identity`. The owner's header prints all of these readings itself —
+ * the description, the address inside it, the place, the age, the handle, and the three counters in its fixed
+ * row (`MIGRATION.md` §19.2) — so the profile screen asks the band for neither and the column carries every
+ * reading exactly once. Left on, the list is the module's own, value for value and in the module's order.
  */
-export function tickerItems(profile: ProfileView | null, counters = true): TickerItem[] {
+export function tickerItems(profile: ProfileView | null, counters = true, identity = true): TickerItem[] {
   if (!profile) return [];
   const items: TickerItem[] = [];
   const locale = 'ro-RO';
   const count = (key: string) => Math.max(0, Number(profile.counts?.[key]) || 0).toLocaleString(locale);
-  /**
-   * The owner's own words open the band: every fragment of the description, in the order it was written,
-   * each cut into the pieces that lead somewhere (`profile-bio-text.js`). The description is the first
-   * reading of the first row, not a block above the band and not the tail of it.
-   */
-  for (const fragment of tickerFragments(profile.bio)) {
-    items.push({ kind: 'bio', value: fragment, tokens: bioTokens(fragment) });
+  if (identity) {
+    /**
+     * The owner's own words open the band: every fragment of the description, in the order it was written,
+     * each cut into the pieces that lead somewhere (`profile-bio-text.js`). The description is the first
+     * reading of the first row, not a block above the band and not the tail of it.
+     */
+    for (const fragment of tickerFragments(profile.bio)) {
+      items.push({ kind: 'bio', value: fragment, tokens: bioTokens(fragment) });
+    }
+    const location = String(profile.location || '').trim();
+    if (location) items.push({ kind: 'location', icon: '📍', value: location });
+    const age = profile.age;
+    if (typeof age === 'number' && Number.isInteger(age) && age >= 13 && age <= 120) {
+      /** An age is a count with a unit, printed the way the three counters are (`profile.years` = „ani"). */
+      items.push({ kind: 'age', icon: '🎂', count: age.toLocaleString(locale), label: 'ani' });
+    }
+    const handle = String(profile.handle || '').trim();
+    if (handle) items.push({ kind: 'handle', value: `@${handle}` });
   }
-  const location = String(profile.location || '').trim();
-  if (location) items.push({ kind: 'location', icon: '📍', value: location });
-  const age = profile.age;
-  if (typeof age === 'number' && Number.isInteger(age) && age >= 13 && age <= 120) {
-    /** An age is a count with a unit, printed the way the three counters are (`profile.years` = „ani"). */
-    items.push({ kind: 'age', icon: '🎂', count: age.toLocaleString(locale), label: 'ani' });
-  }
-  const handle = String(profile.handle || '').trim();
-  if (handle) items.push({ kind: 'handle', value: `@${handle}` });
   /**
    * The three counters are the band's own readings on the web, and the phone prints them too — except where
    * the header already prints them in its fixed row, which is the owner's decision for this screen
@@ -202,13 +207,15 @@ export function tickerDoorArg(item: TickerItem): string {
  * lands anywhere on the band pauses both rows, and lifting it lets them travel on from where they stand -
  * a released band continues its leg instead of jumping to a fresh one.
  */
-export function ProfileTicker({ profile, onDoor, counters = true }: {
+export function ProfileTicker({ profile, onDoor, counters = true, identity = true }: {
   profile: ProfileView;
   onDoor?: (door: TickerDoor, arg: string) => void;
-  /** The three counters, off where the header already prints them (`MIGRATION.md` §19.2). */
+  /** The three counters, off where the host already prints them (`MIGRATION.md` §19.2). */
   counters?: boolean;
+  /** The description, the place, the age and the handle, off where the host's own header prints them. */
+  identity?: boolean;
 }) {
-  const items = useMemo(() => tickerItems(profile, counters), [profile, counters]);
+  const items = useMemo(() => tickerItems(profile, counters, identity), [profile, counters, identity]);
   const rows = useMemo(() => tickerRows(items), [items]);
   const [bandWidth, setBandWidth] = useState(0);
   /** A finger on a door holds both rows still (`.ownerTicker.isHeld` pauses every track), and lets them go. */

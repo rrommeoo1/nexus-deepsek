@@ -510,9 +510,12 @@ test('identitatea, banda și filele se urmează fără niciun gol', () => {
   // row carries the band alone and the band runs the whole width it is given.
   const phoneBand = capture.viewport.w - inset;
   assert.equal(identity.r[0] + identity.r[2], phoneBand, 'the identity ends on the same edge');
-  assert.equal(screen.bandRow.gap, rowGap, "the phone's row keeps the module's own gap");
-  assert.equal(screen.bandCell.flex, 1, 'the band takes the room left over here too');
-  assert.equal(screen.bandCell.minWidth, 0);
+  // The phone has no band under that header any more: the owner's header prints every reading the band used
+  // to carry - the description, the place, the age, the handle and the three counters (`MIGRATION.md` §19.2) -
+  // so its row and cell are gone and the tabs follow the header directly. The numbers above stay the web's,
+  // read from the capture, because the component itself remains the module's transcription.
+  assert.equal(screen.bandRow, undefined, 'the band row left with the duplication it caused');
+  assert.equal(screen.bandCell, undefined, 'and so did the cell its mask clipped');
   assert.equal(screen.editButton, undefined, 'the pencil of the web row no longer exists on the phone');
   // The capture's own cluster is 54px - the 44px button and its 10px padding - and it is the web's alone now.
   assert.equal(actions.r[2], button + 10, 'the capture keeps 10px inside its cluster');
@@ -627,8 +630,9 @@ test('descrierea e text, iar ce duce undeva din ea se citește ca link', () => {
   assert.ok(source.includes("onDoor?.('handle', token.href)"), 'a mention opens the profile it names');
   assert.ok(source.includes('openAddress(token.href)'), 'an address opens where this shell opens addresses');
   assert.ok(source.includes('if (!/^https?:\\/\\//i.test(href)) return;'), 'and only http(s) reaches it');
-  // The description is read in this band and nowhere else on this screen, so its readings are read out.
-  assert.ok(!source.includes("item.kind === 'bio'"), 'the hero keeps no second copy of those words');
+  // The band does not single out a description as a door: its words are the owner's words, and this screen's
+  // header now prints them (with `Vezi mai mult`), so a bio reading stays text and nothing else pressable.
+  assert.ok(!source.includes("item.kind === 'bio'"), 'a bio reading is words, not a door');
 });
 
 test('creionul a plecat din rândul benzii: editorul este un buton lat al antetului', () => {

@@ -301,6 +301,7 @@ const styles = StyleSheet.create({
   header: {
     paddingTop: socialTokens.identity.paddingTop,
     paddingHorizontal: socialTokens.identity.paddingHorizontal,
+    paddingBottom: socialTokens.identity.paddingBottom,
     backgroundColor: '#000000',
   },
   /** The reader's row: the arrow on the left, the share on the right, both 44dp aims. */

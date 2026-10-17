@@ -1152,7 +1152,16 @@ nu mai are hero-ul web. Valorile stau o singură dată, în `theme/social.ts` (`
 | statistici fixe: număr ~20sp peste etichetă ~14sp, apăsabile | `styles.stats`, `onDoor` (`following`/`followers`) | al treilea contor = `counts.posts`; nu duce nicăieri, pentru că serverul nu are o listă a postărilor |
 | rând de butoane 38dp, colț rotund, 8dp între ele, pe toată lățimea | `styles.buttons` + `RelationButton`/`MessageButton`/`RelationMenuButton` | propriu: `Editează profilul`, `Distribuie profilul`, meniu; străin: relație, `Mesaj Nexus`, meniu |
 | sub butoane: bio (cu `Vezi mai mult`), adresă apăsabilă, loc, vârstă | `styles.about`, `bioTokens`, `openLink` | adresa nu are câmp propriu în payload: e citită din descriere |
-| banda: aceleași citiri, **fără contoare** | `ProfileTicker counters={false}`; `tickerItems(profile, counters = true)` | decizia (numerele nu se repetă) e notată în `PARITY-MATRIX.md` §13; banda rămâne paritate web |
+| banda de sub antet: **scoasă din ecran** | `ProfileScreen` nu mai importă `ProfileTicker` (doar `TickerDoor`, ca tip); `tickerItems(profile, counters = true, identity = true)` rămâne pentru suprafețele fără antet | banda repeta descrierea, locul, vârsta, handle-ul și numerele pe care antetul le tipărește deja: o citire stă într-un singur loc (`PARITY-MATRIX.md` §13.1); spațiul dintre antet și bară îl ține `identity.paddingBottom` |
+
+**Defect reparat — citirile tipărite de două ori.** Antetul §19.2 tipărește descrierea, adresa, locul, vârsta și
+contoarele, iar banda de sub el tipărea aceleași cuvinte încă o dată (banda primise doar `counters={false}`).
+Rândul benzii a fost scos din `ProfileScreen` împreună cu stilurile lui (`bandRow`, `bandCell`); componenta
+`ProfileTicker` rămâne neatinsă, pentru că o suprafață fără antet propriu are nevoie de lista completă.
+`tickerItems` capătă al doilea comutator, `identity` (implicit `true`), ca un apelant să poată cere doar numerele.
+Ca să nu rămână un gol sub antet, `theme/social.ts` primește `identity.paddingBottom` (12), iar `ProfileHeader`
+îl folosește — nu un rând gol în `ScrollView` ținut doar pentru spațiu. `scripts/test-hero-parity.cjs`,
+`test-relations.cjs` și `test-ticker-parity.cjs` apără acum „o citire, un singur loc”.
 
 ### 19.3 Partea B — modelul de relații (o singură sursă de adevăr)
 
@@ -1194,8 +1203,10 @@ nu mai are hero-ul web. Valorile stau o singură dată, în `theme/social.ts` (`
 * **testat unitar**: `scripts/test-relations.cjs` → **20/20** (normalizator pe fiecare payload, invariantul „un cont,
   un răspuns” indiferent de payload, toate stările din `deriveRelationUi`, meniul doar cu ce există pe server,
   optimist + rollback, dublu-tap, 404 ⇒ indisponibil, numerele antetului din tokenuri, inventarul static al ecranelor);
-* suite vechi: `test-hero-parity` (reancorat la decizia owner-ului), `test-ticker-parity`, `test-profile-content-parity`,
-  `test-profile-edit`, `test-comment-rows`, `test-comment-time` — toate verzi (numerele exacte în raportul de sesiune);
+* suite vechi: `test-hero-parity` **6/6** (reancorat la decizia owner-ului + „o citire, un singur loc”),
+  `test-ticker-parity` **13/13** (rândul benzii nu mai există în `ProfileScreen`, valorile webului rămân în
+  componentă), `test-profile-content-parity` **8/8**, `test-profile-edit` **9/9**, `test-comment-rows` **6/6**,
+  `test-comment-time` **2/2** — toate verzi;
 * **verificat pe telefon**: **încă nu** — lotul cu telefonul (o singură sesiune, lista completă de stări) urmează;
 * **comparat numeric**: țintele stau în `theme/social.ts` (`identity`, `relations`) și sunt verificate de test;
   măsurătoarea `uiautomator dump --compressed` (px fizici ÷ 2.6) și compozitul în `docs/parity-report/profile-header/`

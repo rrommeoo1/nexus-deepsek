@@ -23,6 +23,9 @@ f. `HANDOFF.md` se actualizează după fiecare lot de lucru (înainte de commit)
 
 ## Verificări vizuale
 
+- **Modelul poate citi imagini din `docs/vision/`** (testat 17 oct 2026 pe un cadru de cameră 900 px:
+  text și poziții lizibile). Rămâne valabilă regula unei singure imagini pe rând.
+
 - O verificare vizuală înseamnă o imagine din `docs/vision/` citită o singură dată, apoi
   numerele măsurate (px fizici ÷ 2.6, `uiautomator dump`) scrise în raport.
 - Capturile noi se fac numai cu aplicația în prim-plan: `app.nexus.mobile.dev`. Focusul se

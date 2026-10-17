@@ -529,11 +529,14 @@ test('the header prints the owner\'s measurements, from tokens, with no cover le
   assert.match(screen, /<ProfileHeader/);
   assert.match(screen, /rememberPayload\(result\)/);
   assert.match(screen, /useRelation\(data\?\.profile\?\.user_id\)/);
-  assert.match(screen, /counters=\{false\}/, 'the counters moved into the header row');
+  // The header prints the counters and the identity, so the band that repeated them is not drawn at all:
+  // one reading per column (`MIGRATION.md` §19.2).
+  assert.doesNotMatch(screen, /<ProfileTicker/, 'the band no longer repeats what the header prints');
 
   const ticker = readFileSync(TICKER, 'utf8');
-  assert.match(ticker, /export function tickerItems\(profile: ProfileView \| null, counters = true\)/);
+  assert.match(ticker, /export function tickerItems\(profile: ProfileView \| null, counters = true, identity = true\)/);
   assert.match(ticker, /if \(counters\) \{/);
+  assert.match(ticker, /if \(identity\) \{/);
 
   const edit = readFileSync(resolve(ROOT, 'src/components/ProfileEditSheet.tsx'), 'utf8');
   assert.doesNotMatch(edit, /ProfileCoverPhoto|coverFrame|coverBadge|pickPhoto\('cover'\)/, 'the editor no longer arranges a cover');
