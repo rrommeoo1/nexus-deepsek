@@ -10,6 +10,7 @@ import {
   useCameraPermission, useMicrophonePermission, usePhotoOutput, useVideoOutput,
 } from 'react-native-vision-camera';
 import { CaptureEditor } from '../components/CaptureEditor';
+import { pauseIfAlive } from '../lib/audioLifecycle';
 import {
   type CaptureFraming, type LocalCapture, loadDraft, loadLatestCapture, persistCapture,
   persistImportedCapture, saveDraft, touchDraft,
@@ -74,7 +75,9 @@ export default function CameraScreen() {
     countdownGenerationRef.current += 1;
     if (countdownTimerRef.current) clearTimeout(countdownTimerRef.current);
     soundRequestRef.current?.abort();
-    soundPlayer.pause();
+    // La demontare, expo-audio poate elibera deja obiectul nativ: pause() ar arunca și ar
+    // transforma ieșirea din ecran într-un Render Error (vezi lib/audioLifecycle.ts).
+    pauseIfAlive(soundPlayer);
   }, [soundPlayer]);
 
   useEffect(() => {
@@ -320,7 +323,7 @@ export default function CameraScreen() {
         Alert.alert('Muzica nu a fost salvată', `Captura este păstrată, dar alegerea melodiei trebuie repetată în editor: ${String(error)}`);
       }
     }
-    soundPlayer.pause();
+    pauseIfAlive(soundPlayer);
     setLightOn(false);
     setCaptured(saved);
     setLatest(saved);
@@ -384,18 +387,18 @@ export default function CameraScreen() {
 
   function closeSounds() {
     soundRequestRef.current?.abort();
-    soundPlayer.pause();
+    pauseIfAlive(soundPlayer);
     setPreviewTrackId(null);
     setSoundOpen(false);
   }
 
   function previewSound(track: JamendoTrack) {
     if (previewTrackId === track.id && soundPlayerStatus.playing) {
-      soundPlayer.pause();
+      pauseIfAlive(soundPlayer);
       return;
     }
     try {
-      soundPlayer.pause();
+      pauseIfAlive(soundPlayer);
       soundPlayer.replace(track.audio_url);
       soundPlayer.play();
       setPreviewTrackId(track.id);

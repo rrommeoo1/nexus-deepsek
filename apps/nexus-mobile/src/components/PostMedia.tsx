@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAudioPlayer } from 'expo-audio';
+import { pauseIfAlive } from '../lib/audioLifecycle';
 import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource, type SocialPost } from '../lib/socialTypes';
 
 /**
@@ -100,7 +101,7 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
 
   useEffect(() => {
     if (!jamendo || !active || muted) {
-      soundtrackPlayer.pause();
+      pauseIfAlive(soundtrackPlayer);
       return;
     }
     let seeking = false;
@@ -121,7 +122,7 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
     };
     sync();
     const interval = setInterval(sync, 500);
-    return () => { alive = false; clearInterval(interval); soundtrackPlayer.pause(); };
+    return () => { alive = false; clearInterval(interval); pauseIfAlive(soundtrackPlayer); };
   }, [active, jamendo, muted, player, soundtrackPlayer]);
 
   // `/media/…` answers 423 for an unvalidated record and 410 for one whose bytes are gone, and a
@@ -232,7 +233,7 @@ export function RemoteImageSound({ soundtrack, active, muted, onAudioError }: {
   }, [jamendo, player]);
 
   useEffect(() => {
-    if (!jamendo || !active || muted) { player.pause(); return; }
+    if (!jamendo || !active || muted) { pauseIfAlive(player); return; }
     const segment = Math.max(15, Math.min(60, Number(jamendo.segment_seconds) || 30));
     const duration = Math.max(0, Number(jamendo.duration) || 0);
     const offset = Math.max(0, Math.min(Math.max(0, duration - segment), Number(jamendo.preview_offset) || 0));
@@ -250,7 +251,7 @@ export function RemoteImageSound({ soundtrack, active, muted, onAudioError }: {
     };
     sync();
     const interval = setInterval(sync, 500);
-    return () => { alive = false; clearInterval(interval); player.pause(); };
+    return () => { alive = false; clearInterval(interval); pauseIfAlive(player); };
   }, [active, jamendo, muted, player]);
   return null;
 }
