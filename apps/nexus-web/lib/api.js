@@ -1,6 +1,7 @@
 import { URL } from "node:url";
 import { normalizePublishing } from './post-publishing.js';
 import { handleCreatorDrafts } from './creator-drafts.js';
+import { handleCreatorSettlement } from './creator-settlement.js';
 import {
   json, send, redirect, parseCookies, setCookie, clearCookie, readBody, readJson, sanitizeText,
 } from "./transport.js";
@@ -2757,10 +2758,12 @@ export async function handleRequest(req, res, ctx) {
     } catch (error) { const mapped = mapM12Error(error); if (mapped) return json(res, mapped.status, { ok: false, code: mapped.code, error: mapped.error }); throw error; }
   }
 
+  // F1.2 — settle, refund, ledger and payouts (§4.3). The handler answers only its own five routes.
+  if (await handleCreatorSettlement({ req, res, method, path, repo, auth })) return;
+
   if (method === "GET" && path === "/api/node/status") {
     return json(res, 200, { ok: true, network: repo.getNexusNodeNetworkStatus(auth.user.id), rewards: { enabled: false, funded_pool_cents: 0, raw_traffic_paid: false }, real_nodes_contacted: false });
   }
-
   if (method === "GET" && path === "/api/node/protocol-contract") {
     return json(res, 200, {
       ok: true,

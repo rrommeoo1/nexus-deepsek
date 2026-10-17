@@ -1,6 +1,7 @@
 # Monetizare — F0: specificația (17 octombrie 2026)
 
-Status: **F0 încheiat prin acest document; F1 (backend) și F2 (aplicația) nu sunt începute.**
+Status: **F0 încheiat prin acest document; F1 scris (miez, tabele, rute, 21 de teste verzi); F2 (ecranele)
+nu este început.**
 Monedă: **`TEST-USDC`, valoare zero, fără plăți reale.** Niciun ecran și nicio rută din acest plan nu
 mișcă fonduri. Întrebările care țin de bani reali, taxe, minori și magazinele de aplicații sunt în
 `docs/MONETIZATION-RISKS.md` și **nu** primesc răspuns aici.
@@ -230,6 +231,22 @@ Identitatea stă în `users`, nu în ledger.
 Aditivă, idempotentă (`CREATE TABLE IF NOT EXISTS`), fără backfill: intențiile existente rămân
 `demo_unpaid` și nu se „decontă” retroactiv. Migrarea nu atinge `users`, `pay_*` sau `creator_support_*`.
 
+
+### 4.5 Ce s-a scris, și ce anume dovedește
+
+| Loc | Ce conține | Dovada |
+|---|---|---|
+| `lib/creator-ledger.js` | miezul fără bază de date: `splitAmount`, `priceFloorCents`, `assertPriceAllowed`, postare dublă în memorie, refund, payout, `totals`, `reconcile`, `deleteAccount` | `test/creator-ledger.test.js` — 11 teste (I1–I11) |
+| `lib/creator-settlement.js` | aceleași reguli, pe SQLite: `ledger_accounts`, `ledger_entries`, `support_settlements`, `payout_requests`; fiecare scriere într-un `SAVEPOINT`; `depositTreasury`, `settleIntent`, `refundIntent`, `creatorLedger`, `requestCreatorPayout`, `listCreatorPayouts`, `payCreatorPayout`, `reconcileCreatorLedger` | `test/creator-settlement.test.js` — 10 teste (I1–I8, payout, plus un test care rulează același scenariu prin ambele implementări și compară soldurile) |
+| `lib/db.js` | cele patru tabele din §4.1, cu `UNIQUE(intent_id)` pe settlement și `CHECK` pe conservarea sumei | testul I6 încearcă un al doilea rând și baza de date îl refuză |
+| `lib/api.js` | cele cinci rute din §4.3, montate înaintea rutelor generice; `409 SETTLEMENT_DISABLED` fără `NEXUS_SETTLE_DEMO=1` | aceleași teste, apelate direct pe module |
+| `lib/action-ledger.js` | `/api/creator/support-intents/*` și `/api/creator/payouts` intră în clasa `FINANCIAL_ACTION`, nu în `UNCLASSIFIED_MUTATION` | `test/p1-action-ledger.test.js` |
+
+Ce **nu** s-a dovedit: nicio rută nu a fost chemată prin HTTP cu un client real (testele cheamă funcțiile,
+nu serverul), iar `scripts/action-ledger-reconcile.mjs` iese `PASS` pe o bază nouă și `MISMATCH` pe
+`data/nexus.sqlite`-ul local, unde are 15 849 de intenții neclasificate adunate dinainte de acest lot —
+o stare a datelor de dezvoltare, nu o consecință a ledger-ului. Nicio sumă reală nu s-a mișcat:
+`real_payment: false` și `real_settlements: 0` sunt în fiecare răspuns.
 
 ## 5. F2 — aplicația
 

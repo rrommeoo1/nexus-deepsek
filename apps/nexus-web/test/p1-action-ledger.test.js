@@ -66,6 +66,8 @@ test("synthetic, private and ephemeral actions are classified without false chai
     assert.equal(JSON.stringify(db.prepare("SELECT payload_json FROM outbox_events WHERE event_type = 'action.intent.created'").get()).includes("private-text"), false);
     assert.deepEqual(classifyAction("POST", "/api/social/impressions"), { action_class: "EPHEMERAL_EXCLUDED", action_type: "EPHEMERAL_TRANSPORT" });
     assert.deepEqual(classifyAction("POST", "/api/new-feature"), { action_class: "PRIVATE_ACTION", action_type: "UNCLASSIFIED_MUTATION" });
+    assert.deepEqual(classifyAction("POST", "/api/creator/support-intents/abc123/settle"), { action_class: "FINANCIAL_ACTION", action_type: "FINANCIAL_INTENT" });
+    assert.deepEqual(classifyAction("POST", "/api/creator/payouts"), { action_class: "FINANCIAL_ACTION", action_type: "FINANCIAL_INTENT" });
   } finally { db.close(); }
 });
 
