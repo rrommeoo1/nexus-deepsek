@@ -528,3 +528,25 @@ node apps/nexus-web/scripts/devnet-test-fixtures.mjs
 
 Ambele trimit `Origin` (mutările autentificate îl cer) și `Idempotency-Key`; a doua rulare a fixture-urilor
 întoarce aceleași id-uri (`story=9`, `comment=35`, `conversation=2`, `message=2`) fără să scrie nimic nou.
+
+<!-- rename-test-accounts:begin -->
+
+## Numele de test, redenumite în „Jungle Book" (18 octombrie 2026)
+
+Scris de `tools/rename-test-accounts.mjs` pe baza sesiunilor din `docs/.test-sessions.local`.
+Coloana „stare" spune ce a răspuns serverul; un 401 este o sesiune expirată, nu un nume schimbat.
+
+| Handle | Stare | Nume afișat | Bio |
+| --- | --- | --- | --- |
+| @urailwaytest01a20d | fără „Nexus" în text — neatins | Jungle Book Test 01 | [test] Cont de test Jungle Book (Railway preview). Fără valoare. |
+| @urailwaytest02cb2b | fără „Nexus" în text — neatins | Jungle Book Test 02 | [test] Cont de test Jungle Book (Railway preview). Fără valoare. |
+| @urailwaytest03850c | fără „Nexus" în text — neatins | Jungle Book Test 03 | [test] Cont de test Jungle Book (Railway preview). Fără valoare. |
+| @urailwaytest043941 | fără „Nexus" în text — neatins | Jungle Book Test 04 | [test] Cont de test Jungle Book (Railway preview). Fără valoare. |
+| @urailwaytest05313a | fără „Nexus" în text — neatins | Jungle Book Test 05 | [test] Cont de test Jungle Book (Railway preview). Fără valoare. |
+| @devnet_test_01 | fără „Nexus" în text — neatins | Test devnet 01 |  |
+| @devnet_test_02 | fără „Nexus" în text — neatins | Test devnet 02 |  |
+| @devnet_test_03 | fără „Nexus" în text — neatins | Test devnet 03 |  |
+| @devnet_test_04 | fără „Nexus" în text — neatins | Test devnet 04 |  |
+| @devnet_test_05 | fără „Nexus" în text — neatins | Test devnet 05 |  |
+
+<!-- rename-test-accounts:end -->

@@ -292,6 +292,20 @@ serverul spune o monedă pe care aplicația o afișează ca `JUNGLE` din `CURREN
   de server pentru 0 pe o acțiune (azi toate trei trebuie peste pragul de 1,05 JUNGLE).
 - 404 / 501 / 503 / eroare de rețea: propoziții proprii + buton `Reîncearcă` (`lib/serverErrors.ts`), în
   monetizare și în portofel.
+- **Numele de test au fost redenumite** prin API-ul public, cu sesiunile din `docs/.test-sessions.local`:
+  cele cinci conturi `urailwaytest*` spun acum „Jungle Book Test 0N", iar bio-ul „Cont de test Jungle Book
+  (Railway preview)"; cele cinci `devnet_test_*` nu aveau „Nexus" în text și au rămas neatinse. Tabelul
+  întreg este în `docs/TEST-DATA.md` (bloc marcat), scris de `tools/rename-test-accounts.mjs`.
+- **Telefonul nu a putut fi folosit pentru verificarea stării**: `adb` și dispozitivul răspund
+  (`app.nexus.mobile.dev`, `versionName 0.1.0`, ultima actualizare 17 oct 2026 20:35 — deci APK-ul
+  „Jungle Book Dev" construit la 20:04 este cel instalat), dar deep link-ul a adus în față ecranul de
+  dezvoltator, iar dump-ul `docs/parity-report/ui-menu-20261018.xml` arată doar „Tools". Nu am apăsat
+  Home sau Back și nu declar verificat nimic din ce nu s-a văzut.
+- **Neînceput în această rundă**: semnul `$` lângă numele creatorilor plătiți, foaia de plată a fanului
+  pentru like/comentariu/distribuire, fluxul real cu `NEXUS_SETTLE_DEMO=1`, tokenul JUNGLE pe devnet și
+  investigația celor 15 849 de intenții. Sunt scrise ca pași concreți în `docs/PROMPT-DEEPSEEK.md`.
+
+
 
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
