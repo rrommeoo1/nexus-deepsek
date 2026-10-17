@@ -1,0 +1,38 @@
+# Reguli de lucru Nexus — imagini, verificări vizuale, continuitate
+
+Aceste reguli completează `AGENTS.md` și sunt obligatorii în orice sesiune care atinge
+capturi de ecran, paritate vizuală sau telefonul.
+
+## Imagini (regula care a blocat deja un task)
+
+a. Se citesc imagini **numai** din `docs/vision/`, după ce au trecut prin
+   `tools/images/validate-images.ps1`. `docs/screens/`, `docs/parity-report/`,
+   `docs/web-ref/` și `docs/design-refs/` sunt în `.clineignore` și nu se deschid niciodată.
+b. Niciodată o imagine nevalidată. Un fișier `.bad` nu se citește, nu se redenumește înapoi
+   și nu se „încearcă o dată, poate merge”. Un singur fișier invalid citit blochează task-ul.
+c. Cel mult **o imagine pe rând**. După fiecare imagine se scrie observația, apoi se trece la
+   următoarea. Niciodată două capturi în același mesaj.
+d. Dacă apare eroarea de imagine („unsupported image”, „could not process image” etc.):
+   **oprește-te imediat**. Nu mai încerca altă imagine în același task. Scrie în `HANDOFF.md`
+   ce s-a întâmplat, ce era de verificat și ce urmează, apoi cere owner-ului un task nou.
+e. Nu se folosește `>` pentru fișiere binare în PowerShell. Capturile se fac exclusiv cu
+   `tools/images/safe-screencap.ps1 -Name <nume>` (screencap pe telefon → `adb pull` →
+   validare → JPEG 900 px în `docs/vision/`).
+f. `HANDOFF.md` se actualizează după fiecare lot de lucru (înainte de commit), ca o sesiune
+   nouă să poată continua fără să recitească tot istoricul.
+
+## Verificări vizuale
+
+- O verificare vizuală înseamnă o imagine din `docs/vision/` citită o singură dată, apoi
+  numerele măsurate (px fizici ÷ 2.6, `uiautomator dump`) scrise în raport.
+- Capturile noi se fac numai cu aplicația în prim-plan: `app.nexus.mobile.dev`. Focusul se
+  verifică înainte de fiecare input (`dumpsys window | findstr mCurrentFocus`).
+- Fără cortina de notificări, fără Home, fără Back, fără modificarea setărilor telefonului.
+- `uiautomator dump` cere `idle`; pe ecranele cu animație continuă se folosește
+  `device-batch.ps1 -ReduceMotion`, care pune scalele la loc în `finally`.
+
+## Git și date
+
+- Se lucrează pe branch-ul mobil (`codex/camera-draft-stability`), fără force push.
+- Nu se comit imagini: `docs/vision/` este generat și ignorat de git.
+- Date de producție: doar adăugare documentată; fără ștergeri, fără costuri, fără secrete.

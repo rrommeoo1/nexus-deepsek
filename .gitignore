@@ -45,3 +45,9 @@ tools/scrcpy/
 Thumbs.db
 .vscode/
 .idea/
+
+# Generated, validated JPEGs for vision reads (see tools/images/to-vision.ps1).
+# The originals stay in docs/screens, docs/web-ref, docs/parity-report and docs/design-refs;
+# this folder is a cache and must never be committed.
+docs/vision/
+

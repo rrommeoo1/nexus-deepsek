@@ -1,0 +1,10 @@
+# Capturi brute: mari, nevalidate și exact cauza care a blocat un task întreg.
+# Un PNG corupt citit o dată a rămas în istoric, iar fiecare mesaj următor a primit
+# aceeași eroare „unsupported image”. Doar docs/vision/ are voie să fie citit.
+docs/screens/
+docs/parity-report/
+docs/web-ref/
+docs/design-refs/
+
+# Orice fișier pe care validate-images.ps1 l-a declarat corupt.
+**/*.bad
