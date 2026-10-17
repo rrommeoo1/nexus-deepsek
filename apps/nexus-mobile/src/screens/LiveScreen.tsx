@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
 import { RemoteImageSource } from '../components/PostMedia';
+import { RelationButton } from '../components/RelationButton';
+import { rememberPayload, useRelation } from '../lib/relations';
 import { compactCount, initialsFor, mediaSourceForPath, type LivePage, type LiveSession } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
+import { openSocialProfile } from '../lib/profileNavigation';
 
 const describe = (cause: unknown) => (cause instanceof Error ? cause.message : 'Conexiunea nu este disponibilă.');
 
@@ -26,7 +29,13 @@ export function LiveScreen() {
   useEffect(() => {
     let alive = true;
     nexusApi<LivePage>('/api/social/live')
-      .then((result) => { if (alive) { setPage(result); setError(''); } })
+      .then((result) => {
+        if (!alive) return;
+        /** The hosts and creators carry `is_following`, so the store learns them from the same read. */
+        rememberPayload(result);
+        setPage(result);
+        setError('');
+      })
       .catch((cause) => { if (alive) setError(describe(cause)); })
       .finally(() => { if (alive) { setLoading(false); setRefreshing(false); } });
     return () => { alive = false; };
@@ -77,19 +86,33 @@ function LiveRow({ session, viewers, followersLabel = false }: { session: LiveSe
   const avatar = mediaSourceForPath(session.avatar);
   const name = session.display_name || session.handle || 'Nexus';
   const count = compactCount(viewers);
+  /**
+   * A live host is somebody else's account, so the same relation button the profile prints stands here:
+   * the live payload carries `is_following` for every session and the store keeps it
+   * (`LiveSession.is_following`, `api.js` — `/api/social/live`).
+   */
+  const hostId = Number(session.host_id ?? session.user_id) || null;
+  const relation = useRelation(hostId);
   return (
     <View style={styles.row}>
-      <View style={styles.avatar}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${session.handle}`} onPress={() => openSocialProfile(session.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
         {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, session.handle)}</Text> : null}
-      </View>
-      <View style={styles.rowText}>
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${session.handle}`} onPress={() => openSocialProfile(session.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {[`@${session.handle ?? 'nexus'}`, count ? `${count} ${followersLabel ? 'urmăritori' : 'spectatori'}` : '', session.is_following ? 'urmărești' : ''].filter(Boolean).join(' · ')}
+          {[`@${session.handle ?? 'nexus'}`, count ? `${count} ${followersLabel ? 'urmăritori' : 'spectatori'}` : ''].filter(Boolean).join(' · ')}
         </Text>
-      </View>
+      </Pressable>
       {session.title ? <Text style={styles.title} numberOfLines={1}>{session.title}</Text> : null}
+      {hostId ? (
+        <RelationButton
+          variant="compact"
+          target={{ userId: hostId, handle: session.handle, name, persona: 'social' }}
+          relation={relation}
+        />
+      ) : null}
     </View>
   );
 }

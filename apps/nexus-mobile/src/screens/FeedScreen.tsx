@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { decideSocialGesture } from '../lib/socialGesture';
+import { rememberPayload } from '../lib/relations';
 import type { FeedPage, NewsItem, SocialPost } from '../lib/socialTypes';
 import { postMediaItems, relativeTime } from '../lib/socialTypes';
 import { PostCard } from '../components/PostCard';
@@ -117,6 +118,8 @@ export function FeedScreen({ mode, onModeChange }: {
     nexusApi<FeedPage>(url)
       .then((page) => {
         if (cancelled || ticket !== requestId.current) return;
+        /** Every post the feed received feeds the one relation store (`lib/relations.ts`). */
+        rememberPayload(page);
         applyPage(page, 'initial');
         setLoadedUrl(url);
       })
@@ -132,7 +135,7 @@ export function FeedScreen({ mode, onModeChange }: {
     setRefreshing(true);
     const ticket = ++requestId.current;
     nexusApi<FeedPage>(url)
-      .then((page) => { if (ticket === requestId.current) { applyPage(page, 'initial'); setLoadedUrl(url); } })
+      .then((page) => { if (ticket === requestId.current) { rememberPayload(page); applyPage(page, 'initial'); setLoadedUrl(url); } })
       .catch((cause) => { if (ticket === requestId.current) setError(describe(cause)); })
       .finally(() => { if (ticket === requestId.current) setRefreshing(false); });
   }, [applyPage, describe, url]);
@@ -142,7 +145,7 @@ export function FeedScreen({ mode, onModeChange }: {
     setLoadingMore(true);
     const ticket = requestId.current;
     nexusApi<FeedPage>(`${url}&cursor=${encodeURIComponent(cursor)}`)
-      .then((page) => { if (ticket === requestId.current) applyPage(page, 'more'); })
+      .then((page) => { if (ticket === requestId.current) { rememberPayload(page); applyPage(page, 'more'); } })
       .catch((cause) => { if (ticket === requestId.current) setError(describe(cause)); })
       .finally(() => { if (ticket === requestId.current) setLoadingMore(false); });
   }, [applyPage, cursor, describe, loadingMore, url]);

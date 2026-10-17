@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { openCommentsPage } from '../lib/commentNavigation';
+import { openSocialProfile } from '../lib/profileNavigation';
+import { useRelation } from '../lib/relations';
+import { RelationButton } from './RelationButton';
 import { ReactionControl } from './ReactionControl';
 import { MediaViewer } from './MediaViewer';
 import { RemoteImage, RemoteImageSource, type MediaFit } from './PostMedia';
@@ -76,6 +79,15 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   // Sharing stays internal on this product: the server answers with its own sentence and the card prints it.
   const share = () => { sharePost(post.id).catch(fail); };
 
+  /**
+   * The author's own record, from the one store (`lib/relations.ts`): the card prints the same relation the
+   * profile, the lists and the search print, because `socialPostView` carries `following_me`,
+   * `follow_request_pending`, `muted_by_me` and `blocked_by_me` (`api.js:742-744`) and the feed hands them to
+   * the store in one call.
+   */
+  const authorId = Number(post.author?.id) || null;
+  const relation = useRelation(authorId);
+
   return (
     <>
       <Pressable
@@ -84,7 +96,8 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
         onPress={() => { if (onOpen) onOpen(post); else openCommentsPage(post); }}
         style={styles.card}
       >
-        <View style={styles.head}>
+        <View style={styles.headRow}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} onPress={(event) => { event.stopPropagation(); openSocialProfile(post.author?.handle); }} style={styles.head}>
           <View style={styles.avatarWrap}>
             <RemoteImageSource source={avatar} fit="cover" style={styles.avatar} />
             {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text> : null}
@@ -95,6 +108,18 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
               {`@${handle}`}{relativeTime(post.created_at) ? ` · ${relativeTime(post.created_at)}` : ''}
             </Text>
           </View>
+        </Pressable>
+          {/**
+           * The author's relation, in the compact shape: the same word a list row prints. A card whose author is
+           * the reader keeps no button at all (`deriveRelationUi` answers `self`).
+           */}
+          {authorId ? (
+            <RelationButton
+              variant="compact"
+              target={{ userId: authorId, handle, name, persona: post.persona ?? 'social' }}
+              relation={relation}
+            />
+          ) : null}
         </View>
 
         {post.title ? <Text style={styles.title}>{post.title}</Text> : null}
@@ -170,7 +195,9 @@ const styles = StyleSheet.create({
     borderRadius: socialTokens.post.radius,
     backgroundColor: socialTokens.colors.postSurface,
   },
-  head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  head: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  /** The head row: the author on the left, the relation button on the right (`lib/relations.ts`). */
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: socialTokens.relations.buttonGap },
   avatarWrap: {
     width: 40, height: 40, borderRadius: 20, overflow: 'hidden',
     alignItems: 'center', justifyContent: 'center', backgroundColor: '#111820',

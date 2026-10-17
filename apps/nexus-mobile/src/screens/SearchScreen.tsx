@@ -3,10 +3,13 @@ import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, Vi
 import { nexusApi } from '../lib/nexusApi';
 import { PostCard } from '../components/PostCard';
 import { RemoteImageSource } from '../components/PostMedia';
+import { RelationButton } from '../components/RelationButton';
+import { rememberPayload, useRelation } from '../lib/relations';
 import {
   initialsFor, mediaSourceForPath, postMediaItems, type SearchProfile, type SocialSearchPage,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
+import { openSocialProfile } from '../lib/profileNavigation';
 
 /**
  * People and posts, read from the one endpoint the web search reads (`GET /api/social/search?q=`).
@@ -15,8 +18,14 @@ import { socialTokens } from '../theme/social';
  * sentence when the query is refused, and shows each returned profile exactly as the payload carries
  * it. Nothing is cached between searches - a new query replaces the page.
  */
-export function SearchScreen() {
-  const [query, setQuery] = useState('');
+/**
+ * `initialQuery` is the question the screen opens on. A place written on a profile is a reading with a
+ * screen behind it, so the band's location door hands the search screen the text it already prints
+ * (`openProfileTickerDoor` fills `social-search-input` and submits the form) instead of the reader
+ * typing the city a second time.
+ */
+export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = {}) {
+  const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState<SocialSearchPage | null>(null);
   const [asked, setAsked] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,6 +44,8 @@ export function SearchScreen() {
     setError('');
     try {
       const result = await nexusApi<SocialSearchPage>(`/api/social/search?q=${encodeURIComponent(term)}`);
+      /** The people this search answered with feed the one relation store (`lib/relations.ts`). */
+      rememberPayload(result);
       setPage(result);
       setAsked(result.query || term);
     } catch (cause) {
@@ -95,16 +106,24 @@ export function SearchScreen() {
 function ProfileRow({ person }: { person: SearchProfile }) {
   const avatar = mediaSourceForPath(person.avatar);
   const name = person.name || person.handle;
+  /** The same record the profile and the lists print: one relation, one answer (`lib/relations.ts`). */
+  const relation = useRelation(person.id);
   return (
     <View style={styles.person}>
-      <View style={styles.avatar}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
         {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, person.handle)}</Text> : null}
-      </View>
-      <View style={styles.personText}>
+      </Pressable>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.personText}>
         <Text style={styles.personName} numberOfLines={1}>{name}</Text>
         <Text style={styles.personMeta} numberOfLines={1}>{`@${person.handle}`}</Text>
-      </View>
+      </Pressable>
+      <RelationButton
+        variant="compact"
+        target={{ userId: person.id, handle: person.handle, name, persona: 'social' }}
+        relation={relation}
+      />
+
     </View>
   );
 }
