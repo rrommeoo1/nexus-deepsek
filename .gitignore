@@ -40,6 +40,12 @@ tools/scrcpy/
 *.sqlite3
 *.db
 
+# Local diagnostics: adb UI dumps, lint and gate output. They are evidence for one session,
+# never product files, and some of them carry account names — so they stay out of history.
+temp-ui*.xml
+apps/nexus-mobile/lint-*.txt
+apps/nexus-web/_*.txt
+
 # OS/editor files
 .DS_Store
 Thumbs.db
