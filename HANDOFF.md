@@ -1,4 +1,4 @@
-# HANDOFF — Nexus nativ (branch `codex/camera-draft-stability`)
+# HANDOFF — Jungle Book nativ (fost Nexus) (branch `codex/camera-draft-stability`)
 
 Ultima actualizare: **17 octombrie 2026** (banda de profil restaurată nativ + ciclul de dezvoltare + ușa
 notificărilor).
@@ -192,6 +192,8 @@ contracte de telefon trec (9/9, 6/6, 2/2, 6/6, 12/12, 8/8, 9/9, 21/21).
 4. **„Urmărește înapoi” pe un profil** — **închis pe 17 oct 2026**: `GET /api/profiles/:handle` are acum `following_me` (commit `cf2c0a8`, deployat), pe payload-ul normal **și** pe shell-ul blocat. Telefonul îl citește în `lib/relations.ts` (`patchFromProfile` → `followsMe`), iar `test-relations.cjs` ține cazul: profil deschis „rece”, profil privat blocat, pereche mutuală și payload fără câmp. Dovada pe ecran rămâne captura din §9.3, rândul 4.
 5. **Lotul web/parity** — arhivat pe `wip/web-archive` (commit `ba7bb84`), fără push. `main` nu îl conține.
 6. **F0 monetizare** — **scris 17 oct 2026**: `docs/MONETIZATION-SPEC.md` (inventarul real: produse `tip`/`membership`, intenții cu split versionat și `CHECK` de conservare, Nexus Pay ca intenție locală, ledger hash-only) și `docs/MONETIZATION-RISKS.md` (14 întrebări, zero decizii). Urmează: aprobarea owner-ului pe RISKS #1–#5, apoi F1 (settle/refund/ledger/payouts, invarianții I1–I8) și abia apoi F2 (ecranele, plus meniul `⋯`).
+7. **Rebrand „Jungle Book”** — **făcut în cod 17 oct 2026**: `docs/REBRAND.md` ține inventarul (vizibil / tehnic / documentație), `BrandLogo` este singurul încărcător de marcă, `app.json` se numește `Jungle Book Dev`, iar `scripts/test-brand.cjs` pică dacă reapare un text vizibil cu numele vechi. Rămân două lucruri care nu țin de cod: **APK nou** (numele de pe launcher, iconița, splash-ul) și **verificarea pe telefon** — telefonul nu era vizibil în `adb` la momentul scrierii (`adb mdns services` gol), deci §9.3 rămâne neîncepută.
+8. **Token și prețuri (decizia de test)** — **scris 17 oct 2026** în `MONETIZATION-SPEC.md` §3.5: `JUNGLE` ca ticker ESDT (3–10 caractere; `JB` nu e valid), simbol afișat `JB`, 2 zecimale, `reference_eur_per_jb = 1` doar pentru test, prețuri 2/3/3 și 3/5/5 JBc, plus `tools/monetization/simulate.mjs`, care citește gazul real de pe devnet și ia cursul ca parametru. Noile invarianți I9–I11 și întrebările #15–#17 (MiCA, gazul, soldul intern) sunt în documente.
 
 ## 4. Defecte deschise
 

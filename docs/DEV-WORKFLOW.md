@@ -1,4 +1,4 @@
-# Ciclu de dezvoltare — Nexus Dev + Metro + Fast Refresh
+# Ciclu de dezvoltare — Jungle Book Dev + Metro + Fast Refresh
 
 Produsul se închide în 2–3 luni. Nu se pregătește release, keystore, Play Store sau EAS. Ciclul este:
 editezi `apps/nexus-mobile/src/**` pe PC, salvezi, telefonul se actualizează singur. Backend-ul rămâne pe

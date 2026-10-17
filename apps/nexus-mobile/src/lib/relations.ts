@@ -51,7 +51,7 @@ export const RELATION_WORDS = {
   /** `publicProfile.edit`: the owner's own primary button. */
   edit: 'Editează profilul',
   /** `publicProfile.message`. */
-  message: 'Mesaj Nexus',
+  message: 'Mesaj Jungle Book',
   /** `x.menu.block` / `x.menu.unblock`. */
   block: 'Blochează contul',
   unblock: 'Deblochează contul',

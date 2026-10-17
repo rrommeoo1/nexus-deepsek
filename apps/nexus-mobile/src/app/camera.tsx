@@ -485,7 +485,7 @@ export default function CameraScreen() {
         <Pressable accessibilityRole="button" accessibilityLabel="Închide camera" style={styles.roundButton} onPress={closeCamera}>
           <Text style={styles.icon}>×</Text>
         </Pressable>
-        <Text style={styles.topTitle}>NEXUS</Text>
+        <Text style={styles.topTitle}>JUNGLE BOOK</Text>
         <View style={styles.topSpacer} />
       </View>
       <Pressable

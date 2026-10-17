@@ -1,4 +1,4 @@
-# Nexus Android — development client
+# Jungle Book Android — development client (fost Nexus)
 
 > Actualizare 2026-10-06: ecranul principal nu mai este un WebView. Este un client React Native nativ cu login email, feed, profil, cameră, editor local, emoji și căutare/previzualizare Jamendo prin API. URL-ul API implicit este `https://nexus-deepsek-production.up.railway.app`; poate fi schimbat la pornirea Metro prin `EXPO_PUBLIC_NEXUS_API_URL`. Nu mai este necesar `adb reverse tcp:5000` pentru interfața Android. Editorul nu face încă export final sau publicare, iar loginul/walletul și celelalte ecrane nu au paritate completă. Textul istoric de mai jos documentează shell-ul WebView anterior și nu trebuie folosit ca instrucțiune pentru noua interfață.
 

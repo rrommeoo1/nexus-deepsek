@@ -285,8 +285,8 @@ export function PublishPanel(props: PublishPanelProps) {
         />
         <SettingRow
           disabled={locked}
-          hint="Marcajul Nexus se aplică pe fotografia publicată."
-          label="Watermark Nexus"
+          hint="Marcajul Jungle Book se aplică pe fotografia publicată."
+          label="Watermark Jungle Book"
           onChange={(watermark) => onChange({ publishing: { ...details, watermark } })}
           value={details.watermark}
         />

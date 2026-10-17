@@ -182,7 +182,7 @@ export function ActivityCenter({ filter, activePersona, viewerId }: {
             <Pressable
               key={row.id}
               accessibilityRole="button"
-              accessibilityLabel={LABELS[row.type] ?? 'Activitate Nexus'}
+              accessibilityLabel={LABELS[row.type] ?? 'Activitate Jungle Book'}
               disabled={read}
               onPress={() => void markRead(row.id)}
               style={[styles.row, !read && styles.rowUnread]}
@@ -190,7 +190,7 @@ export function ActivityCenter({ filter, activePersona, viewerId }: {
               <Text accessible={false} style={[styles.dot, !read && styles.dotUnread]}>{read ? '○' : '●'}</Text>
               <View style={styles.rowText}>
                 <Text style={styles.rowLabel} numberOfLines={1}>
-                  {`${LABELS[row.type] ?? 'Activitate Nexus'}${actors > 1 ? ` · ${actors.toLocaleString()}` : ''}`}
+                  {`${LABELS[row.type] ?? 'Activitate Jungle Book'}${actors > 1 ? ` · ${actors.toLocaleString()}` : ''}`}
                 </Text>
                 <Text style={styles.rowBody} numberOfLines={2}>{row.body ?? ''}</Text>
                 <Text style={styles.rowPersona}>{personaOf(row)}</Text>
@@ -256,7 +256,7 @@ function PreferenceForm({ pref, persona, ownerId }: { pref: Preference; persona:
   return (
     <View style={styles.pref}>
       <View style={styles.prefHead}>
-        <Text style={styles.prefLabel}>{LABELS[pref.type] ?? 'Activitate Nexus'}</Text>
+        <Text style={styles.prefLabel}>{LABELS[pref.type] ?? 'Activitate Jungle Book'}</Text>
         <Text style={styles.prefScope}>{`${mandatory ? COPY.mandatory : COPY.profileScoped} ${persona}`}</Text>
       </View>
 

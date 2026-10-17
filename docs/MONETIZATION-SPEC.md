@@ -69,8 +69,8 @@ Un singur ecran, patru rânduri, toate din payload (niciun calcul în client):
 
 1. **cui** — handle, nume, avatar;
 2. **ce** — titlul produsului și tipul (`tip` / `membership N zile`);
-3. **cât** — prețul în `TEST-USDC`, cu zecimalele monedei și marcajul „demonstrativ, fără bani reali”;
-4. **împărțirea** — creator 90% / Nexus 5% / rezervă 3% / infrastructură 2% pentru `tip`, respectiv
+3. **cât** — prețul în **JBc** (tokenul `JUNGLE`, zecimale 2, simbol afișat `JB`), cu marcajul „demonstrativ, fără bani reali”;
+4. **împărțirea** — creator 90% / platformă 5% / rezervă 3% / infrastructură 2% pentru `tip`, respectiv
    85/10/3/2 pentru `membership`, exact cum vine în intent.
 
 Clientul **nu** are voie să calculeze split-ul, să rotunjească prețul sau să afișeze altă monedă decât cea
@@ -82,6 +82,106 @@ Receipt-ul intenției: `id`, `status`, `currency`, sumele pe bucket-uri, `commit
 `demo_unpaid` se scrie explicit „demonstrativ, nu s-a mișcat niciun ban”; pentru `excluded_synthetic`,
 „exclus din totaluri (trafic de test)”. Adresa de wallet a suportatorului nu se arată creatorului și nici
 invers.
+
+
+### 3.5 Tokenul, unitatea și prețurile (decizia de test)
+
+**Nume:** Jungle. **Simbol afișat în aplicație:** `JB`. **ESDT pe MultiversX devnet.**
+
+Ticker-ul ESDT nu poate fi `JB`: rețeaua cere un ticker de **3–10 caractere alfanumerice, majuscule**
+(`erd_system_sc` validează la emitere), deci `JB` (2 caractere) este respins. Propunerea este
+**`JUNGLE`** (6 caractere, citește numele), cu `JBK` ca rezervă dacă `JUNGLE` e deja ocupat pe devnet.
+Ticker-ul este o chestiune de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu
+simbol scurt afișat.
+
+**Zecimale:** 2, deci unitatea întreagă minimă este **1 JBc = 0,01 JB**. Registrul ține doar întregi în
+JBc; nu există float nicăieri în lanțul de calcul.
+
+**Valoare de referință:** `reference_eur_per_jb = 1.00`, **doar pentru test**, parametru configurabil.
+Nu este o ancorare, nu este o promisiune de răscumpărare și nu se afișează ca „1 JB = 1 €” în
+interfață; ecranul arată JBc, iar echivalentul în euro apare doar în documente și în simulări.
+
+**Prețuri mici pe acțiune** (JBc):
+
+| Presetare | Apreciere | Comentariu | Distribuire |
+|---|---:|---:|---:|
+| Prietenos | 2 | 3 | 3 |
+| Premium | 3 | 5 | 5 |
+
+Tot ce nu e marcat rămâne **gratuit** și nu atinge registrul: aprecierea, comentariul și distribuirea
+sunt gratuite prin definiție, iar prețul se aplică numai când creatorul a pornit explicit un produs
+plătit. Un profil fără produs nu poate primi bani, iar clientul nu afișează niciun preț inventat.
+
+#### 3.5.1 Împărțirea, verificată pe cele două prețuri mici
+
+Split-urile versionate există deja în backend (`CORE_TIP_V1_90_5_3_2` =
+creator 90% / platformă 5% / rezervă 3% / infrastructură 2%, `CORE_MEMBERSHIP_V1_85_10_3_2` =
+85/10/3/2). Ambele lasă creatorului peste 50%, deci invariantul (a) este îndeplinit, iar sumele se
+rotunjesc în JBc cu restul la infrastructură (niciodată la creator, niciodată pierdut):
+
+| Preț | Split | Creator | Platformă | Rezervă | Infra | Total |
+|---:|---|---:|---:|---:|---:|---:|
+| 2 JBc | 90/5/3/2 | 1,80 | 0,10 | 0,06 | 0,04 | 2,00 |
+| 3 JBc | 90/5/3/2 | 2,70 | 0,15 | 0,09 | 0,06 | 3,00 |
+| 5 JBc | 85/10/3/2 | 4,25 | 0,50 | 0,15 | 0,10 | 5,00 |
+
+#### 3.5.2 Costul real al unei tranzacții (citit de pe devnet, nu presupus)
+
+`tools/monetization/simulate.mjs` citește `GET https://devnet-api.multiversx.com/network/config` și ia
+cursul EGLD/EUR **ca parametru** (`--egld-eur`). Pe 17 octombrie 2026 devnetul răspundea:
+
+| Parametru | Valoare devnet |
+|---|---|
+| `erd_chain_id` | `D` |
+| `erd_min_gas_limit` | 50 000 |
+| `erd_min_gas_price` | 1 000 000 000 wei |
+| `erd_gas_per_data_byte` | 1 500 |
+| `erd_gas_price_modifier` | 0,01 |
+
+Costul unei plăți: `gas limit × gas price`. Cu limitele rezervate de un worker de decontare
+(70 000 gaz pentru EGLD, 250 000 pentru ESDT), la **1 EGLD = 30 EUR** (curs ales doar pentru tabel,
+nu hardcodat în cod):
+
+| Plată | Cost |
+|---|---:|
+| EGLD, 70 000 gaz | 0,000070 EGLD = 0,0021 EUR |
+| ESDT, 250 000 gaz | 0,000250 EGLD = 0,0075 EUR |
+
+#### 3.5.3 Per acțiune față de lot: de ce decontarea nu poate fi individuală
+
+Tabelul de mai jos este ieșirea reală a simulatorului (`--egld-eur 30`), pentru decontare în EGLD.
+„În felia de 2%” înseamnă că costul rețelei încape în procentul de infrastructură din split, adică
+prețul acoperă tranzacția fără să atingă partea creatorului.
+
+| Preț | Mod | Acțiuni / tx | Cost / acțiune | Din venit | Creator (JBc) | Creator după cost | În felia de 2% |
+| ---: | --- | ---: | ---: | ---: | ---: | ---: | :---: |
+| 2 JBc | per acțiune | 1 | 0,002100 € | 10,50% | 1,80 | 0,015900 € | **nu** |
+| 2 JBc | lot de 10 | 10 | 0,000210 € | 1,05% | 1,80 | 0,017790 € | da |
+| 2 JBc | lot de 100 | 100 | 0,000021 € | 0,10% | 1,80 | 0,017979 € | da |
+| 3 JBc | per acțiune | 1 | 0,002100 € | 7,00% | 2,70 | 0,024900 € | **nu** |
+| 3 JBc | lot de 10 | 10 | 0,000210 € | 0,70% | 2,70 | 0,026790 € | da |
+| 3 JBc | lot de 100 | 100 | 0,000021 € | 0,07% | 2,70 | 0,026979 € | da |
+
+Pentru decontare în **ESDT** costul per tranzacție este 3,6× mai mare (0,0075 EUR), deci lotul de 10
+**nu** mai încape la 2 JBc (3,75% din venit); lotul minim devine **100**. Concluzia de produs: plățile
+către creatori se grupează, iar pragul de retragere există pentru că fiecare retragere este o
+tranzacție.
+
+**Praguri calculate** (aceleași condiții):
+
+* lot minim pentru felia de 2%: **6 acțiuni** la 2 JBc, **4 acțiuni** la 3 JBc (EGLD);
+* prag minim de retragere, ca o plată să coste cel mult 1% din sumă: **21 JBc**;
+* preț minim al unei acțiuni cu lot de 1000: **1 JBc**, deci 2 JBc are marjă;
+* costul **nu** include rent-ul de stocare al conturilor noi și nici rezerva de gaz a unui contract de
+  plată; ambele se adaugă la felia de 2% înainte de F1.
+
+#### 3.5.4 Ce devin invarianți (alături de I1–I8)
+
+| # | Invariant | Cum se testează |
+|---|---|---|
+| I9 | creatorul primește **minim 50%** din fiecare plată, pentru orice preț și orice split acceptat | test de proprietate peste prețuri 1…1000 JBc × ambele split-uri; verifică `creator / gross >= 0.5` |
+| I10 | prețul acoperă costul real al decontării, amortizat prin lot | pentru fiecare produs creat: `price_cents >= ceil(cost_per_action / 0,02)` cu costul citit din config-ul rețelei |
+| I11 | platforma **refuză** un preț care încalcă I9 sau I10 | `POST` cu preț 1 JBc → `400` cu motivul exact; produsul nu se creează |
 
 
 ## 4. F1 — backend

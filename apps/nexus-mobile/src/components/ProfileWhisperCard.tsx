@@ -55,7 +55,7 @@ export function ProfileWhisperCard({ post, author, woven = false }: {
   const reposter = post.__repost ?? null;
   const signals = whySignals(post);
   const handle = String(author.handle || '');
-  const name = String(author.name || handle || 'Nexus');
+  const name = String(author.name || handle || 'Jungle Book');
   const caption = String(post.caption || '');
   const commentTotal = Math.max(0, Number(post.comment_count) || 0);
   const repostTotal = Math.max(0, Number(post.reposts) || 0);
@@ -94,7 +94,7 @@ export function ProfileWhisperCard({ post, author, woven = false }: {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`Postarea lui @${handle || 'nexus'}`}
+        accessibilityLabel={`Postarea lui @${handle || 'junglebook'}`}
         onPress={() => openCommentsPage(post)}
         style={styles.open}
       >
@@ -151,7 +151,7 @@ export function ProfileSharedReplyCard({ reply, woven = false }: {
   woven?: boolean;
 }) {
   const handle = reply.author.handle || '';
-  const name = reply.author.name || handle || 'Nexus';
+  const name = reply.author.name || handle || 'Jungle Book';
   const body = String(reply.comment.body || '');
 
   return (

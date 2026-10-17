@@ -113,7 +113,9 @@ test('the words the module prints are the bundle\'s own words', () => {
   assert.equal(relations.RELATION_WORDS.decline, romanian('thread.decline'));
   assert.equal(relations.RELATION_WORDS.friends, romanian('feed.friends'));
   assert.equal(relations.RELATION_WORDS.edit, romanian('publicProfile.edit'));
-  assert.equal(relations.RELATION_WORDS.message, romanian('publicProfile.message'));
+  // The web locale (`publicProfile.message`) still says "Mesaj Nexus"; the phone is rebranded, and
+  // docs/REBRAND.md records the additive backend change that would bring the web in line.
+  assert.equal(relations.RELATION_WORDS.message, 'Mesaj Jungle Book');
   assert.equal(relations.RELATION_WORDS.block, romanian('x.menu.block'));
   assert.equal(relations.RELATION_WORDS.unblock, romanian('x.menu.unblock'));
   assert.equal(relations.RELATION_WORDS.mute, romanian('x.menu.mute'));

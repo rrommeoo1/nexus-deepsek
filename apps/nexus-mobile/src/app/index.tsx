@@ -236,7 +236,7 @@ export default function NativeHomeScreen() {
   if (booting) {
     return (
       <View style={styles.boot}>
-        <Text style={styles.bootText}>Se încarcă Nexus…</Text>
+        <Text style={styles.bootText}>Se încarcă Jungle Book…</Text>
       </View>
     );
   }
@@ -284,7 +284,7 @@ export default function NativeHomeScreen() {
     {
       key: 'mode',
       label: moduleTitle,
-      accessibilityLabel: `Schimbă Nexus ${moduleTitle} · profil activ ${profileName}`,
+      accessibilityLabel: `Schimbă Jungle Book ${moduleTitle} · profil activ ${profileName}`,
       onPress: () => setDrawerOpen(true),
     },
     ...(me.persona === 'social' ? [

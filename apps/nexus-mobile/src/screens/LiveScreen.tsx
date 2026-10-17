@@ -84,7 +84,7 @@ export function LiveScreen() {
 
 function LiveRow({ session, viewers, followersLabel = false }: { session: LiveSession; viewers?: number; followersLabel?: boolean }) {
   const avatar = mediaSourceForPath(session.avatar);
-  const name = session.display_name || session.handle || 'Nexus';
+  const name = session.display_name || session.handle || 'Jungle Book';
   const count = compactCount(viewers);
   /**
    * A live host is somebody else's account, so the same relation button the profile prints stands here:
@@ -102,7 +102,7 @@ function LiveRow({ session, viewers, followersLabel = false }: { session: LiveSe
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${session.handle}`} onPress={() => openSocialProfile(session.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {[`@${session.handle ?? 'nexus'}`, count ? `${count} ${followersLabel ? 'urmăritori' : 'spectatori'}` : ''].filter(Boolean).join(' · ')}
+          {[`@${session.handle ?? 'junglebook'}`, count ? `${count} ${followersLabel ? 'urmăritori' : 'spectatori'}` : ''].filter(Boolean).join(' · ')}
         </Text>
       </Pressable>
       {session.title ? <Text style={styles.title} numberOfLines={1}>{session.title}</Text> : null}

@@ -418,7 +418,7 @@ export function profileArchive(payload?: ProfileResponse | null): { posts: Archi
     .filter((entry): entry is SharedReplyEntry & { comment: CommentView; post: SocialPost } => Boolean(entry?.comment && entry?.post))
     .slice(0, PROFILE_ARCHIVE_LIMIT)
     .map((entry) => {
-      const name = entry.comment.display_name || entry.comment.handle || 'Nexus';
+      const name = entry.comment.display_name || entry.comment.handle || 'Jungle Book';
       return {
         key: `reply-${Number(entry.comment.id) || 0}`,
         comment: entry.comment,

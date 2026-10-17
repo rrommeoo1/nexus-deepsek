@@ -60,7 +60,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: 
   const media = story?.media ?? null;
   const kind = mediaKindOf(media);
   const author = story?.author ?? null;
-  const name = String(author?.display_name || author?.handle || 'Nexus');
+  const name = String(author?.display_name || author?.handle || 'Jungle Book');
   /**
    * The author of this frame, from the one store (`useRelation`): the same word the profile header and the
    * feed card print. The chip is drawn only when the shelf said whose stories these are and the frame is not
@@ -143,7 +143,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: 
           {!media ? (
             <View style={styles.fallback}>
               <View style={styles.fallbackDisc}><Text style={styles.fallbackInitials}>{initialsFor(name, author?.handle)}</Text></View>
-              <Text style={styles.fallbackCaption}>{story?.caption || 'Nexus Story'}</Text>
+              <Text style={styles.fallbackCaption}>{story?.caption || 'Jungle Book Story'}</Text>
             </View>
           ) : null}
           {failed === index ? <Text style={styles.fallbackNote}>Story-ul nu a putut fi afișat.</Text> : null}
@@ -154,7 +154,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: 
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${author?.handle || name}`} onPress={() => openSocialProfile(author?.handle, onClose)} style={styles.authorLink}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
-              <Text style={styles.handle} numberOfLines={1}>{`@${author?.handle || 'nexus'}`}</Text>
+              <Text style={styles.handle} numberOfLines={1}>{`@${author?.handle || 'junglebook'}`}</Text>
             </Pressable>
             {relationTarget ? <RelationButton variant="compact" target={relationTarget} relation={relation} viewerUserId={viewerId ?? null} style={styles.headerRelation} /> : null}
             <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={() => { commit(story, false); onClose(); }} style={styles.headerButton}>

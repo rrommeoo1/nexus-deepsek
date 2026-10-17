@@ -1,4 +1,4 @@
-# Nexus
+# Jungle Book (fost Nexus)
 
 Nexus este un produs social mobile-first, wallet-native, construit pe MultiversX. O
 singură identitate de cont controlează mai multe profiluri de context izolate:

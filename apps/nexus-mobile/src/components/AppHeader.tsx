@@ -1,7 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { ModulesMark } from './NexusMark';
-import { NexusWordmark } from './NexusWordmark';
+import { BrandLogo } from './BrandLogo';
+import { BRAND_NAME } from '../theme/brand';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -45,8 +46,8 @@ export type AppHeaderProps = {
 };
 
 const { feedHeader, appHeader, colors, wordmarkBadge } = socialTokens;
-const wordmarkLabel = 'Nexus Home · revino la prima pagină';
-const drawerLabel = 'Schimbă profilul Nexus';
+const wordmarkLabel = `${BRAND_NAME} Home · revino la prima pagină`;
+const drawerLabel = `Schimbă profilul ${BRAND_NAME}`;
 
 /** `.wordmarkBuild` — the build number on the bottom-left corner of the wordmark. */
 function BuildBadge({ build }: { build?: string }) {
@@ -148,10 +149,7 @@ export function AppHeader({ variant, modeId, topInset = 0, build, switches = [],
           pressed && styles.pressed,
         ]}
       >
-        <NexusWordmark
-          width={variant === 'feed' ? feedHeader.wordmarkWidth : appHeader.wordmarkWidth}
-          ink={variant === 'feed' ? colors.wordmarkReels : colors.white}
-        />
+        <BrandLogo variant="header" />
         <BuildBadge build={build} />
       </Pressable>
 
@@ -212,10 +210,9 @@ const styles = StyleSheet.create({
   screenBar: { height: appHeader.height },
   pressed: { transform: [{ scale: 0.96 }] },
   spacer: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
-  /** `.appHeader .wordmark` — 80px on the feed, 124px off it, 42px tall with the build badge inside. */
-  // A restrained TV channel bug around the original SVG; the drawing and build remain unchanged.
-  wordmarkFeed: { width: feedHeader.wordmarkWidth + 10, height: 46, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(3,4,7,0.48)' },
-  wordmarkScreen: { width: appHeader.wordmarkWidth, height: 42, justifyContent: 'center', alignItems: 'center' },
+  /** `.appHeader .wordmark` — a 44 dp door around the 36 dp mark, 42 dp tall with the build badge inside. */
+  wordmarkFeed: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(3,4,7,0.48)' },
+  wordmarkScreen: { width: 44, height: 42, justifyContent: 'center', alignItems: 'center' },
   build: {
     position: 'absolute',
     left: 0,

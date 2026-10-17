@@ -2,6 +2,7 @@ import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'r
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { NexusMark, type NavSlot } from './NexusMark';
+import { BrandLogo } from './BrandLogo';
 import type { MediaSource } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
@@ -106,7 +107,7 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
 
 /** `.appNav.social .createNav i` — the 52px circle the bar was built around, and the bar's only lift. */
 function CreateDisc() {
-  const { size, glyphSize } = socialTokens.nav.create;
+  const { size } = socialTokens.nav.create;
   return (
     <View style={styles.createDisc}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
@@ -120,8 +121,8 @@ function CreateDisc() {
         </Defs>
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#nxCreateFill)" />
       </Svg>
-      {/* The captured glyph is 27px/300 and ink-dark over the lit part of the gradient (node 93). */}
-      <Text style={[styles.createGlyph, { fontSize: glyphSize, lineHeight: glyphSize }]}>+</Text>
+      {/* The capture glyph was a 27px "+"; the circle now wears the product mark, same size and door. */}
+      <BrandLogo variant="circle" size={size - 12} />
     </View>
   );
 }
@@ -236,11 +237,6 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 0 },
     overflow: 'hidden',
-  },
-  /** `.createNav i{color:#050608}` — the glyph is ink-dark, and it sits in the lit half of the gradient. */
-  createGlyph: {
-    color: socialTokens.colors.createInk,
-    fontWeight: socialTokens.nav.create.glyphWeight,
   },
   /** `.navBadge` — the unread pill, pinned to the top-right corner of the disc it belongs to. */
   badge: {

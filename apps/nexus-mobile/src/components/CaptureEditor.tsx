@@ -425,7 +425,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
       </View>
       {musicOpen ? (
         <View style={[styles.musicPanel, { bottom: Math.max(insets.bottom, 16) + 14 }]}>
-          <View style={styles.textActions}><Text style={styles.label}>Muzică Nexus</Text><Pressable accessibilityRole="button" onPress={() => setMusicOpen(false)}><Text style={styles.doneText}>Închide</Text></Pressable></View>
+          <View style={styles.textActions}><Text style={styles.label}>Muzică Jungle Book</Text><Pressable accessibilityRole="button" onPress={() => setMusicOpen(false)}><Text style={styles.doneText}>Închide</Text></Pressable></View>
           <TextInput accessibilityLabel="Caută melodii" value={musicQuery} onChangeText={setMusicQuery} placeholder="Caută melodii" placeholderTextColor="#84909b" style={styles.input} onSubmitEditing={() => void searchMusic()} />
           <Pressable accessibilityRole="button" disabled={musicBusy} onPress={() => void searchMusic()} style={styles.audioButton}><Text style={styles.audioButtonText}>{musicBusy ? 'Se caută…' : 'Caută în catalog'}</Text></Pressable>
           {musicError ? <Text style={styles.error}>{musicError}</Text> : null}

@@ -1,4 +1,4 @@
-# MIGRATION.md — Nexus Android (Expo/React Native)
+# MIGRATION.md — Jungle Book Android (Expo/React Native), fost Nexus
 
 Memoria migrării. Se actualizează continuu: ce e gata, ce rămâne, deciziile luate, problemele cunoscute.
 Referința este versiunea web (`apps/nexus-web`) și site-ul live de pe Railway. Regula de aur: se
@@ -74,10 +74,10 @@ release).
 
 Sursă: `app.js` `renderLanding` + `styles.css`, `p3-visual-foundation.css`. Tokeni: `src/theme/tokens.ts`.
 
-- **Elemente vizuale:** wordmark cu X colorat (`NexusLandingBrand`), tagline, panouri separate Google /
+- **Elemente vizuale:** logo-ul Jungle Book (`BrandLogo`, varianta `large`) cu numele dedesubt, tagline, panouri separate Google /
   Facebook / xPortal / email / cont nou, separator „sau cu email", câmpuri email+parolă, „Ai uitat parola?",
   nota de sub formular, versiunea sub logo. Culori, fonturi, spațieri și raze: transcrise în `tokens.ts`
-  (card 430px, buton min-height 50, câmp 50/radius 14, glif 40×40 cu `clip-path` transcris în SVG).
+  (card 430px, buton min-height 50, câmp 50/radius 14).
 - **Comportamente:** scroll (după raportul owner-ului pagina trebuie să fie derulabilă), tastatură cu
   `keyboardShouldPersistTaps`, stări normal/apăsat/dezactivat/busy.
 - **Elemente dinamice:** text de eroare sub formular, `busy` care blochează dubla trimitere.
@@ -1546,4 +1546,33 @@ la conversații, iar un chip ales în inbox nu este anulat de prop.
 Pe Xiaomi: sertar → `Notificări` → „ACTIVITATE · SOCIAL”, „1 necitite”, „Marchează tot citit”, rândul de
 mesaj și preferințele s-au încărcat din Railway.
 
+
+
+## 23. Rebrand „Jungle Book” (17 octombrie 2026)
+
+Produsul se numește **Jungle Book** (fost Nexus). Inventarul complet, inclusiv ce a rămas tehnic
+neschimbat, este în `docs/REBRAND.md`; aici rămân doar deciziile de layout.
+
+- **Unde stă logo-ul în antet.** Cerința a fost „în stânga conținutului”. Locul ales este chiar începutul
+  rândului de 72 dp, în același colț în care stătea wordmark-ul, pentru că antetul este singura bară
+  prezentă pe fiecare ecran și pentru că un logo mutat în interiorul conținutului ar fi derulat odată cu
+  feed-ul. `BrandLogo variant="header"` are 36 dp (fișier 1x/2x/3x), iar ușa din jurul lui are 44 dp, ca
+  zona de atingere să rămână peste minimul de accesibilitate. Apăsarea duce la Feed
+  (`onPressWordmark`), exact ca înainte.
+- **Un singur încărcător de imagine de brand.** `BrandLogo` este singura componentă care cere fișierele din
+  `assets/brand/`; `NexusWordmark` a fost ștears și `nexusTokens.graphics.wordmarkSvg` a fost eliminat, ca
+  nimeni să nu mai poată desena o marcă paralelă. Numele componentelor vechi (`NexusLandingBrand`,
+  `NexusLogin`, `NexusMark`) au rămas: sunt identificatori de cod, nu text citit de utilizator.
+- **Butonul central.** `+` a fost înlocuit cu `BrandLogo variant="circle"`; eticheta de accesibilitate
+  rămâne „Creează”, iar butonul deschide în continuare fluxul de captură. Celelalte șase destinații sunt
+  neatinse.
+- **Sertarul** primește un rând de brand (logo + nume) sus și păstrează subsolul de versiune, acum prefixat
+  cu numele: `Jungle Book · Android … · API: …`.
+- **Ce nu se schimbă:** package-ul `app.nexus.mobile.dev`, scheme-ul `nexusdev`, slug-ul `nexus-mobile`,
+  cheile de stocare (`nexus-prefs`), cookie-ul `nexus_session`, antetul `nexus_device_id`, variabilele
+  `NEXUS_*`, căile API, adresa Railway și numele fișierelor/testelor. Motivele, rând cu rând, în
+  `docs/REBRAND.md` §3.
+- **Aplicația instalată** își schimbă numele, iconița și ecranul de pornire doar printr-un APK nou
+  (`app.json`: `Jungle Book Dev`, `assets/brand/*`); textele și logo-urile din interfață se văd imediat,
+  prin Fast Refresh, fără rebuild.
 

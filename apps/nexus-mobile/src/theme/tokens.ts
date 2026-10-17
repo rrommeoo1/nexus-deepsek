@@ -14,7 +14,6 @@ export const nexusTokens = {
     viewport: { width: 469, height: 1022 },
     styleSheets: ['styles.css', 'p3-visual-foundation.css', 'feed-surface.css'],
     fontStack: 'Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    wordmarkFunction: 'nexusWordmarkMarkup',
   },
   colors: {
     canvas: '#000000',
@@ -93,10 +92,5 @@ export const nexusTokens = {
     version: { fontSize: 9, fontWeight: '700', letterSpacing: 0.6, marginTop: 1,
       paddingVertical: 1, paddingHorizontal: 4, borderRadius: 5,
       backgroundColor: '#0b1a22d9', borderColor: '#ffffff2e' },
-  },
-  graphics: {
-    // Exact SVG returned by the existing web function; its CSS may recolour
-    // text/gradient/circuits to white on the Social feed.
-    wordmarkSvg: '<svg viewBox="0 0 132 34"><defs><linearGradient id="nexus-wordmark-x" x1="0" x2="1"><stop stop-color="#00efff"/><stop offset="1" stop-color="#a66cff"/></linearGradient></defs><text x="1" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">NE</text><text x="44" y="24" fill="url(#nexus-wordmark-x)" font-size="22" font-family="Arial,Helvetica,sans-serif">X</text><text x="61" y="24" fill="#f4fbff" font-size="22" font-family="Arial,Helvetica,sans-serif" letter-spacing="5">US</text><path d="M91 8h27m-17 6h24m-31 6h30m-20 6h14" fill="none" stroke="#27dfe9" stroke-width="1" opacity=".65"/><circle cx="121" cy="8" r="1.6" fill="#9d72ff"/><circle cx="127" cy="14" r="1.6" fill="#27dfe9"/><circle cx="126" cy="20" r="1.6" fill="#9d72ff"/></svg>',
   },
 } as const;

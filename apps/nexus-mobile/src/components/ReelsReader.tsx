@@ -323,7 +323,7 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
             <Text style={styles.distributeText}>{reposted ? 'Anulează redistribuirea' : 'Redistribuie în feed'}</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={share} style={styles.distributeItem}>
-            <Text style={styles.distributeText}>Distribuie în afara Nexus</Text>
+            <Text style={styles.distributeText}>Distribuie în afara Jungle Book</Text>
           </Pressable>
         </View>
       ) : null}

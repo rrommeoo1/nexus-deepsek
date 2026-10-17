@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
-import { NexusWordmark } from './NexusWordmark';
+import { BrandLogo } from './BrandLogo';
+import { BRAND_NAME } from '../theme/brand';
 
 /**
  * The topbar and the quick search of the inbox, at the measurements of the web
@@ -50,7 +51,7 @@ function Mark({ kind, ink, size = 24 }: { kind: keyof typeof STROKES; ink: strin
 }
 
 /** `header.home` (`interface-locale.js:31`) — the accessible name of the wordmark door. */
-const HOME_LABEL = 'Nexus Home · revino la prima pagină';
+const HOME_LABEL = `${BRAND_NAME} Home · revino la prima pagină`;
 /** `messages.newConversation` (`interface-locale.js:280`) — `#new-conversation`. */
 const NEW_CONVERSATION_LABEL = 'Conversație nouă';
 /** `messenger.search` (`interface-locale.js:15`) — the placeholder and the name of both search halves. */
@@ -70,7 +71,7 @@ export function MessengerTopbar({ onHome, onNewConversation, middle }: {
   return (
     <View style={styles.topbar}>
       <Pressable accessibilityRole="button" accessibilityLabel={HOME_LABEL} onPress={onHome} style={styles.home}>
-        <NexusWordmark width={112} ink="#ffffff" />
+        <BrandLogo variant="header" />
         <Text style={styles.homeSmall}>MESSAGES</Text>
       </Pressable>
       {middle}

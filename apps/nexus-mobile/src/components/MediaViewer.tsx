@@ -243,7 +243,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
 
           {distributeOpen ? <View style={styles.distribute}>
             <Pressable accessibilityRole="button" accessibilityLabel={reposted ? 'Anulează redistribuirea' : 'Redistribuie în feed'} onPress={repost} style={styles.distributeItem}><Text style={styles.distributeText}>{reposted ? 'Anulează redistribuirea' : 'Redistribuie în feed'}</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Distribuie în afara Nexus" onPress={() => { setDistributeOpen(false); sharePost(current.id).catch(fail); }} style={styles.distributeItem}><Text style={styles.distributeText}>Distribuie în afara Nexus</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel="Distribuie în afara Jungle Book" onPress={() => { setDistributeOpen(false); sharePost(current.id).catch(fail); }} style={styles.distributeItem}><Text style={styles.distributeText}>Distribuie în afara Jungle Book</Text></Pressable>
           </View> : null}
         </>
       ) : (

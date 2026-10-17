@@ -42,6 +42,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test:brand": "node scripts/test-brand.cjs",
+    "test": "node scripts/test-brand.cjs && node scripts/test-relations.cjs && node scripts/test-band-motion.cjs && node scripts/test-comment-rows.cjs && node scripts/test-comment-time.cjs && node scripts/test-hero-parity.cjs && node scripts/test-profile-band.cjs && node scripts/test-profile-content-parity.cjs && node scripts/test-profile-edit.cjs",
     "build:android:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android-dev.ps1",
     "lint": "expo lint",
     "dev:android": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/nexus-dev.ps1 -Action dev",

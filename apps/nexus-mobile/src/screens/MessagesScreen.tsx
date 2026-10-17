@@ -373,7 +373,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', initia
           /** `.emptyInbox` (`app.js:7844`): `messages.noConversations` over `messages.startByUsername`. */
           <View style={styles.emptyBox}>
             <Text style={styles.emptyTitle}>Nicio conversație aici</Text>
-            <Text style={styles.emptyDetail}>Pornește una folosind username-ul Nexus, nu un ID numeric.</Text>
+            <Text style={styles.emptyDetail}>Pornește una folosind username-ul Jungle Book, nu un ID numeric.</Text>
           </View>
         )}
         renderItem={({ item }) => (
@@ -617,7 +617,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const body = message.body || (message.attachment_url ? 'Atașament' : '');
   return (
     <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-      {!mine ? <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${message.sender_handle || ''}`} onPress={() => openSocialProfile(message.sender_handle)}><Text style={styles.bubbleFrom}>{message.sender_display_name || message.sender_handle || 'Nexus'}</Text></Pressable> : null}
+      {!mine ? <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${message.sender_handle || ''}`} onPress={() => openSocialProfile(message.sender_handle)}><Text style={styles.bubbleFrom}>{message.sender_display_name || message.sender_handle || 'Jungle Book'}</Text></Pressable> : null}
       <Text style={styles.bubbleText}>{body}</Text>
       <Text style={styles.bubbleTime}>{relativeTime(millisOf(message.created_at))}</Text>
     </View>

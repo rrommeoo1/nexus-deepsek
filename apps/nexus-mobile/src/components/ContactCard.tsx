@@ -33,7 +33,7 @@ import { StoryViewer } from './StoryViewer';
  */
 const COPY = {
   close: 'Închide',
-  message: 'Mesaj Nexus',
+  message: 'Mesaj Jungle Book',
   audio: 'Apel audio',
   video: 'Apel video',
   profile: 'Profil',
@@ -77,7 +77,7 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
 }) {
   const peer = (conversation.participants ?? []).find((person) => person.id !== viewerId) ?? conversation.participants?.[0];
   const persona = PERSONAS[String(conversation.context_persona || '')] ? String(conversation.context_persona) : '';
-  const title = peer?.display_name || peer?.handle || 'Nexus';
+  const title = peer?.display_name || peer?.handle || 'Jungle Book';
   const avatar = mediaSourceForPath(peer?.avatar);
   const [status, setStatus] = useState('');
   const [stories, setStories] = useState<StoryView[] | null>(null);

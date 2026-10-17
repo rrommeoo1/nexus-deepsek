@@ -176,7 +176,7 @@ function RequestRow({ request, busy, onDecide }: {
   onDecide: (request: FollowRequest, decision: 'accept' | 'decline') => void;
 }) {
   const avatar = mediaSourceForPath(request.avatar);
-  const name = request.name || request.handle || 'Nexus';
+  const name = request.name || request.handle || 'Jungle Book';
   return (
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${request.handle}`} onPress={() => openSocialProfile(request.handle)} style={styles.avatar}>
@@ -185,13 +185,13 @@ function RequestRow({ request, busy, onDecide }: {
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${request.handle}`} onPress={() => openSocialProfile(request.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
-        <Text style={styles.meta} numberOfLines={1}>{`@${request.handle ?? 'nexus'}${relativeTime(request.created_at) ? ` · ${relativeTime(request.created_at)}` : ''}`}</Text>
+        <Text style={styles.meta} numberOfLines={1}>{`@${request.handle ?? 'junglebook'}${relativeTime(request.created_at) ? ` · ${relativeTime(request.created_at)}` : ''}`}</Text>
       </Pressable>
       <View style={styles.rowActions}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Acceptă cererea de la @${request.handle ?? 'nexus'}`} disabled={busy} onPress={() => onDecide(request, 'accept')} style={[styles.pill, styles.pillPrimary]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Acceptă cererea de la @${request.handle ?? 'junglebook'}`} disabled={busy} onPress={() => onDecide(request, 'accept')} style={[styles.pill, styles.pillPrimary]}>
           <Text style={styles.pillTextOn}>Acceptă</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Refuză cererea de la @${request.handle ?? 'nexus'}`} disabled={busy} onPress={() => onDecide(request, 'decline')} style={styles.pill}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Refuză cererea de la @${request.handle ?? 'junglebook'}`} disabled={busy} onPress={() => onDecide(request, 'decline')} style={styles.pill}>
           <Text style={styles.pillText}>Refuză</Text>
         </Pressable>
       </View>

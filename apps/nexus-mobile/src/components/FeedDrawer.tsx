@@ -1,5 +1,7 @@
 import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { CloseMark, LogoutMark } from './NexusMark';
+import { BrandLogo } from './BrandLogo';
+import { BRAND_NAME } from '../theme/brand';
 import { drawerMarks, profileModules, socialTokens } from '../theme/social';
 
 /**
@@ -46,6 +48,11 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
         <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
           <CloseMark size={18} />
         </Pressable>
+        {/* The drawer names the product: the mark and the name, above the index of doors. */}
+        <View style={styles.brandRow}>
+          <BrandLogo variant="circle" size={22} />
+          <Text style={styles.brandName}>{BRAND_NAME}</Text>
+        </View>
         <View style={styles.grid}>
           {profileModules.map((module) => {
             const active = module.id === activeModule;
@@ -105,7 +112,7 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
         >
           <LogoutMark size={19} />
         </Pressable>
-        <Text accessibilityRole="text" style={styles.version}>{version}</Text>
+        <Text accessibilityRole="text" style={styles.version}>{`${BRAND_NAME} · ${version}`}</Text>
       </View>
     </Modal>
   );
@@ -135,6 +142,9 @@ const styles = StyleSheet.create({
     elevation: 24,
   },
   close: { width: 24, height: 24, alignItems: 'center', justifyContent: 'center' },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 8,
+    width: drawer.gridColumns * (drawer.tileSize + drawer.tileGap) },
+  brandName: { color: 'rgba(255,255,255,0.92)', fontSize: 13, fontWeight: '700', letterSpacing: 1.2 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: drawer.tileGap, width: drawer.gridColumns * (drawer.tileSize + drawer.tileGap) },
   tile: {
     width: drawer.tileSize,

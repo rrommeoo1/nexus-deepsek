@@ -1,12 +1,17 @@
 {
   "expo": {
-    "name": "Nexus Dev",
+    "name": "Jungle Book Dev",
     "slug": "nexus-mobile",
     "version": "0.1.0",
     "scheme": "nexusdev",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand/jb-icon-1024.png",
     "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/brand/jb-splash-1080x1920.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#02150D"
+    },
     "ios": {
       "supportsTablet": true
     },
@@ -17,15 +22,14 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#02150D",
+        "foregroundImage": "./assets/brand/jb-icon-foreground-1024.png",
+        "monochromeImage": "./assets/brand/jb-icon-monochrome-1024.png"
       },
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/brand/jb-logo-circle-256.png"
     },
     "plugins": [
       "expo-router",

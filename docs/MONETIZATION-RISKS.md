@@ -25,11 +25,17 @@ printr-o deducție din cod. Un răspuns parțial se notează ca atare.
 | 12 | **Abuzul**: self-tip prin conturi multiple, card furat, spălare prin tip-uri mici repetate — ce detectăm în F1 și ce facem cu banii deja mișcați? | regulile anti-abuz, blocările, reversările | proprietarul + risc |
 | 13 | **Suportul clienți**: cine răspunde la „am plătit și nu am primit”, în ce termen, cu ce dovadă? | textul de ajutor, SLA-ul, tonul din app | proprietarul |
 | 14 | **Legea aplicabilă și jurisdicția** pentru comisionul platformei și pentru relația creator–suportator | termenii, contractul, unde se rezolvă un litigiu | jurist |
+| 15 | **Tokenul cu valoare de referință fixă față de euro** (1 JB = 1 EUR, `reference_eur_per_jb`, doar pentru test) intră în categoria jetoanelor ancorate („asset-referenced token”) sau a monedei electronice („e-money token”) în sensul MiCA, chiar dacă nu se emit pe mainnet? Ce înseamnă asta pentru whitepaper, rezervă și autorizare? | orice ieșire din devnet, textul care explică tokenul, emisia ESDT `JUNGLE`, politica de rezervă | jurist + proprietar |
+| 16 | **Cine plătește gazul** pentru decontări și retrageri? Propunerea este un portofel de trezorerie al platformei, dar cine îl alimentează, din ce buget, cu ce limită zilnică și ce se întâmplă când se golește? | `payout_requests`, worker-ul de decontare, pragul de retragere, mesajul „indisponibil temporar” | proprietar + contabil |
+| 17 | **Ce se întâmplă cu fondurile din soldul intern** dacă un creator își șterge contul, dacă platforma se închide sau dacă tokenul își pierde valoarea de referință? Se răscumpără, se blochează, se donează? | politica de închidere de cont, `refund`, textul din „Despre” | proprietar + jurist |
 
 ## 2. Ce se face cât timp întrebările sunt deschise
 
 * Serverul rămâne pe **`TEST-USDC`, `real_payment: false`, `real_settlements: 0`**; nicio rută nu semnează,
   nu difuzează și nu cheltuie.
+* Tokenul `JUNGLE` (simbol afișat `JB`, 2 zecimale) există doar ca **decizie de test pe devnet**: nu se
+  emite niciun ESDT și nu se promite nicio valoare până când #15 nu are răspuns. `reference_eur_per_jb = 1`
+  este un parametru de simulare, nu o ancorare.
 * Aplicația poate construi suprafețele din F2 **cu date demonstrative**, dar fiecare ecran care atinge o sumă
   poartă marcajul „demonstrativ, fără bani reali” — nu există variantă „discretă”.
 * Nicio promisiune de payout, termen sau câștig nu se scrie într-un ecran până când #1, #2, #3, #11 și #14
