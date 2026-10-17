@@ -216,6 +216,41 @@ există parole de test (cheile devnet sunt în `docs/.test-wallets.local`, dar e
 deschid sesiuni web). Nu s-a încercat nicio parolă ghicită și nu s-a scris niciun secret. De făcut când
 proprietarul dă credențialele celor două conturi; pașii sunt în `docs/TEST-DATA.md`.
 
+## 0.6 Pasul 6 — verificare pe telefon (17 octombrie 2026, fără imagini)
+
+Telefon: `adb-b42122b-huYC9y._adb-tls-connect._tcp`, focus `app.nexus.mobile.dev/.MainActivity`
+(YouTube era în față; aplicația a fost adusă în prim-plan cu `am start`, fără Home/Back și fără nicio
+setare schimbată). Metro răspundea pe `localhost:8081`; bundle-ul vechi a fost înlocuit prin
+`adb reverse tcp:8081 tcp:8081` + deep link `nexusdev://expo-development-client/?url=…` — primul dump
+arăta încă meniul vechi (`⋯`, „Închide meniul profilului”), al doilea arăta codul nou. Dovada că Metro
+servește ultima versiune este chiar eticheta `Schimbă profilul Jungle Book` și meniul nou.
+
+Dump-urile sunt text, în `docs/parity-report/ui-feed.xml`, `ui-profile-own.xml`, `ui-profile-menu.xml`,
+`ui-settings.xml`, `ui-monetization.xml`, `ui-wallet.xml`, `ui-drawer.xml`; citirea lor se face cu
+`node tools/ui-texts.mjs <fișier>` (unealtă nouă, fără imagini).
+
+| Element | Ce am verificat | Rezultat |
+|---|---|---|
+| Antet, fără text de versiune | arborele are doar ușa `Jungle Book Home · revino la prima pagină` `[31,193][166,328]` și `Schimbă profilul Jungle Book` `[1080,206][1189,315]`; niciun nod cu „1.11” | **verificat** |
+| Bara de jos | `Creează` `[522,2393][698,2502]`, clicabil; restul celor șapte noduri la locurile lor, niciun inel în arbore (marca e imagine, deci nu se poate citi din dump) | **verificat ca poziție și etichetă**; felul în care arată rămâne pentru ochiul proprietarului |
+| Profil propriu — rândul de trei | `Editează profilul` `[36,673][540,777]`, `Monetizează profilul` `[560,673][1058,777]`, `Distribuie profilul` `[1079,673][1183,777]` → 194×40 dp, 191×40 dp și 40×40 dp, toate pe același rând (y = 673…777), fără `⋯` | **verificat** |
+| Etichete la scara 1.0 | textul `Editează profilul` `[142,700][433,750]` și `Monetizează profilul` `[627,700][990,750]` încape întreg, fără „…” | **verificat** |
+| `≡` din profil | nod `Deschide meniul profilului` `[36,181][151,296]` | **verificat** |
+| Meniul profilului | exact șase rânduri, în ordine: Portofel, Venituri, Cheltuieli, Notificări, Monetizează profilul, Setări; **fără** Deconectare / Postare nouă / Schimbă profilul | **verificat** |
+| Sertarul, doar pe Feed | butonul propriu `Schimbă profilul Jungle Book` deschide sertarul: cinci profile, Postare nouă, Notificări, Banda derulantă, `Ieși din cont` `[845,886][949,990]`, subsol `Jungle Book · Android 0.1.0 · API: Railway` și `build 2a8161d+ · 17 oct. 2026, 21:14 UTC` | **verificat** |
+| Setări | comutator `Banda derulantă`, `Despre`: `Android 0.1.0 · API: Railway`, `Server: 1.11`, `Build JS: 2a8161d+ · 17 oct. 2026, 21:14 UTC` | **verificat** |
+| Portofel, sume în JUNGLE | `0,00 JUNGLE`, `încasat 0,00 JUNGLE · retras 0,00 JUNGLE`, eticheta `Suma de retras în JUNGLE` | **verificat** |
+| Monetizare, sume în JUNGLE | ecranul se deschide, dar ruta F2.c **nu este pe serverul Railway**, deci răspunsul e `not found`, totul e dezactivat și sumele sunt `—` | **blocat de deploy**, nu de cod: se dovedește după ce backend-ul F2.c ajunge pe server (Pasul 7) |
+| Login cu marca ca fundal | cere deconectare, iar regula rundei interzice ieșirea din cont | **neverificat** — rămâne pentru proprietar |
+
+**Capturi pentru proprietar** (făcute doar cu `safe-screencap.ps1`, **nu** au fost citite):
+`docs/vision/jungle-drawer.jpg`, `jungle-profile-own.jpg`, `jungle-profile-menu.jpg`, `jungle-wallet.jpg`.
+
+**Două lucruri de îndreptat, spuse aici ca să nu se piardă:** (1) când o rută lipsește, portofelul și
+monetizarea tipăresc mesajul serverului, `not found`, ca propoziție pentru cititor — ar merita un text
+propriu („Ruta nu există pe acest server”); (2) numele de test încă spune „Test Nexus” (vezi §0.5, blocat
+pe credențiale).
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este

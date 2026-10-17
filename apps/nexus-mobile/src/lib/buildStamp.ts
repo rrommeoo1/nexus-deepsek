@@ -8,8 +8,8 @@
  *
  * Regenerate it before a phone session, not on every edit: `node scripts/stamp-build.mjs`.
  */
-export const BUILD_COMMIT = '2a8161d+';
-export const BUILD_TIME = '2026-10-17T21:14:57.439Z';
+export const BUILD_COMMIT = '1c0301a+';
+export const BUILD_TIME = '2026-10-17T21:37:49.218Z';
 
 /** `2a8161d · 17 oct 2026, 21:04 UTC` — the one line the drawer, and Settings › Despre, print. */
 export function buildLine(): string {
