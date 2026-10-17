@@ -74,14 +74,29 @@ Un corectiv de unealtă a fost necesar ca sesiunea să poată începe: `safe-scr
 acum ieșirea cu preferința oprită o clipă și judecă după codul de ieșire; validarea (antet, decodare completă,
 JPEG de 900 px) a rămas neatinsă, iar prima captură a sesiunii (`session-start.jpg`) a trecut prin ea.
 
+**Unde s-a oprit sesiunea.** După ce am scris reparația pentru defectul 10, telefonul a intrat în `Dozing`, iar
+`mCurrentFocus` a devenit `NotificationShade`. Conform regulii („fără focusul corect nu se trimite niciun
+input”), nu s-a mai trimis nimic: reparația este **compilată și lint-curată, dar neverificată pe telefon**.
+Reluarea cere doar deblocarea telefonului și readucerea Nexus Dev în prim-plan; pașii sunt: Prieteni →
+Următori → un rând → săgeata „Înapoi” trebuie să fie vizibilă sub ceas și să funcționeze.
+
 ## 3. Pași următori (în ordine)
 
-1. Ecranul de notificări (rândul „lipsă” din `MIGRATION.md` §0) — singurul ecran neportat. Nu se inventează
-   structura: se citește din `docs/web-ref/` înainte de orice desen.
+1. Ecranul de notificări (rândul „lipsă” din `MIGRATION.md` §0) — **recon făcut 17 oct**: pe web notificările nu
+   sunt o pagină de sine stătătoare, ci un **panou al profilului**, al șaselea rând din meniul de setări
+   (`profile-menu.js:12-20`, `id: "notifications"` → view `notifications`). Portul are deja conținutul:
+   `src/components/ActivityCenter.tsx` citește exact cele cinci endpointuri ale webului și aduce și copy-ul
+   `activity.*`; el se randează azi **doar** în cutia `activity` din Mesaje. Ce lipsește este **ușa**: meniul
+   de pe telefon (`FeedDrawer`) are cinci profiluri + postare nouă + logout, fără cele șapte porți ale webului.
+   Deci lotul este „poarta + panoul”, nu un ecran nou: intrare în drawer → panou care randează `ActivityCenter`
+   cu `viewerId`/`activePersona` deja disponibile, fără component nou. Structura se citește din
+   `docs/web-ref/` înainte de desen.
 2. Sesiune pe telefon: prima rundă este făcută (§2.1). Rămân stările care cer **date**, nu cod: story viewer
    cu chip, fișa de contact, chip pe comentariul altcuiva, cerere la cont privat, acceptare din liste. Se pot
    face fie pe seed-ul local (`TEST-DATA.md` §4: cele cinci conturi `ana_popescu`… plus 4 conversații), fie pe
    preview după ce se creează o conversație și un cont privat. Capturile **numai** cu `safe-screencap.ps1`.
+   Primul pas la reluare, înainte de orice: reparația defectului 10 (profil pushuit → săgeata „Înapoi”
+   vizibilă sub ceas și funcțională).
 3. Măsurători `uiautomator dump --compressed` (px fizici ÷ 2.6) + compozit în
    `docs/parity-report/profile-header/`; apoi notele numerice în `PARITY-MATRIX.md` și
    `parity-report/INDEX.md` (runda 4 este „implementat, nemăsurat”).
@@ -100,7 +115,7 @@ JPEG de 900 px) a rămas neatinsă, iar prima captură a sesiunii (`session-star
 | 7 | `uiautomator dump` întoarce 0 noduri pe profil | banda de ticker se animă continuu | folosește `device-batch.ps1 -ReduceMotion` (pune scalele la loc în `finally`) |
 | 8 | 4 erori ESLint preexistente | `ActivityCenter`, `MessagesScreen` | neatinse de loturile curente |
 | 9 | payload-ul de postare **și de profil** nu are `following_me` | server (`socialPostView`, ruta de profil) | documentat în `MIGRATION.md` §19.3; verificat 17 oct pe telefon: un cont deja în `Următori` apare cu chipul `Urmărește`, nu `Urmărește înapoi`. Clientul nu ghicește |
-| 10 | săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap | `src/app/profile/[handle].tsx` | găsit 17 oct pe telefon: nodul `Înapoi` există în arborele de accesibilitate la `[36,31][151,146]`, dar colțul e gol și tap-ul nu face nimic; ieșirea a cerut `-Action reload`. Dovezi: `batch3-state.jpg`, `batch3-back-try.jpg` |
+| 10 | săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap | `src/app/profile/[handle].tsx` | **reparat în cod 17 oct**: ruta nu avea `insets.top`, deci rândul de sus al antetului ieșea sub ceas; acum cere `useSafeAreaInsets`. Compilat + lint curat, **neverificat pe telefon** (sesiunea s-a oprit cu `NotificationShade`/`Dozing`). Dovezi: `batch3-state.jpg`, `batch3-back-try.jpg` |
 
 
 ## 5. Note despre telefon (verificate, nu presupuse)
