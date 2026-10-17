@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildLine } from '../lib/buildStamp';
 import { JungleBackdrop } from '../components/JungleBackdrop';
@@ -8,29 +8,23 @@ import { jungle } from '../theme/jungle';
 /**
  * `Setări` — the last row of the profile menu (`lib/profileMenu.ts`).
  *
- * It exists because that menu may not open the drawer: the drawer holds the five profiles, the new post
- * and the logout, and the owner drew that line on 17 October 2026. So the settings a reader can really
- * change live here instead — today that is one switch (`Banda derulantă`, `lib/bandPrefs.ts`), and the
- * readings this app must never invent: the version, the backend it talks to and the build marker of the
- * JavaScript that is actually running (`lib/buildStamp.ts`).
+ * It holds the readings this app must never invent: the version, the backend it talks to and the build
+ * marker of the JavaScript that is actually running (`lib/buildStamp.ts`). It used to hold the band's
+ * switch too; the owner retired that on 18 October 2026 — the band always travels and a touch pauses it.
  *
- * Nothing in this screen signs out or switches a profile. Where those doors are is printed as a reading,
- * because a reader who looks for them deserves an answer rather than a search.
+ * Nothing in this screen signs out or switches a profile: those doors live in the same `≡` menu this
+ * screen was opened from, and the row below says so instead of leaving a reader to search.
  */
 export function SettingsScreen({
   onClose,
   version,
   server = '',
-  bandScrolling,
-  onBandScrolling,
 }: {
   onClose: () => void;
-  /** `Android 0.1.0 · API: Railway`, the same line the drawer's foot prints. */
+  /** `Android 0.1.0 · API: Railway`, the same line the menu's foot prints. */
   version: string;
   /** The version of the web build serving this account, when the server answers with one. */
   server?: string;
-  bandScrolling: boolean;
-  onBandScrolling: (on: boolean) => void;
 }) {
   const insets = useSafeAreaInsets();
 
@@ -44,21 +38,6 @@ export function SettingsScreen({
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.section}>Profil</Text>
-        <View style={styles.row}>
-          <View style={styles.words}>
-            <Text style={styles.title}>Banda derulantă</Text>
-            <Text style={styles.hint}>Descrierea, locul, vârsta și tipul contului se mișcă sub butoane. Oprită, banda stă pe loc și rămâne citibilă.</Text>
-          </View>
-          <Switch
-            accessibilityLabel="Banda derulantă"
-            value={bandScrolling}
-            onValueChange={onBandScrolling}
-            trackColor={{ false: '#1c2a36', true: jungle.primary }}
-            thumbColor={bandScrolling ? '#04120f' : '#8fa3b4'}
-          />
-        </View>
-
         <Text style={styles.section}>Despre</Text>
         <View style={styles.row}>
           <View style={styles.words}>
@@ -74,7 +53,7 @@ export function SettingsScreen({
           <View style={styles.words}>
             <Text style={styles.title}>Profiluri și deconectare</Text>
             <Text style={styles.hint}>
-              Se schimbă din sertarul paginii Acasă, butonul din colțul de sus. Meniul profilului nu închide sesiunea.
+              Se schimbă din meniul ≡ al profilului: acolo sunt cele cinci profiluri, postarea nouă, notificările și ieșirea din cont.
             </Text>
           </View>
         </View>

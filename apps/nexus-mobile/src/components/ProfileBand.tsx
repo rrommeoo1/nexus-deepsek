@@ -3,7 +3,6 @@ import { Animated, AppState, Easing, Modal, PanResponder, Pressable, ScrollView,
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { bandCopies, bandCycleMs, bandItems, bandLabel, bandRows, type BandItem, type BandRow } from '../lib/profileBand';
 import { bandPositionAt, bandResumePlan, bandSignature, type BandSegment } from '../lib/bandMotion';
-import { useBandScrolling } from '../lib/bandPrefs';
 import type { ProfileView } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 
@@ -20,10 +19,10 @@ import { socialTokens } from '../theme/social';
  *      app comes back to the foreground (`AppState`), which is when a birthday could have happened;
  *   2. the pace. `bandCycleMs` keeps the 48 seconds of the web's band on a 360-wide column, so a longer
  *      description travels at the same speed instead of finishing sooner;
- *   3. the pause. A touch stops the line exactly where it stands and the next one sends it on from the
- *      same point; the motion never depends on the system's animation settings, only on the reader's own
- *      `Banda derulantă` switch (`MIGRATION.md` §20.2, `lib/bandMotion.ts`). The position is arithmetic
- *      over a start point and a clock, never a read of the native animated value;
+ *   3. the pause. The line travels from the moment the profile is drawn — there is no switch to turn off
+ *      and the system's animation settings are not consulted; a touch stops it exactly where it stands and
+ *      the next one sends it on from the same point (owner's rule, 18 October 2026). The position is
+ *      arithmetic over a start point and a clock, never a read of the native animated value;
  *   4. the reading. The whole line is one control for the screen reader, the travelling copies are hidden
  *      from it, and the sheet opens from its own `ⓘ` — a 44dp target at the right end of the band — so a
  *      tap on the words means "pause", not "open a panel".
@@ -39,7 +38,6 @@ export function ProfileBand({ profile }: { profile: ProfileView }) {
    * a different line, so it starts unpaused without an effect that would reset it after the fact.
    */
   const [pausedFor, setPausedFor] = useState<string | null>(null);
-  const scrolling = useBandScrolling();
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -65,17 +63,14 @@ export function ProfileBand({ profile }: { profile: ProfileView }) {
       <View style={styles.band}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={scrolling && paused ? `${bandLabel(items)} (bandă oprită)` : bandLabel(items)}
-          accessibilityHint={scrolling
-            ? (paused ? 'Atinge pentru a porni banda' : 'Atinge pentru a opri banda')
-            : 'Banda este oprită din meniu'}
-          disabled={!scrolling}
+          accessibilityLabel={paused ? `${bandLabel(items)} (banda oprită)` : bandLabel(items)}
+          accessibilityHint={paused ? 'Atinge pentru a porni banda' : 'Atinge pentru a opri banda'}
           onPress={() => setPausedFor(paused ? null : signature)}
           style={styles.touch}
         >
-          <BandTrack items={items} signature={signature} scrolling={scrolling} paused={paused} />
+          <BandTrack items={items} signature={signature} paused={paused} />
         </Pressable>
-        {scrolling ? <BandFade /> : null}
+        <BandFade />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Detalii profil"
@@ -124,10 +119,9 @@ function BandFade() {
  * arithmetic of `lib/bandMotion.ts`. A new segment is re-anchored from the clock whenever the app comes
  * back to the foreground, so time spent in the background is not a jump either.
  */
-function BandTrack({ items, signature, scrolling, paused }: {
+function BandTrack({ items, signature, paused }: {
   items: BandItem[];
   signature: string;
-  scrolling: boolean;
   paused: boolean;
 }) {
   const shift = useState(() => new Animated.Value(0))[0];
@@ -154,7 +148,6 @@ function BandTrack({ items, signature, scrolling, paused }: {
   }, [signature, shift]);
 
   useEffect(() => {
-    if (!scrolling) { shift.stopAnimation(); return; }
     if (runWidth <= 0) return;
     const cycle = bandCycleMs(runWidth);
     if (!cycle) return;
@@ -195,15 +188,7 @@ function BandTrack({ items, signature, scrolling, paused }: {
     };
     roll(from);
     return () => { released = true; shift.stopAnimation(); };
-  }, [paused, scrolling, runWidth, signature, resync, shift]);
-
-  if (!scrolling) {
-    return (
-      <View style={styles.viewport}>
-        <Text numberOfLines={1} style={styles.staticLine}>{bandLabel(items)}</Text>
-      </View>
-    );
-  }
+  }, [paused, runWidth, signature, resync, shift]);
 
   return (
     <View style={styles.viewport} onLayout={(event) => setBandWidth(event.nativeEvent.layout.width)}>

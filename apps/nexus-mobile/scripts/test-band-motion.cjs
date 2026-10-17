@@ -13,7 +13,7 @@
 //   * new words are a new line and start from the beginning.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const { existsSync, readFileSync } = require('node:fs');
 const { resolve } = require('node:path');
 const ts = require('typescript');
 
@@ -65,6 +65,11 @@ test('reluarea dintr-un capat de rand nu dureaza nimic si nu se blocheaza', () =
   assert.deepEqual(bandResumePlan(0, RUN, CYCLE), { toValue: -RUN, duration: CYCLE }, 'de la zero: un ciclu');
   assert.deepEqual(bandResumePlan(RUN, RUN, CYCLE), { toValue: -RUN, duration: CYCLE }, 'capatul este inceputul');
   const almost = bandResumePlan(RUN - 1, RUN, CYCLE);
+  assert.equal(almost.duration, 80, 'un pixel mai are 80ms');
+  assert.ok(bandResumePlan(RUN, RUN, CYCLE).duration >= 1);
+  assert.deepEqual(bandResumePlan(300, 0, 0), { toValue: 0, duration: 1 }, 'fara latime nu se anima');
+});
+
 test('fundalul nu sare: timpul petrecut plecat se socoteste la fel', () => {
   /** Left running at 0, the app went away, came back 36s later: the line is at 450px, with 12s left. */
   const back = bandPositionAt({ from: 0, startedAt: 0 }, 36000, RUN, CYCLE);
@@ -105,23 +110,17 @@ test('componenta: pauza pe ceas, fara setarea sistemului, cu usa de 44dp pentru 
   assert.match(component, /width: band\.infoSize/, 'si are tinta de 44dp');
   assert.match(component, /hitSlop=/, 'cu marja de atingere care rotunjeste tinta');
   assert.match(component, /LinearGradient/, 'fade-ul de sub pictograma');
-  assert.match(component, /Banda este oprită din meniu/, 'cand setarea e oprita, banda este text static');
+  assert.doesNotMatch(component, /Banda este oprită din meniu/, 'nu mai există o setare care s-o oprească din meniu');
 });
 
-test('setarea "Banda derulantă" sta in sertar si este pornita implicit', () => {
-  const drawer = readFileSync(resolve(ROOT, 'src/components/FeedDrawer.tsx'), 'utf8');
-  assert.match(drawer, /accessibilityRole="switch"/, 'sertarul are comutatorul');
-  assert.match(drawer, /accessibilityLabel="Banda derulantă"/);
-  assert.match(drawer, /onBandScrolling/, 'si il raporteaza gazdei');
-  const prefs = readFileSync(resolve(ROOT, 'src/lib/bandPrefs.ts'), 'utf8');
-  assert.match(prefs, /BAND_SCROLLING_DEFAULT = true/, 'implicit pornita');
-  assert.match(prefs, /moveSync/, 'scris ca sesiunea: fisier temporar, apoi redenumit');
+test('setarea „Banda derulantă" a ieșit din aplicație: banda merge mereu', () => {
+  // Regula proprietarului (18 octombrie 2026): fără comutator în meniu și fără preferință pe disc; un
+  // deget oprește banda, al doilea o pornește. Fișierul de preferințe a fost șters odată cu sertarul.
+  assert.equal(existsSync(resolve(ROOT, 'src/components/FeedDrawer.tsx')), false, 'sertarul nu mai există');
+  assert.equal(existsSync(resolve(ROOT, 'src/lib/bandPrefs.ts')), false, 'nu mai există preferință de bandă');
   const index = readFileSync(resolve(ROOT, 'src/app/index.tsx'), 'utf8');
-  assert.match(index, /bandScrolling=\{bandScrolling\}/, 'gazda paseaza starea');
-  assert.match(index, /setBandScrolling/, 'si o salveaza');
-});
-
-  assert.equal(almost.duration, 80, 'un pixel mai are 80ms');
-  assert.ok(bandResumePlan(RUN, RUN, CYCLE).duration >= 1);
-  assert.deepEqual(bandResumePlan(300, 0, 0), { toValue: 0, duration: 1 }, 'fara latime nu se anima');
+  assert.doesNotMatch(index, /bandScrolling|setBandScrolling|bandPrefs/, 'gazda nu mai pasează nicio stare');
+  const component = readFileSync(resolve(ROOT, 'src/components/ProfileBand.tsx'), 'utf8');
+  assert.doesNotMatch(component, /useBandScrolling|Banda este oprită din meniu/);
+  assert.match(component, /onPress=\{\(\) => setPausedFor\(paused \? null : signature\)\}/, 'atingerea oprește și pornește');
 });

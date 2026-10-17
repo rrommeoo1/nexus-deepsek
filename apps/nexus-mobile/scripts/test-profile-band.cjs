@@ -148,14 +148,14 @@ test('contul privat poarta lacatul, cel public lacatul deschis', () => {
   assert.equal(priv.text, 'Cont privat');
 });
 
-test('bucla: 48 de secunde pe coloana nominala, cu un minim si un maxim', () => {
-  assert.equal(BAND_SECONDS, 48);
+test('bucla: 36 de secunde pe coloana nominala, cu un minim si un maxim', () => {
+  assert.equal(BAND_SECONDS, 36);
   assert.equal(bandCycleMs(0), 0, 'o banda nemasurata nu se anima');
   assert.equal(bandCycleMs(-10), 0);
-  assert.equal(bandCycleMs(360), 48000);
-  assert.equal(bandCycleMs(180), 48000, 'un rand scurt nu alearga');
-  assert.equal(bandCycleMs(720), 96000, 'un rand lung merge cu aceeasi viteza');
-  assert.equal(bandCycleMs(2000), 120000, 'dar nu mai lent de atat');
+  assert.equal(bandCycleMs(360), 36000);
+  assert.equal(bandCycleMs(180), 36000, 'un rand scurt nu alearga');
+  assert.equal(bandCycleMs(720), 72000, 'un rand lung merge cu aceeasi viteza');
+  assert.equal(bandCycleMs(2000), 90000, 'dar nu mai lent de atat');
   assert.ok(bandCycleMs(400) > bandCycleMs(390));
 });
 
