@@ -67,6 +67,35 @@ adb install -r builds\nexus-dev-arm64.apk
 `-r` păstrează datele aplicației (drafturi, sesiune). **Nu** folosi `adb uninstall` sau
 `adb install -d`: acelea șterg datele locale — dacă un pas ar face-o, îți spun înainte.
 
+### Rebrand „Jungle Book” — APK nou
+
+`app.json` s-a schimbat (nume, icon, adaptive icon, splash), deci telefonul are nevoie de un APK nou
+pentru numele de pe launcher și pentru iconiță. Textele și logo-urile din interfață se văd oricum fără
+rebuild. Comenzile exacte, fără EAS și fără costuri:
+
+```powershell
+cd apps\nexus-mobile
+npm run build:android:dev          # copiază sursa în C:\nxm, npm ci, expo prebuild, gradle assembleDebug
+adb install -r builds\nexus-dev-arm64.apk
+```
+
+Semnătura este cea debug a mașinii (`~/.android/debug.keystore`), aceeași ca a aplicației instalate,
+deci `-r` păstrează sesiunea și drafturile.
+
+**Splash:** `expo-splash-screen` nu este instalat, iar prebuild-ul SDK 57 ignoră cheia `splash` din
+`app.json`; ecranul de pornire rămâne fundalul implicit `#FFFFFF` cu marca în centru. Pentru fundalul
+verde (`#02150D`) trebuie adăugată dependența gratuită și pluginul:
+
+```powershell
+npx expo install expo-splash-screen
+# apoi în app.json, în "plugins":
+# ["expo-splash-screen", { "backgroundColor": "#02150D",
+#   "image": "./assets/brand/jb-splash-1080x1920.png", "imageWidth": 280 }]
+```
+
+Abia după asta se reconstruiește APK-ul. Nu s-a adăugat dependența în lotul de rebrand, ca build-ul să nu
+depindă de o instalare nouă.
+
 ## Ce vezi mereu
 
 Ecranul de login și subsolul sertarului scriu versiunea și backend-ul:

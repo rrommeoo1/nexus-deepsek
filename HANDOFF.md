@@ -184,7 +184,29 @@ referință sunt nemodificate față de `HEAD`, deci e o nepotrivire moștenită
 contracte de telefon trec (9/9, 6/6, 2/2, 6/6, 12/12, 8/8, 9/9, 21/21).
 
 
+### 2.5 Rebrand pe telefon — 17 octombrie 2026 (neînceput: telefonul nu e în adb)
+
+Telefonul **nu a fost vizibil** pentru adb în această sesiune: `adb devices` gol, `adb mdns services` gol,
+deci wireless debugging-ul nu se anunța. Nu s-a atins telefonul, nu s-a trimis niciun input și nu s-a
+schimbat nicio setare. Ce rămâne de verificat, cu ce se așteaptă:
+
+| Ecran | Înainte | După (așteptat) | Stare |
+|---|---|---|---|
+| Launcher / recents | „Nexus Dev”, iconiță veche | „Jungle Book Dev”, iconița cu J+B din fructe | **doar compilat** (APK nou) |
+| Splash | fundal alb implicit | marca în centru; fundal verde doar după `expo-splash-screen` | **doar compilat** (APK nou) |
+| Login | glif + „NEXUS” | logo mare + „JUNGLE BOOK” + versiunea dedesubt | **doar compilat** (Fast Refresh), de verificat pe telefon |
+| Antet feed | wordmark SVG | logo 36 dp în stânga, aceeași ușă spre Feed | **doar compilat**, de verificat |
+| Bara de jos | `+` în cercul central | logo circular, eticheta „Creează” neschimbată | **doar compilat**, de verificat |
+| Sertar | fără nume | logo + „Jungle Book” sus; jos „Jungle Book · Android … · API: …” | **doar compilat**, de verificat |
+| Camera | „NEXUS” | „JUNGLE BOOK” | **doar compilat**, de verificat |
+| Ecrane goale / erori / toast-uri | „Nexus” în câteva texte | „Jungle Book” (20 de fișiere) | **testat unitar** de `test-brand.cjs`, de verificat vizual |
+| Accesibilitate | „Schimbă profilul Nexus”, „Nexus Home …” | „Schimbă profilul Jungle Book”, „Jungle Book Home …” | **testat unitar** (`test-brand.cjs` scanează și `accessibilityLabel`) |
+
+`test-brand.cjs` dovedește absența textului vechi în cod, nu felul în care arată ecranul: diferența dintre
+„testat unitar” și „verificat pe telefon” rămâne deschisă până la prima sesiune cu telefonul conectat.
+
 ## 3. Pași următori (în ordine)
+
 
 1. ~~**Aprobarea backend-ului** pentru `joined_at`~~ — **închis 17 oct 2026**: cherry-pick `c430839` → `5b8be80` pe `main`, rebase pe `origin/main`, teste verzi, push, deploy; `/health` 200 și telefonul arată «Membru din septembrie 2026».
 2. **Datele de test pentru stările rămase** — **închis pe 17 oct 2026**: cinci conturi reale de devnet (`devnet_test_01`…`05`, portofel generat local) au scris story-ul `9`, conversația `2` + mesajul `2`, contul privat `03` (care îl urmărește pe `@test`), comentariul `35` și urmăritorul `05`. Id-urile, adresele publice și limitele cunoscute sunt în `docs/TEST-DATA.md` §12. Rămân două lucruri care cer telefonul, nu codul: faucet-ul manual (§9.1) și cele șapte verificări din §9.3.

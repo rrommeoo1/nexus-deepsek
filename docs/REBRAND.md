@@ -98,6 +98,12 @@ singură bucată, când se atinge backend-ul:
   are alfa 255 (monocromul poate avea centrul transparent — literele nu umplu mijlocul).
 * Rularea reală, 17 oct 2026: câmp `#02150D` (împrăștiere între colțuri 9), litere 629×587, decupaj 705 px
   la (32, 200), 10 fișiere, 7,9 s. **Verificarea vizuală pe telefon rămâne a proprietarului.**
+* A doua rulare a scris exact aceleași fișiere (arborele git a rămas curat), deci generatorul este
+  determinist și poate fi rerulat înainte de orice build.
+* **Ecranul de pornire:** `app.json` are cheia `splash`, dar prebuild-ul Expo SDK 57 o ignoră fără
+  `expo-splash-screen` (dependență gratuită, neinstalată). APK-ul curent pornește cu marca în centru pe
+  fundalul implicit alb; pentru `#02150D` trebuie adăugat pluginul — comenzile exacte sunt în
+  `docs/DEV-WORKFLOW.md`.
 * Iconița de notificare nu a fost generată: proiectul nu are `expo-notifications`, deci nu există un strat
   de notificare care să o folosească.
 

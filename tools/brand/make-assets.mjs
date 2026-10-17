@@ -73,6 +73,10 @@ if (report.background.cornerSpread > 24) {
   fail(`the corners are not one colour (spread ${report.background.cornerSpread}); refusing to guess the field`);
 }
 if (report.crop.side < 400) fail(`the letters box is only ${report.crop.side}px; the crop would be blurry`);
+const coverage = (report.lettersBox.width * report.lettersBox.height) / (report.crop.side * report.crop.side);
+if (coverage < 0.2) {
+  fail(`the letters cover only ${(coverage * 100).toFixed(1)}% of the crop; the logo would read as empty field`);
+}
 
 let failures = 0;
 for (const item of expected) {
