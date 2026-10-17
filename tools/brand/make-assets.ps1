@@ -411,9 +411,10 @@ public static class JBMark
         TrimResized(ax, 512, 512, SpeckFloor(512));
         SavePng(Path.Combine(outDir, "jb-mark-512.png"), 512, 512, rx, gx, bx, ax);
 
-        // 36 dp for the header, 40 dp for the create button, each at 1x/2x/3x.
-        int[] headerSizes = new int[] { 36, 72, 108 };
-        int[] navSizes = new int[] { 40, 80, 120 };
+        // 52 dp for the header and 54 dp for the create button (the owner's sizes, 17 October 2026: the
+        // J and the B have to be readable without a square or a ring behind them), each at 1x/2x/3x.
+        int[] headerSizes = new int[] { 52, 104, 156 };
+        int[] navSizes = new int[] { 54, 108, 162 };
         for (int i = 0; i < 3; i++)
         {
             ResizeArgb(mr, mg, mb, ma, side, side, headerSizes[i], headerSizes[i], out rx, out gx, out bx, out ax);

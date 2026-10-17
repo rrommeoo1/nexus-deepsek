@@ -8,11 +8,15 @@ import { socialTokens } from '../theme/social';
 /**
  * `#phoneHeader` — the one bar of the Social shell, in the two shapes the web gives it.
  *
- * The feed wears `.appHeader.feedHeader` (feed-surface.css:16-80): the wordmark at 80px, the reading
- * that is open as a single 38 × 40 pill, and the drawer door at 42 × 42. Reels floats that bar over the
+ * The feed wears `.appHeader.feedHeader` (feed-surface.css:16-80): the mark at 52 dp, the reading that is
+ * open as a single 38 × 40 pill, and the door to the drawer at 42 × 42. Reels floats that bar over the
  * clip (`background:linear-gradient(180deg,rgba(2,6,12,.62),rgba(2,6,12,0))`, feed-surface.css:97);
  * Whispers and News keep it in the flow on `rgba(1,5,3,.96)` closed by `--nexus-green-line`
  * (feed-surface.css:1007-1012, 1230-1235, 1666-1672).
+ *
+ * The bar carries the mark and nothing else about the build: the version used to sit under the logo and
+ * was unreadable at 9 px. It lives where a reader can look it up — the drawer's foot and Settings ›
+ * Despre — and the header is just the door home (owner's rule, 17 October 2026).
  *
  * Every other Social screen wears the bare `.appHeader` (social-human-ux.css:23-26): the wider white
  * wordmark and the switches the web prints off the feed — the profile, the feed and the relations
@@ -35,8 +39,6 @@ export type AppHeaderProps = {
   topInset?: number;
   /** The reading that is open; the feed bar prints its glyph. */
   modeId?: string;
-  /** The build the reader is on, printed in `.wordmarkBuild` under the wordmark. */
-  build?: string;
   /** The switches of the non-feed bar, in the order the web prints them. Ignored on the feed. */
   switches?: AppHeaderSwitch[];
   /** `.wordmark` is the way home (`#wordmark` → `goHome()`, app.js:1443). */
@@ -45,15 +47,9 @@ export type AppHeaderProps = {
   onCycleMode?: () => void;
 };
 
-const { feedHeader, appHeader, colors, wordmarkBadge } = socialTokens;
+const { feedHeader, appHeader, colors } = socialTokens;
 const wordmarkLabel = `${BRAND_NAME} Home · revino la prima pagină`;
 const drawerLabel = `Schimbă profilul ${BRAND_NAME}`;
-
-/** `.wordmarkBuild` — the build number on the bottom-left corner of the wordmark. */
-function BuildBadge({ build }: { build?: string }) {
-  if (!build) return null;
-  return <Text style={styles.build}>{build}</Text>;
-}
 
 /** `.feedModes button i` — the disc of the open reading, painted in the tint that reading answers in. */
 function ModeGlyph({ modeId }: { modeId: string }) {
@@ -95,7 +91,7 @@ export function headerFloats(variant: AppHeaderVariant, modeId?: string): boolea
   return variant === 'feed' && (modeId ?? socialTokens.feedModes[0].id) === 'reels';
 }
 
-export function AppHeader({ variant, modeId, topInset = 0, build, switches = [], onPressWordmark, onOpenDrawer, onCycleMode }: AppHeaderProps) {
+export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPressWordmark, onOpenDrawer, onCycleMode }: AppHeaderProps) {
   const mode = socialTokens.feedModes.find((entry) => entry.id === modeId) ?? socialTokens.feedModes[0];
   const floating = headerFloats(variant, modeId);
 
@@ -150,7 +146,6 @@ export function AppHeader({ variant, modeId, topInset = 0, build, switches = [],
         ]}
       >
         <BrandLogo variant="header" />
-        <BuildBadge build={build} />
       </Pressable>
 
       {variant === 'feed' ? (
@@ -210,25 +205,13 @@ const styles = StyleSheet.create({
   screenBar: { height: appHeader.height },
   pressed: { transform: [{ scale: 0.96 }] },
   spacer: { flexGrow: 1, flexShrink: 1, flexBasis: 0 },
-  /** `.appHeader .wordmark` — a 44 dp door around the 36 dp mark, 42 dp tall with the build badge inside. */
-  wordmarkFeed: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center', borderRadius: 8, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', backgroundColor: 'rgba(3,4,7,0.48)' },
-  wordmarkScreen: { width: 44, height: 42, justifyContent: 'center', alignItems: 'center' },
-  build: {
-    position: 'absolute',
-    left: 0,
-    bottom: -wordmarkBadge.offsetBottom,
-    color: colors.white,
-    fontSize: wordmarkBadge.fontSize,
-    lineHeight: wordmarkBadge.lineHeight,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    paddingHorizontal: wordmarkBadge.paddingHorizontal,
-    paddingVertical: wordmarkBadge.paddingVertical,
-    borderWidth: wordmarkBadge.borderWidth,
-    borderColor: wordmarkBadge.borderColor,
-    borderRadius: wordmarkBadge.radius,
-    backgroundColor: wordmarkBadge.background,
-  },
+  /**
+   * The mark is the only thing in the door: no ring, no square, no glass behind it (the owner's rule,
+   * 17 October 2026). The door itself stays 52 dp — above the 44 dp target — so the letters are read
+   * clearly and the aim is still generous.
+   */
+  wordmarkFeed: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
+  wordmarkScreen: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
   /** `.feedModes` — the 38 × 40 column the pill is centred in. */
   modePill: { width: feedHeader.modePill.width, height: feedHeader.modePill.height, alignItems: 'center', justifyContent: 'center' },
   pillPress: { alignItems: 'center', justifyContent: 'center' },

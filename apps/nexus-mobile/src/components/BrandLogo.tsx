@@ -11,9 +11,13 @@ import { BRAND_NAME } from '../theme/brand';
  * so the mark needs no frame, no square, no circle and no background of its own â€” it sits on
  * whatever the screen already is.
  *
- * - `header` is the 36 dp mark of the top bar and of the inbox, exported at 1x/2x/3x;
- * - `nav` is the 40 dp mark inside the create circle, exported at 1x/2x/3x;
+ * - `header` is the 52 dp mark of the top bar and of the inbox, exported at 1x/2x/3x;
+ * - `nav` is the 54 dp mark inside the create cell, exported at 1x/2x/3x;
  * - `large` is the drawing of the login screen.
+ *
+ * The mark is drawn with no frame of its own: no square, no disc, no ring, no shadow and no colour
+ * behind it (the owner's rule, 17 October 2026). The pictures are transparent, and every caller keeps
+ * the touch target (44 dp and up) while drawing only the letters.
  */
 export type BrandLogoVariant = 'header' | 'nav' | 'large';
 
@@ -29,7 +33,7 @@ const navSources: number[] = [
 ];
 const largeSource: number = require('../../assets/brand/jb-mark-1024.png');
 
-const defaultSizes: Record<BrandLogoVariant, number> = { header: 36, nav: 40, large: 132 };
+const defaultSizes: Record<BrandLogoVariant, number> = { header: 52, nav: 54, large: 132 };
 
 /** The 3x file is the sharpest one the generator writes; pick the one the screen can show. */
 function pick(sources: number[]): number {

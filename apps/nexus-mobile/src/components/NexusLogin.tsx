@@ -8,7 +8,6 @@ type Locale = 'ro' | 'en';
 
 type Props = {
   brand: ReactNode;
-  version: string;
   locale: Locale;
   googleReady: boolean;
   facebookReady: boolean;
@@ -90,7 +89,7 @@ function Rule({ top = false }: { top?: boolean }) {
   );
 }
 
-export function NexusLogin({ brand, version, locale, googleReady, facebookReady, walletNetwork, busy, error,
+export function NexusLogin({ brand, locale, googleReady, facebookReady, walletNetwork, busy, error,
   signupError, onSignIn, onSignUp, onForgotPassword, onXPortal, onProvider }: Props) {
   const t = copy[locale];
   const [email, setEmail] = useState('');
@@ -103,7 +102,7 @@ export function NexusLogin({ brand, version, locale, googleReady, facebookReady,
       scrollEnabled keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag"
       automaticallyAdjustKeyboardInsets>
       <View style={styles.card}>
-        <View style={styles.brand}>{brand}<Text style={styles.version}>{version}</Text></View>
+        <View style={styles.brand}>{brand}</View>
         <Text style={styles.tagline}>{t.tagline}</Text>
         <View style={styles.authBox}>
           <View pointerEvents="none" style={styles.boxTopRule}><Rule top /></View>
@@ -157,8 +156,6 @@ const styles = StyleSheet.create({
     borderRadius: v.card.borderRadius, backgroundColor: c.card,
     shadowColor: '#000', shadowOpacity: 0.72, shadowOffset: { width: 0, height: 24 }, shadowRadius: 72 },
   brand: { alignItems: 'center', marginTop: v.brand.marginTop, marginBottom: v.brand.marginBottom },
-  version: { color: c.version, fontSize: v.version.fontSize, fontWeight: v.version.fontWeight,
-    letterSpacing: v.version.letterSpacing, marginTop: v.version.marginTop },
   tagline: { color: c.tagline, fontSize: v.tagline.fontSize, lineHeight: v.tagline.lineHeight,
     textAlign: 'center', maxWidth: v.tagline.maxWidth, alignSelf: 'center', marginBottom: v.tagline.marginBottom },
   authBox: { paddingHorizontal: v.box.paddingHorizontal, paddingTop: v.box.paddingTop,

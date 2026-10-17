@@ -46,7 +46,7 @@
     "test:brand": "node scripts/test-brand.cjs",
     "stamp": "node scripts/stamp-build.mjs",
     "test:brand-assets": "node scripts/test-brand-assets.cjs",
-    "test": "node scripts/test-brand.cjs && node scripts/test-brand-assets.cjs && node scripts/test-relations.cjs && node scripts/test-band-motion.cjs && node scripts/test-comment-rows.cjs && node scripts/test-comment-time.cjs && node scripts/test-hero-parity.cjs && node scripts/test-profile-band.cjs && node scripts/test-profile-content-parity.cjs && node scripts/test-profile-edit.cjs && node scripts/test-audio-lifecycle.cjs && node scripts/test-profile-menu.cjs && node scripts/test-pricing.cjs && node scripts/test-creator-pricing.cjs",
+    "test": "node scripts/test-brand.cjs && node scripts/test-brand-assets.cjs && node scripts/test-brand-paint.cjs && node scripts/test-relations.cjs && node scripts/test-band-motion.cjs && node scripts/test-comment-rows.cjs && node scripts/test-comment-time.cjs && node scripts/test-hero-parity.cjs && node scripts/test-profile-band.cjs && node scripts/test-profile-content-parity.cjs && node scripts/test-profile-edit.cjs && node scripts/test-audio-lifecycle.cjs && node scripts/test-profile-menu.cjs && node scripts/test-pricing.cjs && node scripts/test-creator-pricing.cjs",
     "build:android:dev": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android-dev.ps1",
     "lint": "expo lint",
     "dev:android": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/nexus-dev.ps1 -Action dev",

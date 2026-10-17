@@ -19,12 +19,15 @@ import { socialTokens } from '../theme/social';
 export function SettingsScreen({
   onClose,
   version,
+  server = '',
   bandScrolling,
   onBandScrolling,
 }: {
   onClose: () => void;
   /** `Android 0.1.0 · API: Railway`, the same line the drawer's foot prints. */
   version: string;
+  /** The version of the web build serving this account, when the server answers with one. */
+  server?: string;
   bandScrolling: boolean;
   onBandScrolling: (on: boolean) => void;
 }) {
@@ -59,6 +62,7 @@ export function SettingsScreen({
           <View style={styles.words}>
             <Text style={styles.title}>{BRAND_NAME}</Text>
             <Text style={styles.hint}>{version}</Text>
+            {server ? <Text style={styles.hint}>Server: {server}</Text> : null}
             <Text style={styles.hint}>Build JS: {buildLine()}</Text>
           </View>
         </View>

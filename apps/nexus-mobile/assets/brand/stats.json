@@ -92,42 +92,78 @@
     },
     {
       "file": "jb-mark-header-1x.png",
-      "width": 36,
-      "height": 36,
+      "width": 52,
+      "height": 52,
       "cornerAlpha": [
         0,
         0,
         0,
         0
       ],
-      "transparentFraction": 0.3835,
+      "transparentFraction": 0.4064,
       "edgeRampPx": 2,
       "hazeFraction": 0,
       "specks": 0,
       "probes": [],
-      "sha256": "dcc32b947583f36e90aa3239552533b99f53dc81da9571ec4952d1063dcf7183",
+      "sha256": "b69918c5e20e8b387b6d3adaaabcb5c92035deaae09a3c4072c2979784671c00",
       "transparent": true
     },
     {
       "file": "jb-mark-header-2x.png",
-      "width": 72,
-      "height": 72,
+      "width": 104,
+      "height": 104,
       "cornerAlpha": [
         0,
         0,
         0,
         0
       ],
-      "transparentFraction": 0.4481,
-      "edgeRampPx": 2,
+      "transparentFraction": 0.482,
+      "edgeRampPx": 1,
       "hazeFraction": 0,
       "specks": 0,
       "probes": [],
-      "sha256": "f244c07589864a21fe5fa5d422772cf52552b77d52c51330de58eb4ddd1e6042",
+      "sha256": "11133f9a8ae9446807f82caa9f625009d7f8e9f73449cdf5d31f973fba47958d",
       "transparent": true
     },
     {
       "file": "jb-mark-header-3x.png",
+      "width": 156,
+      "height": 156,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.5129,
+      "edgeRampPx": 1,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "3a6ebf6f1e01baea7d1a62f3776b43353d21620fae23c46cf50a014fb2335bb3",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-nav-1x.png",
+      "width": 54,
+      "height": 54,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.4167,
+      "edgeRampPx": 2,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "c7e00aa7f409acbc92b2c787f38354d31c83f6b197228f1509c8353054e7a2e5",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-nav-2x.png",
       "width": 108,
       "height": 108,
       "cornerAlpha": [
@@ -145,57 +181,21 @@
       "transparent": true
     },
     {
-      "file": "jb-mark-nav-1x.png",
-      "width": 40,
-      "height": 40,
-      "cornerAlpha": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "transparentFraction": 0.3844,
-      "edgeRampPx": 2,
-      "hazeFraction": 0,
-      "specks": 0,
-      "probes": [],
-      "sha256": "828a539311df16046a2405caa7350b02b7aa36afb047c5d9e506b7760bf056f2",
-      "transparent": true
-    },
-    {
-      "file": "jb-mark-nav-2x.png",
-      "width": 80,
-      "height": 80,
-      "cornerAlpha": [
-        0,
-        0,
-        0,
-        0
-      ],
-      "transparentFraction": 0.4572,
-      "edgeRampPx": 2,
-      "hazeFraction": 0,
-      "specks": 0,
-      "probes": [],
-      "sha256": "625a69a50a1c0e617c0c78496d1b228995c823c9b7232911b5cbc417ed7f5e1d",
-      "transparent": true
-    },
-    {
       "file": "jb-mark-nav-3x.png",
-      "width": 120,
-      "height": 120,
+      "width": 162,
+      "height": 162,
       "cornerAlpha": [
         0,
         0,
         0,
         0
       ],
-      "transparentFraction": 0.4934,
+      "transparentFraction": 0.5163,
       "edgeRampPx": 1,
       "hazeFraction": 0,
       "specks": 0,
       "probes": [],
-      "sha256": "a3c9f0be991265ae06d62e09942f454e570bbe56db297143917b99183d9cc68c",
+      "sha256": "1830e4633fd2c351902c08fb6243813b7e8b767b46d404fb4ae2032d969139c8",
       "transparent": true
     },
     {

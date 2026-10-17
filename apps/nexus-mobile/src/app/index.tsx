@@ -257,7 +257,6 @@ export default function NativeHomeScreen() {
       <SafeAreaView style={styles.loginScreen}>
         <NexusLogin
           brand={<NexusLandingBrand />}
-          version={`Android ${APP_VERSION} · ${apiOriginLabel()}${backendVersion ? ` · Backend ${backendVersion}` : ''}`}
           locale="ro"
           googleReady={false}
           facebookReady={false}
@@ -322,17 +321,13 @@ export default function NativeHomeScreen() {
     <AppHeader
       variant="feed"
       modeId={feedMode}
-      topInset={headerFloats('feed', feedMode) ? insets.top : 0}
-      build={backendVersion}
-      onPressWordmark={goHome}
+      topInset={headerFloats('feed', feedMode) ? insets.top : 0}      onPressWordmark={goHome}
       onOpenDrawer={() => setDrawerOpen(true)}
       onCycleMode={onCycleFeedMode}
     />
   ) : (
     <AppHeader
-      variant="screen"
-      build={backendVersion}
-      onPressWordmark={goHome}
+      variant="screen"      onPressWordmark={goHome}
       onOpenDrawer={() => setDrawerOpen(true)}
       switches={offFeedSwitches}
     />
@@ -366,6 +361,7 @@ export default function NativeHomeScreen() {
         <SettingsScreen
           onClose={() => setOwnerPanel(null)}
           version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
+          server={backendVersion}
           bandScrolling={bandScrolling}
           onBandScrolling={(on) => setBandScrolling(on)}
         />

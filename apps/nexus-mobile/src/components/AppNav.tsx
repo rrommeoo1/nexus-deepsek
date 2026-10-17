@@ -1,6 +1,6 @@
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { NexusMark, type NavSlot } from './NexusMark';
 import { BrandLogo } from './BrandLogo';
 import type { MediaSource } from '../lib/socialTypes';
@@ -8,10 +8,13 @@ import { socialTokens } from '../theme/social';
 
 /**
  * The bottom bar of the Social shell: seven marks in one shared pane of glass.
- * Geometry, colours and the create circle come from socialTokens, which transcribes the web CSS — the
+ * Geometry, colours and the create cell come from socialTokens, which transcribes the web CSS — the
  * bar is 60px + the device inset, the glass is the 50px `:before` starting 4px down and 6px in from each
- * side, the six drawn marks are 32px discs inside it, and the create disc is the 52px circle the bar was
- * built around, lifted 8px and wearing a 4px white ring (feed-surface.css:1673-1689).
+ * side, and the six drawn marks are 32px discs inside it (feed-surface.css:1673-1689).
+ *
+ * The create cell is the product's mark alone: 54 dp, no ring, no disc, no gradient and no shadow behind
+ * it (owner's rule, 17 October 2026). It keeps the wider share of the row and the label `Creează`, so the
+ * touch target is exactly the button it was — only the paint is gone.
  */
 export type AppNavProps = {
   active: NavSlot;
@@ -79,8 +82,8 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
               style={({ pressed }) => [
                 styles.mark,
                 { flexGrow: create ? tokens.mark.createWidthShare : tokens.mark.widthShare },
-                /* `.appNav.social>button{max-width:64px}` caps the six drawn marks; the circle is exempt. */
-                create ? styles.createMark : styles.markCap,
+                /* `.appNav.social>button{max-width:64px}` caps the six drawn marks; the create cell is exempt. */
+                create ? null : styles.markCap,
                 /* The press scale is written on top of the lift, so a press never drops the circle back. */
                 { transform: pressed ? [{ translateY: -lift }, { scale: tokens.mark.pressedScale }] : [{ translateY: -lift }] },
               ]}
@@ -105,28 +108,9 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
   );
 }
 
-/** `.appNav.social .createNav i` — the 52px circle the bar was built around, and the bar's only lift. */
+/** The create cell: the product's mark alone — no ring, no disc, no shadow behind it. */
 function CreateDisc() {
-  const { size, borderWidth } = socialTokens.nav.create;
-  return (
-    <View style={styles.createDisc}>
-      <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <RadialGradient id="nxCreateFill" cx="35%" cy="28%" r="72%" fx="35%" fy="28%">
-            <Stop offset="0" stopColor="#ffffff" />
-            <Stop offset="0.38" stopColor="#d8dce1" />
-            <Stop offset="0.72" stopColor="#343941" />
-            <Stop offset="1" stopColor="#050608" />
-          </RadialGradient>
-        </Defs>
-        <Rect x={0} y={0} width="100%" height="100%" fill="url(#nxCreateFill)" />
-      </Svg>
-      {/* The capture glyph was a 27px "+". The circle now wears the product mark alone — the file
-          is transparent, so no disc, frame or square is drawn around it — at 70% of the ring's
-          inside diameter. The ring and the touch target stay exactly the button they were. */}
-      <BrandLogo variant="nav" size={Math.round((size - borderWidth * 2) * 0.7)} />
-    </View>
-  );
+  return <BrandLogo variant="nav" />;
 }
 
 const navLabels: Record<NavSlot, string> = {
@@ -200,8 +184,6 @@ const styles = StyleSheet.create({
   },
   /** `.appNav.social>button{max-width:64px}` */
   markCap: { maxWidth: socialTokens.nav.mark.maxWidth },
-  /** `.appNav button.createNav` — the same cell, but the 52px circle starts at its padding edge. */
-  createMark: { justifyContent: 'flex-start' },
   /** `.appNav.social button i` — a 32px disc that paints no ring; only its colour is set. */
   disc: {
     width: socialTokens.nav.disc.size,
@@ -223,22 +205,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 1,
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 0 },
-  },
-  /** `.appNav.social .createNav i` — 52px, a 4px white ring, lit from its top-left corner. */
-  createDisc: {
-    width: socialTokens.nav.create.size,
-    height: socialTokens.nav.create.size,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: socialTokens.nav.create.radius,
-    borderWidth: socialTokens.nav.create.borderWidth,
-    borderColor: socialTokens.colors.createBorder,
-    backgroundColor: socialTokens.colors.createInk,
-    shadowColor: socialTokens.colors.createShadow,
-    shadowOpacity: 1,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-    overflow: 'hidden',
   },
   /** `.navBadge` — the unread pill, pinned to the top-right corner of the disc it belongs to. */
   badge: {

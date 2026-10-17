@@ -104,6 +104,40 @@ Teste înainte de fiecare commit: web `791/791`, mobil `tsc` 0 erori și `npm te
 **Ce nu s-a dovedit încă:** nimic din pasul acesta nu a fost văzut pe telefon în această rundă — dump-urile
 `uiautomator` cer telefonul conectat (vezi §5) și sunt trecute în tabelul de la Pasul 6.
 
+## 0.3 Pasul 2 — marca fără fundal, mai mare (17 octombrie 2026)
+
+**Asset-urile au fost regenerate, nu doar redimensionate în cod.** `tools/brand/make-assets.mjs` și
+`make-assets.ps1` scriu acum marca de antet la **52 dp** (52/104/156 px) și marca butonului central la
+**54 dp** (54/108/162 px), în loc de 36/40. Rulare: `node tools/brand/make-assets.mjs` → exit 0,
+„13 files · 0 stale file(s) removed · two runs byte-identical".
+
+Măsurători din `assets/brand/stats.json` (citite, nu privite):
+
+| Fișier | Transparent | Rampă de margine | Ceață | Pete |
+|---|---|---|---|---|
+| `jb-mark-header-3x.png` | 51,29 % | 1 px | 0 | 0 |
+| `jb-mark-nav-3x.png` | 51,63 % | 1 px | 0 | 0 |
+| `jb-mark-1024.png` | 55,35 % | 3 px | 2,351 % | 0 |
+
+Deci nu a fost nevoie de praguri mai strânse: colțurile sunt `0,0,0,0`, iar ceața micilor mărci este zero.
+
+**Cod:**
+
+* `BrandLogo`: dimensiunile implicite sunt `header: 52`, `nav: 54`, `large: 132`.
+* `AppHeader`: a ieșit `BuildBadge` (textul de versiune de sub logo) și prop-ul `build`; ușa mărcii este
+  acum 52 × 52, fără ramă, fără fundal și fără umbră. Antetul rămâne 72 dp (`feedHeader.height` și
+  `appHeader.height` sunt amândouă 72).
+* `AppNav`: celula centrală desenează **doar** `BrandLogo variant="nav"` — au ieșit discul de 52 px,
+  inelul alb de 4 px, gradientul radial și umbra. Zona de atingere și eticheta `Creează` sunt aceleași.
+* `NexusLogin` / `login-preview` / `app/index.tsx`: versiunea nu se mai tipărește sub marcă. Ea apare doar
+  în subsolul sertarului (`Android … · API: …` + `build <hash> · <oră>`) și în **Setări › Despre**, care
+  primește și versiunea serverului citită de pe `/app.js`.
+* `scripts/test-brand-paint.cjs` (nou, 4 teste) ține regula: 52/54 în anteturi de 72, niciun
+  `borderWidth`/`backgroundColor`/`shadow` pe ușa mărcii, fără `BuildBadge`, fără `RadialGradient` în
+  bara de jos, login fără linie de versiune, sertar/inbox fără ramă.
+
+**Rezultat:** `tsc --noEmit` 0 erori; `npm test` exit 0 (suita completă, acum cu 4 teste în plus).
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este
