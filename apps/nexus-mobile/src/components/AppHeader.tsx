@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { ModulesMark } from './NexusMark';
 import { BrandLogo } from './BrandLogo';
 import { BRAND_NAME } from '../theme/brand';
 import { fruitRing, fruitWash, jungle } from '../theme/jungle';
@@ -44,13 +43,11 @@ export type AppHeaderProps = {
   switches?: AppHeaderSwitch[];
   /** `.wordmark` is the way home (`#wordmark` → `goHome()`, app.js:1443). */
   onPressWordmark: () => void;
-  onOpenDrawer: () => void;
   onCycleMode?: () => void;
 };
 
 const { feedHeader, appHeader, colors } = socialTokens;
 const wordmarkLabel = `${BRAND_NAME} Home · revino la prima pagină`;
-const drawerLabel = `Schimbă profilul ${BRAND_NAME}`;
 
 /** `.feedModes button i` — the disc of the open reading, painted in the tint that reading answers in. */
 function ModeGlyph({ modeId }: { modeId: string }) {
@@ -92,7 +89,7 @@ export function headerFloats(variant: AppHeaderVariant, modeId?: string): boolea
   return variant === 'feed' && (modeId ?? socialTokens.feedModes[0].id) === 'reels';
 }
 
-export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPressWordmark, onOpenDrawer, onCycleMode }: AppHeaderProps) {
+export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPressWordmark, onCycleMode }: AppHeaderProps) {
   const mode = socialTokens.feedModes.find((entry) => entry.id === modeId) ?? socialTokens.feedModes[0];
   const floating = headerFloats(variant, modeId);
 
@@ -137,24 +134,28 @@ export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPres
         </Svg>
       ) : null}
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={wordmarkLabel}
-        onPress={onPressWordmark}
-        style={({ pressed }) => [
-          variant === 'feed' ? styles.wordmarkFeed : styles.wordmarkScreen,
-          pressed && styles.pressed,
-        ]}
-      >
-        <BrandLogo variant="header" />
-      </Pressable>
+      {variant === 'screen' ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={wordmarkLabel}
+          onPress={onPressWordmark}
+          style={({ pressed }) => [styles.wordmarkScreen, pressed && styles.pressed]}
+        >
+          <BrandLogo variant="header" />
+        </Pressable>
+      ) : null}
 
       {variant === 'feed' ? (
         <>
+          <View style={styles.spacer} />
           {/**
            * `.feedModes` (feed-surface.js:77): the web paints the readings as a `nav[role=tablist]` whose
            * accessible name is `feed.modesLabel` — "Ce citești". The phone keeps one cycling tab, but it wears
            * the same name and the same list role, so a screen reader meets the bar under the reading it offers.
+           *
+           * The feed bar has no mark and no door of its own: the owner removed both on 18 October 2026 (the
+           * logo and the drawer button "se văd urât" over the clip). The mark lives on the other screens, and
+           * the drawer's doors moved into the profile's `≡` menu.
            */}
           <View accessibilityRole="tablist" accessibilityLabel="Ce citești" style={styles.modePill}>
             <Pressable
@@ -168,14 +169,6 @@ export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPres
             </Pressable>
           </View>
           <View style={styles.spacer} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={drawerLabel}
-            onPress={onOpenDrawer}
-            style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-          >
-            <ModulesMark size={feedHeader.iconButton.iconSize} />
-          </Pressable>
         </>
       ) : (
         <View style={[styles.switches, { gap: appHeader.switchesGap }]}>
@@ -209,9 +202,9 @@ const styles = StyleSheet.create({
   /**
    * The mark is the only thing in the door: no ring, no square, no glass behind it (the owner's rule,
    * 17 October 2026). The door itself stays 52 dp — above the 44 dp target — so the letters are read
-   * clearly and the aim is still generous.
+   * clearly and the aim is still generous. Only the non-feed bar draws it: the feed's bar has no mark
+   * and no drawer button (owner's rule, 18 October 2026).
    */
-  wordmarkFeed: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
   wordmarkScreen: { width: 52, height: 52, justifyContent: 'center', alignItems: 'center' },
   /** `.feedModes` — the 38 × 40 column the pill is centred in. */
   modePill: { width: feedHeader.modePill.width, height: feedHeader.modePill.height, alignItems: 'center', justifyContent: 'center' },

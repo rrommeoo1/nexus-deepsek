@@ -16,7 +16,7 @@ const nav = read('src/components/AppNav.tsx');
 const logo = read('src/components/BrandLogo.tsx');
 const login = read('src/components/NexusLogin.tsx');
 const landing = read('src/components/NexusLandingBrand.tsx');
-const drawer = read('src/components/FeedDrawer.tsx');
+const menu = read('src/components/ProfileMenuSheet.tsx');
 const inbox = read('src/components/MessengerTopbar.tsx');
 
 const tokens = (() => {
@@ -39,13 +39,13 @@ test('antetul nu mai are text de versiune sub marcă', () => {
   assert.doesNotMatch(header, /BuildBadge/, 'the build badge left the header');
   assert.doesNotMatch(header, /wordmarkBuild/, 'no wordmark build slot is drawn');
   assert.doesNotMatch(header, /build\?:/, 'the header takes no build prop any more');
-  // Versiunea are exact două locuri: subsolul sertarului și Setări › Despre.
-  assert.match(drawer, /styles\.build/);
+  // Versiunea are exact două locuri: subsolul meniului ≡ și Setări › Despre (sertarul a ieșit).
+  assert.match(menu, /styles\.footBuild/);
   assert.match(read('src/screens/SettingsScreen.tsx'), /Build JS/);
 });
 
-test('niciun dreptunghi, inel sau umbră în spatele mărcii din antet și din bara de jos', () => {
-  const wordmark = header.slice(header.indexOf('wordmarkFeed:'));
+test('niciun dreptunghi, inel sau umbră în spatele mărcii din antetul ecranelor și din bara de jos', () => {
+  const wordmark = header.slice(header.indexOf('wordmarkScreen:'));
   const block = wordmark.slice(0, wordmark.indexOf('},') + 2);
   assert.doesNotMatch(block, /borderWidth|borderColor|backgroundColor|shadow/, 'the header door is plain');
   assert.match(block, /width: 52/);
@@ -55,14 +55,12 @@ test('niciun dreptunghi, inel sau umbră în spatele mărcii din antet și din b
   assert.match(nav, /accessibilityLabel=\{counting \?/);
 });
 
-test('login-ul, sertarul și inbox-ul arată marca fără ramă și fără versiune sub ea', () => {
+test('login-ul și inbox-ul arată marca fără ramă și fără versiune sub ea', () => {
   assert.doesNotMatch(landing, /borderWidth|backgroundColor|borderRadius|shadow/);
   assert.doesNotMatch(login, /styles\.version|<Text style=\{styles\.version\}/);
   assert.doesNotMatch(login, /version: string/);
   assert.match(login, /<View style=\{styles\.brand\}>\{brand\}<\/View>/);
-  // Sertarul și inbox-ul folosesc componenta comună: niciunul nu desenează un disc în jurul ei.
-  assert.match(drawer, /<BrandLogo variant="nav" size=\{24\} \/>/);
+  // Inbox-ul folosește componenta comună: nu desenează un disc în jurul ei.
   assert.match(inbox, /<BrandLogo variant="header" \/>/);
-  assert.doesNotMatch(drawer, /BrandLogo[^>]*style=/, 'no frame is passed to the mark');
   assert.doesNotMatch(inbox, /BrandLogo[^>]*style=/, 'no frame is passed to the mark');
 });

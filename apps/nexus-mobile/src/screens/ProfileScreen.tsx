@@ -14,6 +14,7 @@ import { ProfileEditSheet } from '../components/ProfileEditSheet';
 import { ProfileEmptyState } from '../components/ProfileEmptyState';
 import { ProfileHeader } from '../components/ProfileHeader';
 import { ProfileMenuSheet } from '../components/ProfileMenuSheet';
+import type { ProfileSwitchOption } from '../lib/profileMenu';
 import { ProfileMomentsShelf } from '../components/ProfileMomentsShelf';
 import { ProfileSharedReplyCard, ProfileWhisperCard } from '../components/ProfileWhisperCard';
 import { ProfileTile } from '../components/ProfileTile';
@@ -72,7 +73,7 @@ export { PROFILE_MENU_WORD } from '../lib/profileMenu';
  * endpoint the web reads (`GET /api/profiles/:handle?persona=social`). The five content tabs are real
  * filters over the payload the server returns, so no tab is a button that pretends to do something.
  */
-export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, onMessage, onMonetize, onWallet, onIncome, onSpending, onNotifications, onSettings, viewerUserId, onRelationChanged }: {
+export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, onMessage, onMonetize, onWallet, onIncome, onSpending, onNewPost, onNotifications, onSettings, onLogout, onSwitchProfile, profiles = [], version = '', build = '', viewerUserId, onRelationChanged }: {
   handle: string;
   reloadKey?: number;
   onDoor?: (door: TickerDoor, arg: string) => void;
@@ -92,9 +93,22 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   /** The two halves of the ledger, opened on their own tab of the wallet. */
   onIncome?: () => void;
   onSpending?: () => void;
+  /** `Postare nouă`: the camera, the same door the bottom bar's own mark opens. */
+  onNewPost?: () => void;
   /** The account's activity, which is the inbox's own activity box (`ActivityCenter`). */
   onNotifications?: () => void;
   onSettings?: () => void;
+  /** `Ieși din cont`: the drawer's old last row, now the menu's own. */
+  onLogout?: () => void;
+  /**
+   * The five profiles, as chips at the top of the menu (`ProfileSwitchOption`), and the switch itself.
+   * Without the handler the chips are not drawn.
+   */
+  profiles?: ProfileSwitchOption[];
+  onSwitchProfile?: (persona: string) => void;
+  /** The two foot lines the drawer used to print: app version + backend, and the JS build stamp. */
+  version?: string;
+  build?: string;
   /** Who is reading: the relation store needs it to recognise the reader's own record. */
   viewerUserId?: number | null;
   /** Anything that depends on a relation reloads through here after a change lands (`MIGRATION.md` §19.4). */
@@ -416,13 +430,20 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
     <ProfileMenuSheet
       open={menuOpen}
       onClose={() => setMenuOpen(false)}
+      profiles={profiles}
+      activePersona={String(profile?.persona ?? '')}
+      onSwitchProfile={onSwitchProfile}
+      version={version}
+      build={build}
       handlers={{
+        newPost: onNewPost,
         wallet: onWallet,
         income: onIncome,
         spending: onSpending,
         notifications: onNotifications,
         monetize: onMonetize,
         settings: onSettings,
+        logout: onLogout,
       }}
     />
     </>

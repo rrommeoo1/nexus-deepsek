@@ -29,7 +29,7 @@ test('opacitatea rămâne între 6 % și 12 %', () => {
   // Fiecare apel pasează o valoare mică, niciodată peste 12 %.
   for (const file of ['src/app/index.tsx', 'src/screens/SettingsScreen.tsx', 'src/screens/WalletScreen.tsx',
     'src/screens/MonetizationScreen.tsx', 'src/components/ProfileMenuSheet.tsx',
-    'src/components/SupportConfirmSheet.tsx', 'src/components/FeedDrawer.tsx', 'src/screens/MessagesScreen.tsx']) {
+    'src/components/SupportConfirmSheet.tsx', 'src/screens/MessagesScreen.tsx']) {
     for (const match of read(file).matchAll(/<JungleBackdrop opacity=\{(0\.\d+)\}/g)) {
       assert.ok(Number(match[1]) <= 0.12, `${file} uses ${match[1]}, above the watermark ceiling`);
     }

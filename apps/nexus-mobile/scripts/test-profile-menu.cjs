@@ -31,26 +31,26 @@ const headerSource = readFileSync(resolve(ROOT, 'src/components/ProfileHeader.ts
 const screenSource = readFileSync(resolve(ROOT, 'src/screens/ProfileScreen.tsx'), 'utf8');
 const shellSource = readFileSync(resolve(ROOT, 'src/app/index.tsx'), 'utf8');
 
-test('meniul profilului are șase porți, în ordinea cerută', () => {
+test('meniul are opt porți, în ordinea cerută', () => {
   assert.deepEqual(menu.PROFILE_MENU.map((entry) => entry.id),
-    ['wallet', 'income', 'spending', 'notifications', 'monetize', 'settings']);
+    ['newPost', 'wallet', 'income', 'spending', 'monetize', 'notifications', 'settings', 'logout']);
   assert.deepEqual(menu.PROFILE_MENU.map((entry) => entry.label),
-    ['Portofel', 'Venituri', 'Cheltuieli', 'Notificări', 'Monetizează profilul', 'Setări']);
-  assert.equal(menu.PROFILE_MENU_WORD, 'Deschide meniul profilului');
-  assert.equal(menu.PROFILE_MENU_CLOSE_WORD, 'Închide meniul profilului');
+    ['Postare nouă', 'Portofel', 'Venituri', 'Cheltuieli', 'Prețurile mele', 'Notificări', 'Setări', 'Ieși din cont']);
+  assert.equal(menu.PROFILE_MENU_WORD, 'Deschide meniul');
+  assert.equal(menu.PROFILE_MENU_CLOSE_WORD, 'Închide meniul');
+  assert.equal(menu.PROFILE_MENU_TITLE, 'Meniul Jungle Book');
+  assert.equal(menu.PROFILE_MENU_SWITCH_WORD, 'Schimbă profilul');
   for (const entry of menu.PROFILE_MENU) assert.ok(entry.hint.length > 0, `${entry.id} says what it opens`);
 });
 
-test('meniul profilului nu conține nicio poartă a sertarului', () => {
-  const words = menu.PROFILE_MENU.map((entry) => `${entry.label} ${entry.hint}`).join(' | ');
-  for (const forbidden of menu.DRAWER_ONLY_WORDS) {
-    assert.doesNotMatch(words, new RegExp(forbidden, 'i'), `the menu must not print "${forbidden}"`);
-  }
-  // Și nici ca identificatori: poarta din sertar nu are voie să devină o intrare de-aici.
+test('meniul ține și porțile fostului sertar', () => {
+  // Regula proprietarului (18 octombrie 2026): sertarul a ieșit din aplicație, deci tot ce avea el
+  // — profiluri, postare nouă, clopoțel, deconectare — trebuie să fie acum în meniul ≡.
   const ids = menu.PROFILE_MENU.map((entry) => entry.id);
-  for (const id of ['logout', 'newPost', 'switchProfile', 'switch']) {
-    assert.ok(!ids.includes(id), `${id} belongs to the drawer`);
+  for (const id of ['logout', 'newPost', 'notifications']) {
+    assert.ok(ids.includes(id), `${id} moved from the drawer into the menu`);
   }
+  assert.equal(menu.DRAWER_ONLY_WORDS, undefined, 'there is no drawer left to keep words for');
 });
 
 test('o poartă fără ecran nu este desenată', () => {
@@ -113,14 +113,33 @@ test('antetul: trei butoane în rând, fără `⋯`, iar săgețile deschid meni
   assert.doesNotMatch(headerSource, /Deschide meniul de setări/, 'the bars no longer promise the drawer');
 });
 
-test('profilul nu mai are nicio cale către sertar', () => {
+test('sertarul a ieșit din aplicație, iar meniul îi ține porțile', () => {
   assert.match(screenSource, /<ProfileMenuSheet/);
-  assert.doesNotMatch(screenSource, /setDrawerOpen|FeedDrawer|drawerOpen/, 'no drawer state in the profile');
+  assert.doesNotMatch(shellSource, /FeedDrawer|drawerOpen|setDrawerOpen|bandPrefs/,
+    'the shell has no drawer and no band preference any more');
   const start = shellSource.indexOf("if (slot === 'account')");
   const end = shellSource.indexOf("if (slot === 'inbox')");
   assert.ok(start > 0 && end > start, 'the account slot is still there');
   const accountBlock = shellSource.slice(start, end);
-  assert.doesNotMatch(accountBlock, /setDrawerOpen/, 'the profile opens its own menu, never the drawer');
   assert.match(accountBlock, /onNotifications=\{openNotifications\}/);
   assert.match(accountBlock, /onSettings=\{\(\) => setOwnerPanel\('settings'\)\}/);
+  assert.match(accountBlock, /onNewPost=/, 'new post moved from the drawer into the menu');
+  assert.match(accountBlock, /onLogout=/, 'logout moved from the drawer into the menu');
+  assert.match(accountBlock, /profiles=\{socialModules/, 'the five profiles are chips of the menu');
+});
+
+test('feed-ul nu mai poartă nici logo, nici buton de sertar', () => {
+  const appHeader = readFileSync(resolve(ROOT, 'src/components/AppHeader.tsx'), 'utf8');
+  assert.doesNotMatch(appHeader, /<ModulesMark/, 'the drawer door left the header');
+  assert.doesNotMatch(appHeader, /onOpenDrawer/, 'no header opens a drawer');
+  const start = appHeader.indexOf("{variant === 'feed' ? (");
+  const end = appHeader.indexOf('styles.switches');
+  assert.ok(start > 0 && end > start, 'the feed branch is still there');
+  assert.doesNotMatch(appHeader.slice(start, end), /BrandLogo/, 'the feed bar has no mark');
+});
+
+test('setările nu mai au comutatorul benzii: banda merge mereu', () => {
+  const settingsSource = readFileSync(resolve(ROOT, 'src/screens/SettingsScreen.tsx'), 'utf8');
+  assert.doesNotMatch(settingsSource, /bandScrolling|Banda derulantă|Switch/,
+    'the band travels on its own; a touch pauses it, and there is no switch to find');
 });

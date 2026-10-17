@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppHeader, headerFloats, type AppHeaderSwitch } from '../components/AppHeader';
 import { AppNav } from '../components/AppNav';
-import { FeedDrawer } from '../components/FeedDrawer';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
@@ -13,7 +12,6 @@ import type { NavSlot } from '../components/NexusMark';
 import type { TickerDoor } from '../components/ProfileTicker';
 import type { InboxBox } from '../lib/messageSearch';
 import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
-import { setBandScrolling, useBandScrolling } from '../lib/bandPrefs';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
@@ -70,14 +68,11 @@ export default function NativeHomeScreen() {
   const [backendVersion, setBackendVersion] = useState('');
   const [slot, setSlot] = useState<NavSlot>('primary');
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
-  const [drawerOpen, setDrawerOpen] = useState(false);
   /**
    * The screens the profile menu opens (`lib/profileMenu.ts`): the wallet on one of its two halves, the
    * monetisation and the settings. `null` means the shell is showing its own slot.
    */
   const [ownerPanel, setOwnerPanel] = useState<'monetize' | 'wallet' | 'income' | 'spending' | 'settings' | null>(null);
-  /** `Banda derulantă`, the drawer's own switch: on unless the reader turned it off (`lib/bandPrefs.ts`). */
-  const bandScrolling = useBandScrolling();
   const [profileKey, setProfileKey] = useState(0);
   /**
    * What the band's doors carry into the screens they open. The web keeps both of these as its own last
@@ -161,7 +156,6 @@ export default function NativeHomeScreen() {
   }, [ensureSocialPersona, loadMe]);
 
   const onLogout = useCallback(async () => {
-    setDrawerOpen(false);
     setBusy(true);
     try { await signOut(); } finally {
       setMe(null);
@@ -171,7 +165,6 @@ export default function NativeHomeScreen() {
   }, []);
 
   const onSelectModule = useCallback(async (persona: string) => {
-    setDrawerOpen(false);
     if (persona === me?.persona) return;
     setBusy(true);
     try {
@@ -297,7 +290,7 @@ export default function NativeHomeScreen() {
       key: 'mode',
       label: moduleTitle,
       accessibilityLabel: `Schimbă Jungle Book ${moduleTitle} · profil activ ${profileName}`,
-      onPress: () => setDrawerOpen(true),
+      onPress: () => setSlot('account'),
     },
     ...(me.persona === 'social' ? [
       {
@@ -324,13 +317,11 @@ export default function NativeHomeScreen() {
       variant="feed"
       modeId={feedMode}
       topInset={headerFloats('feed', feedMode) ? insets.top : 0}      onPressWordmark={goHome}
-      onOpenDrawer={() => setDrawerOpen(true)}
       onCycleMode={onCycleFeedMode}
     />
   ) : (
     <AppHeader
       variant="screen"      onPressWordmark={goHome}
-      onOpenDrawer={() => setDrawerOpen(true)}
       switches={offFeedSwitches}
     />
   );
@@ -364,8 +355,6 @@ export default function NativeHomeScreen() {
           onClose={() => setOwnerPanel(null)}
           version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
           server={backendVersion}
-          bandScrolling={bandScrolling}
-          onBandScrolling={(on) => setBandScrolling(on)}
         />
       );
     }
@@ -378,8 +367,14 @@ export default function NativeHomeScreen() {
         onWallet={() => setOwnerPanel('wallet')}
         onIncome={() => setOwnerPanel('income')}
         onSpending={() => setOwnerPanel('spending')}
+        onNewPost={() => router.push('/camera')}
         onNotifications={openNotifications}
         onSettings={() => setOwnerPanel('settings')}
+        onLogout={() => void onLogout()}
+        profiles={socialModules.map((entry) => ({ persona: entry.id, label: entry.title }))}
+        onSwitchProfile={(persona) => void onSelectModule(persona)}
+        version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
+        build={buildLine()}
         viewerUserId={me.user.id}
         onMessage={openInbox}
         onRelationChanged={onRelationChanged}
@@ -435,19 +430,6 @@ export default function NativeHomeScreen() {
           immersive={floatingHeader}
         />
       </View>
-      <FeedDrawer
-        open={drawerOpen}
-        activeModule={me.persona}
-        onClose={() => setDrawerOpen(false)}
-        onModule={(id) => void onSelectModule(id)}
-        onLogout={() => void onLogout()}
-        onNewPost={() => router.push('/camera')}
-        onNotifications={openNotifications}
-        bandScrolling={bandScrolling}
-        onBandScrolling={(on) => setBandScrolling(on)}
-        version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
-        build={buildLine()}
-      />
     </SafeAreaView>
   );
 }
