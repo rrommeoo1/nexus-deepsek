@@ -1,36 +1,67 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import * as Linking from 'expo-linking';
 import { nexusApi } from '../lib/nexusApi';
-import type { ProfileResponse, SocialPost } from '../lib/socialTypes';
-import { initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems, reactionTotal } from '../lib/socialTypes';
-import { PostCard } from '../components/PostCard';
-import { RemoteImageSource } from '../components/PostMedia';
-import { ProfileTicker } from '../components/ProfileTicker';
+import { rememberPayload, subscribeRelations, useRelation } from '../lib/relations';
+import type { ProfileResponse, ProfileView } from '../lib/socialTypes';
+import {
+  CONTENT_FILTERS, CONTENT_READING_LABELS, CONTENT_TAB_GLYPHS, CONTENT_TAB_LABELS, CONTENT_TAB_ORDER,
+  archiveBands, archiveKey, archiveNodes, contentOfTab, orderArchive, profileArchive, profileMomentShelf,
+  type ArchiveBand, type ArchiveNode, type ArchivePost, type ContentReading, type ContentTab,
+} from '../lib/profileContent';
+import { ProfileEditSheet } from '../components/ProfileEditSheet';
+import { ProfileEmptyState } from '../components/ProfileEmptyState';
+import { ProfileHeader } from '../components/ProfileHeader';
+import { ProfileMomentsShelf } from '../components/ProfileMomentsShelf';
+import { ProfileSharedReplyCard, ProfileWhisperCard } from '../components/ProfileWhisperCard';
+import { ProfileTile } from '../components/ProfileTile';
+import { ProfileTicker, type TickerDoor } from '../components/ProfileTicker';
 import { socialTokens } from '../theme/social';
 
 /**
  * The five content tabs, as the web prints them: `CONTENT_TAB_GLYPHS` of `profile-experience.js:16`
- * (`{ flow:'≡', reels:'▶', shots:'▦', whispers:'❝', moments:'✦' }`), one icon per tab, and the word for
- * each one lives only in its label (`profile.tabFlow` = „Flux", `tabReels` = „Reels", `tabShots` =
- * „Fotografii", `tabWhispers` = „Șoapte", `tabMoments` = „Momente").
+ * (`{ flow:'≡', reels:'▶', shots:'▦', whispers:'❝', moments:'✦' }`), one sign per tab, and the word for each
+ * one lives only in its label (`CONTENT_TAB_LABELS`, the `profile.tab*` names of the ro-RO bundle).
  */
-const TABS = [
-  { id: 'flow', label: 'Flux', glyph: '≡' },
-  { id: 'reels', label: 'Reels', glyph: '▶' },
-  { id: 'shots', label: 'Fotografii', glyph: '▦' },
-  { id: 'whispers', label: 'Șoapte', glyph: '❝' },
-  { id: 'moments', label: 'Momente', glyph: '✦' },
-] as const;
+const TABS = CONTENT_TAB_ORDER.map((id) => ({ id, label: CONTENT_TAB_LABELS[id], glyph: CONTENT_TAB_GLYPHS[id] }));
 
 /** `CONTENT_FILTERS` (`profile-experience.js:22`) with the labels `profile.filterNewest|Popular|Relevant`. */
-const READINGS = [
-  { id: 'newest', label: 'Cele mai noi' },
-  { id: 'popular', label: 'Cele mai populare' },
-  { id: 'relevant', label: 'Relevante pentru tine' },
-] as const;
+const READINGS = CONTENT_FILTERS.map((id) => ({ id, label: CONTENT_READING_LABELS[id] }));
 
-type TabId = typeof TABS[number]['id'];
-type ReadingId = typeof READINGS[number]['id'];
+type TabId = ContentTab;
+type ReadingId = ContentReading;
+
+/**
+ * `profilePresenceDot` of the web (`profile-experience.js:61-65`): a presence is a dot and three states. A
+ * record whose presence this reader may not see prints nothing at all, one whose owner is there now is
+ * `online`, and one whose owner is away is `away`. The words live in the dot's accessible name and never
+ * in the row, because a name line that also prints "Online" spends its one row on two facts.
+ */
+export function profilePresence(profile?: ProfileView | null): 'online' | 'away' | '' {
+  const presence = profile?.presence;
+  if (presence?.visible !== true) return '';
+  return presence.online === true ? 'online' : 'away';
+}
+
+/** `profile.presenceOnline` / `profile.presenceAway` of the ro-RO bundle: the two words the dot is read as. */
+export const PRESENCE_WORDS: Record<'online' | 'away', string> = {
+  online: 'Online',
+  away: 'Nu este online acum',
+};
+
+/**
+ * The word the lock stands for. The web prints the label of `visibilityLabelKey` (`onboarding.js:33`), and
+ * that key falls back to the public one for a value it does not recognise — so an unknown setting reads as
+ * `Public` while the chip still shows the closed padlock (`profile-experience.js:180-185`).
+ */
+export function visibilityWord(visibility?: string | null): string {
+  if (visibility === 'friends') return 'Prieteni';
+  if (visibility === 'private') return 'Privat';
+  return 'Public';
+}
+
+/** `profileMenu.open` of the ro-RO bundle: what the three bars say when a reader reaches them. */
+export const PROFILE_MENU_WORD = 'Deschide meniul de setări';
 
 
 /**
@@ -39,7 +70,30 @@ type ReadingId = typeof READINGS[number]['id'];
  * endpoint the web reads (`GET /api/profiles/:handle?persona=social`). The five content tabs are real
  * filters over the payload the server returns, so no tab is a button that pretends to do something.
  */
-export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloadKey?: number }) {
+export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen = false, onBack, onShare, onMessage, viewerUserId, onRelationChanged }: {
+  handle: string;
+  reloadKey?: number;
+  onDoor?: (door: TickerDoor, arg: string) => void;
+  /**
+   * The index of doors this app already has, handed in by whoever hosts the screen — the same arrangement
+   * the band's doors use. The web's three bars open the profile menu (`profile-menu.js`), the index of
+   * every setting; on this shell that index is the drawer, and only a host that owns one can offer it. A
+   * screen with no index prints no bars rather than a button that opens nothing.
+   */
+  onMenu?: () => void;
+  /** Whether that index is open right now: the web prints it as `aria-expanded` on the same button. */
+  menuOpen?: boolean;
+  /** A visitor's header opens with the arrow back to the screen the reader came from. */
+  onBack?: () => void;
+  /** `Distribuie profilul`. Without one the screen falls back to the platform's own share sheet. */
+  onShare?: () => void;
+  /** `Mesaj Nexus`: the inbox owns conversations, and only a host that can open one hands this in. */
+  onMessage?: () => void;
+  /** Who is reading: the relation store needs it to recognise the reader's own record. */
+  viewerUserId?: number | null;
+  /** Anything that depends on a relation reloads through here after a change lands (`MIGRATION.md` §19.4). */
+  onRelationChanged?: () => void;
+}) {
   const address = `/api/profiles/${encodeURIComponent(handle)}?persona=social`;
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [tab, setTab] = useState<TabId>('flow');
@@ -49,6 +103,8 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
 
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  /** The editor the pencil opens: the whole header at once (`ProfileEditSheet`). */
+  const [editOpen, setEditOpen] = useState(false);
   const [pending, setPending] = useState(0);
   const [attempted, setAttempted] = useState('');
   const key = `${address}#${reloadKey}#${pending}`;
@@ -60,6 +116,8 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
     nexusApi<ProfileResponse>(address)
       .then((result) => {
         if (cancelled) return;
+        /** The header's own payload feeds the one relation store (`lib/relations.ts`). */
+        rememberPayload(result);
         setData(result);
         setError('');
         setAttempted(key);
@@ -72,10 +130,23 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
     return () => { cancelled = true; };
   }, [address, describe, key]);
 
+  /**
+   * A relation this screen shows is the store's, not the screen's: `RelationButton` reads the same record as
+   * the feed, a list row and a conversation, so a change here is already a change there.
+   */
+  const relation = useRelation(data?.profile?.user_id);
+
+  /**
+   * After a change lands, whatever depends on a relation is reloaded by the host — the feed, the story rail,
+   * the lists, the inbox — without this screen throwing away the reader's place, because the host's reload
+   * keeps this scroller mounted.
+   */
+  useEffect(() => subscribeRelations(() => onRelationChanged?.()), [onRelationChanged]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     nexusApi<ProfileResponse>(address)
-      .then((result) => { setData(result); setError(''); })
+      .then((result) => { rememberPayload(result); setData(result); setError(''); })
       .catch((cause) => setError(describe(cause)))
       .finally(() => setRefreshing(false));
   }, [address, describe]);
@@ -86,46 +157,122 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
     setPending((value) => value + 1);
   }, []);
 
-  /** The tab filters the payload the server already returned, then its reading orders it (`applyOrder`). */
-  const filtered = useMemo(() => filterTab(data?.posts ?? [], tab), [data, tab]);
-  const ordered = useMemo(() => orderPosts(filtered, readings[tab]), [filtered, readings, tab]);
+  /**
+   * `profileArchive` (`profile-experience.js:186-224`): the posts, the reposts and the shared replies, read
+   * the way the web reads them. The posts and the reposts are one archive — a repost is stamped with when it
+   * was shared, so the two sort by one rule and nothing is counted twice — and the shared replies are the
+   * second kind of internal share, kept beside the whispers because they are not posts.
+   */
+  const archive = useMemo(() => profileArchive(data), [data]);
+  /** The shelf of the Momente tab: the saved-story albums, or the profile's active stories when there are none. */
+  const shelf = useMemo(() => profileMomentShelf(data?.profile, data?.stories), [data]);
+  /**
+   * The one region under the tabs (`syncContentTab` + `applyOrder`, `profile-experience.js:516-555`): the
+   * Flow weaves every node into one timeline by its reading, the two grid tabs read one kind in rows of
+   * three, the whisper reads the words as cards, and a tab with nothing in it answers with its own state.
+   * `moments` is not a kind of post at all — its shelf answers in the panel above these bands.
+   */
+  const bands = useMemo<ArchiveBand[] | null>(() => {
+    if (tab === 'moments') return null;
+    const reading = readings[tab];
+    const nodes = tab === 'flow' ? archiveNodes(archive, reading) : nodesOfTab(archive.posts, tab, reading);
+    return archiveBands(nodes);
+  }, [archive, readings, tab]);
+  /**
+   * The gallery a tile hands the full-screen reader: the media of the tab the reader is on, in the order it
+   * shows them — the `posts` list the web walks in `onOpenPost` (`app.js:9313`).
+   */
+  const tileGallery = useMemo(
+    () => (bands ?? []).flatMap((band) => (band.kind === 'tiles' ? band.posts : [])),
+    [bands],
+  );
+  /** `const hoistPins = kind === 'reels' || kind === 'shots'` (`profile-experience.js:518`). */
+  const hoistPins = tab === 'reels' || tab === 'shots';
 
   if (attempted !== key && !data) {
     return <View style={styles.screen}><ActivityIndicator color={socialTokens.colors.white} style={styles.loader} /></View>;
   }
 
   const profile = data?.profile ?? null;
-  /** The posts that carry media: the gallery a card hands the full-screen reader (app.js:4913). */
-  const gallery = ordered.filter((post) => postMediaItems(post).length > 0);
+  /**
+   * The identity a whisper card's head prints: the profile's own name, handle and portrait, which is what
+   * the web's `whisperCards` reuse from its own hero (`profile-experience.js:188-204`, `:276-278`).
+   */
+  const whisperAuthor = { name: profile?.name, handle: profile?.handle || handle, avatar: profile?.avatar ?? null };
   const readingLabel = READINGS.find((entry) => entry.id === readings[tab])?.label || READINGS[0].label;
+  /** `const presenceTone = profilePresenceDot(profile)` (`profile-experience.js:206`). */
+  const presenceTone = profilePresence(profile);
+  /**
+   * `visibilityBadge` (`profile-experience.js:180-185`): the owner reads the sign of their own setting, and a
+   * visitor reads it only while the record is not public, because a badge that says "public" on somebody
+   * else's name line is noise while a lock is information.
+   *
+   * One honest difference, and it is written down rather than hidden: on the web the owner's chip is the
+   * control that opens the visibility panel, and this app has no such panel yet, so the phone prints the sign
+   * as a reading whose word is its accessible name. A chip that opened nothing would be a door painted on a
+   * wall, which is the one thing this header refuses to draw.
+   */
+  const visibilityLocked = Boolean(profile?.visibility) && profile?.visibility !== 'public';
+  const visibilityWordText = visibilityWord(profile?.visibility);
+  const visibilitySign: 'locked' | 'open' | '' = profile?.is_self || visibilityLocked ? (visibilityLocked ? 'locked' : 'open') : '';
+
+  /** Any active story of this record this reader has not seen: the ring the big circle wears (`viewed_by_me`). */
+  const hasUnseenStory = (data?.stories ?? []).some((story) => Number(story.user_id) === Number(profile?.user_id) && story.viewed_by_me !== true);
+
+  /**
+   * `Distribuie profilul`: the platform's own share sheet with the app's own route for this record
+   * (`expo-linking`), because the web has no per-profile address to copy — there is no `shareProfile` or
+   * profile URL in `apps/nexus-web/public` (`MIGRATION.md` §19.1).
+   */
+  const shareProfile = () => {
+    const who = String(profile?.handle || handle || '').trim();
+    if (!who) return;
+    const link = Linking.createURL(`/profile/${encodeURIComponent(who)}`);
+    void Share.share({ message: `@${who} · ${link}` }).catch(() => undefined);
+  };
 
   return (
+    <>
     <ScrollView
       style={styles.screen}
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />}
     >
-      <View style={styles.cover}>
-        <RemoteImageSource source={mediaSourceForPath(profile?.cover)} fit="cover" style={styles.coverImage} />
-      </View>
+      {/**
+       * The header the owner asked for (`docs/PARITY-MATRIX.md`): no cover band, the identity a block of two
+       * columns, the big circle on the right, and the row of full-width buttons under it. Everything it prints
+       * is a value the payload really carries, and its relation button is the store's own record.
+       */}
+      <ProfileHeader
+        profile={profile}
+        relation={relation}
+        viewerUserId={viewerUserId}
+        hasUnseenStory={hasUnseenStory}
+        presence={presenceTone}
+        visibility={visibilitySign}
+        visibilityWord={visibilityWordText}
+        onBack={onBack}
+        onShare={onShare ? onShare : shareProfile}
+        onEditProfile={() => setEditOpen(true)}
+        onMenu={onMenu}
+        menuOpen={menuOpen}
+        onMessage={onMessage}
+        onDoor={onDoor}
+      />
 
-      <View style={styles.hero}>
-        <View style={styles.identity}>
-          <View style={styles.avatar}>
-            {mediaSourceForPath(profile?.avatar) ? (
-              <RemoteImageSource source={mediaSourceForPath(profile?.avatar)} fit="cover" style={styles.avatarImage} />
-            ) : (
-              <Text style={styles.avatarInitials}>{initialsFor(profile?.name, profile?.handle)}</Text>
-            )}
-          </View>
-          <View style={styles.identityText}>
-            <Text style={styles.name} numberOfLines={2}>{profile?.name || profile?.handle || handle}</Text>
-            <Text style={styles.sub} numberOfLines={1}>{`@${profile?.handle || handle}`}</Text>
-            {profile?.location ? <Text style={styles.sub} numberOfLines={1}>{profile.location}</Text> : null}
+      {/**
+       * The band, under the header's words: the readings the owner asked to keep — the description, the place,
+       * the age and the handle — with the three counters left to the fixed row above it, so no number in this
+       * column is printed twice (`MIGRATION.md` §19.2). The pencil that used to close this row is gone with the
+       * cover: `Editează profilul` is one of the header's two wide buttons now.
+       */}
+      {profile ? (
+        <View style={styles.bandRow}>
+          <View style={styles.bandCell}>
+            <ProfileTicker profile={profile} onDoor={onDoor} counters={false} />
           </View>
         </View>
-        {profile ? <ProfileTicker profile={profile} /> : null}
-      </View>
+      ) : null}
 
       {/**
        * `.ownerTabsRegion` + `nav.ownerContentTabs[role=tablist][aria-label="Conținut profil"]`: the bar
@@ -193,80 +340,114 @@ export function ProfileScreen({ handle, reloadKey = 0 }: { handle: string; reloa
         </Text>
       ) : null}
 
-      {!error && !data?.locked && filtered.length === 0 ? <Text style={styles.empty}>Nimic aici încă.</Text> : null}
-
-      <View style={styles.posts}>
-        {ordered.map((post) => <PostCard key={post.id} post={post} gallery={gallery} />)}
-      </View>
+      {!error && !data?.locked ? (
+        tab === 'moments' ? (
+          /**
+           * The shelf answers the Momente tab, and the web draws it even when it holds nothing: the panel's
+           * header is there, its row is empty, and the tab's own empty state follows it
+           * (`docs/web-ref/profile/tab-4.dom.json`: `.ownerMomentsPanel` at y=315 and the empty block at
+           * y=418, both in view).
+           */
+          <>
+            <ProfileMomentsShelf shelf={shelf} />
+            {shelf.tiles.length ? null : <ProfileEmptyState tab="moments" />}
+          </>
+        ) : bands && bands.length ? (
+          /**
+           * The three containers of the region, each with the web's own measurements: the Flow is a grid of
+           * three columns whose rows hold tiles and whose cards take the whole width
+           * (`.ownerFlowStream{grid-template-columns:repeat(3,1fr);gap:2px;background:#060b11}`), the two
+           * grid tabs are that grid without the cards (`.ownerPostGrid`), and the whisper is the list of
+           * cards (`.ownerWhisperList{gap:10px;padding:12px 12px 0}`).
+           */
+          <View style={tab === 'flow' ? styles.flowStream : tab === 'whispers' ? styles.whisperList : styles.grid}>
+            {bands.map((band) => (band.kind === 'tiles' ? (
+              <View key={band.key} style={styles.tileRow}>
+                {band.posts.map((post) => (
+                  <ProfileTile
+                    key={archiveKey(post)}
+                    post={post}
+                    gallery={tileGallery}
+                    pinnedFirst={hoistPins && Number(post.pinned_at || 0) > 0}
+                  />
+                ))}
+                {/**
+                 * `grid-template-columns:repeat(3,1fr)` keeps a tile at a third of its row even when the row
+                 * is not full: the cells it did not fill are held open, so a last row of two tiles is never
+                 * stretched across half the width each.
+                 */}
+                {Array.from({ length: Math.max(0, socialTokens.archive.gridColumns - band.posts.length) }).map((_, index) => (
+                  <View key={`spacer-${index}`} accessible={false} style={styles.tileSpacer} />
+                ))}
+              </View>
+            ) : band.kind === 'whisper' ? (
+              <ProfileWhisperCard key={band.key} post={band.post} author={whisperAuthor} woven={tab === 'flow'} />
+            ) : (
+              <ProfileSharedReplyCard key={band.key} reply={band.reply} woven={tab === 'flow'} />
+            )))}
+          </View>
+        ) : (
+          <ProfileEmptyState tab={tab} />
+        )
+      ) : null}
     </ScrollView>
+
+    {/**
+     * The editor itself: one card, every field of the header, one save. What it hands back is merged into
+     * the profile this screen already holds - the name line, the band, the cover and the disc show the
+     * stored values at once, with nothing to refresh by hand.
+     */}
+    <ProfileEditSheet
+      visible={editOpen && Boolean(profile?.is_self)}
+      profile={profile}
+      persona={String(profile?.persona ?? 'social')}
+      onClose={() => setEditOpen(false)}
+      onSaved={(patch) => setData((previous) => (previous ? { ...previous, profile: { ...previous.profile, ...patch } } : previous))}
+    />
+    </>
   );
 }
 
 /**
- * `postOrderAttributes` + the three sorters of `applyOrder` (`profile-experience.js:495-503`):
- *   `profileStamp` = the post's own time; `profileScore` = reactions + comments + viewers;
- *   `profileRank` = how many reasons the feed gave it. Every reading falls back to the next one.
+ * The nodes a collection tab reads (`syncContentTab` + `applyOrder`, `profile-experience.js:516-555`): its
+ * own kind of post, ordered by the reader's reading with the owner's pins hoisted first because a tab that
+ * reads as a collection is an arrangement the owner made (`profile-experience.js:503-512`, `:518`). A tab
+ * whose kind is `text` reads the whispers, a tab whose kind is `video` or `image` reads the tiles, and both
+ * come back as the node list the Flow uses, so the two regions share one vocabulary.
  */
-function stampOf(post: SocialPost): number {
-  return Math.max(0, Math.floor(Number(post.created_at) || 0));
-}
-
-function scoreOf(post: SocialPost): number {
-  return reactionTotal(post.reactions)
-    + Math.max(0, Number(post.comment_count) || 0)
-    + Math.max(0, Number(post.view_stats?.viewers) || 0);
-}
-
-function rankOf(post: SocialPost): number {
-  return Array.isArray(post.ranking?.reasons) ? post.ranking.reasons.length : 0;
-}
-
-function orderPosts(posts: SocialPost[], reading: ReadingId): SocialPost[] {
-  const byNewest = (a: SocialPost, b: SocialPost) => stampOf(b) - stampOf(a);
-  const byPopular = (a: SocialPost, b: SocialPost) => scoreOf(b) - scoreOf(a) || byNewest(a, b);
-  const byRelevant = (a: SocialPost, b: SocialPost) => rankOf(b) - rankOf(a) || byPopular(a, b);
-  const sorter = reading === 'popular' ? byPopular : reading === 'relevant' ? byRelevant : byNewest;
-  return [...posts].sort(sorter);
-}
-
-/** The tab filters the payload the server already returned, reading the kind the media really has. */
-function filterTab(posts: SocialPost[], tab: TabId): SocialPost[] {
-  if (tab === 'flow') return posts;
-  if (tab === 'reels') return posts.filter((post) => mediaKindOf(postMediaItems(post)[0]) === 'video');
-  if (tab === 'shots') return posts.filter((post) => mediaKindOf(postMediaItems(post)[0]) === 'image');
-  if (tab === 'whispers') return posts.filter((post) => postMediaItems(post).length === 0);
-  return [];
+function nodesOfTab(posts: ArchivePost[], tab: ContentTab, reading: ContentReading): ArchiveNode[] {
+  const content = contentOfTab(orderArchive(posts, reading, { hoistPins: true }), tab);
+  return [
+    ...content.tiles.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'tile', post })),
+    ...content.whispers.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'whisper', post })),
+  ];
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
   content: { paddingBottom: 18 },
   loader: { marginTop: 80 },
-  /** `.ownerCover{height:72px}` */
-  cover: { height: 72, overflow: 'hidden', backgroundColor: '#091724' },
-  coverImage: { width: '100%', height: 72 },
-  /** `.ownerHero{padding:12px 14px 0}` on the black Social shell. */
-  hero: { paddingTop: 12, paddingHorizontal: 14, backgroundColor: '#000000' },
-  identity: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  /** `.phoneScreen:has(.accountScreen) .ownerAvatar` — 78px, white edge, #090a0c disc. */
-  avatar: {
-    width: 78,
-    height: 78,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 2,
-    borderWidth: 2,
-    borderColor: socialTokens.colors.white,
-    borderRadius: 39,
-    backgroundColor: '#090a0c',
-  },
-  avatarImage: { width: '100%', height: '100%', borderRadius: 37 },
-  avatarInitials: { color: socialTokens.colors.white, fontSize: 24, fontWeight: '600' },
-  identityText: { flex: 1, minWidth: 0, gap: 2 },
-  name: { color: '#eef8fb', fontSize: 17, lineHeight: 20, fontWeight: '700' },
+  /**
+   * The cover band, the 78dp disc, the presence dot and the lock chip of the web hero used to be described
+   * here. The owner moved the whole identity into `ProfileHeader` — no cover, a ~92dp circle, the three
+   * counters in a fixed row (`MIGRATION.md` §19.2, `docs/PARITY-MATRIX.md`) — so those rules live there now
+   * and this screen keeps only the band and the content region.
+   */
+  /**
+   * The band's own row (`.ownerTickerRow{display:flex;align-items:center;gap:6px}`), now with nothing beside
+   * it: the pencil that used to close it is gone with the cover, because the editor is one of the header's two
+   * wide buttons (`MIGRATION.md` §19.2).
+   */
+  bandRow: { flexDirection: 'row', alignItems: 'center', gap: socialTokens.ticker.rowGap },
+  /** `.ownerTickerRow .ownerTicker{flex:1;min-width:0}` — the band's own cell, which is what its mask clips. */
+  bandCell: { flex: 1, minWidth: 0 },
   sub: { color: '#9eacb5', fontSize: 12, lineHeight: 16 },
-  /** The bar and the arrow are one region (`.ownerTabsRegion`), and the readings open anchored under them. */
-  tabsBlock: { position: 'relative', marginTop: 12, backgroundColor: '#000000' },
+  /**
+   * The bar and the arrow are one region (`.ownerTabsRegion`), and the readings open anchored under them.
+   * The region carries no margin of its own: the band's row ends exactly where the tabs begin — measured
+   * `ownerTickerRow` bottom 268 = `ownerTabsRegion` top 268 in `docs/web-ref/profile/own-0.dom.json`.
+   */
+  tabsBlock: { position: 'relative', backgroundColor: '#000000' },
   tabsRegion: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -324,8 +505,32 @@ const styles = StyleSheet.create({
   filterChipOn: { borderColor: '#2fbdb3', backgroundColor: '#0d2a2c' },
   filterChipText: { color: '#9fb2bb', fontSize: 12.5 },
   filterChipTextOn: { color: '#dff9f6' },
-  posts: { paddingTop: 12, paddingHorizontal: 10 },
-  empty: { color: socialTokens.colors.muted, fontSize: 13, textAlign: 'center', paddingTop: 30 },
+  /**
+   * The content region under the tabs, in the web's own three shapes:
+   *
+   *   `.ownerFlowStream{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:#060b11}` — the
+   *   Flow, whose rows of tiles hold the cards that were woven between them at their own margins;
+   *   `.ownerPostGrid{...;min-height:210px}` — the same grid for Reels and Fotografii, tall enough to be a
+   *   region even when it is nearly empty;
+   *   `.ownerWhisperList{display:grid;gap:10px;padding:12px 12px 0;background:#060b11}` — the words.
+   *
+   * Cells are laid out as a row of equal thirds rather than with `flexGrow`, because the cells the last row
+   * did not fill must stay open: a spacer keeps the third a tile would have taken.
+   */
+  flowStream: { backgroundColor: socialTokens.archive.gridSurface, gap: socialTokens.archive.gridGap },
+  grid: {
+    minHeight: socialTokens.archive.gridMinHeight,
+    backgroundColor: socialTokens.archive.gridSurface,
+    gap: socialTokens.archive.gridGap,
+  },
+  tileRow: { flexDirection: 'row', gap: socialTokens.archive.gridGap },
+  tileSpacer: { flexGrow: 1, flexBasis: 0, aspectRatio: 1 },
+  whisperList: {
+    gap: socialTokens.archive.listGap,
+    paddingTop: socialTokens.archive.listPaddingTop,
+    paddingHorizontal: socialTokens.archive.listPaddingHorizontal,
+    backgroundColor: socialTokens.archive.gridSurface,
+  },
   locked: { color: socialTokens.colors.muted, fontSize: 13, lineHeight: 19, padding: 18 },
   errorBox: { alignItems: 'center', gap: 10, paddingVertical: 40, paddingHorizontal: 24 },
   error: { color: socialTokens.colors.text, fontSize: 15, fontWeight: '700' },

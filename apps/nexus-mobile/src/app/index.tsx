@@ -9,8 +9,10 @@ import { FeedDrawer } from '../components/FeedDrawer';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
 import type { NavSlot } from '../components/NexusMark';
+import type { TickerDoor } from '../components/ProfileTicker';
 import { API_ORIGIN } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
+import { openSocialProfile } from '../lib/profileNavigation';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
@@ -63,6 +65,13 @@ export default function NativeHomeScreen() {
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileKey, setProfileKey] = useState(0);
+  /**
+   * What the band's doors carry into the screens they open. The web keeps both of these as its own last
+   * reading (`socialFriendView`, the search box), so the phone hands them over the same way: the tab the
+   * counters open on, and the question the place opens with.
+   */
+  const [friendsTab, setFriendsTab] = useState<'requests' | 'followers' | 'following'>('requests');
+  const [searchQuery, setSearchQuery] = useState('');
   /** The count the bottom bar prints over the inbox mark; the two reads behind it live in lib/unread.ts. */
   const [unreadCount, setUnreadCount] = useState(0);
   const booted = useRef(false);
@@ -164,6 +173,20 @@ export default function NativeHomeScreen() {
     setSlot(next);
   }, []);
 
+  /**
+   * `Mesaj Nexus` on my own record has no recipient, so the only thing that header's inbox door can do is open
+   * the inbox this shell owns (`slot = 'inbox'`). A visitor's profile lives on another route, which cannot
+   * reach this slot yet — said out loud in `MIGRATION.md` §19.4 rather than wired with a fake screen.
+   */
+  const openInbox = useCallback(() => setSlot('inbox'), []);
+
+  /**
+   * After a relation changes, the screen that shows the record re-reads it: the counters of the header and the
+   * lists that depend on a relation come from the server, while the buttons themselves need no reload at all,
+   * because every screen reads the same store (`lib/relations.ts`) — the reader's place is never thrown away.
+   */
+  const onRelationChanged = useCallback(() => setProfileKey((value) => value + 1), []);
+
   const onCycleFeedMode = useCallback(() => setFeedMode((current) => nextMode(current)), []);
 
   /**
@@ -172,6 +195,24 @@ export default function NativeHomeScreen() {
    * the renders: the boot line and the login line leave before the header is ever built.
    */
   const goHome = useCallback(() => { setSlot('primary'); setFeedMode('reels'); }, []);
+
+  /**
+   * The profile ticker contains real doors. This callback must remain above the two early render
+   * returns below: hooks have to be called in the same order while the session is booting, absent,
+   * or loaded.
+   */
+  const openProfileTickerDoor = useCallback((door: TickerDoor, arg: string) => {
+    if (me?.persona !== 'social') { setSlot('utility'); return; }
+    if (door === 'followers' || door === 'following') { setFriendsTab(door); setSlot('friends'); return; }
+    if (door === 'location') {
+      const question = arg.trim().slice(0, 80);
+      if (question.length < 2) return;
+      setSearchQuery(question);
+      setSlot('search');
+      return;
+    }
+    if (door === 'handle') openSocialProfile(arg);
+  }, [me?.persona]);
 
   if (booting) {
     return (
@@ -269,7 +310,15 @@ export default function NativeHomeScreen() {
   /** Reels floats that bar over the clip, so it leaves the flow and the feed keeps the whole column. */
   const floatingHeader = onFeed && headerFloats('feed', feedMode);
   const screen = (() => {
-    if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} />;
+    /**
+     * The account screen wears no bar of this shell (`header` above is null for it, `profile-experience.css:1`),
+     * so the three bars the hero prints at the end of the name line are its only door to the drawer: the five
+     * profiles, the new post and the logout. That drawer is what the web's profile menu (`profile-menu.js`) is
+     * on this shell — the one index of doors — so the hero's bars and the drawer's own state are one state:
+     * `menuOpen` is `drawerOpen`, which the button reads out as `aria-expanded`
+     * (`profile-experience.js:372`).
+     */
+    if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} onDoor={openProfileTickerDoor} onMenu={() => setDrawerOpen(true)} menuOpen={drawerOpen} viewerUserId={me.user.id} onMessage={openInbox} onRelationChanged={onRelationChanged} />;
     if (slot === 'inbox') {
       /** `activePersonaRecord()` of the web: the shelf's first card is the reader's own record. */
       const shelfOwner = me.profiles?.find((entry) => entry.persona === me.persona) ?? me.profiles?.find((entry) => entry.persona === 'social');
@@ -288,9 +337,9 @@ export default function NativeHomeScreen() {
       );
     }
 
-    if (slot === 'friends') return <FriendsScreen />;
+    if (slot === 'friends') return <FriendsScreen key={`friends-${friendsTab}`} initialTab={friendsTab} />;
     if (slot === 'utility') return <LiveScreen />;
-    if (slot === 'search') return <SearchScreen />;
+    if (slot === 'search') return <SearchScreen key={`search-${searchQuery}`} initialQuery={searchQuery} />;
     if (me.persona !== 'social') return <PendingScreen title={moduleTitle} detail="Acest modul nu este încă portat. Comută înapoi pe Social din sertarul de profil." />;
     return <FeedScreen mode={feedMode} onModeChange={setFeedMode} />;
   })();
