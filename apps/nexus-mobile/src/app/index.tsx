@@ -186,6 +186,8 @@ export default function NativeHomeScreen() {
     if (next === 'account') setProfileKey((value) => value + 1);
     /** The inbox mark is the conversations; the bell in the drawer is the activity (`inboxBox`). */
     if (next === 'inbox') setInboxBox('inbox');
+    /** A tab press leaves the owner's own screens: they are doors from the profile, not a fifth tab. */
+    setOwnerPanel(null);
     setSlot(next);
   }, []);
 
