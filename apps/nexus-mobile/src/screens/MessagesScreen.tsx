@@ -22,6 +22,7 @@ import {
   type ChatMessage, type Conversation, type ConversationParticipant, type ConversationThread, type ConversationsPage, type StoryView,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
+import { openSocialProfile } from '../lib/profileNavigation';
 
 
 /** A nonce the server accepts: 8-80 chars of `[a-zA-Z0-9:_-]`, minted per send (replay-safe). */
@@ -124,6 +125,8 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   const [refreshing, setRefreshing] = useState(false);
   const [nonce, setNonce] = useState(0);
   const [stories, setStories] = useState<StoryView[]>([]);
+  /** Whose shelf this is (`StoriesAnswer.viewerId`): the story viewer needs it to stop drawing a self chip. */
+  const [storiesViewerId, setStoriesViewerId] = useState<number | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   /** `inboxBox` / `inboxFilter` of `app.js:196`+`:63` — the two decisions the plates own. */
   const [box, setBox] = useState<InboxBox>('inbox');
@@ -151,7 +154,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
    */
   const loadStories = useCallback(() => {
     fetchStories()
-      .then((answer) => setStories(answer.stories))
+      .then((answer) => { setStories(answer.stories); setStoriesViewerId(answer.viewerId); })
       .catch(() => setStories([]));
   }, []);
 
@@ -391,6 +394,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
         <StoryViewer
           stories={stories}
           startIndex={viewerIndex}
+          viewerId={storiesViewerId}
           onClose={() => { setViewerIndex(null); loadStories(); }}
         />
       ) : null}
@@ -416,13 +420,13 @@ function ConversationRow({ conversation, viewerId, onOpen, onContact }: {
   const unread = Math.max(0, Number(conversation.unread) || 0);
   return (
     <View style={styles.row}>
-      <Pressable accessibilityRole="button" accessibilityLabel={title} onPress={onContact} style={styles.avatar}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={() => openSocialProfile(peer?.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
         {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(title, peer?.handle)}</Text> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Deschide conversația cu ${title}`} onPress={onOpen} style={styles.rowOpen}>
         <View style={styles.rowText}>
-          <Text style={styles.name} numberOfLines={1}>{title}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={(event) => { event.stopPropagation(); openSocialProfile(peer?.handle); }}><Text style={styles.name} numberOfLines={1}>{title}</Text></Pressable>
           <Text style={styles.meta} numberOfLines={1}>{subtitleFor(conversation, viewerId)}</Text>
         </View>
         <View style={styles.rowAside}>
@@ -480,7 +484,7 @@ function SearchResults({ conversationsResult, messagesResult, onOpenConversation
           onPress={() => onOpenMessage(hit)}
           style={styles.searchRow}
         >
-          <Text style={styles.searchHandle}>@{hit.sender_handle}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${hit.sender_handle}`} onPress={(event) => { event.stopPropagation(); openSocialProfile(hit.sender_handle); }}><Text style={styles.searchHandle}>@{hit.sender_handle}</Text></Pressable>
           <Text style={styles.searchBody} numberOfLines={2}>{hit.body}</Text>
         </Pressable>
       ))}
@@ -548,7 +552,7 @@ function ThreadView({ conversation, viewerId, onBack }: { conversation: Conversa
     <View style={styles.screen}>
       <View style={styles.threadHead}>
         {back}
-        <Text style={styles.threadTitle} numberOfLines={1}>{titleFor(detail ?? conversation, viewerId)}</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Profilul persoanei din conversație" onPress={() => openSocialProfile(othersOf(detail ?? conversation, viewerId)[0]?.handle)} style={styles.threadTitle}><Text style={styles.threadTitleText} numberOfLines={1}>{titleFor(detail ?? conversation, viewerId)}</Text></Pressable>
       </View>
 
       {loading ? <View style={styles.center}><ActivityIndicator color={socialTokens.colors.white} /></View> : error ? (
@@ -595,7 +599,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
   const body = message.body || (message.attachment_url ? 'Atașament' : '');
   return (
     <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
-      {!mine ? <Text style={styles.bubbleFrom}>{message.sender_display_name || message.sender_handle || 'Nexus'}</Text> : null}
+      {!mine ? <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${message.sender_handle || ''}`} onPress={() => openSocialProfile(message.sender_handle)}><Text style={styles.bubbleFrom}>{message.sender_display_name || message.sender_handle || 'Nexus'}</Text></Pressable> : null}
       <Text style={styles.bubbleText}>{body}</Text>
       <Text style={styles.bubbleTime}>{relativeTime(millisOf(message.created_at))}</Text>
     </View>
@@ -669,7 +673,8 @@ const styles = StyleSheet.create({
   back: { minHeight: 40, justifyContent: 'center', paddingRight: 12 },
   backText: { color: socialTokens.colors.white, fontSize: 14, fontWeight: '700' },
   threadHead: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.12)' },
-  threadTitle: { flex: 1, color: socialTokens.colors.text, fontSize: 15, fontWeight: '800' },
+  threadTitle: { flex: 1 },
+  threadTitleText: { color: socialTokens.colors.text, fontSize: 15, fontWeight: '800' },
   threadList: { padding: 12, gap: 8 },
   notice: { color: '#ffc6c6', fontSize: 12, paddingHorizontal: 14, paddingBottom: 6 },
   composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)' },

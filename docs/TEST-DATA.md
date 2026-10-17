@@ -315,6 +315,12 @@ anulare) → #3/#5 (acceptarea din lista de cereri) → aceeași stare verificat
 Notă: pașii distructivi (#6) se fac **doar** între conturile de test, cu revenirea de mai sus executată imediat
 după verificare.
 
+Cele trei suprafețe adăugate în lotul de închidere al §19.4 se verifică în aceeași sesiune, cu aceleași stări:
+rândul de comentarii de sub o postare a altui cont (chipul compact, plus absența lui pe propriul comentariu),
+antetul story viewer-ului deschis din rail (chipul pentru autor, plus absența lui pe story-ul propriu) și cardul
+de contact din Mesaje (chipul pentru celălalt participant). Fiecare arată exact aceeași stare ca profilul
+(`Urmărește` / `Urmărești` / `Solicitat` / `Mesaj`), fiindcă toate citesc din același store (`lib/relations.ts`).
+
 
 O personă nouă are `visibility` implicit `friends` (= doar urmăritori reciproci). Cum `test` nu
 urmărește pe nimeni, acel implicit ar ascunde *tot* conținutul de contul pentru care se face tot

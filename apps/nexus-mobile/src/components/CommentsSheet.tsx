@@ -6,6 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { newMutationKey } from '../lib/idempotency';
+import { openSocialProfile } from '../lib/profileNavigation';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
 import { createComment, editComment, fetchCommentEngagement, fetchComments, fetchCommentVersions, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
@@ -15,6 +16,9 @@ import {
   compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
   type CommentPage, type CommentView, type ReactionSummary, type SocialPost,
 } from '../lib/socialTypes';
+import { useRelation } from '../lib/relations';
+import { RelationButton } from './RelationButton';
+
 import { socialTokens } from '../theme/social';
 import { SolidViewerIcon } from './SolidViewerIcon';
 
@@ -37,12 +41,13 @@ const REPORT_OPTIONS = [
  * states its own empty and failed cases, and posts a reply through the real endpoint - including the
  * "comentariul a fost oprit de o regulă automată" answer the server gives when a rule blocks it.
  */
-export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, onOpenThread, focusId, presentation = 'sheet' }: {
+export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, onOpenThread, onOpenProfile, focusId, presentation = 'sheet' }: {
   post: SocialPost;
   onClose: () => void;
   onCommentCreated?: (postId: number) => void;
   onCountSeen?: (postId: number, count: number) => void;
   onOpenThread?: (commentId: number) => void;
+  onOpenProfile?: (handle: string) => void;
   focusId?: number;
   presentation?: 'sheet' | 'viewer' | 'page';
 }) {
@@ -345,7 +350,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               <Pressable accessibilityRole="tab" accessibilityLabel="Cele mai noi" accessibilityState={{ selected: !engagementKind && sort === 'newest' }} onPress={() => { setEngagementKind(null); if (sort !== 'newest') { setError(''); setSort('newest'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, !engagementKind && sort === 'newest' && styles.detailTabSelected]}>Cele mai noi</Text></Pressable>
               <Pressable accessibilityRole="tab" accessibilityLabel="View likes" accessibilityState={{ selected: engagementKind === 'likes' }} onPress={() => { if (engagementKind !== 'likes') { setEngagementPage(null); setEngagementKind('likes'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, engagementKind === 'likes' && styles.detailTabSelected]}>Aprecieri</Text></Pressable>
               <Pressable accessibilityRole="tab" accessibilityLabel="View quotes" accessibilityState={{ selected: engagementKind === 'quotes' }} onPress={() => { if (engagementKind !== 'quotes') { setEngagementPage(null); setEngagementKind('quotes'); } }} style={styles.detailTab}><Text style={[styles.detailTabText, engagementKind === 'quotes' && styles.detailTabSelected]}>Citări</Text></Pressable>
-            </ScrollView> : item.kind === 'engagement' ? <EngagementRow item={item.item} kind={item.engagementKind} now={clock} /> : item.kind === 'empty-replies' ? <Text style={styles.empty}>Niciun răspuns încă.</Text> : item.kind === 'toggle' ? <Pressable
+            </ScrollView> : item.kind === 'engagement' ? <EngagementRow item={item.item} kind={item.engagementKind} now={clock} onProfile={(handle) => onOpenProfile ? onOpenProfile(handle) : openSocialProfile(handle, presentation === 'sheet' ? onClose : undefined)} /> : item.kind === 'empty-replies' ? <Text style={styles.empty}>Niciun răspuns încă.</Text> : item.kind === 'toggle' ? <Pressable
               accessibilityRole="button"
               accessibilityLabel={item.collapsed ? `${item.hiddenCount} răspunsuri ascunse. Extinde firul` : item.hiddenCount ? `Vezi încă ${item.hiddenCount} răspunsuri` : 'Strânge firul'}
               accessibilityState={{ expanded: !item.collapsed }}
@@ -370,8 +375,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
                 onOpenThread={onOpenThread && item.comment.id !== focusId ? () => onOpenThread(item.comment.id) : undefined}
                 childCount={item.childCount}
                 prominent={item.comment.id === focusId}
+                viewerId={page?.viewer_id ?? null}
                 onMenu={() => setMenuTarget(item.comment)}
                 onError={setError}
+                onProfile={(handle) => onOpenProfile ? onOpenProfile(handle) : openSocialProfile(handle, presentation === 'sheet' ? onClose : undefined)}
               />}
             ListFooterComponent={engagementKind ? <View style={styles.engagementFooter}>
               {engagementLoading && !engagementPage ? <Text style={styles.empty}>Se încarcă lista…</Text> : null}
@@ -477,7 +484,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   );
 }
 
-function CommentRow({ comment, depth, now, pending, summary, childCount, prominent, onLike, onRetry, onReply, onOpenThread, onMenu, onError }: {
+function CommentRow({ comment, depth, now, pending, summary, childCount, prominent, onLike, onRetry, onReply, onOpenThread, onMenu, onError, onProfile, viewerId }: {
   comment: CommentView;
   depth: number;
   now: number;
@@ -491,6 +498,9 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   prominent: boolean;
   onMenu: () => void;
   onError: (message: string) => void;
+  onProfile: (handle: string) => void;
+  /** The reader the answer belongs to (`page.viewer_id`); the row draws the relation button for anyone else. */
+  viewerId?: number | null;
 }) {
   const [saved, setSaved] = useState(Boolean(comment.saved_by_me));
   const [shared, setShared] = useState(Boolean(comment.shared_by_me));
@@ -502,6 +512,16 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   const handle = comment.handle || comment.author?.handle || 'nexus';
   const name = comment.display_name || comment.author?.display_name || handle;
   const mine = viewerReaction(summary) === 'LIKE';
+  /**
+   * The author's relation, from the same store every other surface reads (`useRelation`): the word in the
+   * row is the word of the profile header, the feed card and the search result. The reader's own row keeps no
+   * button (`deriveRelationUi` answers `self`, and a self chip would be noise in a long thread).
+   */
+  const relation = useRelation(comment.user_id);
+  const relationTarget = Number.isSafeInteger(Number(comment.user_id)) && Number(comment.user_id) > 0
+    && Number(comment.user_id) !== Number(viewerId)
+    ? { userId: Number(comment.user_id), handle, name, persona: comment.actor_persona ?? 'social' }
+    : null;
 
   const toggleSave = () => {
     const next = !saved;
@@ -522,14 +542,17 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   return (
     <View style={styles.rowWrap}>
       <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, { paddingLeft: C.rowPaddingHorizontal + Math.min(depth, C.maxIndent) * C.indentStep }, prominent && styles.prominentRow]}>
-      <View style={[styles.avatar, prominent && styles.prominentAvatar]}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} disabled={Boolean(pending) || !(comment.handle || comment.author?.handle)} onPress={(event) => { event.stopPropagation(); onProfile(comment.handle || comment.author?.handle || ''); }} style={[styles.avatar, prominent && styles.prominentAvatar]}>
         {avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
           : <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text>}
-      </View>
+      </Pressable>
       <View style={styles.body}>
         <View style={styles.rowHead}>
-          <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
-          <Text style={styles.rowHandle} numberOfLines={1}>{`@${handle}`}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} disabled={Boolean(pending) || !(comment.handle || comment.author?.handle)} onPress={(event) => { event.stopPropagation(); onProfile(comment.handle || comment.author?.handle || ''); }} style={[styles.identityLink, relationTarget && styles.identityLinkNarrow]}>
+            <Text style={styles.rowName} numberOfLines={1}>{name}</Text>
+            <Text style={styles.rowHandle} numberOfLines={1}>{`@${handle}`}</Text>
+          </Pressable>
+          {relationTarget ? <RelationButton variant="compact" target={relationTarget} relation={relation} viewerUserId={viewerId ?? null} style={styles.rowRelation} /> : null}
           {!prominent ? <Text style={styles.rowTime}>{commentRelativeTime(comment.created_at, now)}</Text> : null}
         </View>
         {comment.pinned_by_owner ? <Text style={styles.pinned}>Fixat de autor</Text> : null}
@@ -584,15 +607,15 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
   );
 }
 
-function EngagementRow({ item, kind, now }: { item: CommentEngagementItem; kind: 'likes' | 'quotes'; now: number }) {
+function EngagementRow({ item, kind, now, onProfile }: { item: CommentEngagementItem; kind: 'likes' | 'quotes'; now: number; onProfile: (handle: string) => void }) {
   const avatar = mediaSourceForPath(item.avatar);
   const name = item.display_name || item.handle;
   return <View style={styles.engagementRow}>
-    <View style={styles.avatar}>{avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
-      : <Text style={styles.avatarInitials}>{initialsFor(name, item.handle)}</Text>}</View>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.avatar}>{avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
+      : <Text style={styles.avatarInitials}>{initialsFor(name, item.handle)}</Text>}</Pressable>
     <View style={styles.body}>
-      <View style={styles.rowHead}><Text style={styles.rowName} numberOfLines={1}>{name}</Text>
-        <Text style={styles.rowHandle} numberOfLines={1}>{`@${item.handle}`}</Text>
+      <View style={styles.rowHead}><Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.identityLink}><Text style={styles.rowName} numberOfLines={1}>{name}</Text>
+        <Text style={styles.rowHandle} numberOfLines={1}>{`@${item.handle}`}</Text></Pressable>
         <Text style={styles.rowTime}>{commentRelativeTime(item.created_at, now)}</Text></View>
       {kind === 'quotes' ? <Text style={styles.rowText}>{item.body}</Text> : null}
     </View>
@@ -645,7 +668,15 @@ const styles = StyleSheet.create({
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: '#f5f8fa', fontSize: 10, fontWeight: '900' },
   body: { flex: 1, minWidth: 0 },
-  rowHead: { height: C.headerHeight, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  rowHead: { minHeight: C.headerHeight, flexDirection: 'row', alignItems: 'center', gap: 4 },
+  identityLink: { flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, maxWidth: '83%' },
+  /**
+   * The name line of a comment that carries the relation chip: the name keeps the room the word does not
+   * need (`compact` is ~32dp tall and about 80dp wide), so neither the handle nor the time is pushed out of
+   * the row. A row without the chip keeps the web's own `max-width:83%`.
+   */
+  identityLinkNarrow: { maxWidth: '60%', flexShrink: 1 },
+  rowRelation: { flexShrink: 0, marginLeft: 2 },
   rowName: { color: '#ffffff', fontSize: C.nameSize, lineHeight: C.headerHeight, fontWeight: '900', maxWidth: '45%' },
   rowHandle: { color: '#92979d', fontSize: C.handleSize, lineHeight: C.headerHeight, flexShrink: 1 },
   rowTime: { color: '#777d84', fontSize: C.timeSize, lineHeight: C.headerHeight, marginLeft: 'auto' },

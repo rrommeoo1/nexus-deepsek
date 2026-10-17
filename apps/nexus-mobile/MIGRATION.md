@@ -1189,11 +1189,11 @@ Ca să nu rămână un gol sub antet, `theme/social.ts` primește `identity.padd
 | Antet profil (propriu și străin) | **gata** | `ProfileHeader` + `RelationButton` lat; `[handle].tsx` dă `onBack`, săgeata proprie a rutei a fost scoasă |
 | Feed (card) | **gata** | `rememberPayload(page)` în `FeedScreen`; `PostCard` are butonul compact în rândul autorului |
 | Postare deschisă | **gata** | folosește `PostCard` (același rând de autor) |
-| Comentarii și răspunsuri | **parțial** | rândurile de comentarii nu au încă butonul compact (§19.6) |
-| Story rail / story viewer | **parțial** | `rememberPayload` nu e încă legat; butonul urmează în lotul următor |
+| Comentarii și răspunsuri | **gata** | `CommentsSheet` dă `page.viewer_id` fiecărui rând; `CommentRow` are butonul compact (`useRelation`), ascuns pe rândul cititorului; numele se îngustează la 60% doar când butonul e prezent, ca timpul să rămână pe rând |
+| Story rail / story viewer | **gata** | `fetchStories` cheamă `rememberPayload(page)`; **viewer**-ul are butonul compact în antet, cu `viewerId` din `StoriesAnswer` (fără el butonul nu se desenează, ca să nu apară pe story-ul propriu). **Railul** rămâne fără buton, deliberat: cardul are 98×126 px măsurați din web (`feed-surface.css:156-200`) și banda numelui; un chip peste față ar rupe geometria și ar acoperi portretul. Atingerea pe card deschide viewer-ul, care are butonul — o singură suprafață de decis, nu două |
 | Liste Urmăritori / Urmărești / Cereri | **gata** | `FriendsScreen`: buton compact din store, decizii prin `decideFollowRequest`, re-citire după orice schimbare (serverul e autoritatea pe listă), cu guard ca proprie citire să nu declanșeze alta |
 | Căutare (oameni) | **gata** | `rememberPayload(result)`; `ProfileRow` are butonul compact |
-| Mesaje (rând/inbox) | **parțial** | inboxul are butoanele lui de conversație; butonul de relație pe rândul de contact rămâne pentru lotul următor (are nevoie de `user_id`-ul celuilalt participant) |
+| Mesaje (rând/inbox) | **gata** | inboxul își păstrează butoanele lui de conversație; cardul de contact deschis din rând (`ContactCard`) are butonul compact pentru celălalt participant, din `participants[].id`, și îl dă mai departe cititorului de story-uri |
 | Notificări/Activitate | **lipsă** | ecranul de notificări nu este încă portat (rând de matrice existent) |
 
 ### 19.5 Verificare
@@ -1202,7 +1202,9 @@ Ca să nu rămână un gol sub antet, `theme/social.ts` primește `identity.padd
   (`npm run lint` global are 4 erori preexistente în `ActivityCenter`/`MessagesScreen`, neatinse aici);
 * **testat unitar**: `scripts/test-relations.cjs` → **20/20** (normalizator pe fiecare payload, invariantul „un cont,
   un răspuns” indiferent de payload, toate stările din `deriveRelationUi`, meniul doar cu ce există pe server,
-  optimist + rollback, dublu-tap, 404 ⇒ indisponibil, numerele antetului din tokenuri, inventarul static al ecranelor);
+  optimist + rollback, dublu-tap, 404 ⇒ indisponibil, numerele antetului din tokenuri, inventarul static al
+  ecranelor — acum **10 fișiere**, inclusiv `CommentsSheet`, `StoryViewer`, `ContactCard` și `lib/stories.ts`,
+  plus guardul „fără buton pe fața cititorului” pentru cele trei suprafețe noi);
 * suite vechi: `test-hero-parity` **6/6** (reancorat la decizia owner-ului + „o citire, un singur loc”),
   `test-ticker-parity` **13/13** (rândul benzii nu mai există în `ProfileScreen`, valorile webului rămân în
   componentă), `test-profile-content-parity` **8/8**, `test-profile-edit` **9/9**, `test-comment-rows` **6/6**,
@@ -1214,13 +1216,13 @@ Ca să nu rămână un gol sub antet, `theme/social.ts` primește `identity.padd
 
 ### 19.6 Ce rămâne de făcut (lotul următor)
 
-1. butonul compact pe rândurile de comentarii, în story rail/viewer, pe rândul de contact din Mesaje;
-2. ecranul de notificări (rândul „lipsă” din §0);
-3. sesiunea pe telefon: profil propriu, profil public (Urmărește → Urmărești → Nu mai urmări), profil privat
+1. ecranul de notificări (rândul „lipsă” din §0);
+2. sesiunea pe telefon: profil propriu, profil public (Urmărește → Urmărești → Nu mai urmări), profil privat
    (Cere să urmărești → Solicitat → anulare), acceptare din liste, aceeași stare în căutare/feed/live, block +
-   verificarea dispariției, deblocare, buton `Mesaj` cu politică restrictivă;
-4. compozitul și notele numerice în `docs/parity-report/profile-header/`;
-5. dacă owner-ul vrea `Mesaj` activ din profilul unui vizitator, trebuie o rută de conversație accesibilă din
+   verificarea dispariției, deblocare, buton `Mesaj` cu politică restrictivă — plus butoanele noi din
+   comentarii, story viewer și cardul de contact;
+3. compozitul și notele numerice în `docs/parity-report/profile-header/`;
+4. dacă owner-ul vrea `Mesaj` activ din profilul unui vizitator, trebuie o rută de conversație accesibilă din
    afara shell-ului (inboxul este un slot al ecranului principal — §19.4).
 
 | Live (creatori) | **gata** | `rememberPayload(result)`; `LiveRow` are butonul compact (din `is_following`/`host_id`) |

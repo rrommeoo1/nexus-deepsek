@@ -16,7 +16,8 @@ repete greșeala care a blocat task-urile anterioare.
 | Antetul de profil nou, fără copertă (rundă 4) | commit `efc224c`; valori în `theme/social.ts` (`identity`, `relations`) |
 | Modelul unificat de relații + `RelationButton` | commit `991a861`; aplicat în profil, feed, prieteni, căutare, live (`0c031ff`) |
 | Auditul de relații, decizia owner-ului, datele de test | commit `75c40d9`; `MIGRATION.md` §19, `PARITY-MATRIX.md` §13, `TEST-DATA.md` §8 |
-| Teste locale existente | `test-relations.cjs` 20/20, `tsc --noEmit` 0 erori, suitele de profil/ticker/comentarii verzi |
+| Teste locale existente | `test-relations.cjs` 20/20 (inventarul static acoperă acum 10 fișiere), `tsc --noEmit` 0 erori, suitele de profil/ticker/comentarii verzi |
+| Butonul de relație pe ultimele trei suprafețe (§19.4 închis) | rând de comentariu (`CommentsSheet`, `viewerId` din `page.viewer_id`), antetul story viewer-ului (`viewerId` din `StoriesAnswer`, trecut și de `ContactCard`), cardul de contact din Mesaje; `fetchStories` cheamă `rememberPayload(page)` — dovadă: `MIGRATION.md` §19.4, `test-relations` 20/20 cu guardul „fără chip pe fața cititorului” |
 | Bio/loc/vârstă/handle **o singură dată**: rândul benzii scos din `ProfileScreen` (stilurile `bandRow`/`bandCell` odată cu el) | `tickerItems(profile, counters = true, identity = true)`; `ProfileTicker` rămâne pentru suprafețele fără antet |
 | Spațiul dintre antet și bara de file | token nou `identity.paddingBottom` (12) în `theme/social.ts`, folosit de `ProfileHeader.styles.header` |
 | Verificarea reparației | `tsc` 0 erori; `test-hero-parity` 6/6, `test-ticker-parity` 13/13, `test-relations` 20/20, `test-profile-content-parity` 8/8, `test-profile-edit` 9/9, `test-comment-rows` 6/6, `test-comment-time` 2/2 |
@@ -24,19 +25,20 @@ repete greșeala care a blocat task-urile anterioare.
 ## 2. Ce lucrez acum
 
 1. Reparația duplicării din antet este **încheiată și verificată** (`MIGRATION.md` §19.2, paragraful „Defect
-   reparat”): o citire stă într-un singur loc, sub butoanele antetului. Urmează commit-ul ei.
-2. Următorul lot: sistemul de relații unde `MIGRATION.md` §19.4 spune **parțial** — rândurile de
-   comentarii, story rail/viewer și rândul de contact din Mesaje.
+   reparat”): o citire stă într-un singur loc, sub butoanele antetului.
+2. Sistemul de relații este **încheiat pe toate suprafețele din `MIGRATION.md` §19.4**: profil, feed, prieteni,
+   căutare, live **și** rândul de comentariu, story viewer-ul, cardul de contact din Mesaje. Nu mai există
+   rând „parțial” în tabel. Urmează commit-ul acestui lot.
 
 ## 3. Pași următori (în ordine)
 
-1. Continuă sistemul de relații acolo unde e marcat **parțial** în `MIGRATION.md` §19.4:
-   rândurile de comentarii, story rail/viewer și rândul de contact din Mesaje (are nevoie de
-   `user_id`-ul celuilalt participant). Notificările rămân **lipsă** ca ecran.
+1. Ecranul de notificări (rândul „lipsă” din `MIGRATION.md` §0) — singurul ecran neportat. Nu se inventează
+   structura: se citește din `docs/web-ref/` înainte de orice desen.
 2. Sesiune pe telefon (una singură, cu lista de stări din `TEST-DATA.md` §8): profil propriu,
    profil public (Urmărește → Urmărești → Nu mai urmări), profil privat (Cere → Solicitat →
    anulare), acceptare din liste, aceeași stare în căutare/feed/live, block + dispariție, deblocare,
-   `Mesaj` cu politică restrictivă. Capturile **numai** cu `safe-screencap.ps1`.
+   `Mesaj` cu politică restrictivă; plus chipul din rândul de comentariu, din story viewer și din cardul de
+   contact. Capturile **numai** cu `safe-screencap.ps1`.
 3. Măsurători `uiautomator dump --compressed` (px fizici ÷ 2.6) + compozit în
    `docs/parity-report/profile-header/`; apoi notele numerice în `PARITY-MATRIX.md` și
    `parity-report/INDEX.md` (runda 4 este „implementat, nemăsurat”).
@@ -47,9 +49,9 @@ repete greșeala care a blocat task-urile anterioare.
 | # | Defect | Unde | Notă |
 |---|---|---|---|
 | ~~1~~ | ~~bio + loc + vârstă tipărite de două ori~~ | ~~`ProfileHeader.tsx` + `ProfileTicker.tsx`~~ | **reparat 17 oct 2026**: banda nu se mai desenează pe profil; o citire, un singur loc (`MIGRATION.md` §19.2 „Defect reparat”) |
-| 2 | butonul de relație lipsește pe rândurile de comentarii | `CommentRow`/`CommentsSheet` | `MIGRATION.md` §19.4 „parțial” |
-| 3 | butonul de relație lipsește în story rail/viewer | `StoryRail.tsx`, `StoryViewer.tsx` | payload-ul trebuie trecut prin `rememberPayload` |
-| 4 | butonul de relație lipsește pe rândul de contact din Mesaje | `MessagesScreen.tsx` / `ContactCard.tsx` | are nevoie de `user_id`-ul celuilalt participant |
+| ~~2~~ | ~~butonul de relație lipsește pe rândurile de comentarii~~ | ~~`CommentRow`/`CommentsSheet`~~ | **reparat 17 oct 2026**: chip compact, `viewerId` din `page.viewer_id`; rândul cititorului rămâne fără chip |
+| ~~3~~ | ~~butonul de relație lipsește în story rail/viewer~~ | ~~`StoryRail.tsx`, `StoryViewer.tsx`~~ | **reparat 17 oct 2026** în viewer; railul rămâne fără chip, deliberat (geometria măsurată 98×126 și banda numelui nu încap un al doilea element) — `MIGRATION.md` §19.4 |
+| ~~4~~ | ~~butonul de relație lipsește pe rândul de contact din Mesaje~~ | ~~`MessagesScreen.tsx` / `ContactCard.tsx`~~ | **reparat 17 oct 2026**: `participants[].id` era deja în payload; chipul stă între persona și acțiunile rapide |
 | 5 | ecranul de notificări nu este portat | rând „lipsă” în `MIGRATION.md` §0 | nu se inventează |
 | 6 | runda 4 nemăsurată pe telefon | `docs/parity-report/profile-header/` | `00-now.png` era corupt (acum `.bad`); se reface cu `safe-screencap.ps1` |
 | 7 | `uiautomator dump` întoarce 0 noduri pe profil | banda de ticker se animă continuu | folosește `device-batch.ps1 -ReduceMotion` (pune scalele la loc în `finally`) |

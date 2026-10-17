@@ -4,8 +4,10 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { Conversation, StoryView } from '../lib/socialTypes';
 import { initialsFor, mediaSourceForPath } from '../lib/socialTypes';
 import { fetchContactStories } from '../lib/stories';
-import { ProfileScreen } from '../screens/ProfileScreen';
+import { openSocialProfile } from '../lib/profileNavigation';
+import { useRelation } from '../lib/relations';
 import { RemoteImageSource } from './PostMedia';
+import { RelationButton } from './RelationButton';
 import { StoryViewer } from './StoryViewer';
 
 /**
@@ -78,9 +80,18 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
   const title = peer?.display_name || peer?.handle || 'Nexus';
   const avatar = mediaSourceForPath(peer?.avatar);
   const [status, setStatus] = useState('');
-  const [profileOpen, setProfileOpen] = useState(false);
   const [stories, setStories] = useState<StoryView[] | null>(null);
   const [storiesOpen, setStoriesOpen] = useState(false);
+  /**
+   * The peer's relation, from the one store. `messenger-contact.js` has no follow action of its own; the
+   * app's rule is that every place a face is printed answers the same question the same way, so the card
+   * carries the chip the feed card, the comment row and the search result carry.
+   */
+  const relation = useRelation(peer?.id);
+  const relationTarget = Number.isSafeInteger(Number(peer?.id)) && Number(peer?.id) > 0 && Number(peer?.id) !== Number(viewerId)
+    && peer?.handle
+    ? { userId: Number(peer.id), handle: String(peer.handle), name: title, persona: persona || 'social' }
+    : null;
 
   /**
    * `messenger-contact.js:109-128` — the peer's stories are read for a Social peer only, and the band is
@@ -97,10 +108,10 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
 
   const act = useCallback((action: 'message' | 'audio' | 'video' | 'profile') => {
     if (action === 'message') { onClose(); onOpenThread(); return; }
-    if (action === 'profile') { setProfileOpen(true); return; }
+    if (action === 'profile') { openSocialProfile(peer?.handle, onClose); return; }
     /** Calls are the server's own surface (SFU); this build has none, so the card says so. */
     setStatus(COPY.callUnavailable);
-  }, [onClose, onOpenThread]);
+  }, [onClose, onOpenThread, peer?.handle]);
 
   /** `messenger-contact.js:116-125` — the band re-reads before it opens, and says so when nothing is left. */
   const openStory = useCallback(() => {
@@ -126,7 +137,7 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
             <Text style={styles.closeMark}>×</Text>
           </Pressable>
 
-          <View style={styles.photo}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={() => openSocialProfile(peer?.handle, onClose)} style={styles.photo}>
             <RemoteImageSource source={avatar} fit="cover" style={styles.photoImage} />
             {!avatar ? <Text style={styles.photoInitials}>{initialsFor(title, peer?.handle)}</Text> : null}
             {stories?.length ? (
@@ -139,10 +150,11 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
                 <Text style={styles.storyText}>{COPY.story}</Text>
               </Pressable>
             ) : null}
-          </View>
+          </Pressable>
 
-          <Text style={styles.name} numberOfLines={2}>{title}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={() => openSocialProfile(peer?.handle, onClose)}><Text style={styles.name} numberOfLines={2}>{title}</Text></Pressable>
           {persona ? <Text style={styles.persona}>{persona}</Text> : null}
+          {relationTarget ? <RelationButton variant="compact" target={relationTarget} relation={relation} viewerUserId={viewerId ?? null} style={styles.relation} /> : null}
 
           <View style={styles.actions}>
             {([
@@ -165,24 +177,8 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
         </View>
       </View>
 
-      {profileOpen ? (
-        <Modal visible animationType="slide" onRequestClose={() => setProfileOpen(false)} statusBarTranslucent>
-          <View style={styles.profileScreen}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={COPY.close}
-              onPress={() => setProfileOpen(false)}
-              style={styles.profileBack}
-            >
-              <Text style={styles.profileBackText}>‹ {COPY.close}</Text>
-            </Pressable>
-            <ProfileScreen handle={String(peer?.handle || '')} />
-          </View>
-        </Modal>
-      ) : null}
-
       {storiesOpen && stories?.length ? (
-        <StoryViewer stories={stories} startIndex={0} onClose={() => setStoriesOpen(false)} />
+        <StoryViewer stories={stories} startIndex={0} onClose={() => setStoriesOpen(false)} viewerId={viewerId ?? null} />
       ) : null}
     </Modal>
   );
@@ -217,6 +213,8 @@ const styles = StyleSheet.create({
   name: { color: '#eef7fc', fontSize: 22, fontWeight: '700', marginTop: 12, marginBottom: 6, textAlign: 'center' },
   /** `.conversationPersona` — the pill the row and the card both print. */
   persona: { color: '#8fd6cf', fontSize: 12, fontWeight: '600' },
+  /** The relation chip sits between the persona line and the four quick actions, centred like both. */
+  relation: { alignSelf: 'center', marginTop: 10 },
   /** `.contactQuickActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:20px}` */
   actions: { flexDirection: 'row', gap: 4, marginTop: 20, alignSelf: 'stretch' },
   /** `button{min-height:76px;gap:8px;padding:6px 2px;border-radius:12px;background:#14293c;color:#e4f7ff;font-size:13px}` */

@@ -552,6 +552,10 @@ test('the header prints the owner\'s measurements, from tokens, with no cover le
 test('every screen that prints a face prints the same relation button (§19.4)', () => {
   const inventory = {
     'src/components/PostCard.tsx': ['RelationButton', 'useRelation'],
+    'src/components/CommentsSheet.tsx': ['RelationButton', 'useRelation'],
+    'src/components/StoryViewer.tsx': ['RelationButton', 'useRelation'],
+    'src/components/ContactCard.tsx': ['RelationButton', 'useRelation'],
+    'src/lib/stories.ts': ['rememberPayload'],
     'src/screens/FriendsScreen.tsx': ['RelationButton', 'decideFollowRequest', 'rememberPayload'],
     'src/screens/SearchScreen.tsx': ['RelationButton', 'rememberPayload'],
     'src/screens/LiveScreen.tsx': ['RelationButton', 'rememberPayload'],
@@ -566,6 +570,19 @@ test('every screen that prints a face prints the same relation button (§19.4)',
     // No screen keeps a relation rule of its own: the words and the call come from the one module.
     assert.doesNotMatch(source, /'\/api\/follow'/, `${file} must not call the follow route itself`);
   }
+  /**
+   * The three surfaces of the second lot keep the same guard: a face is only offered a relation when the
+   * payload said whose reader is looking at it, so the reader's own row and their own story never grow a chip.
+   */
+  const comments = readFileSync(resolve(ROOT, 'src/components/CommentsSheet.tsx'), 'utf8');
+  assert.ok(comments.includes('viewerId={page?.viewer_id ?? null}'), 'the thread tells every row whose answer it is');
+  assert.ok(comments.includes('Number(comment.user_id) !== Number(viewerId)'), 'a comment by the reader keeps no chip');
+  const storyViewer = readFileSync(resolve(ROOT, 'src/components/StoryViewer.tsx'), 'utf8');
+  assert.ok(storyViewer.includes('authorId !== Number(viewerId)'), 'the story chip needs a reader to be a relation');
+  const shelf = readFileSync(resolve(ROOT, 'src/lib/stories.ts'), 'utf8');
+  assert.ok(shelf.includes('rememberPayload(page)'), 'the shelf feeds the store the way the feed does');
+  const card = readFileSync(resolve(ROOT, 'src/components/ContactCard.tsx'), 'utf8');
+  assert.ok(card.includes('viewerId={viewerId ?? null}'), 'the card hands its reader to the story viewer');
   // The route that hosts somebody else's profile hands the header its own arrow back.
   const route = readFileSync(resolve(ROOT, 'src/app/profile/[handle].tsx'), 'utf8');
   assert.match(route, /onBack=\{\(\) => router\.back\(\)\}/);

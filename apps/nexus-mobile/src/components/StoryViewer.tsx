@@ -5,6 +5,9 @@ import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { RemoteImage, RemoteImageSource, RemoteVideo } from './PostMedia';
 import { initialsFor, mediaKindOf, mediaSourceForPath, type StoryView } from '../lib/socialTypes';
 import { recordStoryView } from '../lib/stories';
+import { openSocialProfile } from '../lib/profileNavigation';
+import { useRelation } from '../lib/relations';
+import { RelationButton } from './RelationButton';
 
 /**
  * The full-screen story reader, drawn from `app.js:3392-3496` (markup and timing) and
@@ -25,12 +28,17 @@ import { recordStoryView } from '../lib/stories';
  * behind it is the archive call of the owner's own story (`app.js:2776`), and inventing a menu would
  * be a lie. It is listed as a remaining difference in `docs/parity-report/INDEX.md`.
  */
-export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
+export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: {
   stories: StoryView[];
   startIndex: number;
   onClose: () => void;
   /** Called once per story whose progress the server accepted, so the rail can dim it. */
   onSeen?: (storyId: number) => void;
+  /**
+   * The reader the shelf belongs to (`StoriesAnswer.viewerId`). It is what makes the author's relation chip
+   * safe: without it the viewer cannot tell whose story this is, so no chip is drawn at all.
+   */
+  viewerId?: number | null;
 }) {
   const [index, setIndex] = useState(() => Math.max(0, Math.min(stories.length - 1, startIndex)));
   const [failed, setFailed] = useState<number | null>(null);
@@ -53,6 +61,17 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
   const kind = mediaKindOf(media);
   const author = story?.author ?? null;
   const name = String(author?.display_name || author?.handle || 'Nexus');
+  /**
+   * The author of this frame, from the one store (`useRelation`): the same word the profile header and the
+   * feed card print. The chip is drawn only when the shelf said whose stories these are and the frame is not
+   * the reader's own — `deriveRelationUi` would answer `self` there, and a dead button over a story is noise.
+   */
+  const authorId = Number(story?.user_id ?? author?.id);
+  const relation = useRelation(Number.isSafeInteger(authorId) && authorId > 0 ? authorId : null);
+  const relationTarget = Number.isSafeInteger(authorId) && authorId > 0 && authorId !== Number(viewerId)
+    && author?.handle
+    ? { userId: authorId, handle: String(author.handle), name, persona: 'social' as const }
+    : null;
   const avatar = mediaSourceForPath(author?.avatar);
 
   /** Every story that was watched is committed once, with the progress it really reached. */
@@ -130,11 +149,14 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen }: {
           {failed === index ? <Text style={styles.fallbackNote}>Story-ul nu a putut fi afișat.</Text> : null}
 
           <View style={[styles.header, { top: topInset + 13 }]}>
-            <View style={styles.avatar}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${author?.handle || name}`} onPress={() => openSocialProfile(author?.handle, onClose)} style={styles.avatar}>
               {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} /> : <Text style={styles.avatarInitials}>{initialsFor(name, author?.handle)}</Text>}
-            </View>
-            <Text style={styles.name} numberOfLines={1}>{name}</Text>
-            <Text style={styles.handle} numberOfLines={1}>{`@${author?.handle || 'nexus'}`}</Text>
+            </Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${author?.handle || name}`} onPress={() => openSocialProfile(author?.handle, onClose)} style={styles.authorLink}>
+              <Text style={styles.name} numberOfLines={1}>{name}</Text>
+              <Text style={styles.handle} numberOfLines={1}>{`@${author?.handle || 'nexus'}`}</Text>
+            </Pressable>
+            {relationTarget ? <RelationButton variant="compact" target={relationTarget} relation={relation} viewerUserId={viewerId ?? null} style={styles.headerRelation} /> : null}
             <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={() => { commit(story, false); onClose(); }} style={styles.headerButton}>
               <Text style={styles.headerGlyph}>×</Text>
             </Pressable>
@@ -174,6 +196,7 @@ const styles = StyleSheet.create({
   fallbackNote: { color: '#96a2ad', fontSize: 14, textAlign: 'center', paddingHorizontal: 24 },
   /** `.storyViewerFrame>header{left:10px;right:10px;top:safe+13px;height:48px;columns 38/max-content/1fr/38px;gap:7px}` */
   header: { position: 'absolute', zIndex: 9, left: 10, right: 10, top: 22, height: 48, flexDirection: 'row', alignItems: 'center', gap: 7 },
+  authorLink: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 44 },
   /** `.storyViewerAvatar{width:36px;height:36px;border:1.5px solid #51f4f4;border-radius:50%;background:#152536;font-size:10px;font-weight:800}` */
   avatar: {
     width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: '#51f4f4',
@@ -193,6 +216,12 @@ const styles = StyleSheet.create({
   },
   /** `.storyViewerFrame>header button{width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.18);font-size:19px}` */
   headerButton: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(0,0,0,0.18)', alignItems: 'center', justifyContent: 'center' },
+  /**
+   * The author's relation chip, at the end of the header. It keeps its own width (the name and the handle are
+   * the ones that truncate) and sits before the close disc, so the thumb that closes the frame never lands on
+   * a follow action.
+   */
+  headerRelation: { flexShrink: 0 },
   headerGlyph: { color: '#ffffff', fontSize: 19, lineHeight: 22, textShadowColor: '#000000', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 8 },
   /** `.storyViewerCaption{left:18px;right:18px;bottom:max(25px,safe);padding:12px 14px;border-radius:16px;background:rgba(2,7,13,.28);font-size:12px}` */
   caption: { position: 'absolute', zIndex: 8, left: 18, right: 18, bottom: 25, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, backgroundColor: 'rgba(2,7,13,0.28)' },

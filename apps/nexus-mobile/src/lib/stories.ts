@@ -1,4 +1,5 @@
 import { nexusApi } from './nexusApi';
+import { rememberPayload } from './relations';
 import { mediaSourceForPath, type StoriesPage, type StoryView } from './socialTypes';
 
 /**
@@ -48,6 +49,12 @@ export async function fetchStories(expect?: { viewerId?: number; persona?: strin
   const mine = (expect?.viewerId == null || viewerId === expect.viewerId)
     && (expect?.persona == null || viewerPersona === expect.persona);
   if (page.state !== 'unseen' || !mine) return { stories: [], viewerId, viewerPersona };
+  /**
+   * The shelf names accounts, so it feeds the one relation store (`rememberPayload`): a story author whose
+   * follow side the app has not read yet is resolved once, and the chip in the viewer prints the same word
+   * the rest of the app prints. A refused answer was returned above, before anything is believed.
+   */
+  rememberPayload(page);
   return { stories: rows.filter((story) => isPrintableStory(story)), viewerId, viewerPersona };
 }
 
