@@ -1,5 +1,5 @@
 import {
-  compactCount, initialsFor, mediaItemUrl, reactionTotal,
+  compactCount, reactionTotal,
   type CommentView, type MediaItem, type ProfileResponse, type ProfileView, type RepostEntry, type RepostStamp,
   type SharedReplyEntry, type SocialPost, type StoryHighlight, type StoryView,
 } from './socialTypes';

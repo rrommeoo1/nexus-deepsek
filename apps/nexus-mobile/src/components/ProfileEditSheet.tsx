@@ -71,24 +71,40 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
   onSaved: (patch: Partial<ProfileView>) => void;
 }) {
   const [draft, setDraft] = useState<ProfileDraft>(() => profileDraft(profile));
-  const [availability, setAvailability] = useState<HandleAvailability>(null);
+  /**
+   * The answer the handle route gave, kept together with the name it answers for: a draft typed over it
+   * reads as unanswered at once, so an answer is never drawn next to a name it was not given for.
+   */
+  const [checked, setChecked] = useState<{ handle: string; answer: HandleAvailability } | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
 
-  /** The editor opens on what the record says: every opening starts from the record, never from a draft. */
-  useEffect(() => {
-    if (!visible) return;
-    setDraft(profileDraft(profile));
-    setAvailability(null);
-    setError('');
-  }, [visible, profile]);
+  /**
+   * The editor opens on what the record says: every opening starts from the record, never from a draft the
+   * last opening left behind, and a record that changed underneath it (a save echoed back) starts from the
+   * new one. This is React's own "adjusting state when a prop changes"
+   * (`react.dev/learn/you-might-not-need-an-effect`): a guarded pass in render rather than an effect, so no
+   * painted frame ever shows the old draft.
+   */
+  const [openedFor, setOpenedFor] = useState({ open: visible, profile });
+  if (openedFor.open !== visible || openedFor.profile !== profile) {
+    setOpenedFor({ open: visible, profile });
+    if (visible) {
+      setDraft(profileDraft(profile));
+      setChecked(null);
+      setError('');
+    }
+  }
 
   const edit = useCallback((change: Partial<ProfileDraft>) => setDraft((previous) => ({ ...previous, ...change })), []);
   const issues = useMemo(() => profileEditIssues(draft, profile), [draft, profile]);
   const dirty = useMemo(() => profileEditDirty(profile, draft), [profile, draft]);
   const derivedAge = ageIsDerived(profile);
+  /** The route's answer stands only for the name the draft holds right now; any other name is unanswered. */
+  const typedHandle = draft.handle.trim().replace(/^@/, '').toLowerCase();
+  const availability = checked && checked.handle === typedHandle ? checked.answer : null;
   const handleState = handleWords(availability, draft, profile);
   const suggestions = useMemo(() => (visible ? searchLocations(draft.location) : []), [visible, draft.location]);
 
@@ -101,14 +117,14 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
   useEffect(() => {
     if (!visible) return;
     const typed = draft.handle.trim().replace(/^@/, '').toLowerCase();
-    if (!handleChanged(draft, profile) || !HANDLE_PATTERN.test(typed)) { setAvailability(null); return; }
+    if (!handleChanged(draft, profile) || !HANDLE_PATTERN.test(typed)) return;
     let cancelled = false;
     const timer = setTimeout(() => {
       nexusApi<{ ok: true; handle?: string; available?: boolean; reason?: string | null }>(
         `/api/onboarding/handle?handle=${encodeURIComponent(typed)}`,
       )
-        .then((answer) => { if (!cancelled && alive.current) setAvailability(answer); })
-        .catch(() => { if (!cancelled && alive.current) setAvailability(null); });
+        .then((answer) => { if (!cancelled && alive.current) setChecked({ handle: typed, answer }); })
+        .catch(() => { if (!cancelled && alive.current) setChecked(null); });
     }, 350);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [visible, draft, profile]);
