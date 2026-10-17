@@ -187,6 +187,35 @@ lista Mesaje. **Nu** pe video, foto, story, cameră sau vizualizator.
 
 **Rezultat:** `tsc --noEmit` 0 erori; `npm test` exit 0 (2 suite noi: contrast 14 perechi, fundal 3 teste).
 
+## 0.5 Pasul 5 — tokenul se numește JUNGLE (17 octombrie 2026)
+
+**Ce s-a schimbat (doar cuvinte, niciun câmp):**
+
+* `src/lib/pricing.ts`: `CURRENCY_LABEL = 'JUNGLE'` — deci `formatJbc(200)` tipărește `2,00 JUNGLE`, iar
+  `formatJbc(2)` tipărește `0,02 JUNGLE`. `CENTS_PER_JBC = 100` și numele funcțiilor rămân aceleași.
+* `src/theme/brand.ts`: `BRAND_TICKER = 'JUNGLE'`.
+* `src/lib/creatorPricing.ts`: `display_currency` implicit `JUNGLE` (când serverul nu trimite unul).
+* `src/screens/WalletScreen.tsx`: „Scrie o sumă între 1 JUNGLE…” și eticheta de accesibilitate
+  „Suma de retras în JUNGLE”.
+* Presetările erau deja cele cerute (200/300/300 = 0,02/0,03/0,03 JUNGLE și 300/500/500 =
+  0,03/0,05/0,05 JUNGLE), deci nu s-a atins nicio valoare.
+* `scripts/test-brand.cjs` **pică acum** dacă în `src/` apare un literal vizibil cu `JB` sau `JBc`, sau dacă
+  `CURRENCY_LABEL` / `BRAND_TICKER` nu sunt exact `JUNGLE`. Excepțiile sunt doar cele tehnice deja
+  documentate (cookie, chei de storage, rute, pachet Android).
+* `docs/MONETIZATION-SPEC.md` §3.5: simbol afișat `JUNGLE`, ticker `JUNGLE`, `JBK` doar rezervă; registrul
+  rămâne în unități întregi (100 = 1 JUNGLE) și coloanele `*_cents` nu se redenumesc. `docs/REBRAND.md`:
+  rândul `BRAND_TICKER` actualizat.
+* `test-creator-pricing.cjs`: așteptarea `Confirmă 3,00 JUNGLE` (era `JB`).
+
+**Rezultat:** `tsc --noEmit` 0 erori; `npm test` exit 0; `node scripts/test-brand.cjs` → „ok · no visible
+«Nexus» left in src/, no «JB»/«JBc» ticker, and app.json is named Jungle Book”.
+
+**Blocat, nu ghicit:** redenumirea numelor afișate ale conturilor de test („Test Nexus”, „Cont de test
+Nexus (Railway preview)”) cere **autentificare** pe fiecare cont prin API-ul public, iar în acest arbore nu
+există parole de test (cheile devnet sunt în `docs/.test-wallets.local`, dar ele semnează tranzacții, nu
+deschid sesiuni web). Nu s-a încercat nicio parolă ghicită și nu s-a scris niciun secret. De făcut când
+proprietarul dă credențialele celor două conturi; pașii sunt în `docs/TEST-DATA.md`.
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este

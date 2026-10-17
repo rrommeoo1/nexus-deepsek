@@ -6,12 +6,14 @@
  * turn what the owner types into cents, and keep the two small presets. Everything else — the split,
  * the fee, what the creator actually gets — comes from the server and is printed as it arrives.
  *
- * The unit is JBc: 2 decimals, 1 JBc = 100 cents, printed as `JB` in front of the amount.
+ * The unit is the JUNGLE token: 2 decimals, 1 JUNGLE = 100 cents, printed as `JUNGLE` after the amount.
+ * The registry keeps whole units (100 = 1 JUNGLE); only the words on screen changed, never a field name,
+ * a column or an API shape (`MONETIZATION-SPEC.md` §3, `REBRAND.md`).
  */
 export const CENTS_PER_JBC = 100;
-export const CURRENCY_LABEL = 'JB';
+export const CURRENCY_LABEL = 'JUNGLE';
 
-/** `200` → `2,00 JB`; `50` → `0,50 JB`; a negative or non-finite amount is refused, not guessed. */
+/** `200` → `2,00 JUNGLE`; `50` → `0,50 JUNGLE`; a negative or non-finite amount is refused, not guessed. */
 export function formatJbc(cents: number | null | undefined): string {
   if (cents === null || cents === undefined || cents === ('' as unknown as number)) return '—';
   const value = Number(cents);

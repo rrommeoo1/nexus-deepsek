@@ -23,7 +23,7 @@ MIGRATION, DEV-WORKFLOW) și s-a adăugat acest fișier.
 
 | Fișier | Text / identificator | Categorie | Decizie | Motiv |
 |---|---|---|---|---|
-| `src/theme/brand.ts` (nou) | `BRAND_NAME = 'Jungle Book'`, `BRAND_TICKER = 'JB'` | vizibil | schimbat (nou) | un singur loc pentru nume și simbol |
+| `src/theme/brand.ts` (nou) | `BRAND_NAME = 'Jungle Book'`, `BRAND_TICKER = 'JUNGLE'` | vizibil | schimbat (nou) | un singur loc pentru nume și simbol; `test:brand` pică la orice `JB`/`JBc` vizibil |
 | `src/components/BrandLogo.tsx` (nou) | logo `header` / `circle` / `large` | vizibil | schimbat (nou) | o singură componentă încarcă marca; nimeni nu mai încarcă o imagine de brand altfel |
 | `src/components/NexusLandingBrand.tsx` | glif SVG + `NEXUS` → logo mare + `JUNGLE BOOK` | vizibil | schimbat | login-ul arată marca instalată, nu un desen paralel |
 | `src/components/AppHeader.tsx` | wordmark SVG → `BrandLogo header` (36 dp, 44 dp zonă de atingere) | vizibil | schimbat | antetul poartă logo-ul, nu un al doilea wordmark |

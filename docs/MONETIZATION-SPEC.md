@@ -70,7 +70,7 @@ Un singur ecran, patru rânduri, toate din payload (niciun calcul în client):
 
 1. **cui** — handle, nume, avatar;
 2. **ce** — titlul produsului și tipul (`tip` / `membership N zile`);
-3. **cât** — prețul în **JBc** (tokenul `JUNGLE`, zecimale 2, simbol afișat `JB`), cu marcajul „demonstrativ, fără bani reali”;
+3. **cât** — prețul în **JUNGLE** (tokenul `JUNGLE`, zecimale 2, simbol afișat `JUNGLE`), cu marcajul „demonstrativ, fără bani reali”;
 4. **împărțirea** — creator 90% / platformă 5% / rezervă 3% / infrastructură 2% pentru `tip`, respectiv
    85/10/3/2 pentru `membership`, exact cum vine în intent.
 
@@ -87,14 +87,14 @@ invers.
 
 ### 3.5 Tokenul, unitatea și prețurile (decizia de test)
 
-**Nume:** Jungle. **Simbol afișat în aplicație:** `JB`. **ESDT pe MultiversX devnet.**
+**Nume:** Jungle. **Simbol afișat în aplicație:** `JUNGLE`. **ESDT pe MultiversX devnet.**
 
-Ticker-ul ESDT nu poate fi `JB`. Sursa protocolului confirmă limitele: în
-`mx-chain-go/vm/systemSmartContracts/esdt.go` stau `minLengthForTickerName = 3` și
-`maxLengthForTickerName = 10`, deci `JB` (2 caractere) este respins, iar `JUNGLE` (6) este valid.
-Alfabetul acceptat (alfanumeric, majuscule) se confirmă la emitere, când devnet-ul acceptă sau respinge
-tranzacția `issue`. `JBK` rămâne doar o alternativă cosmetică (un ticker deja folosit nu blochează emiterea — vezi mai jos), nu o condiție. Ticker-ul este o chestiune
-de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu simbol scurt afișat.
+Ticker-ul ESDT este `JUNGLE`, iar același cuvânt este și simbolul afișat: în interfață nu apare nici `JB`,
+nici `JBc` (regula proprietarului, 17 octombrie 2026 — `test:brand` pică dacă reapare). Sursa protocolului
+confirmă limitele: în `mx-chain-go/vm/systemSmartContracts/esdt.go` stau `minLengthForTickerName = 3` și
+`maxLengthForTickerName = 10`, deci `JUNGLE` (6 caractere) este valid. Alfabetul acceptat (alfanumeric,
+majuscule) se confirmă la emitere, când devnet-ul acceptă sau respinge tranzacția `issue`. `JBK` rămâne
+rezerva documentată, folosită numai dacă emiterea cere alt ticker.
 
 **Verificat pe 17 oct 2026, în citire:** `GET https://devnet-api.multiversx.com/tokens?search=JUNGLE&size=10`
 a întors trei tokenuri numite `jungleverse` (`JGVV2-4e46c5`, `JGVV3-b79a90`, `JGVV4-5a6476`), niciunul
@@ -123,14 +123,15 @@ issue@Jungle@JUNGLE@03e8@02        # nume „Jungle”, ticker JUNGLE, supply 10
 Dacă devnet-ul refuză din alt motiv decât soldul, se notează aici răspunsul exact și abia atunci se discută
 `JBK`.
 
-**Zecimale:** 2, deci unitatea întreagă minimă este **1 JBc = 0,01 JB**. Registrul ține doar întregi în
-JBc; nu există float nicăieri în lanțul de calcul.
+**Zecimale:** 2, deci unitatea întreagă minimă este **1 unitate din registru = 0,01 JUNGLE**. Registrul ține
+doar întregi (100 = 1 JUNGLE); nu există float nicăieri în lanțul de calcul. Numele coloanelor și al
+câmpurilor de API rămân cele vechi (`*_cents`): s-a schimbat doar cuvântul de pe ecran.
 
 **Valoare de referință:** `reference_eur_per_jb = 1.00`, **doar pentru test**, parametru configurabil.
-Nu este o ancorare, nu este o promisiune de răscumpărare și nu se afișează ca „1 JB = 1 €” în
-interfață; ecranul arată JBc, iar echivalentul în euro apare doar în documente și în simulări.
+Nu este o ancorare, nu este o promisiune de răscumpărare și nu se afișează ca „1 JUNGLE = 1 €” în
+interfață; ecranul arată JUNGLE, iar echivalentul în euro apare doar în documente și în simulări.
 
-**Prețuri mici pe acțiune** (JBc):
+**Prețuri mici pe acțiune** (unități din registru, afișate cu două zecimale JUNGLE):
 
 | Presetare | Apreciere | Comentariu | Distribuire |
 |---|---:|---:|---:|

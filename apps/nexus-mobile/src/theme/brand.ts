@@ -7,4 +7,4 @@
  */
 export const BRAND_NAME = 'Jungle Book';
 /** The ticker the app prints next to amounts; the MultiversX token is `JUNGLE` (see MONETIZATION-SPEC). */
-export const BRAND_TICKER = 'JB';
+export const BRAND_TICKER = 'JUNGLE';

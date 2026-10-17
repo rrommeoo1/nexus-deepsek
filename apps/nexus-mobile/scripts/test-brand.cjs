@@ -70,12 +70,19 @@ function walk(dir, files = []) {
 }
 
 const failures = [];
-for (const file of walk(SRC)) {
+const tickerFailures = [];
+const FILES = walk(SRC);
+for (const file of FILES) {
   const lines = fs.readFileSync(file, 'utf8').split(/\r?\n/);
   lines.forEach((line, index) => {
     const trimmed = line.trim();
     if (trimmed.startsWith('*') || trimmed.startsWith('//') || trimmed.startsWith('/*')) return;
     for (const value of literalValues(line)) {
+      // The token is JUNGLE. "JB" and "JBc" are the old display ticker and must not reach a screen; the
+      // graphic mark keeps the letters J and B, but that is a picture, not a string (`BrandLogo`).
+      if (/(^|[^A-Za-z])JBc?([^A-Za-z]|$)/.test(value)) {
+        tickerFailures.push(`${path.relative(ROOT, file)}:${index + 1}  ${value.trim()}`);
+      }
       if (!/nexus/i.test(value)) continue;
       if (isException(value)) continue;
       failures.push(`${path.relative(ROOT, file)}:${index + 1}  ${value.trim()}`);
@@ -83,17 +90,33 @@ for (const file of walk(SRC)) {
   });
 }
 
+// The two constants that name the token, read as source so the check holds even before a test imports them.
+const pricingSource = fs.readFileSync(path.join(SRC, 'lib/pricing.ts'), 'utf8');
+const brandSource = fs.readFileSync(path.join(SRC, 'theme/brand.ts'), 'utf8');
+if (!/export const CURRENCY_LABEL = 'JUNGLE';/.test(pricingSource)) {
+  tickerFailures.push("src/lib/pricing.ts  CURRENCY_LABEL is not 'JUNGLE'");
+}
+if (!/export const BRAND_TICKER = 'JUNGLE';/.test(brandSource)) {
+  tickerFailures.push("src/theme/brand.ts  BRAND_TICKER is not 'JUNGLE'");
+}
+
 const app = JSON.parse(fs.readFileSync(APP_JSON, 'utf8'));
 if (!String(app.expo.name).startsWith('Jungle Book')) {
   failures.push(`app.json  expo.name is "${app.expo.name}", expected "Jungle Book…"`);
 }
 
-if (failures.length) {
-  console.error('Visible strings still carrying the old name:');
-  for (const failure of failures) console.error('  ' + failure);
-  console.error(`\n${failures.length} occurrence(s). Rename them to Jungle Book, or document why the string`);
-  console.error('is technical in apps/nexus-mobile/scripts/test-brand.cjs (EXCEPTIONS).');
+if (failures.length || tickerFailures.length) {
+  if (failures.length) {
+    console.error('Visible strings still carrying the old name:');
+    for (const failure of failures) console.error('  ' + failure);
+  }
+  if (tickerFailures.length) {
+    console.error('Visible strings still printing the old ticker ("JB" / "JBc") — the token is JUNGLE:');
+    for (const failure of tickerFailures) console.error('  ' + failure);
+  }
+  console.error(`\n${failures.length + tickerFailures.length} occurrence(s). Rename them to Jungle Book / JUNGLE, or`);
+  console.error('document why the string is technical in apps/nexus-mobile/scripts/test-brand.cjs (EXCEPTIONS).');
   process.exit(1);
 }
 
-console.log('ok · no visible "Nexus" left in src/, and app.json is named Jungle Book');
+console.log('ok · no visible "Nexus" left in src/, no "JB"/"JBc" ticker, and app.json is named Jungle Book');

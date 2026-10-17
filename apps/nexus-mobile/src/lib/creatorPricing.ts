@@ -41,7 +41,7 @@ export const MAX_PRICE_CENTS = 100_000_000;
 /**
  * The reader's own guardrail: how much one session may spend without asking again. It is a client
  * decision (the server has no session budget), so it is stated here instead of being invented by
- * every screen. 20 JB.
+ * every screen. 20 JUNGLE.
  */
 export const SESSION_BUDGET_CENTS = 2_000;
 
@@ -149,7 +149,7 @@ export function pricingViewFromPayload(payload: unknown): PricingView | null {
     free: anyChargeable ? source.free !== false : true,
     can_edit: source.can_edit !== false,
     currency: typeof source.currency === 'string' ? source.currency : '',
-    display_currency: typeof source.display_currency === 'string' ? source.display_currency : 'JB',
+    display_currency: typeof source.display_currency === 'string' ? source.display_currency : 'JUNGLE',
     split_version: typeof source.split_version === 'string' ? source.split_version : '',
     cost_per_action_cents: Number(source.cost_per_action_cents) || 0,
     floor_cents: wholeCents(source.floor_cents) ?? 0,

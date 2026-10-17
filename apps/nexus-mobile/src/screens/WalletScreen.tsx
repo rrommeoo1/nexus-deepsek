@@ -75,7 +75,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
     setError('');
     setNotice('');
     if (!cents) {
-      setError('Scrie o sumă între 1 JB și soldul disponibil, cu cel mult două zecimale.');
+      setError('Scrie o sumă între 1 JUNGLE și soldul disponibil, cu cel mult două zecimale.');
       return;
     }
     setBusy(true);
@@ -123,7 +123,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
         <Text style={styles.section}>Retragere</Text>
         <View style={styles.row}>
           <TextInput
-            accessibilityLabel="Suma de retras în JB"
+            accessibilityLabel="Suma de retras în JUNGLE"
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"

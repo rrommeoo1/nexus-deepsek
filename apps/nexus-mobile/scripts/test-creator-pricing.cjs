@@ -214,7 +214,7 @@ test('confirmarea spune prețul, comisionul, soldul și bugetul, și blochează 
   const poor = creatorPricing.confirmationFor(paidView, 'comment', { balanceCents: 250, sessionBudgetCents: 2000 });
   assert.equal(poor.disabled, true);
   assert.deepEqual(poor.blockers, ['Soldul nu acoperă prețul.']);
-  assert.equal(poor.confirm_label, 'Confirmă 3,00 JB');
+  assert.equal(poor.confirm_label, 'Confirmă 3,00 JUNGLE');
 
   const spent = creatorPricing.confirmationFor(paidView, 'share',
     { balanceCents: 5000, sessionBudgetCents: 400, sessionSpentCents: 350 });
