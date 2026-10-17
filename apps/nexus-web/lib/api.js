@@ -2918,6 +2918,9 @@ export async function handleRequest(req, res, ctx) {
           user_id: target.id, handle: target.handle, persona: requestedPersona, name: profile.name,
           visibility: profile.visibility, is_self: false,
           is_following: repo.isFollowing(auth.user.id, target.id, requestedPersona),
+          // Both directions travel with the shell, because the only honest action on a locked record is the
+          // one the relation allows: a follower of mine gets "Urmărește înapoi", a stranger gets a request.
+          following_me: repo.isFollowing(target.id, auth.user.id, requestedPersona),
           follow_request_pending: Boolean(repo.pendingFollowRequest(auth.user.id, target.id, requestedPersona)),
           private_access: profile.visibility === "private" && profile.private_access_enabled ? { enabled: true, currency: profile.private_access_currency,
             price_24h_cents: profile.private_access_price_cents,
@@ -3026,6 +3029,13 @@ export async function handleRequest(req, res, ctx) {
         discoverability: profile.discoverability,
         is_self: target.id === auth.user.id,
         is_following: repo.isFollowing(auth.user.id, target.id, requestedPersona),
+        // The other direction of the same pair. `is_following` says "I follow them"; this says "they follow me",
+        // and without it a record opened cold cannot tell a follower from a stranger, so the only honest button
+        // was "Urmărește" for both (HANDOFF defect 9). Careful: the relations list uses the same word for the
+        // viewer's own side (`repo.js:1929`, `following_me` = I follow them), a naming inversion documented in
+        // HANDOFF defect 11 and not changed here — this payload follows the name's meaning, as the web's post
+        // card always read it (`public/app.js:4317`).
+        following_me: target.id === auth.user.id ? false : repo.isFollowing(target.id, auth.user.id, requestedPersona),
         follow_request_pending: target.id !== auth.user.id && Boolean(repo.pendingFollowRequest(auth.user.id, target.id, requestedPersona)),
         counts: { ...counts, posts: posts.length, stories: stories.length, reposts: reposts.length, shared_replies: sharedReplies.length },
         highlights,
