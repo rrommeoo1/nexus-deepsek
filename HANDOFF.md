@@ -110,7 +110,7 @@ Următori → un rând → săgeata „Înapoi” trebuie să fie vizibilă sub 
 | ~~2~~ | ~~butonul de relație lipsește pe rândurile de comentarii~~ | ~~`CommentRow`/`CommentsSheet`~~ | **reparat 17 oct 2026**: chip compact, `viewerId` din `page.viewer_id`; rândul cititorului rămâne fără chip |
 | ~~3~~ | ~~butonul de relație lipsește în story rail/viewer~~ | ~~`StoryRail.tsx`, `StoryViewer.tsx`~~ | **reparat 17 oct 2026** în viewer; railul rămâne fără chip, deliberat (geometria măsurată 98×126 și banda numelui nu încap un al doilea element) — `MIGRATION.md` §19.4 |
 | ~~4~~ | ~~butonul de relație lipsește pe rândul de contact din Mesaje~~ | ~~`MessagesScreen.tsx` / `ContactCard.tsx`~~ | **reparat 17 oct 2026**: `participants[].id` era deja în payload; chipul stă între persona și acțiunile rapide |
-| 5 | ecranul de notificări nu este portat | rând „lipsă” în `MIGRATION.md` §0 | nu se inventează |
+| 5 | ecranul de notificări nu este portat | rând „lipsă” în `MIGRATION.md` §0 | nu se inventează. Recon 17 oct: conținutul **există** (`ActivityCenter`, cinci endpointuri, copy `activity.*`), lipsește **poarta** — pe web notificările sunt al șaselea rând al meniului de profil (`profile-menu.js:12-20`), iar `FeedDrawer` de pe telefon nu are acele porți (§3.1) |
 | 6 | runda 4 nemăsurată pe telefon | `docs/parity-report/profile-header/` | `00-now.png` era corupt (acum `.bad`); se reface cu `safe-screencap.ps1` |
 | 7 | `uiautomator dump` întoarce 0 noduri pe profil | banda de ticker se animă continuu | folosește `device-batch.ps1 -ReduceMotion` (pune scalele la loc în `finally`) |
 | 8 | 4 erori ESLint preexistente | `ActivityCenter`, `MessagesScreen` | neatinse de loturile curente |
