@@ -71,7 +71,7 @@ export const PROFILE_MENU_WORD = 'Deschide meniul de setări';
  * endpoint the web reads (`GET /api/profiles/:handle?persona=social`). The five content tabs are real
  * filters over the payload the server returns, so no tab is a button that pretends to do something.
  */
-export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen = false, onBack, onShare, onMessage, viewerUserId, onRelationChanged }: {
+export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen = false, onBack, onShare, onMessage, onMonetize, onWallet, viewerUserId, onRelationChanged }: {
   handle: string;
   reloadKey?: number;
   onDoor?: (door: TickerDoor, arg: string) => void;
@@ -90,6 +90,9 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
   onShare?: () => void;
   /** `Mesaj Nexus`: the inbox owns conversations, and only a host that can open one hands this in. */
   onMessage?: () => void;
+  /** The owner's own doors, handed in by the shell that owns those screens. */
+  onMonetize?: () => void;
+  onWallet?: () => void;
   /** Who is reading: the relation store needs it to recognise the reader's own record. */
   viewerUserId?: number | null;
   /** Anything that depends on a relation reloads through here after a change lands (`MIGRATION.md` §19.4). */
@@ -256,6 +259,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
         onShare={onShare ? onShare : shareProfile}
         onEditProfile={() => setEditOpen(true)}
         onMenu={onMenu}
+        onMonetize={onMonetize}
+        onWallet={onWallet}
         menuOpen={menuOpen}
         onMessage={onMessage}
         onDoor={onDoor}

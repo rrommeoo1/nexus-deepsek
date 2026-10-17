@@ -4,6 +4,7 @@ import { HEADER_WORDS, deriveRelationUi, type RelationTarget, type RelationView 
 import { initialsFor, mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 import { MessageButton, RelationButton, RelationMenuButton } from './RelationButton';
+import { ProfileOwnerMenu } from './ProfileOwnerMenu';
 import { RemoteImageSource } from './PostMedia';
 import type { TickerDoor } from './ProfileTicker';
 
@@ -27,6 +28,7 @@ import type { TickerDoor } from './ProfileTicker';
  */
 export function ProfileHeader({
   profile, relation, viewerUserId, hasUnseenStory = false, onBack, onShare, onEditProfile, onMenu, menuOpen, onMessage, onDoor,
+  onMonetize, onWallet,
   presence = '', visibility = '', visibilityWord: visibilitySay = '', style,
 }: {
   profile?: ProfileView | null;
@@ -42,6 +44,10 @@ export function ProfileHeader({
   onEditProfile?: () => void;
   /** My own record's round entry opens the app's index of doors (the drawer, the web's profile menu). */
   onMenu?: () => void;
+  /** The first door of the owner's menu: the monetisation screen. */
+  onMonetize?: () => void;
+  /** The wallet door of the owner's menu: balance, payouts, history. */
+  onWallet?: () => void;
   menuOpen?: boolean;
   onMessage?: () => void;
   /** The counters that lead somewhere: `following` and `followers` open their lists (`api.js:4537`). */
@@ -232,10 +238,16 @@ export function ProfileHeader({
             onEditProfile={onEditProfile}
             style={styles.buttonFill}
           />
-          {onShare ? (
-            <MessageButton label={HEADER_WORDS.share} enabled onPress={onShare} style={styles.buttonFill} />
-          ) : null}
-          <RelationMenuButton target={target} relation={relation} />
+          {/**
+           * The owner's row is one wide button and one round entry (`MONETIZATION-SPEC.md` §2): the share
+           * left this row and lives in the menu, first door after the monetisation.
+           */}
+          <ProfileOwnerMenu
+            onMonetize={onMonetize}
+            onShare={onShare}
+            onWallet={onWallet}
+            onSettings={onMenu}
+          />
         </View>
       ) : null}
 

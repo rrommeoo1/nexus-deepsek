@@ -23,8 +23,10 @@ import { FeedScreen, nextMode, type FeedModeId } from '../screens/FeedScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { LiveScreen } from '../screens/LiveScreen';
 import { MessagesScreen } from '../screens/MessagesScreen';
+import { MonetizationScreen } from '../screens/MonetizationScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { SearchScreen } from '../screens/SearchScreen';
+import { WalletScreen } from '../screens/WalletScreen';
 import { socialTokens, profileModules as socialModules } from '../theme/social';
 import { nexusTokens } from '../theme/tokens';
 
@@ -66,6 +68,8 @@ export default function NativeHomeScreen() {
   const [slot, setSlot] = useState<NavSlot>('primary');
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /** The two screens the owner's `⋯` menu opens; `null` means the shell is showing its own slot. */
+  const [ownerPanel, setOwnerPanel] = useState<'monetize' | 'wallet' | null>(null);
   /** `Banda derulantă`, the drawer's own switch: on unless the reader turned it off (`lib/bandPrefs.ts`). */
   const bandScrolling = useBandScrolling();
   const [profileKey, setProfileKey] = useState(0);
@@ -337,7 +341,26 @@ export default function NativeHomeScreen() {
      * `menuOpen` is `drawerOpen`, which the button reads out as `aria-expanded`
      * (`profile-experience.js:372`).
      */
-    if (slot === 'account') return <ProfileScreen handle={me.user.handle} reloadKey={profileKey} onDoor={openProfileTickerDoor} onMenu={() => setDrawerOpen(true)} menuOpen={drawerOpen} viewerUserId={me.user.id} onMessage={openInbox} onRelationChanged={onRelationChanged} />;
+    if (ownerPanel === 'monetize') {
+      return <MonetizationScreen handle={me.user.handle} onClose={() => setOwnerPanel(null)} />;
+    }
+    if (ownerPanel === 'wallet') {
+      return <WalletScreen onClose={() => setOwnerPanel(null)} />;
+    }
+    if (slot === 'account') return (
+      <ProfileScreen
+        handle={me.user.handle}
+        reloadKey={profileKey}
+        onDoor={openProfileTickerDoor}
+        onMenu={() => setDrawerOpen(true)}
+        menuOpen={drawerOpen}
+        onMonetize={() => setOwnerPanel('monetize')}
+        onWallet={() => setOwnerPanel('wallet')}
+        viewerUserId={me.user.id}
+        onMessage={openInbox}
+        onRelationChanged={onRelationChanged}
+      />
+    );
     if (slot === 'inbox') {
       /** `activePersonaRecord()` of the web: the shelf's first card is the reader's own record. */
       const shelfOwner = me.profiles?.find((entry) => entry.persona === me.persona) ?? me.profiles?.find((entry) => entry.persona === 'social');
