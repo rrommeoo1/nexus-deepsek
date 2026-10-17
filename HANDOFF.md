@@ -251,6 +251,48 @@ monetizarea tipăresc mesajul serverului, `not found`, ca propoziție pentru cit
 propriu („Ruta nu există pe acest server”); (2) numele de test încă spune „Test Nexus” (vezi §0.5, blocat
 pe credențiale).
 
+## 0.7 Backend-ul F2.c pe Railway și runda de meniu/bandă (18 octombrie 2026)
+
+**Deploy aprobat de proprietar, aditiv, doar fișiere din `apps/nexus-web`.** Făcut dintr-un `git worktree`
+curat pe `origin/main` (`932d427`), pe o ramură locală `deploy/f2c-pricing`:
+
+| Commit nou pe `main` | Ce aduce | Sursă |
+| --- | --- | --- |
+| `4a2603c` | ledgerul pur + testele lui (F2) | cherry-pick `860f8ac` |
+| `5659b7c` | cele cinci rute F1 peste ledger | cherry-pick `29ee39f` |
+| `ca8ad16` | prețul pe acțiune, rutele F2.c | cherry-pick `69b0177` |
+| `da692f6` | working tree în LF + `.gitattributes` | `d0a5384`, **necesar**: fără el 36 de teste web pică pe un checkout Windows (contractele citesc sursa cu `\n`) |
+
+Conflicte: doar `HANDOFF.md` și `docs/MONETIZATION-SPEC.md`, șterse pe `main`; le-am lăsat șterse (nu erau
+necesare rutelor). `node --test test/*.test.js` în worktree: **790 teste, 790 trecute, 0 picate**.
+`node_modules` a fost legat prin junction la copia locală (nu intră în git).
+
+După push, verificat pe `https://nexus-deepsek-production.up.railway.app`:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `GET /health` | 200 `{"ok":true,"status":"ready"}` |
+| `GET /api/creator/pricing` (proprietar, cookie din `docs/.test-sessions.local`) | **200**, `can_edit:true`, `floor_cents:105`, `max_price_cents:100000000` |
+| `GET /api/creator/pricing/urailwaytest02cb2b` (cititor) | **200**, `can_edit:false`, `free:true` |
+| `GET /api/me` cu aceeași sesiune | 200 |
+| `NEXUS_SETTLE_DEMO` | oprit (implicit în `lib/creator-settlement.js`; necitit din shell-ul Railway — nu am acces la el) |
+
+**Rămâne de îndreptat pe server**: `display_currency` este încă `"JB"` în `lib/creator-pricing.js:134`, deci
+serverul spune o monedă pe care aplicația o afișează ca `JUNGLE` din `CURRENCY_LABEL`. Schimbarea în
+`"JUNGLE"` cere o a doua urcare pe `main` — nefăcută încă.
+
+**Runda de UI, în cod (neinstalată pe telefon):**
+
+- Sertarul (`FeedDrawer`) a fost **șters**; antetul de Feed nu mai are nici marca, nici butonul lui. Meniul
+  `≡` are opt rânduri (Postare nouă, Portofel, Venituri, Cheltuieli, Prețurile mele, Notificări, Setări,
+  Ieși din cont), chips-urile celor cinci profiluri și piciorul cu versiunea + `build`.
+- Banda de profil merge **permanent**, fără comutator (`lib/bandPrefs.ts` șters), la 36 s pe 360 dp
+  (era 48 s); un deget o oprește, al doilea o pornește.
+- Monetizarea nu mai are presetări și nici „mod avansat”: creatorul scrie cele trei prețuri. Cere o schimbare
+  de server pentru 0 pe o acțiune (azi toate trei trebuie peste pragul de 1,05 JUNGLE).
+- 404 / 501 / 503 / eroare de rețea: propoziții proprii + buton `Reîncearcă` (`lib/serverErrors.ts`), în
+  monetizare și în portofel.
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este
