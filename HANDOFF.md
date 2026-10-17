@@ -25,10 +25,11 @@ repete greșeala care a blocat task-urile anterioare.
 ## 2. Ce lucrez acum
 
 1. Reparația duplicării din antet este **încheiată și verificată** (`MIGRATION.md` §19.2, paragraful „Defect
-   reparat”): o citire stă într-un singur loc, sub butoanele antetului.
+   reparat”): o citire stă într-un singur loc, sub butoanele antetului — commit `7975ad2`.
 2. Sistemul de relații este **încheiat pe toate suprafețele din `MIGRATION.md` §19.4**: profil, feed, prieteni,
    căutare, live **și** rândul de comentariu, story viewer-ul, cardul de contact din Mesaje. Nu mai există
-   rând „parțial” în tabel. Urmează commit-ul acestui lot.
+   rând „parțial” în tabel — commit `f3a492a`. Ambele loturi sunt pe `codex/camera-draft-stability`; nu mai e
+   nimic de comis din ele.
 
 ## 3. Pași următori (în ordine)
 
