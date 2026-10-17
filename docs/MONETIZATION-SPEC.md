@@ -88,11 +88,12 @@ invers.
 
 **Nume:** Jungle. **Simbol afișat în aplicație:** `JB`. **ESDT pe MultiversX devnet.**
 
-Ticker-ul ESDT nu poate fi `JB`: rețeaua cere un ticker de **3–10 caractere alfanumerice, majuscule**
-(`erd_system_sc` validează la emitere), deci `JB` (2 caractere) este respins. Propunerea este
-**`JUNGLE`** (6 caractere, citește numele), cu `JBK` ca rezervă dacă `JUNGLE` e deja ocupat pe devnet.
-Ticker-ul este o chestiune de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu
-simbol scurt afișat.
+Ticker-ul ESDT nu poate fi `JB`. Sursa protocolului confirmă limitele: în
+`mx-chain-go/vm/systemSmartContracts/esdt.go` stau `minLengthForTickerName = 3` și
+`maxLengthForTickerName = 10`, deci `JB` (2 caractere) este respins, iar `JUNGLE` (6) este valid.
+Alfabetul acceptat (alfanumeric, majuscule) se confirmă la emitere, când devnet-ul acceptă sau respinge
+tranzacția `issue`. `JBK` rămâne rezerva dacă `JUNGLE` e deja ocupat pe devnet. Ticker-ul este o chestiune
+de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu simbol scurt afișat.
 
 **Zecimale:** 2, deci unitatea întreagă minimă este **1 JBc = 0,01 JB**. Registrul ține doar întregi în
 JBc; nu există float nicăieri în lanțul de calcul.
