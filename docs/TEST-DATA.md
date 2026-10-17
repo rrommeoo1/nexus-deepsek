@@ -442,3 +442,89 @@ URL-ul Railway și ID-urile conturilor, trimite `Origin` și câte un `Idempoten
 determinist per mutație, apoi recitește arborele. El recunoaște textul deja adăugat și
 refuză un părinte diferit, ca o reluare să nu dubleze firul. Nu afișează și nu comite
 cookie-uri, parole ori chei.
+
+## 12. Conturi reale de devnet (17 octombrie 2026)
+
+Conturile din §10 au rămas inaccesibile (§11.1), iar cele patru stări care lipseau pe telefon cereau
+**sesiunea altui cont**. Runda aceasta le înlocuiește cu cinci conturi noi, create prin API-ul public, fiecare
+legat de un portofel MultiversX **de devnet generat local**: semnătura de la signup vine din cheia contului, iar
+serverul primește doar adresa publică și o semnătură — niciodată mnemonicul sau cheia secretă.
+
+Două fișiere locale, ambele în `.gitignore`:
+
+| Fișier | Ce ține | Cine îl citește |
+|---|---|---|
+| `docs/.test-wallets.local` | mnemonicele și cheile secrete ale celor cinci portofele | numai scriptul de conturi; nu se tipărește, nu se comite |
+| `docs/.test-sessions.local` | emailul, cookie-ul de sesiune, adresa publică, starea fiecărui pas | scripturile de fixture-uri și verificările |
+
+### 12.1 Cele cinci conturi (numai date publice)
+
+| # | Handle | id | Nume afișat | Adresă publică (devnet) | Rol în set |
+|---|---|---|---|---|---|
+| 01 | `devnet_test_01` | 7 | Test devnet 01 | `erd1t4p9qhmv56xqrp0e069xzeedccfenzsqtgdutd3jcaf3hrlhc3kqnwkccy` | autoarea story-ului viu |
+| 02 | `devnet_test_02` | 8 | Test devnet 02 | `erd1akj8squ5cutducpdpn74xnflmvr88nyjnu8cdp4re03vmqtmcm5q9g8jt5` | trimite mesajul către `@test` |
+| 03 | `devnet_test_03` | 9 | Test devnet 03 | `erd12mf0ux4e2qpp2pzpc46mac0f9lldl5v72c8k5xae5camqyq8py5qsjqvzy` | cont **privat**, urmărește `@test` (cerere în așteptare) și `@devnet_test_05` |
+| 04 | `devnet_test_04` | 10 | Test devnet 04 | `erd19xlqghjw2hfwp9pvfjk0s4z2ekr6l72sz9fdstwx2s4e5pzshuksgetvvn` | comentează pe postarea 25 a lui `@test` |
+| 05 | `devnet_test_05` | 11 | Test devnet 05 | `erd1puhttlek4cl3dzsegkpk6u2tlz65npq372xu5s5uze5jy0th8ehqv4jgmh` | urmăritor real al lui `@test` |
+
+Soldul fiecăruia este **0,0000 EGLD**: faucet-ul de devnet cere browser și captcha, deci nu poate fi apelat
+din script (vezi §12.4). Adresele sunt cele care se pot da faucet-ului, una câte una.
+
+### 12.2 Ce a scris fiecare (id-uri canonice, recitite la 17 octombrie 2026)
+
+| Stare | Cine | Id / expirare | Cum s-a verificat |
+|---|---|---|---|
+| story viu | 01 | `id=9`, `visibility=public`, `expires_at=1823776815` (17 oct 2027, durata maximă de 365 de zile) | `GET /api/stories` ca 05 → exact un story, al lui 01 |
+| conversație + mesaj | 02 → `@test` | `conversation=2`, `message=2`, text `[test] Mesaj de verificare…` | `POST /api/chat/conversations` cu `username: "test"` |
+| cont privat | 03 | `visibility=private`, urmărește `@test` | citire ca 05: `visibility=private`, fără contoare, `following_me=true` |
+| comentariu străin | 04 | `comment=35` pe `post=25` (cea mai nouă postare publică a lui `@test`) | `POST /api/posts/25/comments` |
+| urmăritor | 05 | `following: 2`, `followers: 7` pe `@test` | `POST /api/follow` cu `user_id: 1` |
+
+Textul fiecărui obiect nou începe cu **`[test]`**, ca orice rând din aplicație să se poată recunoaște ca
+date de test și șters fără ezitare. Niciun obiect existent nu a fost modificat sau șters; scriptul este
+**add-only**.
+
+Id-urile de mai sus sunt **verificate la fiecare rulare**: `devnet-test-fixtures.mjs` compară ce răspunde
+serverul cu `story=9`, `conversation=2`, `message=2`, `comment=35` pe `post=25` și, dacă nu se potrivesc,
+tipărește diferența și iese cu cod 1 (`--allow-drift` doar o tipărește). Motivul e simplu: cheile de
+idempotență țin 24 h, deci o rulare de după fereastră scrie rânduri **noi**; lista de verificat de pe telefon
+ar numi atunci obiecte pe care nimeni nu le mai vede. Recitirea din 17 octombrie 2026 (a doua rulare, în
+fereastră) a dat exact valorile din tabel.
+
+### 12.3 De ce autoarea story-ului a devenit publică
+
+`lib/privacy-matrix.js` aplică două porți: întâi vizibilitatea **profilului**, apoi cea a **resursei**. Un
+story marcat `public` într-un profil implicit `followers` rămâne, corect, nevăzut de un străin — exact ce s-a
+întâmplat la prima rulare (`GET /api/stories` ca 05 → 0). Scriptul face acum și `PATCH /api/persona/social`
+cu `{ "visibility": "public" }` pentru 01, iar story-ul apare pentru un cont care **nu** o urmărește. Este
+singura schimbare de vizibilitate din set și este reversibilă cu aceeași cerere.
+
+### 12.4 Limite cunoscute (declarate, nu ascunse)
+
+* **Autentificarea reîncercată nu funcționează**: `POST /auth/email/login` pentru cele cinci conturi →
+  **403** „verifică adresa de email înainte de autentificare”. Emailurile sunt pe `nexus-devnet.test`, un
+  domeniu fără inbox, iar verificarea cere un token care există doar în email (`/auth/email/verify`).
+  Conturile trăiesc prin **cookie-ul salvat la signup**; sesiunea are `maxAge` 30 de zile (≈ 16 noiembrie
+  2026). După expirare, conturile nu mai pot fi folosite — se creează altele noi.
+* **Fără fonduri**: 0 EGLD pe toate cele cinci, deci nicio acțiune on-chain nu poate fi testată până nu se
+  alimentează manual de la faucet.
+* **`following_me` are două sensuri în cod** (defectul 11 din `HANDOFF.md`): în listele de relații înseamnă
+  „persoana aceea mă urmărește pe mine”, iar în payload-ul de profil înseamnă „persoana profilului mă
+  urmărește”. Ambele sunt acum corecte față de cititorul lor; nu se „repairă” o parte fără cealaltă.
+* **Doar cinci conturi pe oră și pe IP**: ruta de signup are plafon 5/ oră, iar o rulare consumă exact 5.
+  Scriptul se oprește la `429` în loc să reîncerce.
+
+### 12.5 Cum se rulează
+
+```powershell
+# 1. conturile (o singură rulare; scrie docs/.test-wallets.local + docs/.test-sessions.local)
+node apps/nexus-web/scripts/devnet-test-accounts.mjs --dry-run
+node apps/nexus-web/scripts/devnet-test-accounts.mjs
+
+# 2. fixture-urile (idempotente prin chei fixe; add-only)
+node apps/nexus-web/scripts/devnet-test-fixtures.mjs --dry-run
+node apps/nexus-web/scripts/devnet-test-fixtures.mjs
+```
+
+Ambele trimit `Origin` (mutările autentificate îl cer) și `Idempotency-Key`; a doua rulare a fixture-urilor
+întoarce aceleași id-uri (`story=9`, `comment=35`, `conversation=2`, `message=2`) fără să scrie nimic nou.

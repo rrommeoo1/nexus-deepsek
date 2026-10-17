@@ -32,11 +32,11 @@ Consecințe practice:
 | Antetul de profil nou, fără copertă (rundă 4) | commit `efc224c`; valori în `theme/social.ts` (`identity`, `relations`) |
 | Modelul unificat de relații + `RelationButton` | commit `991a861`; aplicat în profil, feed, prieteni, căutare, live (`0c031ff`) |
 | Auditul de relații, decizia owner-ului, datele de test | commit `75c40d9`; `MIGRATION.md` §19, `PARITY-MATRIX.md` §13, `TEST-DATA.md` §8 |
-| Teste locale existente | `test-relations.cjs` 20/20 (inventarul static acoperă acum 10 fișiere), `tsc --noEmit` 0 erori, suitele de profil/ticker/comentarii verzi |
+| Teste locale existente | `test-relations.cjs` 20/20 (inventarul static acoperă acum 10 fișiere; **21/21** după testul din 17 oct pe sensul de urmărire din profil), `tsc --noEmit` 0 erori, suitele de profil/ticker/comentarii verzi |
 | Butonul de relație pe ultimele trei suprafețe (§19.4 închis) | rând de comentariu (`CommentsSheet`, `viewerId` din `page.viewer_id`), antetul story viewer-ului (`viewerId` din `StoriesAnswer`, trecut și de `ContactCard`), cardul de contact din Mesaje; `fetchStories` cheamă `rememberPayload(page)` — dovadă: `MIGRATION.md` §19.4, `test-relations` 20/20 cu guardul „fără chip pe fața cititorului” |
 | Bio/loc/vârstă/handle **o singură dată**: rândul benzii scos din `ProfileScreen` (stilurile `bandRow`/`bandCell` odată cu el) | `tickerItems(profile, counters = true, identity = true)`; `ProfileTicker` rămâne pentru suprafețele fără antet |
 | Spațiul dintre antet și bara de file | token nou `identity.paddingBottom` (12) în `theme/social.ts`, folosit de `ProfileHeader.styles.header` |
-| Verificarea reparației | `tsc` 0 erori; `test-hero-parity` 6/6, `test-ticker-parity` 13/13, `test-relations` 20/20, `test-profile-content-parity` 8/8, `test-profile-edit` 9/9, `test-comment-rows` 6/6, `test-comment-time` 2/2 |
+| Verificarea reparației | `tsc` 0 erori; `test-hero-parity` 6/6, `test-ticker-parity` 13/13 **la data lotului** (azi refuză referința din baseline — §2.4), `test-relations` 21/21, `test-profile-content-parity` 8/8, `test-profile-edit` 9/9, `test-comment-rows` 6/6, `test-comment-time` 2/2 |
 | Banda de profil restaurată **nativ** (bio · locație · membru din · vârstă · tip cont), cu buclă pe driver nativ, reduce motion și foaie cu tragere | commit `f412178`; `ProfileBand.tsx`, `lib/profileBand.ts`, `MIGRATION.md` §20; `scripts/test-profile-band.cjs` 12/12 |
 | Antetul nu mai tipărește bio/loc/vârstă (o citire, un singur loc) | `ProfileHeader.tsx` fără blocul `about`; test-hero-parity actualizat la decizia nouă |
 | Ciclul de dezvoltare: `docs/DEV-WORKFLOW.md` + `tools/dev-start.ps1` + `API: Railway` lângă versiune | commit `f412178`; script rulat pe telefon (Metro pornit, reverse 8081, app în prim-plan, deep link LAN) |
@@ -45,6 +45,11 @@ Consecințe practice:
 | Banda se mișcă **mereu** (fără `reduce motion` al sistemului), pauză/reluare pe atingere, `ⓘ` de 44 dp pentru foaie, fade lateral | commit `5f61170`; `ProfileBand.tsx`, `lib/bandMotion.ts`, `MIGRATION.md` §20.2; `scripts/test-band-motion.cjs` 9/9 + `test-profile-band` 12/12; verificat pe telefon (§2.3) |
 | Comutatorul „Banda derulantă” în sertar (implicit pornit, `nexus-prefs/band.json`) | commit `5f61170`; `lib/bandPrefs.ts`, `FeedDrawer.tsx`; starea se vede în dump ca `android.widget.Switch checked=true` |
 | Lotul web/parity rămas necomis, arhivat local | branch **`wip/web-archive`** (commit `ba7bb84`, 43 de fișiere, **fără push**); `main` rămâne curat de ele; diagnosticile noi sunt în `.gitignore` |
+| `following_me` în payload-ul de profil, ambele sensuri, inclusiv pe shell-ul blocat | commit `cf2c0a8` pe `main` ca `932d427`; `test/profile-follow-direction.test.js` 7/7 + 14 teste de profil verzi; **deployat** (`/health` 200, `GET /api/profiles/test` are câmpul) |
+| Cinci conturi reale de devnet, cu portofel MultiversX generat local | `apps/nexus-web/scripts/devnet-test-accounts.mjs`; adrese publice în `TEST-DATA.md` §12.1, cheile doar în `docs/.test-wallets.local`; serverul primește adresa + o semnătură |
+| Cele patru stări care lipseau pe telefon | `apps/nexus-web/scripts/devnet-test-fixtures.mjs`: story `9`, conversația `2` + mesajul `2`, cont privat `03`, comentariul `35`, urmăritorul `05` — add-only, chei de idempotență fixe, recitite la 17 oct |
+| Sensul de urmărire pe un cont privat, dovedit | citire ca 05 pe 03 → `visibility=private`, `following_me=true`, fără contoare (`HANDOFF.md` §2.4) |
+
 
 ## 2. Ce lucrez acum
 
@@ -144,12 +149,47 @@ Deploy-ul `joined_at` (commit `c430839` adus pe `main` ca `5b8be80`, după rebas
 `/health` → 200 `ready`, `GET /api/me` → `@test`, `GET /api/profiles/test?persona=social` → `joined_at`
 prezent, iar pe telefon rândul «Membru din septembrie 2026» apare atât în bandă, cât și în foaie.
 
+### 2.4 Sesiunea pe backend — conturi reale de devnet și cele patru stări (17 octombrie 2026)
+
+Telefonul nu a fost atins în această rundă. Tot ce urmează s-a făcut prin API-ul public de pe Railway, cu
+`Origin` și `Idempotency-Key`, iar fiecare cifră e o recitire, nu o intenție.
+
+| Ce s-a livrat | Dovadă |
+|---|---|
+| `following_me` în `GET /api/profiles/:handle`, pe payload-ul normal **și** pe shell-ul blocat | commit `cf2c0a8` (pe `origin/main` ca `932d427`); `apps/nexus-web/test/profile-follow-direction.test.js` 7/7, cele 14 teste de profil verzi; **deployat**: `/health` 200 `ready`, `GET /api/profiles/test` întoarce câmpul |
+| Cinci conturi reale de devnet, fiecare cu portofel MultiversX generat local | `apps/nexus-web/scripts/devnet-test-accounts.mjs`; adrese publice în `TEST-DATA.md` §12.1; cheile rămân în `docs/.test-wallets.local` (gitignored), nu ajung la server și nu se tipăresc |
+| Cele patru stări care lipseau pe telefon | `apps/nexus-web/scripts/devnet-test-fixtures.mjs`: story `9` (public, 365 de zile), conversația `2` + mesajul `2` de la 02, contul privat `03` (îl urmărește pe `@test`), comentariul `35` de la 04 pe postarea `25`, urmăritorul `05` |
+| Sensul de urmărire pe un cont privat | citire ca 05 pe 03: `visibility=private`, fără contoare, `following_me=true`, `is_following=false` |
+| Telefonul chiar folosește câmpul | `patchFromProfile` din `lib/relations.ts` îl citește (înainte doar `patchFromPerson` o făcea, deci un profil deschis „rece” nu putea spune `Urmărește înapoi`); `socialTypes.ts` îl tipizează, shell-ul blocat inclusiv; `test-relations.cjs` 21/21 (test nou: rece, blocat, mutual, câmp absent), `tsc --noEmit` curat |
+
+Trei lucruri s-au învățat pe piele în timpul rulării și sunt acum în scripturi:
+
+* mutările autentificate cer **`Origin`** (`lib/api.js`); fără el răspunsul e 403 fără explicație utilă —
+  ambele scripturi îl trimit;
+* un story `public` într-un profil `followers` **rămâne** nevăzut de străini, fiindcă matricea de
+  confidențialitate verifică întâi profilul, apoi resursa (`lib/privacy-matrix.js`) — de aceea 01 face și
+  `PATCH /api/persona/social { visibility: "public" }`;
+* signup-ul e plafonat la **5 conturi pe oră și pe IP**, exact câte are setul; scriptul se oprește la `429`
+  în loc să reîncerce.
+
+Ce **nu** s-a putut face de aici: `POST /auth/email/login` răspunde **403** pentru toate cele cinci conturi
+(emailul nu poate fi verificat — `nexus-devnet.test` nu are inbox, iar tokenul de verificare există doar în
+email). Conturile trăiesc prin cookie-ul de la signup, cu `maxAge` de 30 de zile; după aceea se creează
+altele. Și: **0 EGLD** în fiecare portofel, fiindcă faucet-ul cere browser și captcha (`§9.1`).
+
+Un contract de test rămâne roșu și **nu** e din lotul acesta: `apps/nexus-mobile/scripts/test-ticker-parity.cjs`
+refuză referința (`apps/nexus-web/public/profile-ticker.js`) fiindcă baseline-ul nu conține
+`PROFILE_TICKER_ROWS` / `PROFILE_TICKER_ACTIONS` / `PROFILE_TICKER_RUN_MIN` — atât testul, cât și fișierul de
+referință sunt nemodificate față de `HEAD`, deci e o nepotrivire moștenită, nu o regresie. Celelalte opt
+contracte de telefon trec (9/9, 6/6, 2/2, 6/6, 12/12, 8/8, 9/9, 21/21).
+
+
 ## 3. Pași următori (în ordine)
 
 1. ~~**Aprobarea backend-ului** pentru `joined_at`~~ — **închis 17 oct 2026**: cherry-pick `c430839` → `5b8be80` pe `main`, rebase pe `origin/main`, teste verzi, push, deploy; `/health` 200 și telefonul arată «Membru din septembrie 2026».
-2. **Datele de test pentru stările rămase** — blocat pe credențiale, nu pe cod (vezi `docs/TEST-DATA.md` §11): conturile de test de pe Railway (`urailwaytest01a20d` … `urailwaytest05313a`) au emailuri `@nexus.test`, **neverificabile**, deci `POST /auth/email/login` răspunde 403 și sesiunile salvate în `docs/.test-sessions.local` dau 401; `/auth/email/signup` cere dovadă de portofel. Ce **există** acum pe deploy: comentarii ale altor conturi pe postarea 5 a lui `@test` (20, autori 3 și 4) — verificat prin `GET /api/posts/5/comments`. Ce lipsește: story străin (toate au expirat pe 14 oct), conversație/mesaj (0 conversații), cont privat + cereri în ambele sensuri (0 cereri primite). Deblocare: fie proprietarul verifică un cont real și îl dă ca al doilea cont, fie se rulează din nou seed-ul (`scripts/seed-preview-test-data.mjs`) cu conturi noi, într-o singură rulare (sesiunea se naște la signup; limita e 5 conturi/oră/IP).
+2. **Datele de test pentru stările rămase** — **închis pe 17 oct 2026**: cinci conturi reale de devnet (`devnet_test_01`…`05`, portofel generat local) au scris story-ul `9`, conversația `2` + mesajul `2`, contul privat `03` (care îl urmărește pe `@test`), comentariul `35` și urmăritorul `05`. Id-urile, adresele publice și limitele cunoscute sunt în `docs/TEST-DATA.md` §12. Rămân două lucruri care cer telefonul, nu codul: faucet-ul manual (§9.1) și cele șapte verificări din §9.3.
 3. **`uiautomator dump` și animația continuă**: cât timp banda aleargă, dump-ul cere idle și **eșuează** (`could not get idle state`); pentru măsurători se atinge banda (pauză), apoi se citește arborele. Capturile: `safe-screencap.ps1`.
-4. **„Urmărește înapoi”** — nu mai e o limită de server: `GET /api/social/relations?kind=followers|following` întoarce `following_me` pe fiecare persoană (verificat live: user 3 → `following_me: true`), iar `lib/relations.ts` îl citește deja (`rememberPeople` → `followsMe` → eticheta `Urmărește înapoi`). Ce lipsește: `GET /api/profiles/:handle` nu are câmpul, deci un profil deschis „rece”, fără ca acel cont să fi apărut într-o listă sau într-o postare, nu poate ști sensul invers. Dacă se vrea corect și acolo, câmpul de adăugat e `following_me: repo.isFollowing(target.id, auth.user.id, persona)`.
+4. **„Urmărește înapoi” pe un profil** — **închis pe 17 oct 2026**: `GET /api/profiles/:handle` are acum `following_me` (commit `cf2c0a8`, deployat), pe payload-ul normal **și** pe shell-ul blocat. Telefonul îl citește în `lib/relations.ts` (`patchFromProfile` → `followsMe`), iar `test-relations.cjs` ține cazul: profil deschis „rece”, profil privat blocat, pereche mutuală și payload fără câmp. Dovada pe ecran rămâne captura din §9.3, rândul 4.
 5. **Lotul web/parity** — arhivat pe `wip/web-archive` (commit `ba7bb84`), fără push. `main` nu îl conține.
 
 ## 4. Defecte deschise
@@ -164,8 +204,10 @@ prezent, iar pe telefon rândul «Membru din septembrie 2026» apare atât în b
 | 6 | runda 4 nemăsurată pe telefon | `docs/parity-report/profile-header/` | `00-now.png` era corupt (acum `.bad`); se reface cu `safe-screencap.ps1` |
 | ~~7~~ | ~~`uiautomator dump` întoarce 0 noduri pe profil~~ | unealta, nu ecranul | **explicat 17 oct 2026**: dump-ul poate prinde un cadru de animație sau doar fundalul unui modal; o a doua rulare după 2 s dă arborele complet. Nu mai e nevoie de `-ReduceMotion` pentru măsurători |
 | ~~8~~ | ~~4 erori ESLint preexistente~~ | `eslint src` | **curat** din `c7da4f3`; reverificat 17 oct după lotul benzii: fără ieșire |
-| ~~9~~ | ~~payload-ul de postare **și de profil** nu are `following_me`~~ | server (`socialPostView`, ruta de profil) | **corectat 17 oct 2026**: `GET /api/social/relations?kind=followers\|following` **are** `following_me` pe fiecare persoană (verificat live), iar `lib/relations.ts` îl citește și tipărește `Urmărește înapoi`. Rămâne o singură lipsă, mai mică: `GET /api/profiles/:handle` nu poartă câmpul, deci un profil deschis fără ca acel cont să fi apărut într-o listă sau într-o postare nu știe sensul invers — câmpul de adăugat e `following_me: repo.isFollowing(target.id, auth.user.id, persona)` |
+| ~~9~~ | ~~payload-ul de postare **și de profil** nu are `following_me`~~ | server (`socialPostView`, ruta de profil) | **închis 17 oct 2026**: `GET /api/social/relations` are `following_me` pe fiecare persoană, iar de la commit `cf2c0a8` și `GET /api/profiles/:handle` îl are — pe payload-ul normal **și** pe shell-ul blocat (`repo.profileView` / `lockedProfileShell`). `lib/relations.ts` citește fiecare payload în locul lui (`patchFromPerson` vs `patchFromProfile`), fiindcă același nume are sensuri inverse pe cele două rute (vezi #11) |
 | ~~10~~ | ~~săgeata „Înapoi” de pe profilul pushuit nu este desenată și nu primește tap~~ | `src/app/profile/[handle].tsx` | **reparat și verificat pe telefon 17 oct 2026**: ruta nu avea `insets.top`; acum `useSafeAreaInsets`. Nodul `Înapoi` măsurat la `[36,181][151,296]` px fizici (sub ceas), tap → revenire în listă |
+| 11 | `following_me` are **sens invers** pe două rute, și asta e intenționat | `lib/repo.js` (`listSocialRelations` vs profil / shell blocat) | `GET /api/social/relations` → `following_me` = **eu îl urmăresc** (`repo.js:1929`); `GET /api/profiles/:handle` → `following_me` = **el mă urmărește**. Fiecare e comentat la locul lui, iar clientul le citește separat (`patchFromPerson` vs `patchFromProfile`). Nu se repară o singură parte: o „unificare” atinge ambele rute, `test/profile-follow-direction.test.js`, `test-relations.cjs` și cele două apeluri din app |
+
 
 
 ## 5. Note despre telefon (verificate, nu presupuse)
@@ -230,3 +272,62 @@ npm --prefix apps/nexus-mobile run typecheck
 node apps/nexus-mobile/scripts/test-relations.cjs
 node apps/nexus-mobile/scripts/test-ticker-parity.cjs
 ```
+
+
+## 9. Am nevoie de telefon (verificări care nu se pot face de aici)
+
+La 17 octombrie 2026 backend-ul are, în sfârșit, toate datele care lipseau pe telefon (`TEST-DATA.md` §12).
+Ce rămâne cere **mâna proprietarului**: un faucet cu captcha și ochii pe ecran. Nimic din lista de mai jos nu
+se poate dovedi dintr-un script, iar rezultatul nu se presupune.
+
+### 9.1 Faucet devnet — o singură dată per portofel
+
+Faucet-ul oficial (`https://devnet-wallet.multiversx.com/faucet`) cere browser și captcha, deci nu poate fi
+apelat din script. Pentru fiecare rând: deschide pagina, lipește adresa, cere fondurile, așteaptă confirmarea.
+
+| Handle | Adresă publică (devnet) |
+|---|---|
+| `devnet_test_01` | `erd1t4p9qhmv56xqrp0e069xzeedccfenzsqtgdutd3jcaf3hrlhc3kqnwkccy` |
+| `devnet_test_02` | `erd1akj8squ5cutducpdpn74xnflmvr88nyjnu8cdp4re03vmqtmcm5q9g8jt5` |
+| `devnet_test_03` | `erd12mf0ux4e2qpp2pzpc46mac0f9lldl5v72c8k5xae5camqyq8py5qsjqvzy` |
+| `devnet_test_04` | `erd19xlqghjw2hfwp9pvfjk0s4z2ekr6l72sz9fdstwx2s4e5pzshuksgetvvn` |
+| `devnet_test_05` | `erd1puhttlek4cl3dzsegkpk6u2tlz65npq372xu5s5uze5jy0th8ehqv4jgmh` |
+
+Verificarea soldului nu cere nicio cheie și nu creează conturi: o a doua rulare a scriptului de conturi merge
+pe sesiunile existente și tipărește soldul fiecăruia (`balanceOf` citește `https://devnet-api.multiversx.com`).
+
+```powershell
+node apps/nexus-web/scripts/devnet-test-accounts.mjs   # „already registered … balance=X EGLD” pentru fiecare
+```
+
+### 9.2 Pre-check-uri obligatorii înainte de orice input
+
+1. `adb -s <serial> shell dumpsys window | findstr mCurrentFocus` → trebuie să conțină
+   `app.nexus.mobile.dev/.MainActivity`. Dacă scrie `NotificationShade` sau ecranul e `Dozing`, se trezește cu
+   `scripts/nexus-dev.ps1 -Action wake` (fără Home/Back/cortină) și **nu se trimite niciun input** până nu
+   revine focusul.
+2. Bundle-ul: `tools/dev-start.ps1` (Metro + `adb reverse`), iar dacă Fast Refresh nu a prins editările, deep
+   link-ul `nexusdev://expo-development-client/?url=…:8081`.
+3. Capturi: numai `powershell -NoProfile -File tools/images/safe-screencap.ps1 -Name <nume>`, apoi
+   `validate-images.ps1` → `to-vision.ps1`, citite **una pe rând** din `docs/vision/`.
+
+### 9.3 Checklist — șapte stări, fiecare cu rezultatul așteptat
+
+| # | Unde | Ce trebuie să se vadă | Date în spate |
+|---|---|---|---|
+| 1 | Acasă → rail-ul de story-uri | inel nou, `devnet_test_01`, se deschide, text `[test] Story…` pe fundal (story text-only, `fallbackCaption`) | story `9`, `public`, expiră 17 oct 2027 |
+| 2 | Postarea 25 a lui `@test` → comentarii | rândul `devnet_test_04` **cu chip de relație** (`Urmărește`) | comentariu `35` |
+| 3 | Mesaje | conversația cu `devnet_test_02`, mesaj `[test] Mesaj de verificare…` | conversația `2`, mesajul `2` |
+| 4 | Profil `devnet_test_03` (din Urmăritori sau din feed) | shell **blocat** (fără postări, fără contoare) și chip **`Urmărește înapoi`** — 03 îl urmărește pe `@test` | `visibility=private`, `following_me=true` (verificat ca 05) |
+| 5 | Același profil, tap pe chip | `Solicitat` (cererea pleacă de la `@test`; 03 e privat) | `POST /api/follow` → 202 |
+| 6 | Profil propriu → Urmăritori | lista **nu** mai e goală; `devnet_test_05` apare cu chip | 05 urmărește `@test`, contoare 7/2 |
+| 7 | Profil propriu → `⋯` | meniul se deschide și fiecare acțiune face exact ce spune eticheta (lista de acțiuni vine din lotul „meniul de profil”, încă neconstruit) | — (depinde de cod, nu de date) |
+
+Dacă un rând nu apare, verificarea se oprește acolo și se notează în §2 ce s-a văzut: nu se reîncearcă prin
+ghicit, nu se schimbă datele și nu se șterge nimic.
+
+### 9.4 Ce se scrie înapoi în fișier
+
+După sesiune: un rând nou în §2.5 cu tabelul de mai sus bifat, numele capturilor (`story-foreign`,
+`comment-chip`, `private-shell`, `followers-list`) și orice abatere. `following_me` are două sensuri în cod
+(defectul 11) — dacă eticheta iese invers pe ecran, se notează acolo, nu se „repairă” o singură parte.

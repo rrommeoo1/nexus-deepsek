@@ -28,6 +28,9 @@ planning/evidence/screenshots/chrome-profile-*/
 # Local-only test session cookies / passwords written by
 # apps/nexus-web/scripts/seed-preview-test-data.mjs
 docs/.test-sessions.local
+# Local-only devnet wallets (mnemonics and secret keys) written by
+# apps/nexus-web/scripts/devnet-test-accounts.mjs
+docs/.test-wallets.local
 
 # Runtime databases, uploads and logs
 apps/nexus-web/data/
