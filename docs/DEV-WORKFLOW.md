@@ -82,19 +82,26 @@ adb install -r builds\nexus-dev-arm64.apk
 Semnătura este cea debug a mașinii (`~/.android/debug.keystore`), aceeași ca a aplicației instalate,
 deci `-r` păstrează sesiunea și drafturile.
 
-**Splash:** `expo-splash-screen` nu este instalat, iar prebuild-ul SDK 57 ignoră cheia `splash` din
-`app.json`; ecranul de pornire rămâne fundalul implicit `#FFFFFF` cu marca în centru. Pentru fundalul
-verde (`#02150D`) trebuie adăugată dependența gratuită și pluginul:
+**Splash:** `expo-splash-screen` (`~57.0.10`, gratuit) este instalat și configurat ca plugin în `app.json`;
+prebuild-ul SDK 57 ignoră cheia `splash` de la nivelul de sus, de aceea cheia a fost scoasă. Configurația
+actuală, cu fundalul de canvas al aplicației și marca transparentă în centru:
 
-```powershell
-npx expo install expo-splash-screen
-# apoi în app.json, în "plugins":
-# ["expo-splash-screen", { "backgroundColor": "#02150D",
-#   "image": "./assets/brand/jb-splash-1080x1920.png", "imageWidth": 280 }]
+```json
+["expo-splash-screen", {
+  "image": "./assets/brand/jb-mark-1024.png",
+  "imageWidth": 200,
+  "resizeMode": "contain",
+  "backgroundColor": "#000000",
+  "dark": { "image": "./assets/brand/jb-mark-1024.png", "backgroundColor": "#000000" }
+}]
 ```
 
-Abia după asta se reconstruiește APK-ul. Nu s-a adăugat dependența în lotul de rebrand, ca build-ul să nu
-depindă de o instalare nouă.
+`imageWidth` este în dp; marca are 1024 px, deci la 200 dp rămâne ascuțită pe orice densitate. Dacă se
+schimbă vreodată culoarea de fundal a ecranului de login (`nexusTokens.colors.canvas`), se schimbă și aici,
+ca splash-ul să nu facă o săritură de culoare. După orice modificare de `app.json` sau de active este nevoie
+de un APK nou; `prebuild` singur nu ajunge, iar directorul `C:\nxm\android` trebuie șters dacă s-a schimbat
+ceva în pluginuri (altfel prebuild-ul refolosește resursele vechi).
+
 
 ## Ce vezi mereu
 

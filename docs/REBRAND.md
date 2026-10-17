@@ -88,28 +88,70 @@ singură bucată, când se atinge backend-ul:
 
 ## 5. Logo: sursa, prelucrarea, verificarea
 
-* Sursa: `apps/nexus-mobile/assets-src/jungle-book-logo.jpg` — JPEG valid (`FF D8 FF`), 784×1168, 24 bpp.
-  Nu a fost citită cu instrumente de imagine din conversație; a fost prelucrată exclusiv din terminal.
-* Generator: `node tools/brand/make-assets.mjs`, care rulează `tools/brand/make-assets.ps1` (System.Drawing;
-  `sharp` nu este instalat în proiect și nu s-a adăugat). Scriptul detectează singur culoarea câmpului din
-  cele patru colțuri, găsește caseta literelor și decupează un pătrat cu margine de 6%.
-* Ieșire în `apps/nexus-mobile/assets/brand/`: `jb-logo-1024.png`, `jb-logo-circle-256.png`,
-  `jb-logo-header-{1x,2x,3x}.png` (36/72/108 px = 36 dp), `jb-icon-foreground-1024.png`,
-  `jb-icon-background-1024.png`, `jb-icon-1024.png`, `jb-icon-monochrome-1024.png`,
-  `jb-splash-1080x1920.png`. Fișierele vechi din `assets/` (`icon.png`, `android-icon-*.png`,
-  `splash-icon.png`, `favicon.png`) au rămas pe disc dar **nu mai sunt referite de `app.json`**; se pot șterge
-  într-un lot separat, după ce noul APK e confirmat pe telefon.
-* Verificare numerică la fiecare rulare (scriptul iese cu cod 1 dacă nu se potrivește): dimensiunile fiecărui
-  fișier, colțul opac = culoarea câmpului eșantionat, colțurile straturilor transparente au alfa 0, centrul
-  are alfa 255 (monocromul poate avea centrul transparent — literele nu umplu mijlocul).
-* Rularea reală, 17 oct 2026: câmp `#02150D` (împrăștiere între colțuri 9), litere 629×587, decupaj 705 px
-  la (32, 200), 10 fișiere, 7,9 s. **Verificarea vizuală pe telefon rămâne a proprietarului.**
-* A doua rulare a scris exact aceleași fișiere (arborele git a rămas curat), deci generatorul este
-  determinist și poate fi rerulat înainte de orice build.
-* **Ecranul de pornire:** `app.json` are cheia `splash`, dar prebuild-ul Expo SDK 57 o ignoră fără
-  `expo-splash-screen` (dependență gratuită, neinstalată). APK-ul curent pornește cu marca în centru pe
-  fundalul implicit alb; pentru `#02150D` trebuie adăugat pluginul — comenzile exacte sunt în
-  `docs/DEV-WORKFLOW.md`.
+* Surse, în ordinea încercată: `apps/nexus-mobile/assets-src/jungle-book-logo-transparent.png` (dacă
+  proprietarul îl pune acolo — se validează antetul `89 50 4E 47 0D 0A 1A 0A`, decodarea și existența
+  pixelilor cu alfa 0) și, în lipsa lui, `apps/nexus-mobile/assets-src/jungle-book-logo.jpg`
+  (JPEG valid `FF D8 FF`, 784×1168). Azi arborele are doar JPEG-ul, deci s-a folosit JPEG-ul. Niciuna
+  dintre imagini nu a fost citită sau atașată în conversație; totul s-a prelucrat din terminal.
+* Generator: `node tools/brand/make-assets.mjs` → `tools/brand/make-assets.ps1` (PowerShell cu C# inline
+  compilat de `Add-Type`, System.Drawing, `LockBits`; fără `sharp`, fără dependențe noi). Pașii, exact
+  cei din cerință:
+  1. culoarea câmpului = **mediana** benzii de margine (nu un colț), plus abaterea măsurată `sigma`;
+  2. distanța RGB a fiecărui pixel față de câmp; pragurile se deduc din `sigma` (rularea reală:
+     `sigma = 6,89` → praguri **22 / 57**, de ordinul 18/48 cerut);
+  3. componente conexe ale pixelilor „asemănători câmpului”: devin transparente cele care ating marginea
+     sau depășesc **0,15%** din imagine (asta golește și contururile literelor și spațiile dintre fructe);
+     cele mici rămân **opace**, ca frunzele și umbrele închise să nu dispară;
+  4. decontaminarea marginii: `F = (C − (1−a)·Câmp) / a`, limitat la 0–255, ca să nu rămână halou verde;
+  5. petele opace sub **20 px** sunt șterse, iar marginea este netezită pe un pixel;
+  6. decupaj strâns pe caseta alfa, cu margine **4%**, într-un pătrat transparent.
+* **O deviație, măsurată, de la rampa liniară.** Rampa liniară între cele două praguri, aplicată direct pe
+  distanță, a produs o margine late de **49 px** (umbrele moi ale fotografiei traversează banda lent); pe
+  fundal negru, frunzele din acea bandă ar fi ieșit pe jumătate transparente. De aceea alfa este decisă
+  binar de prag (membru / nu e membru), masca trece printr-un **vot de majoritate 5×5** (care toacă
+  scara de 1 px a umbrelor) și abia apoi printr-o **medie 3×3**, care lasă exact un pixel de tranziție.
+  Rezultatul măsurat: rampa (percentila 90 a distanței până la capătul cel mai apropiat) este **3 px** la
+  1024 și **1–2 px** la toate celelalte mărimi; procentul de pixeli semitransparenți aflați departe și de
+  opac și de gol („ceață”) este **2,35%** la 1024 și 0 la restul.
+
+* Ieșire în `apps/nexus-mobile/assets/brand/` (13 fișiere + `stats.json`): `jb-mark-1024.png`,
+  `jb-mark-512.png`, `jb-mark-header-{1x,2x,3x}.png` (36/72/108 px = 36 dp), `jb-mark-nav-{1x,2x,3x}.png`
+  (40/80/120 px = 40 dp), `jb-splash-512.png`, `jb-icon-foreground-1024.png` (literele în zona sigură de
+  66%, restul transparent), `jb-icon-background-1024.png` (verde uniform `#02150D`),
+  `jb-icon-monochrome-1024.png` (silueta albă din canalul alfa), `jb-icon-1024.png` (iconița pătrată pentru
+  launcher-ele vechi: marca pe câmp). Fișierele vechi cu fundal (`jb-logo-*`, `jb-logo-circle-256`,
+  `jb-splash-1080x1920`) sunt **șterse automat** de generator la fiecare rulare (rularea de azi a raportat
+  6 fișiere vechi eliminate), deci nu pot rămâne în urmă. Fișierele din `assets/` (`icon.png`,
+  `android-icon-*.png`, `splash-icon.png`, `favicon.png`) nu sunt referite de `app.json` și pot fi șterse
+  într-un lot separat.
+* Verificare numerică la fiecare rulare (scriptul iese cu cod 1 dacă nu se potrivește): dimensiunile
+  fiecărui fișier, colțurile straturilor transparente au alfa 0, colțurile straturilor opace au alfa 255,
+  fracția transparentă a pătratului între 25% și 60%, zero pete izolate, rampa de margine ≤ 3 px, ceața
+  ≤ 5%, iar „probele de fruct” (punctul cel mai adânc din fiecare dintre cele două litere, găsit ca punct
+  cu distanța maximă până la marginea componentei) au alfa 255. Toate acestea ajung în
+  `assets/brand/stats.json`.
+* Rularea reală, 17 oct 2026: câmp `#03180F` (`sigma` 6,89; praguri 22/57), litere 630×587, decupaj 680 px,
+  marca **55,4% transparentă**, rampă 3 px, 0 pete, ceață 2,35%, probe la (596,490) și (164,790) cu alfa
+  255, 13 fișiere. **Verificarea vizuală pe telefon rămâne a proprietarului** — dacă pe negru se vede
+  halou sau lipsesc frunze, se crește raza votului de majoritate (2 → 3) și se rerulează generatorul.
+* A doua rulare scrie exact aceleași fișiere: generatorul este determinist (hash-urile ambelor rulări sunt
+  comparate în `make-assets.mjs`, iar un rezultat care diferă este refuzat).
+
+* **Splash:** `expo-splash-screen` (`~57.0.10`, gratuit) este instalat, iar `app.json` îl are ca plugin cu
+  `image: jb-mark-1024.png` (marca transparentă), `imageWidth: 200`, `resizeMode: contain` și
+  `backgroundColor: #000000`. Fundalul este `nexusTokens.colors.canvas`, adică exact culoarea ecranului de
+  login, ca să nu existe nicio săritură de culoare între splash și aplicație (înainte cheia `splash` era
+  ignorată de prebuild, iar ecranul pornea alb). Cheia `splash` de la nivelul de sus a fost scoasă, ca să nu
+  pară că mai are efect.
+* **Bara și butonul central:** marca nu are ramă, pătrat, mască circulară sau fundal propriu — fișierul este
+  transparent. Antetul și inbox-ul o desenează la 36 dp (`variant="header"`), butonul central la 70% din
+  diametrul interior al inelului (`variant="nav"`, 31 dp dintr-un interior de 44 dp), login-ul la 132 dp
+  (`variant="large"`). Inelul butonului și zona lui de atingere au rămas neschimbate.
+* **Testul de active:** `npm run test:brand-assets` (inclus în `npm test`) citește `stats.json`, ține
+  limitele în chiar fișierul testului, decodează PNG-urile cu `zlib` (fără dependențe) și compară pixelii
+  cu raportul: colțuri, fracția goală, probele, plus hash-ul fiecărui fișier, ca un PNG editat de mână sau
+  un `stats.json` vechi să nu poată trece. Testul a fost probat cu o valoare injectată (`specks: 3`) și a
+  picat, apoi a trecut după restaurare.
 * Iconița de notificare nu a fost generată: proiectul nu are `expo-notifications`, deci nu există un strat
   de notificare care să o folosească.
 

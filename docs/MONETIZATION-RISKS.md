@@ -29,6 +29,26 @@ printr-o deducție din cod. Un răspuns parțial se notează ca atare.
 | 16 | **Cine plătește gazul** pentru decontări și retrageri? Propunerea este un portofel de trezorerie al platformei, dar cine îl alimentează, din ce buget, cu ce limită zilnică și ce se întâmplă când se golește? | `payout_requests`, worker-ul de decontare, pragul de retragere, mesajul „indisponibil temporar” | proprietar + contabil |
 | 17 | **Ce se întâmplă cu fondurile din soldul intern** dacă un creator își șterge contul, dacă platforma se închide sau dacă tokenul își pierde valoarea de referință? Se răscumpără, se blochează, se donează? | politica de închidere de cont, `refund`, textul din „Despre” | proprietar + jurist |
 
+### 1.1 Răspunsuri provizorii, doar pentru devnet (17 octombrie 2026)
+
+Fiecare rând de mai jos este rostit de proprietar și poartă formula: **„Răspuns: provizoriu devnet, de
+revizuit cu un jurist înainte de bani reali, proprietarul, 17 octombrie 2026”**. Niciunul nu închide
+întrebarea — o ține deschisă pentru lansare — dar fiecare deblochează lucrul pe devnet, fără bani reali.
+Toate presupun `real_payment: false` și niciun transfer pe mainnet.
+
+| # | Răspuns provizoriu (devnet) |
+|---|---|
+| 1 | Monedă: tokenul de test `JUNGLE` (afișat `JB`), ESDT pe devnet, fără valoare reală. Nu se emite nimic înainte de #15; pe devnet se poate emite pentru teste, cu cheia de test. |
+| 2 | Custodie: sold intern **doar pe devnet**; platforma nu ține fonduri reale. Modelul non-custodial rămâne de ales pentru lansare. |
+| 3 | Fiscalitate: nu se aplică pe devnet; rămâne deschisă pentru lansare (TVA, impozit, factură). |
+| 4 | Rambursări: automate la eroare tehnică sau la conținut eliminat de moderare; fereastra și reînnoirea rămân de decis pentru lansare. |
+| 5 | Minori: monetizare doar pentru conturi **18+**, cu verificarea disponibilă pe server; pragul exact și textele rămân la jurist. |
+| 15 | MiCA / referință fixă: în interfață nu se face nicio promisiune de valoare; `reference_eur_per_jb = 1` rămâne parametru de test; decizia despre încadrare rămâne deschisă. |
+| 16 | Gaz: trezorerie a platformei **pe devnet**, alimentată cu EGLD de devnet; decontarea se face în loturi, iar pragul de retragere acoperă costul lotului. |
+| 17 | Sold intern: ledger intern **doar pe devnet**, cu depunere și retragere on-chain de test; politica la închiderea contului rămâne deschisă. |
+
+Ce rămâne complet deschis: #6–#14, plus orice ieșire din devnet, plus emiterea reală a tokenului.
+
 ## 2. Ce se face cât timp întrebările sunt deschise
 
 * Serverul rămâne pe **`TEST-USDC`, `real_payment: false`, `real_settlements: 0`**; nicio rută nu semnează,

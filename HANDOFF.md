@@ -184,16 +184,48 @@ referință sunt nemodificate față de `HEAD`, deci e o nepotrivire moștenită
 contracte de telefon trec (9/9, 6/6, 2/2, 6/6, 12/12, 8/8, 9/9, 21/21).
 
 
-### 2.5 Rebrand pe telefon — 17 octombrie 2026 (neînceput: telefonul nu e în adb)
+### 2.5 Rebrand pe telefon — 17 octombrie 2026 (blocat la instalare: telefonul nu răspunde)
 
-Telefonul **nu a fost vizibil** pentru adb în această sesiune: `adb devices` gol, `adb mdns services` gol,
-deci wireless debugging-ul nu se anunța. Nu s-a atins telefonul, nu s-a trimis niciun input și nu s-a
-schimbat nicio setare. Ce rămâne de verificat, cu ce se așteaptă:
+Marca a fost refăcută **transparentă** (fără ramă, fără cerc, fără fundal) și APK-ul a fost construit
+o singură dată, cu splash pe `#000000`. Instalarea rămâne blocată: telefonul nu a fost vizibil pentru
+adb în două încercări.
+
+**Ce s-a dovedit local** (`aapt2 dump badging` / `dump resources`, `test-brand-assets.cjs`, `tsc`):
+
+| Dovadă | Rezultat |
+|---|---|
+| pachet | `app.nexus.mobile.dev`, `versionName 0.1.0`, `minSdk 24`, `targetSdk 36` |
+| etichetă | `application-label:'Jungle Book Dev'` |
+| splash | `color/splashscreen_background` = `#000000` (și `drawable-night-*` identic), `windowSplashScreenAnimatedIcon` = `@drawable/splashscreen_logo` generat din `jb-mark-1024.png`, `imageWidth 200`, `contain` |
+| iconițe | `mipmap-*/ic_launcher.webp` + `ic_launcher_foreground` din `jb-icon-*.png`; `drawable/ic_launcher_background.xml` rămâne `@color/iconBackground` `#02150D` |
+| APK | `apps/nexus-mobile/builds/nexus-dev-arm64.apk`, 114 714 224 B, 17 oct 2026 20:04, `812 actionable tasks` |
+| marcă | `test-brand-assets.cjs`: 13 fișiere, 55,4 % transparent, frânghie 3 px @1024, ceață 2,35 %, sonde 255 la (596,490) și (164,790) |
+| cod | `tsc --noEmit` exit 0; `npm test` verde (inclusiv `test:brand-assets`) |
+
+**De ce nu s-a ajuns pe telefon:** `adb devices` gol; `adb connect 192.168.1.184:46783` a trecut de la
+refuz la **timeout 10060** (hostul nu răspunde — telefonul doarme, e pe altă rețea sau wireless
+debugging-ul s-a oprit); `adb mdns services` gol. Nu s-a atins telefonul, nu s-a trimis niciun input și
+nu s-a schimbat nicio setare.
+
+Ce rămâne de verificat, cu ce se așteaptă:
 
 | Ecran | Înainte | După (așteptat) | Stare |
 |---|---|---|---|
 | Launcher / recents | „Nexus Dev”, iconiță veche | „Jungle Book Dev”, iconița cu J+B din fructe | **APK construit** (`aapt`: label „Jungle Book Dev”), neinstalat |
-| Splash | fundal alb implicit | marca în centru; fundal verde doar după `expo-splash-screen` | **APK construit**, fundal încă alb |
+| Splash | fundal alb implicit | marca în centru pe `#000000`, fără ramă | **APK construit** (fundal `#000000` în `colors.xml`), de văzut pe telefon |
+| Login | glif + „NEXUS” | logo mare + „JUNGLE BOOK” + versiunea dedesubt | **doar compilat** (Fast Refresh), de verificat pe telefon |
+| Antet feed | wordmark SVG | logo 36 dp în stânga, aceeași ușă spre Feed | **doar compilat**, de verificat |
+| Bara de jos | `+` în cercul central | logo transparent, eticheta „Creează” neschimbată | **doar compilat**, de verificat |
+| Sertar | fără nume | logo + „Jungle Book” sus; jos „Jungle Book · Android … · API: …” | **doar compilat**, de verificat |
+| Camera | „NEXUS” | „JUNGLE BOOK” | **doar compilat**, de verificat |
+| Ecrane goale / erori / toast-uri | „Nexus” în câteva texte | „Jungle Book” (20 de fișiere) | **testat unitar** de `test-brand.cjs`, de verificat vizual |
+| Accesibilitate | „Schimbă profilul Nexus”, „Nexus Home …” | „Schimbă profilul Jungle Book”, „Jungle Book Home …” | **testat unitar** (`test-brand.cjs` scanează și `accessibilityLabel`) |
+
+`test-brand.cjs` dovedește absența textului vechi în cod, nu felul în care arată ecranul: diferența dintre
+„testat unitar” și „verificat pe telefon” rămâne deschisă până la prima sesiune cu telefonul conectat.
+Punctul care cere ochiul owner-ului: dacă marca transparentă lasă un halo sau pierde frunze pe fundalul
+negru, se ridică raza majorității din `make-assets.ps1` de la 2 la 3 și se rulează din nou `make-assets.mjs`
+(restul rămâne determinist).
 | Login | glif + „NEXUS” | logo mare + „JUNGLE BOOK” + versiunea dedesubt | **doar compilat** (Fast Refresh), de verificat pe telefon |
 | Antet feed | wordmark SVG | logo 36 dp în stânga, aceeași ușă spre Feed | **doar compilat**, de verificat |
 | Bara de jos | `+` în cercul central | logo circular, eticheta „Creează” neschimbată | **doar compilat**, de verificat |
@@ -213,7 +245,9 @@ schimbat nicio setare. Ce rămâne de verificat, cu ce se așteaptă:
 3. **`uiautomator dump` și animația continuă**: cât timp banda aleargă, dump-ul cere idle și **eșuează** (`could not get idle state`); pentru măsurători se atinge banda (pauză), apoi se citește arborele. Capturile: `safe-screencap.ps1`.
 4. **„Urmărește înapoi” pe un profil** — **închis pe 17 oct 2026**: `GET /api/profiles/:handle` are acum `following_me` (commit `cf2c0a8`, deployat), pe payload-ul normal **și** pe shell-ul blocat. Telefonul îl citește în `lib/relations.ts` (`patchFromProfile` → `followsMe`), iar `test-relations.cjs` ține cazul: profil deschis „rece”, profil privat blocat, pereche mutuală și payload fără câmp. Dovada pe ecran rămâne captura din §9.3, rândul 4.
 5. **Lotul web/parity** — arhivat pe `wip/web-archive` (commit `ba7bb84`), fără push. `main` nu îl conține.
-6. **F0 monetizare** — **scris 17 oct 2026**: `docs/MONETIZATION-SPEC.md` (inventarul real: produse `tip`/`membership`, intenții cu split versionat și `CHECK` de conservare, Nexus Pay ca intenție locală, ledger hash-only) și `docs/MONETIZATION-RISKS.md` (14 întrebări, zero decizii). Urmează: aprobarea owner-ului pe RISKS #1–#5, apoi F1 (settle/refund/ledger/payouts, invarianții I1–I8) și abia apoi F2 (ecranele, plus meniul `⋯`).
+6. **F0 monetizare** — **scris 17 oct 2026**: `docs/MONETIZATION-SPEC.md` (inventarul real: produse `tip`/`membership`, intenții cu split versionat și `CHECK` de conservare, Nexus Pay ca intenție locală, ledger hash-only) și `docs/MONETIZATION-RISKS.md` (14 întrebări, zero decizii).
+7. **RISKS #1–#5 și #15–#17** — **răspunse provizoriu pe 17 oct 2026** (`MONETIZATION-RISKS.md` §1.1), valabile doar pe devnet, fiecare cu formula exactă și cu ce anume le-ar schimba: JBc intern ancorat la 1 € doar pentru test, spliturile `CORE_TIP_V1_90_5_3_2` (90/5/3/2) și `CORE_TIP_V2_85_10_3_2` (85/10/3/2), prag minim de preț = cost de settlement / 2 % (105 bani la 2,1 bani/acțiune), fără cash-out, doar payout intern către același creator. Nu sunt decizii de producție: la prima schimbare de gaz sau de curs se recalculează, nu se „ajustează din ochi”.
+8. **F1 — miezul ledger-ului** — **scris 17 oct 2026**: `apps/nexus-web/lib/creator-ledger.js` (conturi `funding`/`creator`/`platform_fee`/`reserve`/`infra`/`payout_clearing`, `splitAmount` cu restul cel mai mare, `priceFloorCents`, `assertPriceAllowed`, `postSettlement`/`postRefund`/`requestPayout`/`payPayout` idempotente, `totals`, `reconcile`, `deleteAccount`) plus `test/creator-ledger.test.js` acoperind I1–I11 — 11/11 verzi. Rămâne F1.2: rutele și tabelele din `nexus-web` care cheamă ledger-ul (nu există încă un apelant), apoi F2 (ecranele, plus meniul `⋯`).
 7. **Rebrand „Jungle Book”** — **făcut în cod 17 oct 2026**: `docs/REBRAND.md` ține inventarul (vizibil / tehnic / documentație), `BrandLogo` este singurul încărcător de marcă, `app.json` se numește `Jungle Book Dev`, iar `scripts/test-brand.cjs` pică dacă reapare un text vizibil cu numele vechi. **APK nou construit local**: `apps/nexus-mobile/builds/nexus-dev-arm64.apk` (112 MB, debug, arm64), `aapt dump badging` confirmă `package='app.nexus.mobile.dev'` și `application-label:'Jungle Book Dev'`. Instalarea și verificarea pe telefon **nu s-au făcut**: telefonul nu era vizibil în `adb` (`adb devices` și `adb mdns services` goale), deci §9.3 rămâne neîncepută.
 8. **Token și prețuri (decizia de test)** — **scris 17 oct 2026** în `MONETIZATION-SPEC.md` §3.5: `JUNGLE` ca ticker ESDT (3–10 caractere; `JB` nu e valid), simbol afișat `JB`, 2 zecimale, `reference_eur_per_jb = 1` doar pentru test, prețuri 2/3/3 și 3/5/5 JBc, plus `tools/monetization/simulate.mjs`, care citește gazul real de pe devnet și ia cursul ca parametru. Noile invarianți I9–I11 și întrebările #15–#17 (MiCA, gazul, soldul intern) sunt în documente.
 
