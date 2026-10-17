@@ -93,7 +93,7 @@ Ticker-ul ESDT nu poate fi `JB`. Sursa protocolului confirmă limitele: în
 `mx-chain-go/vm/systemSmartContracts/esdt.go` stau `minLengthForTickerName = 3` și
 `maxLengthForTickerName = 10`, deci `JB` (2 caractere) este respins, iar `JUNGLE` (6) este valid.
 Alfabetul acceptat (alfanumeric, majuscule) se confirmă la emitere, când devnet-ul acceptă sau respinge
-tranzacția `issue`. `JBK` rămâne rezerva dacă `JUNGLE` e deja ocupat pe devnet. Ticker-ul este o chestiune
+tranzacția `issue`. `JBK` rămâne doar o alternativă cosmetică (un ticker deja folosit nu blochează emiterea — vezi mai jos), nu o condiție. Ticker-ul este o chestiune
 de rețea; `JB` rămâne doar eticheta din interfață, ca la orice token cu simbol scurt afișat.
 
 **Verificat pe 17 oct 2026, în citire:** `GET https://devnet-api.multiversx.com/tokens?search=JUNGLE&size=10`
@@ -102,6 +102,26 @@ cu ticker-ul `JUNGLE`; `GET /esdt/tokens?search=JUNGLE` nu există (404). Căuta
 identificator, deci rezultatul **nu dovedește** că ticker-ul e liber — dovedește doar că niciun token
 cunoscut nu poartă numele. Disponibilitatea se stabilește numai la emitere (`issue` pe devnet), cu
 portofelul de test; până atunci `JUNGLE` rămâne propunerea, iar `JBK` rezerva.
+
+**Corectat pe 17 oct 2026, după codul rețelei:** întrebarea „e liber ticker-ul?” este greșită. În
+`mx-chain-go/vm/systemSmartContracts/esdt.go` stau `numOfRetriesForIdentifier = 50`,
+`tickerSeparator = "-"` și `tickerRandomSequenceLength = 3`: fiecare emitere primește un identificator
+`TICKER-xxx`, iar rețeaua reîncearcă până îl găsește liber. Documentația o spune pentru NFT/SFT
+(`mx-docs`, `tokens/nft-tokens.md`, secțiunea Branding): „Anyone else is free to create a new token with the
+same token name and the same token ticker. The only difference will be the random sequence of the token
+identifier.” Deci **`JUNGLE` nu poate fi „indisponibil”**: poate exista deja un `JUNGLE-abc`, iar al nostru ar
+primi alt sufix. Ce rămâne de aflat este doar dacă emiterea trece pe devnet, iar asta cere o tranzacție.
+
+**Starea soldurilor, 17 oct 2026:** toate cele cinci portofele de test raportează `balance=0.0000 EGLD`
+(`scripts/devnet-test-accounts.mjs`), deci emiterea **așteaptă faucet-ul** (§9.1 din `HANDOFF.md`).
+Comanda pregătită, de rulat cu portofelul de test după alimentare (0,05 EGLD cost de emitere):
+
+```
+issue@Jungle@JUNGLE@03e8@02        # nume „Jungle”, ticker JUNGLE, supply 1000, 2 zecimale
+```
+
+Dacă devnet-ul refuză din alt motiv decât soldul, se notează aici răspunsul exact și abia atunci se discută
+`JBK`.
 
 **Zecimale:** 2, deci unitatea întreagă minimă este **1 JBc = 0,01 JB**. Registrul ține doar întregi în
 JBc; nu există float nicăieri în lanțul de calcul.
@@ -244,16 +264,45 @@ Aditivă, idempotentă (`CREATE TABLE IF NOT EXISTS`), fără backfill: intenți
 | Loc | Ce conține | Dovada |
 |---|---|---|
 | `lib/creator-ledger.js` | miezul fără bază de date: `splitAmount`, `priceFloorCents`, `assertPriceAllowed`, postare dublă în memorie, refund, payout, `totals`, `reconcile`, `deleteAccount` | `test/creator-ledger.test.js` — 11 teste (I1–I11) |
-| `lib/creator-settlement.js` | aceleași reguli, pe SQLite: `ledger_accounts`, `ledger_entries`, `support_settlements`, `payout_requests`; fiecare scriere într-un `SAVEPOINT`; `depositTreasury`, `settleIntent`, `refundIntent`, `creatorLedger`, `requestCreatorPayout`, `listCreatorPayouts`, `payCreatorPayout`, `reconcileCreatorLedger` | `test/creator-settlement.test.js` — 10 teste (I1–I8, payout, plus un test care rulează același scenariu prin ambele implementări și compară soldurile) |
+| `lib/creator-settlement.js` | aceleași reguli, pe SQLite: `ledger_accounts`, `ledger_entries`, `support_settlements`, `payout_requests`; fiecare scriere într-un `SAVEPOINT`; `depositTreasury`, `settleIntent`, `refundIntent`, `creatorLedger`, `requestCreatorPayout`, `listCreatorPayouts`, `payCreatorPayout`, `reconcileCreatorLedger` | `test/creator-settlement.test.js` — 11 teste (I1–I8, payout, plus un test care rulează același scenariu prin ambele implementări și compară soldurile) |
 | `lib/db.js` | cele patru tabele din §4.1, cu `UNIQUE(intent_id)` pe settlement și `CHECK` pe conservarea sumei | testul I6 încearcă un al doilea rând și baza de date îl refuză |
 | `lib/api.js` | cele cinci rute din §4.3, montate înaintea rutelor generice; `409 SETTLEMENT_DISABLED` fără `NEXUS_SETTLE_DEMO=1` | aceleași teste, apelate direct pe module |
 | `lib/action-ledger.js` | `/api/creator/support-intents/*` și `/api/creator/payouts` intră în clasa `FINANCIAL_ACTION`, nu în `UNCLASSIFIED_MUTATION` | `test/p1-action-ledger.test.js` |
+
+Ce s-a adăugat pe 17 oct 2026: `scripts/creator-http-e2e.mjs` pornește `server.js` pe un director temporar
+cu `NEXUS_SETTLE_DEMO=1`, cheamă rutele prin HTTP și trece **21/21** — decontare de 2 JBc (split 180/10/6/4,
+creator 90 %), replay cu aceeași cheie, `409 ALREADY_SETTLED` cu cheie nouă, decontare de 3 JBc, rambursare
+(`reversed: true`), `409` la a doua rambursare, soldul înapoi la partea primei plăți, cerere fără
+`Idempotency-Key` → `400`, cerere peste sold → `409`, aceeași cheie → aceeași cerere, aceeași cheie cu altă
+sumă → `409 IDEMPOTENCY_CONFLICT`, plata retragerii și reconcilierea ca funcții (nu au rută), iar fără steag →
+`409 SETTLEMENT_DISABLED` cu zero scrieri. `requestCreatorPayout` derivă acum id-ul din `creatorId + cheie`,
+ca un retry să nu poată deveni a doua cerere pe aceiași bani; `refundIntent` întoarce `reversed: true`, cum
+promite §4.3.
 
 Ce **nu** s-a dovedit: nicio rută nu a fost chemată prin HTTP cu un client real (testele cheamă funcțiile,
 nu serverul), iar `scripts/action-ledger-reconcile.mjs` iese `PASS` pe o bază nouă și `MISMATCH` pe
 `data/nexus.sqlite`-ul local, unde are 15 849 de intenții neclasificate adunate dinainte de acest lot —
 o stare a datelor de dezvoltare, nu o consecință a ledger-ului. Nicio sumă reală nu s-a mișcat:
 `real_payment: false` și `real_settlements: 0` sunt în fiecare răspuns.
+
+### 4.6 Cum se urcă F1 pe `main`, dacă owner-ul cere asta
+
+Nu s-a făcut în sesiunea din 17 octombrie fiindcă cere credențialele Railway și acordul explicit. Pașii,
+în ordinea în care se pot verifica:
+
+1. `git merge --ff-only codex/camera-draft-stability` pe `main` (sau cherry-pick `860f8ac`, `29ee39f`,
+   `afec626`), apoi `npm test` în `apps/nexus-web` — suita completă, nu doar cele patru fișiere.
+2. Migrarea este **aditivă** (`CREATE TABLE IF NOT EXISTS`), deci se aplică la pornire; nu există backfill
+   și nicio intenție veche nu devine `settled`.
+3. `NEXUS_SETTLE_DEMO` **nu** se setează în Railway: fără el, `POST …/settle` răspunde `409
+   SETTLEMENT_DISABLED` și nu scrie nimic. Steagul se pune doar dacă owner-ul cere o demonstrație și se
+   scoate imediat după.
+4. Verificare după deploy: `GET /health` → 200 `ready`; login; `GET /api/profiles/test?persona=social` →
+   profilul obișnuit; `GET /api/creator/ledger` → 200 cu `available_cents: 0` (nu `not found`); un singur
+   `POST /api/creator/payouts` cu sumă peste sold → `409 INSUFFICIENT_FUNDS`, fără rând nou.
+5. Revert: `git revert <merge>` pe `main` și push; tabelele rămân (goale) și nu strică nimic, fiindcă
+   niciun cod vechi nu le citește.
+
 
 ## 5. F2 — aplicația
 
@@ -263,8 +312,9 @@ o stare a datelor de dezvoltare, nu o consecință a ledger-ului. Nicio sumă re
 |---|---|---|---|
 | Foaia de susținere | meniul `⋯` al profilului → „Susține” (apare doar când catalogul are produse) | produsele, prețul, împărțirea, butonul de confirmare | **neconstruit** (lotul „meniul de profil” + F2) |
 | Confirmarea | după `POST /api/creator/support-intents` | receipt-ul, `status`, „demonstrativ” | neconstruit |
-| Panoul creatorului | profil propriu → „Susțineri” | produse, primite, totaluri (0 până la settlements) | neconstruit |
-| Istoricul plăților | meniul `⋯` → „Plăți” | `GET /api/pay/history`, direcție, `real_settlements: 0` | neconstruit |
+| Panoul creatorului | profil propriu → `⋯` → „Monetizează profilul” | prețuri pe tip (preseturi 2/3/3 și 3/5/5), produs de susținere real prin `POST /api/creator/products`, previzualizarea fanului; „Totul gratuit”, modul avansat și plafoanele sunt `Indisponibil`, fără rută | **construit, verificat sus pe telefon**; ce nu are endpoint este marcat |
+| Portofelul | profil propriu → `⋯` → „Portofel” | sold, încasat, retras, istoric (încasări/cheltuieli), cereri de retragere, venituri; depunerea este `Indisponibil` | **construit**; pe telefon arată `not found` până când F1 ajunge pe Railway |
+| Istoricul plăților | meniul `⋯` → „Plăți” | `GET /api/pay/history`, direcție, `real_settlements: 0` | neconstruit (numele din meniu este „Portofel”; istoricul plăților nu are încă ecran propriu) |
 
 ### 5.2 Reguli de client (aceleași ca în restul aplicației)
 

@@ -186,6 +186,10 @@ contracte de telefon trec (9/9, 6/6, 2/2, 6/6, 12/12, 8/8, 9/9, 21/21).
 
 ### 2.5 Rebrand pe telefon — 17 octombrie 2026 (blocat la instalare: telefonul nu răspunde)
 
+> **Închis în §2.6**: telefonul a răspuns în aceeași zi, APK-ul s-a instalat peste cel vechi, iar marca,
+> banda, sertarul și meniul `⋯` au fost verificate pe ecran. Tabelul de mai jos rămâne ca dovadă a ce se
+> știa *înainte* de prima atingere a telefonului.
+
 Marca a fost refăcută **transparentă** (fără ramă, fără cerc, fără fundal) și APK-ul a fost construit
 o singură dată, cu splash pe `#000000`. Instalarea rămâne blocată: telefonul nu a fost vizibil pentru
 adb în două încercări.
@@ -236,6 +240,56 @@ negru, se ridică raza majorității din `make-assets.ps1` de la 2 la 3 și se r
 
 `test-brand.cjs` dovedește absența textului vechi în cod, nu felul în care arată ecranul: diferența dintre
 „testat unitar” și „verificat pe telefon” rămâne deschisă până la prima sesiune cu telefonul conectat.
+### 2.6 Telefonul, în sfârșit conectat — 17 octombrie 2026, seara
+
+Telefonul a fost găsit deja în `adb devices` cu transportul mDNS `adb-b42122b-huYC9y._adb-tls-connect._tcp`
+(`mdns services` → `192.168.1.184:36819`), deci nu a fost nevoie de `adb connect`. Cortina era închisă
+(`NotificationShade … isOnScreen=false`, `isVisible=false`, `mHasSurface=false`), focusul era `app.nexus.mobile.dev/.MainActivity`,
+iar `adb install -r apps/nexus-mobile/builds/nexus-dev-arm64.apk` a răspuns `Success` peste instalarea din
+8 octombrie (sesiunea și drafturile rămân).
+
+**Defect găsit la prima deschidere, și reparat:** ecranul de cameră arunca imediat un Render Error —
+`Call to function 'AudioPlayer.pause' has been rejected … Cannot use shared object that was already released`
+în `<CameraScreen(./camera.tsx)>`. `expo-audio` eliberează obiectul nativ la demontare, iar cleanup-ul apela
+totuși `pause()`. Reparat în `lib/audioLifecycle.ts` (+ 5 teste) și folosit în `camera.tsx` / `PostMedia.tsx`,
+commit `ffe1feb`. După reload aplicația intră normal în feed.
+
+| Ce s-a verificat pe telefon | Rezultat |
+|---|---|
+| Instalare peste aplicația existentă | `Success`; `lastUpdateTime` 2026-10-08 → 2026-10-17; `versionName 0.1.0` |
+| Focus înainte de fiecare input | `mCurrentFocus=…app.nexus.mobile.dev/app.nexus.mobile.dev.MainActivity`; la un moment dat telefonul a trecut pe altă aplicație (`com.twitter.android`), inputul a fost oprit imediat și aplicația a fost readusă în prim-plan |
+| Sertarul | **verificat**: `Jungle Book`, tile-urile Social/Work/Dating/Travel/Market, `Postare nouă`, `Notificări`, `Banda derulantă`, `Ieși din cont`, subsol `Jungle Book · Android 0.1.0 · API: Railway` |
+| Marca din antet, numeric | caseta nodului `[31,203][146,318]` = 115×115 px; fundalul din spate `rgb(2,5,3)`; cerneală 6 242 / 13 456 px = **46,4 %** (asset-ul 3x: 44,8 % la 108 px); inel de 3 px în jurul casetei: 1 428 px, **21 px peste +8** (1,5 %), deviație maximă **65** = muchia antialiasată a literei, nu un halo uniform; cele patru colțuri exact `rgb(2,5,3)` → fără ramă, fără pătrat, fără glow; cerneala atinge sus/stânga casetei, cu 18 px liberi jos = umplutura proprie a imaginii (bbox-ul asset-ului 4..103 × 8..99), deci **fără frunze tăiate** |
+| Banda ticker | **verificat**: două capturi la 1,6 s distanță diferă (se mișcă); o atingere → două capturi **identice** (pauză); a doua atingere → din nou diferite (reluare); `ⓘ` → foaia `Detalii profil` cu Descriere / Locație / Membru din / Vârstă / Tipul contului |
+| F2a — rândul de butoane | **verificat**: `Editează profilul` `[36,673][1064,772]` + `Deschide meniul profilului` `[1084,673][1183,772]`; „Distribuie profilul” nu mai e în rând |
+| F2a — meniul `⋯` | **verificat**: foaie cu exact patru rânduri, în ordinea cerută — `Monetizează profilul` `[60,1978][1160,2113]`, `Distribuie profilul` `[60,2128][1160,2264]`, `Portofel` `[60,2279][1160,2414]`, `Setări` `[60,2430][1160,2565]` |
+| F2b — Monetizează profilul | **verificat sus**: pre-pornit „Totul gratuit” cu explicația lipsei de endpoint; preseturi `Prietenos 8,00 JB total` (2+3+3) și `Premium 13,00 JB total` (3+5+5); rândurile Apreciere 2,00 / Comentariu 3,00 / Distribuire 3,00 cu `Indisponibil` |
+| F2d — Portofel | **deschis, dar serverul nu are încă ruta**: ecranul afișează `not found`, fiindcă `GET /api/creator/ledger` există doar în branch, nu pe Railway. Nu este un defect al ecranului, este dovada că F1 nu e deployat |
+| §9.3 | doar rândul 7 (`⋯`) este acoperit, de fapt de F2a. Rândurile 1–6 **nu au fost rulate**: reader-ul de Reels acoperă bara de taburi cu un `Pressable` pe tot ecranul, banda oprește `uiautomator dump` cât timp aleargă, iar sesiunea s-a încheiat înainte de a le relua. Nu se raportează ca verificate |
+
+Două lucruri de unealtă, ca să nu fie redescoperite: `uiautomator dump` întoarce `ERROR: could not get idle state`
+cât timp banda aleargă (se atinge banda sau se oprește din sertar comutatorul „Banda derulantă”, apoi dump-ul
+reușește), iar un dump eșuat **lasă fișierul vechi** pe telefon — de aceea fiecare citire de mai sus a fost
+precedată de un dump reușit în același apel.
+
+### 2.7 Registrul local de acțiuni: cele 15 915 intenții neclasificate (doar pe o copie)
+
+`scripts/db-copy-local.mjs` face o copie consistentă a bazei de dezvoltare (`VACUUM INTO`,
+`data/reconcile-copy/nexus.sqlite`), iar `scripts/action-ledger-mark-legacy.mjs` marchează **în loc** rândurile
+cu `action_type = 'UNCLASSIFIED_MUTATION'`: devin `LEGACY_ROUTE_UNMAPPED`, clasa rămâne `PRIVATE_ACTION`
+(implicitul clasificatorului pentru o rută `/api/` necunoscută) și primesc `legacy_note`. Nu se șterge nimic,
+`mutation_requests` rămâne neatins, iar baza vie și Railway nu sunt atinse.
+
+| Rulare | Rezultat |
+|---|---|
+| reconciliere pe copie, înainte | `MISMATCH`, `unclassified_intent_ids: 15914`, restul 0 |
+| marcare | `marked=15915`, `left_unclassified=0` |
+| reconciliere pe copie, după | **`PASS`**, toate cele șapte contoare 0, `action_intents: 20529`, `completed_mutations: 1175`, `devnet_actions: 84` |
+
+Pe baza vie reconcilierea rămâne `MISMATCH` — este o condiție a datelor de dezvoltare, nu a codului, și se
+închide rulând cele două scripturi pe orice copie proaspătă.
+
+
 
 ## 3. Pași următori (în ordine)
 
@@ -250,6 +304,12 @@ negru, se ridică raza majorității din `make-assets.ps1` de la 2 la 3 și se r
 8. **F1 — backend** — **scris 17 oct 2026**: `apps/nexus-web/lib/creator-ledger.js` (miezul pur: `splitAmount` cu restul cel mai mare, `priceFloorCents`, `assertPriceAllowed`, postare dublă, refund, payout, `totals`, `reconcile`, `deleteAccount`) plus `test/creator-ledger.test.js` pentru I1–I11 — 11/11. **F1.2 scris în aceeași zi**: cele patru tabele din §4.1 în `lib/db.js`, `lib/creator-settlement.js` (aceleași reguli pe SQLite, fiecare scriere într-un `SAVEPOINT`), cele cinci rute din §4.3 montate în `lib/api.js` și clasa `FINANCIAL_ACTION` în `lib/action-ledger.js` — `test/creator-settlement.test.js` 10/10 (I1–I8, payout, plus scenariul identic rulat prin ambele implementări). Total 21/21, `core.test.js` 78/78, `db-migrations` + `p1-m12-pay-creator-node` 12/12. Ce rămâne înainte de F2: o chemare reală prin HTTP (testele cheamă funcțiile, nu serverul) și faptul că `scripts/action-ledger-reconcile.mjs` iese `PASS` doar pe o bază nouă — pe `data/nexus.sqlite` are 15 849 de intenții neclasificate mai vechi (`MONETIZATION-SPEC.md` §4.5). Apoi F2: cele patru suprafețe și meniul `⋯`.
 7. **Rebrand „Jungle Book”** — **făcut în cod 17 oct 2026**: `docs/REBRAND.md` ține inventarul (vizibil / tehnic / documentație), `BrandLogo` este singurul încărcător de marcă, `app.json` se numește `Jungle Book Dev`, iar `scripts/test-brand.cjs` pică dacă reapare un text vizibil cu numele vechi. **APK nou construit local**: `apps/nexus-mobile/builds/nexus-dev-arm64.apk` (112 MB, debug, arm64), `aapt dump badging` confirmă `package='app.nexus.mobile.dev'` și `application-label:'Jungle Book Dev'`. Instalarea și verificarea pe telefon **nu s-au făcut**: telefonul nu era vizibil în `adb` (`adb devices` și `adb mdns services` goale), deci §9.3 rămâne neîncepută.
 8. **Token și prețuri (decizia de test)** — **scris 17 oct 2026** în `MONETIZATION-SPEC.md` §3.5: `JUNGLE` ca ticker ESDT (3–10 caractere; `JB` nu e valid), simbol afișat `JB`, 2 zecimale, `reference_eur_per_jb = 1` doar pentru test, prețuri 2/3/3 și 3/5/5 JBc, plus `tools/monetization/simulate.mjs`, care citește gazul real de pe devnet și ia cursul ca parametru. Noile invarianți I9–I11 și întrebările #15–#17 (MiCA, gazul, soldul intern) sunt în documente.
+
+9. **F1 prin HTTP real** — **închis pe 17 oct 2026**: `scripts/creator-http-e2e.mjs` (npm `test:creator-http`) pornește serverul pe o bază temporară, cheamă cele cinci rute și trece **21/21**; mutațiile cer `Idempotency-Key` (16–128 caractere sigure), iar `requestCreatorPayout` derivă id-ul din creator + cheie, deci un retry nu poate deveni a doua cerere. Rămâne **deploy-ul**: F1 nu este pe `main`/Railway, deci pe telefon `Portofel` răspunde `not found`. Nu s-a făcut de aici fiindcă cere credențiale Railway (variabile + serviciu) și confirmarea owner-ului; comenzile sigure sunt în `MONETIZATION-SPEC.md` §4.6 (aditiv, steag oprit implicit).
+10. **F2a/F2b/F2d** — **făcute pe 17 oct 2026** (`9defc16`): rândul propriu `[Editează profilul][⋯]`, foaia cu `Monetizează profilul` / `Distribuie profilul` / `Portofel` / `Setări`, ecranul de monetizare cu preseturi și produs real, portofelul cu registru și cerere de retragere. Ce lipsește și de ce: prețul pe apreciere/comentariu/distribuire, „Totul gratuit”, modul avansat și plafoanele nu au **nicio rută** — sunt `Indisponibil` cu motivul scris sub ele; foaia de susținere a fanului (`POST /api/creator/support-intents`) și confirmarea cu buget de sesiune rămân de construit, iar butonul de apreciere nu poate afișa un preț pe care serverul nu îl are.
+11. **§9.3, rândurile 1–6** — **neîncepute**: reader-ul de Reels acoperă bara de taburi cu un `Pressable` pe tot ecranul, iar banda oprește `uiautomator dump`. Următoarea sesiune: se pornește din `Flux` (nu din `Reels`), se oprește banda din sertar pentru citiri, apoi se reia comutatorul.
+12. **Ticker `JUNGLE`** — **închis ca întrebare**: un ticker ocupat nu blochează emiterea (secvență aleatoare de 3 caractere în identificator, `mx-chain-go`), deci nu mai există „indisponibil”. Emiterea așteaptă faucet-ul: toate cele cinci portofele au `0.0000 EGLD`. Comanda e scrisă în `MONETIZATION-SPEC.md` §3.5.
+
 
 ## 4. Defecte deschise
 

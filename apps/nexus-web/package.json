@@ -43,7 +43,9 @@
     "audit:m10": "node scripts/m10-acceptance-inventory.mjs",
     "audit:m11": "node scripts/m11-acceptance-inventory.mjs",
     "release:cycle-100": "node scripts/cycle-100-readiness.mjs",
-    "test:creator-http": "node scripts/creator-http-e2e.mjs"
+    "test:creator-http": "node scripts/creator-http-e2e.mjs",
+    "ledger:copy": "node scripts/db-copy-local.mjs",
+    "ledger:mark-legacy": "node scripts/action-ledger-mark-legacy.mjs"
   },
   "dependencies": {
     "@multiversx/sdk-core": "^15.4.1",
