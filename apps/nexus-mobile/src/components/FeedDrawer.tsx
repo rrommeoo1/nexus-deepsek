@@ -50,7 +50,7 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
         </Pressable>
         {/* The drawer names the product: the mark and the name, above the index of doors. */}
         <View style={styles.brandRow}>
-          <BrandLogo variant="circle" size={22} />
+          <BrandLogo variant="nav" size={24} />
           <Text style={styles.brandName}>{BRAND_NAME}</Text>
         </View>
         <View style={styles.grid}>

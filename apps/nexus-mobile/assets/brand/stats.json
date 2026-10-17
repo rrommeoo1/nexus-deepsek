@@ -1,0 +1,292 @@
+{
+  "generator": "tools/brand/make-assets.ps1",
+  "source": {
+    "path": "apps/nexus-mobile/assets-src/jungle-book-logo.jpg",
+    "sha256": "5ec7d828e8ecf779aa47ed44b4a87a8b87cf9a356d94c2ea9cd5b578ab3388cb",
+    "width": 784,
+    "height": 1168
+  },
+  "field": {
+    "hex": "#03180F",
+    "r": 3,
+    "g": 24,
+    "b": 15,
+    "sigma": 6.89,
+    "lowCut": 22,
+    "highCut": 57
+  },
+  "mask": {
+    "fieldPixels": 732335,
+    "specksRemoved": 10,
+    "alphaBox": {
+      "x": 69,
+      "y": 261,
+      "width": 630,
+      "height": 587
+    },
+    "crop": {
+      "x": 43,
+      "y": 214,
+      "side": 680,
+      "margin": 25
+    }
+  },
+  "limits": {
+    "transparentFractionMin": 0.25,
+    "transparentFractionMax": 0.6,
+    "edgeRampMaxPx": 3,
+    "hazeMaxFraction": 0.05,
+    "specksMax": 0
+  },
+  "files": [
+    {
+      "file": "jb-mark-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.5535,
+      "edgeRampPx": 3,
+      "hazeFraction": 0.02351,
+      "specks": 0,
+      "probes": [
+        {
+          "x": 596,
+          "y": 490,
+          "size": 176260,
+          "depth": 76,
+          "alpha": 255
+        },
+        {
+          "x": 164,
+          "y": 790,
+          "size": 174278,
+          "depth": 105,
+          "alpha": 255
+        }
+      ],
+      "sha256": "fdd5415bd43971b5a638e18c8fde8eb5d17df91c45968161e376a9e5e0120876",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-512.png",
+      "width": 512,
+      "height": 512,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.5658,
+      "edgeRampPx": 1,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "edc468121f31df4a54ed232dbe468571a1af359ea554a19507e3504ff076d44d",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-header-1x.png",
+      "width": 36,
+      "height": 36,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.3835,
+      "edgeRampPx": 2,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "dcc32b947583f36e90aa3239552533b99f53dc81da9571ec4952d1063dcf7183",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-header-2x.png",
+      "width": 72,
+      "height": 72,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.4481,
+      "edgeRampPx": 2,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "f244c07589864a21fe5fa5d422772cf52552b77d52c51330de58eb4ddd1e6042",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-header-3x.png",
+      "width": 108,
+      "height": 108,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.4855,
+      "edgeRampPx": 1,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "21054157bcd77f8741bf7b7cc2f64d9ee22a765c382b7a00eaa7614ad9225a0c",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-nav-1x.png",
+      "width": 40,
+      "height": 40,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.3844,
+      "edgeRampPx": 2,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "828a539311df16046a2405caa7350b02b7aa36afb047c5d9e506b7760bf056f2",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-nav-2x.png",
+      "width": 80,
+      "height": 80,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.4572,
+      "edgeRampPx": 2,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "625a69a50a1c0e617c0c78496d1b228995c823c9b7232911b5cbc417ed7f5e1d",
+      "transparent": true
+    },
+    {
+      "file": "jb-mark-nav-3x.png",
+      "width": 120,
+      "height": 120,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.4934,
+      "edgeRampPx": 1,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "a3c9f0be991265ae06d62e09942f454e570bbe56db297143917b99183d9cc68c",
+      "transparent": true
+    },
+    {
+      "file": "jb-splash-512.png",
+      "width": 512,
+      "height": 512,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.5433,
+      "edgeRampPx": 2,
+      "hazeFraction": 0.00078,
+      "specks": 0,
+      "probes": [],
+      "sha256": "24aa1b04ed551b072ebe735ab8c6b7a76c08a7ea53c221be3691256efeeb6e1f",
+      "transparent": true
+    },
+    {
+      "file": "jb-icon-foreground-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.8033,
+      "edgeRampPx": 2,
+      "hazeFraction": 0.00208,
+      "specks": 0,
+      "probes": [],
+      "sha256": "26a88fdd60176c66ea6d20075250f39ba92f0ad86cfde6d7e668a6a3628a6ad8",
+      "transparent": true
+    },
+    {
+      "file": "jb-icon-monochrome-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "transparentFraction": 0.8033,
+      "edgeRampPx": 2,
+      "hazeFraction": 0.00208,
+      "specks": 0,
+      "probes": [],
+      "sha256": "f4c5fa70b36bc4e095e43cce633fb1ae1fe7a59b89289720cdb11a4daac841cc",
+      "transparent": true
+    },
+    {
+      "file": "jb-icon-background-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "cornerAlpha": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "transparentFraction": 0,
+      "edgeRampPx": 0,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "09ba4f61f246e48ecbc28a85e735308e9328656f8432941997087bbaeaaada26",
+      "transparent": false
+    },
+    {
+      "file": "jb-icon-1024.png",
+      "width": 1024,
+      "height": 1024,
+      "cornerAlpha": [
+        255,
+        255,
+        255,
+        255
+      ],
+      "transparentFraction": 0,
+      "edgeRampPx": 0,
+      "hazeFraction": 0,
+      "specks": 0,
+      "probes": [],
+      "sha256": "af54b379cd1e9dcab7c770362afb55420a0404b91a90a233ac7db45939f3482e",
+      "transparent": false
+    }
+  ]
+}

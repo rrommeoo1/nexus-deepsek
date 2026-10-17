@@ -107,7 +107,7 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
 
 /** `.appNav.social .createNav i` — the 52px circle the bar was built around, and the bar's only lift. */
 function CreateDisc() {
-  const { size } = socialTokens.nav.create;
+  const { size, borderWidth } = socialTokens.nav.create;
   return (
     <View style={styles.createDisc}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
@@ -121,8 +121,10 @@ function CreateDisc() {
         </Defs>
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#nxCreateFill)" />
       </Svg>
-      {/* The capture glyph was a 27px "+"; the circle now wears the product mark, same size and door. */}
-      <BrandLogo variant="circle" size={size - 12} />
+      {/* The capture glyph was a 27px "+". The circle now wears the product mark alone — the file
+          is transparent, so no disc, frame or square is drawn around it — at 70% of the ring's
+          inside diameter. The ring and the touch target stay exactly the button they were. */}
+      <BrandLogo variant="nav" size={Math.round((size - borderWidth * 2) * 0.7)} />
     </View>
   );
 }

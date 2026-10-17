@@ -1563,9 +1563,10 @@ neschimbat, este în `docs/REBRAND.md`; aici rămân doar deciziile de layout.
   `assets/brand/`; `NexusWordmark` a fost ștears și `nexusTokens.graphics.wordmarkSvg` a fost eliminat, ca
   nimeni să nu mai poată desena o marcă paralelă. Numele componentelor vechi (`NexusLandingBrand`,
   `NexusLogin`, `NexusMark`) au rămas: sunt identificatori de cod, nu text citit de utilizator.
-- **Butonul central.** `+` a fost înlocuit cu `BrandLogo variant="circle"`; eticheta de accesibilitate
-  rămâne „Creează”, iar butonul deschide în continuare fluxul de captură. Celelalte șase destinații sunt
-  neatinse.
+- **Butonul central.** `+` a fost înlocuit cu `BrandLogo variant="nav"`, desenat la **70% din diametrul
+  interior** al inelului (31 dp dintr-un interior de 44 dp), centrat; inelul butonului și zona de atingere
+  au rămas exact cum erau, iar eticheta de accesibilitate rămâne „Creează”. Marca este un PNG transparent:
+  nu are ramă, pătrat, mască circulară sau fundal propriu. Celelalte șase destinații sunt neatinse.
 - **Sertarul** primește un rând de brand (logo + nume) sus și păstrează subsolul de versiune, acum prefixat
   cu numele: `Jungle Book · Android … · API: …`.
 - **Ce nu se schimbă:** package-ul `app.nexus.mobile.dev`, scheme-ul `nexusdev`, slug-ul `nexus-mobile`,
@@ -1575,4 +1576,19 @@ neschimbat, este în `docs/REBRAND.md`; aici rămân doar deciziile de layout.
 - **Aplicația instalată** își schimbă numele, iconița și ecranul de pornire doar printr-un APK nou
   (`app.json`: `Jungle Book Dev`, `assets/brand/*`); textele și logo-urile din interfață se văd imediat,
   prin Fast Refresh, fără rebuild.
+
+## 24. Marca fără fundal + splash (17 octombrie 2026)
+
+- Marca din `assets/brand/` este acum **literele singure, pe transparență**: câmpul verde al fotografiei
+  este eliminat de generator, deci componenta nu mai are nevoie de ramă, pătrat, mască circulară sau de un
+  fundal propriu. `BrandLogo` are trei variante — `header` (36 dp, antet și inbox), `nav` (40 dp, butonul
+  central) și `large` (132 dp, login) — și rămâne singurul loc care încarcă imaginea de brand.
+- `expo-splash-screen` este instalat, iar ecranul de pornire are fundalul `#000000` al aplicației
+  (`nexusTokens.colors.canvas`) și marca transparentă în centru; nu mai există salt de culoare între splash
+  și login. Cheia `splash` de la nivelul de sus al `app.json` a fost scoasă (prebuild-ul SDK 57 o ignora).
+- `npm run test:brand-assets` verifică numeric marca: colțuri transparente, 25–60% din pătrat gol, zero pete
+  izolate, rampă de margine ≤ 3 px, „ceață” ≤ 5% și alfa 255 în mijlocul fiecăreia dintre cele două litere.
+  Detaliile prelucrării și deviația de la rampa liniară (măsurată: 49 px, de aceea s-a trecut la vot de
+  majoritate + o medie 3×3) sunt în `docs/REBRAND.md` §5.
+
 

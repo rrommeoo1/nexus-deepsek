@@ -7,11 +7,6 @@
     "orientation": "portrait",
     "icon": "./assets/brand/jb-icon-1024.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/brand/jb-splash-1080x1920.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#02150D"
-    },
     "ios": {
       "supportsTablet": true
     },
@@ -29,7 +24,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/brand/jb-logo-circle-256.png"
+      "favicon": "./assets/brand/jb-icon-1024.png"
     },
     "plugins": [
       "expo-router",
@@ -43,7 +38,20 @@
         }
       ],
       "expo-video",
-      "expo-audio"
+      "expo-audio",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/brand/jb-mark-1024.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#000000",
+          "dark": {
+            "image": "./assets/brand/jb-mark-1024.png",
+            "backgroundColor": "#000000"
+          }
+        }
+      ]
     ]
   }
 }
