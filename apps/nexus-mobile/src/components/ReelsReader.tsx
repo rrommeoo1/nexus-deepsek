@@ -16,6 +16,7 @@ import {
   type MediaItem, type SocialPost,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
+import { openSocialProfile } from '../lib/profileNavigation';
 
 /**
  * The immersive Reels reader, drawn to the values the web uses for its own immersive presentation:
@@ -209,7 +210,7 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
       ) : null}
 
       <View style={[styles.meta, { bottom: styles.meta.bottom + overlayBottom }]}>
-        <View style={styles.creatorRow}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} onPress={() => openSocialProfile(post.author?.handle)} style={styles.creatorRow}>
           <View style={styles.creatorDisc}>
             <RemoteImageSource source={avatar} fit="cover" style={styles.creatorDiscImage} />
           </View>
@@ -219,7 +220,7 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
               {`@${handle}`}{relativeTime(post.created_at) ? ` · ${relativeTime(post.created_at)}` : ''}
             </Text>
           </View>
-        </View>
+        </Pressable>
         {post.caption ? <Text style={styles.caption} numberOfLines={3}>{post.caption}</Text> : null}
         {/**
          * `captionTranslationButtonMarkup` (caption-translation.js:11-13, `.clipTranslate`): the web paints
@@ -247,8 +248,8 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
          */}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`Deschide momentul creatorului ${name}`}
-          onPress={onOpenPost}
+          accessibilityLabel={`Profilul lui @${handle}`}
+          onPress={() => openSocialProfile(post.author?.handle)}
           style={styles.railAvatar}
         >
           <View style={styles.railAvatarDisc}>

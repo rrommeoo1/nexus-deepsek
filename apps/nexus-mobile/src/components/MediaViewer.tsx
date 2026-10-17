@@ -9,6 +9,7 @@ import { RemoteImage, RemoteImageSound, RemoteImageSource, RemoteVideo } from '.
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { PostDecorations } from './PostDecorations';
 import { decideViewerGesture } from '../lib/socialGesture';
+import { openSocialProfile } from '../lib/profileNavigation';
 import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
 import { audioAttributionFor, compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems, viewerReaction, type ReactionSummary, type SocialPost } from '../lib/socialTypes';
 
@@ -57,7 +58,7 @@ export function MediaViewer({ post, gallery, onClose, onCommentCreated, onOpenTh
     [gallery, post],
   );
 
-  if (embedded) return post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} startWithComments={startWithComments} /> : null;
+  if (embedded) return post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} onOpenProfile={(handle) => openSocialProfile(handle)} startWithComments={startWithComments} /> : null;
   return (
     <Modal
       visible={post !== null}
@@ -67,7 +68,7 @@ export function MediaViewer({ post, gallery, onClose, onCommentCreated, onOpenTh
       statusBarTranslucent
       navigationBarTranslucent
     >
-      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} onOpenCommentsRoot={onOpenCommentsRoot} startWithComments={startWithComments} /> : null}
+      {post ? <GalleryViewer key={post.id} post={post} items={items} onClose={onClose} onCommentCreated={onCommentCreated} onOpenThread={onOpenThread} onOpenProfile={(handle) => openSocialProfile(handle, onClose)} onOpenCommentsRoot={onOpenCommentsRoot} startWithComments={startWithComments} /> : null}
     </Modal>
   );
 }
@@ -78,12 +79,13 @@ export function MediaViewer({ post, gallery, onClose, onCommentCreated, onOpenTh
  * two plates and the counter are shown whenever the gallery holds more than one frame, so a clip — whose
  * drags belong to its own controls — can still be walked.
  */
-function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, onOpenCommentsRoot, startWithComments }: {
+function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, onOpenProfile, onOpenCommentsRoot, startWithComments }: {
   post: SocialPost;
   items: SocialPost[];
   onClose: () => void;
   onCommentCreated?: (postId: number) => void;
   onOpenThread?: (post: SocialPost, commentId: number) => void;
+  onOpenProfile: (handle: string) => void;
   onOpenCommentsRoot?: (post: SocialPost) => void;
   startWithComments: boolean;
 }) {
@@ -207,10 +209,10 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
           </Pressable>
 
           <View style={[styles.rail, { right: Math.max(6, insets.right), bottom: contentBottom }]}>
-            <View style={styles.railAvatar} accessibilityLabel={`Creator: ${name}`}>
+            <Pressable accessibilityRole="button" onPress={() => onOpenProfile(current.author?.handle || '')} style={styles.railAvatar} accessibilityLabel={`Profilul lui @${handle}`}>
               {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.railAvatarImage} />
                 : <Text style={styles.railAvatarText}>{initialsFor(name, handle)}</Text>}
-            </View>
+            </Pressable>
             <ReactionControl variant="rail" summary={summary} onReact={react} />
             <Pressable accessibilityRole="button" accessibilityLabel="Comentarii" onPress={openComments} style={styles.railButton}>
               <SolidViewerIcon kind="comment" /><Text style={styles.railCount}>{compactCount(commentCount)}</Text>
@@ -227,7 +229,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
           </View>
 
           <View style={[styles.creator, { bottom: contentBottom + 1 }]}>
-            <Text style={styles.creatorName} numberOfLines={1}>{name}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} onPress={() => onOpenProfile(current.author?.handle || '')}><Text style={styles.creatorName} numberOfLines={1}>{name}</Text></Pressable>
             {current.caption ? <Pressable accessibilityRole="button" accessibilityLabel={captionExpanded ? 'Restrânge descrierea' : 'Extinde descrierea'} onPress={() => setCaptionExpanded((value) => !value)}>
               <Text style={styles.caption} numberOfLines={captionExpanded ? undefined : 2}>{current.caption}</Text>
             </Pressable> : null}
@@ -250,7 +252,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
             <Pressable accessibilityRole="button" accessibilityLabel="Înapoi la media" onPress={() => setCommentsOpen(false)} style={styles.commentBack}>
               <SolidViewerIcon kind="back" size={19} />
             </Pressable>
-            <View style={styles.commentIdentity}>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} onPress={() => onOpenProfile(current.author?.handle || '')} style={styles.commentIdentity}>
               <View style={styles.commentAvatar}>
                 {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.railAvatarImage} />
                   : <Text style={styles.commentAvatarText}>{initialsFor(name, handle)}</Text>}
@@ -259,7 +261,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
                 <Text style={styles.commentCreatorName} numberOfLines={1}>{name}</Text>
                 <Text style={styles.commentCreatorHandle} numberOfLines={1}>{`@${handle}`}</Text>
               </View>
-            </View>
+            </Pressable>
             <View style={styles.commentPostActions}>
               <ReactionControl variant="card" summary={summary} onReact={react} />
               <View style={styles.commentPostMetric}><SolidViewerIcon kind="comment" size={19} /><Text style={styles.commentPostCount}>{compactCount(commentCount) || '0'}</Text></View>
@@ -268,7 +270,7 @@ function GalleryViewer({ post, items, onClose, onCommentCreated, onOpenThread, o
               <Pressable accessibilityRole="button" accessibilityLabel="Distribuie" onPress={() => sharePost(current.id).catch(fail)} style={styles.commentPostMetric}><SolidViewerIcon kind="share" size={19} /></Pressable>
             </View>
           </View>
-          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} onOpenThread={onOpenThread ? (commentId) => onOpenThread(current, commentId) : undefined} onCommentCreated={(postId) => {
+          <CommentsSheet key={current.id} post={current} presentation="viewer" onClose={() => setCommentsOpen(false)} onOpenProfile={onOpenProfile} onOpenThread={onOpenThread ? (commentId) => onOpenThread(current, commentId) : undefined} onCommentCreated={(postId) => {
             setCommentCounts((previous) => ({ ...previous, [postId]: Math.max(previous[postId] ?? 0, Number(current.comment_count ?? 0)) + 1 }));
             onCommentCreated?.(postId);
           }} onCountSeen={(postId, count) => setCommentCounts((previous) =>
