@@ -130,17 +130,63 @@ export type ProfileView = {
   visibility?: string;
   is_self?: boolean;
   is_following?: boolean;
+  /**
+   * `presence` of the profile payload (`api.js:3028`, `repo.profilePresenceForViewer`): whether this reader
+   * may see the person's presence at all (`visible`), and whether they are there right now (`online`). The
+   * web asks the same two questions in `profilePresenceDot` (`profile-experience.js:61`).
+   */
+  presence?: { visible?: boolean; online?: boolean } | null;
   counts?: Record<string, number>;
   earned_sigil?: { level?: number; label?: string } | null;
+  /**
+   * `tabs_order` of the payload (`api.js:3013`, `normaliseTabsOrder`): the order the owner arranged the
+   * five content tabs in, read with `profileTabOrder` of `lib/profileContent`.
+   */
+  tabs_order?: string[] | null;
+  /**
+   * `highlights` of the payload (`api.js:2945-2951`, `repo.listStoryHighlights`): the saved-story albums
+   * the Moments shelf shows, each one already carrying its stories as `storyApiView` prints them.
+   */
+  highlights?: StoryHighlight[];
 };
 
 export type ProfileResponse = {
   ok: true;
   profile: ProfileView;
   posts?: SocialPost[];
+  /** `reposts` of the payload (`api.js:2955-2967`): shares of posts, newest share first. */
+  reposts?: RepostEntry[];
+  /** `shared_replies` of the payload (`api.js:2975-2984`): shares of replies, with the post they came from. */
+  shared_replies?: SharedReplyEntry[];
   locked?: boolean;
-  stories?: unknown[];
-  highlights?: unknown[];
+  stories?: StoryView[];
+};
+
+/** `repo.listStoryHighlights` through `api.js:2946-2950`. */
+export type StoryHighlight = { id?: number; title?: string; position?: number; stories?: StoryView[] };
+
+/**
+ * `entry.repost` of `api.js:2960-2965`: who shared what, and whether this reader is the one who did. A
+ * repost is an internal share, so the post under it keeps its own author, counters and time.
+ */
+export type RepostStamp = {
+  id?: number;
+  reposted_at?: number;
+  mine?: boolean;
+  reposter?: StoryAuthor | null;
+};
+
+export type RepostEntry = { share_id?: number; reposted_at?: number; repost?: RepostStamp | null; post?: SocialPost | null };
+
+/** `shared_replies` of the payload (`api.js:2975-2984`), the second kind of internal share. */
+export type SharedReplyEntry = {
+  share_id?: number;
+  shared_at?: number;
+  mine?: boolean;
+  comment?: CommentView | null;
+  post?: SocialPost | null;
+  /** The author of the post the reply belongs to — the sentence says whose post it was. */
+  post_author?: { id?: number; handle?: string; display_name?: string | null } | null;
 };
 
 /**

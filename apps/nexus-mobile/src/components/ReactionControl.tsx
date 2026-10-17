@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SolidViewerIcon } from './SolidViewerIcon';
+import { socialTokens } from '../theme/social';
 import {
   REACTION_GLYPHS, REACTION_TITLES, SOCIAL_REACTIONS, compactCount, reactionSummary, viewerReaction,
   type ReactionSummary,
@@ -13,6 +14,11 @@ import {
  *                           `reactionSummaryMarkup` (up to 3 glyph+count pairs) for a card's action row,
  *                           `viewerReactionSummaryMarkup` (one glyph + the total) for the reader's rail.
  *   app.js:3619-3623        the picker, in `SOCIAL_REACTIONS` order, with the `reaction.*` titles.
+ *   profile-experience.css  `.ownerWhisperAction` — the plate a whisper card's row wraps this same summary
+ *                           in (`min-height:38px`, `padding:0 10px`, `border-radius:11px`,
+ *                           `background:rgba(15,30,49,.5)`), with the glyph at 15px and the count at 12px
+ *                           in the plate's own ink, and the palette floating above its own button
+ *                           (`.pulsePosts.feedWhispers .whisperCard .reactionBar{bottom:calc(100% + 6px)}`).
  *   feed-surface.css:       `.reactionBar.expanded{grid-template-columns:repeat(4,minmax(0,1fr));gap:7-8px;
  *                           padding:10px;border:1px solid rgba(36,240,210,.3);border-radius:16px;
  *                           background:rgba(5,14,20,.96)}`; on the phone's Reels shell the discs lose their
@@ -28,25 +34,26 @@ import {
 export function ReactionControl({ summary, onReact, variant = 'card' }: {
   summary?: ReactionSummary | null;
   onReact: (kind: string, active: boolean) => void;
-  variant?: 'card' | 'rail';
+  variant?: 'card' | 'rail' | 'whisper';
 }) {
   const [open, setOpen] = useState(false);
   const mine = viewerReaction(summary);
   const compact = reactionSummary(summary?.counts);
   const total = compact.total;
   const rail = variant === 'rail';
+  const whisper = variant === 'whisper';
 
   /** `viewerReactionSummaryMarkup`: the reader's own reaction (or the plain heart) plus the total. */
   const railGlyph = mine && REACTION_GLYPHS[mine] ? REACTION_GLYPHS[mine] : REACTION_GLYPHS.LIKE;
 
   return (
-    <View style={rail ? styles.railWrap : styles.cardWrap}>
+    <View style={rail ? styles.railWrap : whisper ? [styles.whisperWrap, open && styles.whisperWrapOpen] : styles.cardWrap}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Deschide selectorul de reacții"
         accessibilityState={{ expanded: open, selected: Boolean(mine) }}
         onPress={() => setOpen((value) => !value)}
-        style={rail ? styles.railButton : styles.cardButton}
+        style={rail ? styles.railButton : whisper ? [styles.whisperButton, mine && styles.whisperButtonOn] : styles.cardButton}
       >
         {rail ? (
           <View style={styles.railDisc}>
@@ -58,8 +65,8 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
           <View style={styles.metrics}>
             {compact.entries.map((entry) => (
               <View key={entry.kind} style={styles.metric}>
-                <Text style={styles.metricGlyph}>{entry.glyph}</Text>
-                <Text style={styles.metricCount}>{entry.count}</Text>
+                <Text style={[styles.metricGlyph, whisper && styles.whisperGlyph, whisper && mine && styles.whisperOn]}>{entry.glyph}</Text>
+                <Text style={[styles.metricCount, whisper && styles.whisperCount, whisper && mine && styles.whisperOn]}>{entry.count}</Text>
               </View>
             ))}
           </View>
@@ -68,7 +75,7 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
       </Pressable>
 
       {open ? (
-        <View accessibilityLabel="Alege reacția" style={[styles.palette, rail && styles.railPalette]}>
+        <View accessibilityLabel="Alege reacția" style={[styles.palette, rail && styles.railPalette, whisper && styles.whisperPalette]}>
           {SOCIAL_REACTIONS.map((kind) => (
             <Pressable
               key={kind}
@@ -137,5 +144,37 @@ const styles = StyleSheet.create({
   optionOn: { backgroundColor: 'rgba(255,255,255,0.08)' },
   optionGlyph: { fontSize: 20, lineHeight: 24 },
   optionTitle: { color: '#cfe0e8', fontSize: 10, fontWeight: '800' },
+  /**
+   * `.ownerWhisperAction` — the plate a whisper's action row gives the summary, and the one its two other
+   * presses wear: `display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 10px;
+   * border:1px solid transparent;border-radius:11px;background:rgba(15,30,49,.5);color:#9fb2bc;
+   * font-size:12px;font-weight:700`, with `on` reading `border-color:#27dccc;color:#6eecdf`
+   * (`docs/web-ref/profile/tab-3.dom.json`: the row at y=751, 38 tall, the three plates 64/43/49 wide).
+   *
+   * The wrapper is what the palette needs: the web floats it above its own button, so it must not push the
+   * row it was opened from. It carries the stacking order only while it is open, so a closed plate can
+   * never sit above a neighbour.
+   */
+  whisperWrap: { position: 'relative' },
+  whisperWrapOpen: { zIndex: 60 },
+  whisperButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    minHeight: socialTokens.archive.actionMinHeight,
+    paddingHorizontal: socialTokens.archive.actionPaddingHorizontal,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    borderRadius: socialTokens.archive.actionRadius,
+    backgroundColor: socialTokens.archive.actionSurface,
+  },
+  whisperButtonOn: { borderColor: socialTokens.archive.actionOnBorder },
+  /** `.ownerWhisperAction .reactionSummaryGlyphs .reactionMetric b{font-size:15px}` with `em{font-size:12px}`. */
+  whisperGlyph: { color: socialTokens.archive.actionInk, fontSize: socialTokens.archive.actionMetricGlyphSize, lineHeight: 18 },
+  whisperCount: { color: socialTokens.archive.actionInk, fontSize: socialTokens.archive.actionMetricCountSize, fontWeight: '800' },
+  /** Both parts `color:inherit`, so the plate's `on` ink paints the summary it holds. */
+  whisperOn: { color: socialTokens.archive.actionOnInk },
+  /** `.reactionBar.expanded` floats: `bottom:calc(100% + 6px)` over a 38px plate. */
+  whisperPalette: { position: 'absolute', left: 0, bottom: socialTokens.archive.actionMinHeight + 6, marginTop: 0, zIndex: 60 },
 });
 
