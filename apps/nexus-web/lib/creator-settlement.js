@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { LedgerError, accountId, splitAmount } from "./creator-ledger.js";
 import { json, readJson, sanitizeText } from "./transport.js";
 
@@ -195,6 +195,7 @@ export function refundIntent({ db, creatorId, intentId, reason, currency = DEFAU
     return {
       settlement: db.prepare("SELECT * FROM support_settlements WHERE id = ?").get(settlement.id),
       entries,
+      reversed: true,
       available_cents: balanceCents(db, accountId("creator", creatorId, cur)),
     };
   });
@@ -220,20 +221,42 @@ export function creatorLedger({ db, creatorId, currency = DEFAULT_LEDGER_CURRENC
   };
 }
 
-/** A payout request is a claim on the available balance, refused the moment it exceeds it (I3). */
-export function requestCreatorPayout({ db, creatorId, amountCents, currency = DEFAULT_LEDGER_CURRENCY }) {
+/**
+ * A payout request is a claim on the available balance, refused the moment it exceeds it (I3).
+ *
+ * `idempotencyKey` is what makes a retried press safe: the row id is derived from
+ * `creatorId + key`, so the second request with the same key finds the first row instead of writing a
+ * second claim on the same money. A key reused with a different amount is a conflict, not a replay —
+ * silence there would let one key mean two different payouts.
+ */
+export function requestCreatorPayout({ db, creatorId, amountCents, currency = DEFAULT_LEDGER_CURRENCY, idempotencyKey = null }) {
   const amount = Number(amountCents);
   if (!Number.isSafeInteger(amount) || amount <= 0) {
     throw new LedgerError("INVALID_AMOUNT", "a payout must be a positive integer number of cents", 400);
+  }
+  const key = typeof idempotencyKey === "string" ? idempotencyKey.trim() : "";
+  if (key && (key.length < 16 || key.length > 128 || !/^[A-Za-z0-9._:-]+$/.test(key))) {
+    throw new LedgerError("INVALID_IDEMPOTENCY_KEY", "Idempotency-Key must contain 16-128 safe characters", 400);
+  }
+  const id = key
+    ? `pay_${createHash("sha256").update(`payout:${creatorId}:${key}`).digest("hex").slice(0, 24)}`
+    : `pay_${randomBytes(10).toString("hex")}`;
+  if (key) {
+    const existing = db.prepare("SELECT * FROM payout_requests WHERE id = ?").get(id);
+    if (existing) {
+      if (Number(existing.amount_cents) !== amount || String(existing.currency) !== String(currency)) {
+        throw new LedgerError("IDEMPOTENCY_CONFLICT", "this Idempotency-Key already names a different payout", 409);
+      }
+      return { payout: existing, available_cents: balanceCents(db, accountId("creator", creatorId, currency)), replay: true };
+    }
   }
   const available = balanceCents(db, accountId("creator", creatorId, currency));
   if (amount > available) {
     throw new LedgerError("INSUFFICIENT_FUNDS", "payout exceeds the available balance", 409);
   }
-  const id = `pay_${randomBytes(10).toString("hex")}`;
   db.prepare("INSERT INTO payout_requests (id, creator_id, currency, amount_cents) VALUES (?, ?, ?, ?)")
     .run(id, creatorId, currency, amount);
-  return { payout: db.prepare("SELECT * FROM payout_requests WHERE id = ?").get(id), available_cents: available };
+  return { payout: db.prepare("SELECT * FROM payout_requests WHERE id = ?").get(id), available_cents: available, replay: false };
 }
 
 export function listCreatorPayouts({ db, creatorId }) {
@@ -338,7 +361,13 @@ export async function handleCreatorSettlement({ req, res, method, path, repo, au
       || !Number.isSafeInteger(amount) || amount <= 0) {
       return json(res, 400, { ok: false, error: "payout amount invalid" }), true;
     }
-    const result = guardedWrite(() => requestCreatorPayout({ db, creatorId: owner, amountCents: amount }));
+    // `MONETIZATION-SPEC.md` §4.3: every mutation carries an Idempotency-Key. The header is required
+    // here rather than optional, because a retry that silently writes a second claim is money.
+    const idempotencyKey = String(req.headers["idempotency-key"] ?? "").trim();
+    if (!idempotencyKey) {
+      return json(res, 400, { ok: false, code: "IDEMPOTENCY_KEY_REQUIRED", error: "Idempotency-Key must contain 16-128 safe characters" }), true;
+    }
+    const result = guardedWrite(() => requestCreatorPayout({ db, creatorId: owner, amountCents: amount, idempotencyKey }));
     if (result) json(res, 201, { ok: true, ...result, real_payment: false, real_settlements: 0 });
     return true;
   }

@@ -1,4 +1,4 @@
-import test from 'node:test';
+﻿import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../lib/db.js';
 import { createRepo } from '../lib/repo.js';
@@ -173,6 +173,30 @@ test('payouts: requested, paid once, and the balance is the difference', () => {
   } finally { db.close(); }
 });
 
+test('payouts: the same Idempotency-Key names one claim, a different amount on it is a conflict', () => {
+  const { db, creator, intent } = fixture({ priceCents: 1000 });
+  try {
+    depositTreasury({ db, amountCents: 10000 });
+    settleIntent({ db, creatorId: creator.id, intentId: intent.id, allowDemo: true });
+    const first = requestCreatorPayout({ db, creatorId: creator.id, amountCents: 300, idempotencyKey: 'press-0001-abcdefghij' });
+    const again = requestCreatorPayout({ db, creatorId: creator.id, amountCents: 300, idempotencyKey: 'press-0001-abcdefghij' });
+    assert.equal(again.replay, true);
+    assert.equal(again.payout.id, first.payout.id);
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM payout_requests').get().n, 1, 'un singur rÃ¢nd, nu douÄƒ cereri pe aceiaÈ™i bani');
+    assert.throws(
+      () => requestCreatorPayout({ db, creatorId: creator.id, amountCents: 500, idempotencyKey: 'press-0001-abcdefghij' }),
+      (error) => error.code === 'IDEMPOTENCY_CONFLICT' && error.status === 409,
+    );
+    assert.throws(
+      () => requestCreatorPayout({ db, creatorId: creator.id, amountCents: 100, idempotencyKey: 'short' }),
+      (error) => error.code === 'INVALID_IDEMPOTENCY_KEY' && error.status === 400,
+    );
+    const other = requestCreatorPayout({ db, creatorId: creator.id, amountCents: 200, idempotencyKey: 'press-0002-abcdefghij' });
+    assert.notEqual(other.payout.id, first.payout.id, 'altÄƒ cheie, altÄƒ cerere');
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM payout_requests').get().n, 2);
+  } finally { db.close(); }
+});
+
 test('the SQL ledger and the pure ledger agree on the same scenario', () => {
   const { db, creator, intent } = fixture({ priceCents: 500 });
   try {
@@ -192,4 +216,5 @@ test('the SQL ledger and the pure ledger agree on the same scenario', () => {
     assert.equal(pure.reconcile().ok, true);
   } finally { db.close(); }
 });
+
 
