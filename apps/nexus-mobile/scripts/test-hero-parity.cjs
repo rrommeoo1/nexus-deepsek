@@ -11,7 +11,8 @@
 //   * the header is the reference's arrangement, drawn from `socialTokens.identity` / `socialTokens.relations`
 //     with the product's own ink — the measured target and the button states are held in
 //     `scripts/test-relations.cjs`, and the values come from `docs/PARITY-MATRIX.md`;
-//   * the band keeps the module's readings minus the three counters, which now stand in the fixed row;
+//   * the band carries the description, the place, the member-since month, the age and the account kind —
+//     the readings the header no longer prints (`MIGRATION.md` §20.1, `scripts/test-profile-band.cjs`);
 //   * the bar of tabs and the content region under it are **untouched** (`test-profile-content-parity.cjs`
 //     still holds those), and the screen keeps its pull-to-refresh, its skeleton and its honest error state.
 //
@@ -31,6 +32,7 @@ const HEADER = resolve(ROOT, 'src/components/ProfileHeader.tsx');
 const SCREEN = resolve(ROOT, 'src/screens/ProfileScreen.tsx');
 const EDIT_SHEET = resolve(ROOT, 'src/components/ProfileEditSheet.tsx');
 const TICKER = resolve(ROOT, 'src/components/ProfileTicker.tsx');
+const BAND = resolve(ROOT, 'src/components/ProfileBand.tsx');
 const BUTTON = resolve(ROOT, 'src/components/RelationButton.tsx');
 const MATRIX = resolve(REPO, 'docs/PARITY-MATRIX.md');
 const MIGRATION = resolve(ROOT, 'MIGRATION.md');
@@ -39,6 +41,7 @@ const headerSource = readFileSync(HEADER, 'utf8');
 const screenSource = readFileSync(SCREEN, 'utf8');
 const editSource = readFileSync(EDIT_SHEET, 'utf8');
 const tickerSource = readFileSync(TICKER, 'utf8');
+const bandSource = readFileSync(BAND, 'utf8');
 const buttonSource = readFileSync(BUTTON, 'utf8');
 
 /** The tokens, compiled the way the app's other scripts compile TS. */
@@ -90,7 +93,9 @@ test('antetul este blocurile cerute, din tokenurile produsului', () => {
   assert.match(headerSource, /styles\.identity/, 'blocul de identitate');
   assert.match(headerSource, /styles\.stats/, 'rândul fix de statistici');
   assert.match(headerSource, /styles\.buttons/, 'rândul de butoane');
-  assert.match(headerSource, /styles\.about/, 'descrierea, locul și vârsta');
+  assert.doesNotMatch(headerSource, /styles\.about/, 'descrierea, locul și vârsta au plecat în bandă');
+  assert.match(bandSource, /styles\.band/, 'iar banda le duce pe un singur rând');
+  assert.match(screenSource, /<ProfileBand profile=\{profile\} \/>/, 'așezată imediat sub antet');
   assert.match(headerSource, /styles\.avatarRing/, 'inelul de story al cercului mare');
   assert.match(headerSource, /hasUnseenStory/);
   // The reader's own row is the bars; somebody else's is the arrow and the share.
@@ -105,15 +110,14 @@ test('antetul este blocurile cerute, din tokenurile produsului', () => {
 });
 
 test('ce nu există pe server nu se desenează', () => {
-  // No per-account notifications route: no bell. No verification field: no badge. No website field: the address
-  // lives in the description. All three are said out loud in the header itself.
+  // No per-account notifications route: no bell. No verification field: no badge. The description, the place
+  // and the age are the band's readings now, so the header says nothing about where an address lives.
   assert.doesNotMatch(headerSource, /🔔|<Bell/);
   assert.match(headerSource, /no verification field/);
-  assert.match(headerSource, /where an address lives/);
-  // The description is read as a link where it carries one, exactly as the band reads it.
-  assert.match(headerSource, /bioTokens\(bio\)/);
-  assert.match(headerSource, /openLink/);
-  assert.match(headerSource, /Vezi mai mult/);
+  assert.doesNotMatch(headerSource, /bioTokens\(bio\)/, 'descrierea nu se mai citește în antet');
+  assert.doesNotMatch(headerSource, /openLink|Vezi mai mult/, 'nici legăturile și nici extinderea ei');
+  assert.match(bandSource, /bandRows\(profile, clock\)/, 'banda citește descrierea și restul din același payload');
+  assert.match(bandSource, /accessibilityHint=/, 'și spune ce deschide');
 });
 
 test('antetul tipărește fiecare citire o singură dată, iar bara și conținutul rămân neatinse', () => {

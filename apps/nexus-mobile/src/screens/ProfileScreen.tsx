@@ -9,6 +9,7 @@ import {
   archiveBands, archiveKey, archiveNodes, contentOfTab, orderArchive, profileArchive, profileMomentShelf,
   type ArchiveBand, type ArchiveNode, type ArchivePost, type ContentReading, type ContentTab,
 } from '../lib/profileContent';
+import { ProfileBand } from '../components/ProfileBand';
 import { ProfileEditSheet } from '../components/ProfileEditSheet';
 import { ProfileEmptyState } from '../components/ProfileEmptyState';
 import { ProfileHeader } from '../components/ProfileHeader';
@@ -261,12 +262,12 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onMenu, menuOpen 
       />
 
       {/**
-       * No band under the header. The band used to carry the description, the place, the age, the handle and
-       * then the counters, and the owner's header now prints every one of them - the three counters in the
-       * fixed row, the rest under the buttons (`MIGRATION.md` §19.2). Keeping it would print the same words
-       * twice in one column, which is the defect this row is removed for; `ProfileTicker` stays the module's
-       * transcription for any surface that has no header of its own (`tickerItems` keeps both switches on).
+       * The band, directly under the header's buttons (`MIGRATION.md` §20.1). It carries the description,
+       * the place, the month the account was created, the age and the kind of account — the readings the
+       * header no longer prints — on one line that drifts leftwards in a loop, and it opens the sheet with
+       * the same five facts when it is touched. With nothing to carry it draws nothing at all.
        */}
+      {profile ? <ProfileBand profile={profile} /> : null}
 
       {/**
        * `.ownerTabsRegion` + `nav.ownerContentTabs[role=tablist][aria-label="Conținut profil"]`: the bar

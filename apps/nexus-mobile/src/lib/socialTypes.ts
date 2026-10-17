@@ -120,6 +120,18 @@ export type ProfileView = {
   bio?: string;
   location?: string;
   age?: number | null;
+  /**
+   * The owner's calendar date (`api.js:3003`). The server sends it to the owner alone, because a date of
+   * birth is a stronger fact about a person than an age; everybody else's record carries only `age`.
+   * `lib/profileBand` derives the age from it on every render when it is here.
+   */
+  birth_date?: string | null;
+  /**
+   * When the account was created, as unix seconds. The band's `Membru din <lună an>` reads it; the field
+   * is additive on the server and is simply absent until the backend that carries it is deployed
+   * (`docs/BACKEND-ONLY.md`), so the row is left out rather than guessed.
+   */
+  joined_at?: number | null;
   avatar?: string | null;
   cover?: string | null;
   cover_focus?: number;

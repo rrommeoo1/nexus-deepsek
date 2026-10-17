@@ -105,7 +105,7 @@ const describe = (cause: unknown) => (cause instanceof Error ? cause.message : '
  * the conversations exactly like the web's single scroller. The rail's own card is the camera door
  * (`app.js:3324 openComposer("story")`) and every other card opens the full-screen reader.
  */
-export function MessagesScreen({ owner, onHome, activePersona = 'social', onSelectModule }: {
+export function MessagesScreen({ owner, onHome, activePersona = 'social', initialBox, onSelectModule }: {
   /** The reader's own record for the shelf's first card (`activePersonaRecord()` of the web). Its `id`
    * is what tells the reader apart from the other ends of a conversation, the way `state.user.id` does. */
   owner: { id?: number; display_name?: string | null; handle?: string; avatar?: string | null };
@@ -113,6 +113,12 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   onHome: () => void;
   /** `state.persona` — the profile the activity box reads its preferences for (`app.js:7882`). */
   activePersona?: string;
+  /**
+   * The box to open on. The drawer's bell asks for `activity` (`MIGRATION.md` §22); the inbox marks ask
+   * for nothing and keep the conversations. A box chosen here stays chosen until the shell hands in
+   * another one, so pressing a chip inside this screen is never undone by the prop it arrived with.
+   */
+  initialBox?: InboxBox;
   /** `[data-inbox-persona]` (`app.js:7809`) — the module plate switches the active profile of the account. */
   onSelectModule?: (persona: string) => void;
 }) {
@@ -129,7 +135,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   const [storiesViewerId, setStoriesViewerId] = useState<number | null>(null);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   /** `inboxBox` / `inboxFilter` of `app.js:196`+`:63` — the two decisions the plates own. */
-  const [box, setBox] = useState<InboxBox>('inbox');
+  const [box, setBox] = useState<InboxBox>(initialBox ?? 'inbox');
   const [filter, setFilter] = useState<InboxFilter>('all');
   /** The row whose avatar was pressed: `#messengerContact` (`messenger-contact.js:82`). */
   const [contactFor, setContactFor] = useState<Conversation | null>(null);
@@ -142,6 +148,18 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', onSele
   /** `inboxFilter` (`app.js:196`, `:7801`): it starts as the active profile and is reset with the context. */
   const [moduleSelection, setModuleSelection] = useState({ persona: activePersona, choice: activePersona });
   const moduleChoice = moduleSelection.persona === activePersona ? moduleSelection.choice : activePersona;
+  /**
+   * React's own "adjusting state when a prop changes" (`react.dev/learn/you-might-not-need-an-effect`):
+   * a shell that hands in another box (the drawer's bell) opens that box, and a chip pressed inside this
+   * screen is not undone by the box the screen arrived with — only a new request from outside moves it.
+   */
+  const [openedBox, setOpenedBox] = useState<InboxBox>(initialBox ?? 'inbox');
+  if (initialBox && initialBox !== openedBox) {
+    setOpenedBox(initialBox);
+    setBox(initialBox);
+    setFilter('all');
+    setQuery('');
+  }
   const searchKey = JSON.stringify([query.trim(), box, moduleChoice, activePersona, owner.id]);
   const conversationHits = conversationSearch?.key === searchKey ? conversationSearch.result : { state: 'idle' as const, messages: [] };
   const messageHits = messageSearch?.key === searchKey ? messageSearch.result : { state: 'idle' as const, messages: [] };

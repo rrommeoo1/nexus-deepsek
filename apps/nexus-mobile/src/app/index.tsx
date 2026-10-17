@@ -10,7 +10,8 @@ import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
 import type { NavSlot } from '../components/NexusMark';
 import type { TickerDoor } from '../components/ProfileTicker';
-import { API_ORIGIN } from '../lib/apiOrigin';
+import type { InboxBox } from '../lib/messageSearch';
+import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
@@ -72,6 +73,12 @@ export default function NativeHomeScreen() {
    */
   const [friendsTab, setFriendsTab] = useState<'requests' | 'followers' | 'following'>('requests');
   const [searchQuery, setSearchQuery] = useState('');
+  /**
+   * Which box the inbox opens on. The drawer's bell is a door to the account's activity, and the inbox
+   * owns that surface (`ActivityCenter`, `GET /api/notifications`), so the shell carries the box the
+   * reader asked for and the ordinary inbox marks reset it to the conversations.
+   */
+  const [inboxBox, setInboxBox] = useState<InboxBox>('inbox');
   /** The count the bottom bar prints over the inbox mark; the two reads behind it live in lib/unread.ts. */
   const [unreadCount, setUnreadCount] = useState(0);
   const booted = useRef(false);
@@ -170,6 +177,8 @@ export default function NativeHomeScreen() {
   const onSelectSlot = useCallback((next: NavSlot) => {
     if (next === 'create') { router.push('/camera'); return; }
     if (next === 'account') setProfileKey((value) => value + 1);
+    /** The inbox mark is the conversations; the bell in the drawer is the activity (`inboxBox`). */
+    if (next === 'inbox') setInboxBox('inbox');
     setSlot(next);
   }, []);
 
@@ -178,7 +187,14 @@ export default function NativeHomeScreen() {
    * the inbox this shell owns (`slot = 'inbox'`). A visitor's profile lives on another route, which cannot
    * reach this slot yet — said out loud in `MIGRATION.md` §19.4 rather than wired with a fake screen.
    */
-  const openInbox = useCallback(() => setSlot('inbox'), []);
+  const openInbox = useCallback(() => { setInboxBox('inbox'); setSlot('inbox'); }, []);
+
+  /**
+   * The drawer's bell: the account's activity, which is the inbox's own activity box. It is the one
+   * surface the app has for `GET /api/notifications` — five endpoints, all of them read by
+   * `ActivityCenter` — so the door opens the box rather than a second copy of the panel.
+   */
+  const openNotifications = useCallback(() => { setInboxBox('activity'); setSlot('inbox'); }, []);
 
   /**
    * After a relation changes, the screen that shows the record re-reads it: the counters of the header and the
@@ -227,7 +243,7 @@ export default function NativeHomeScreen() {
       <SafeAreaView style={styles.loginScreen}>
         <NexusLogin
           brand={<NexusLandingBrand />}
-          version={`Android ${APP_VERSION}${backendVersion ? ` · Backend ${backendVersion}` : ''}`}
+          version={`Android ${APP_VERSION} · ${apiOriginLabel()}${backendVersion ? ` · Backend ${backendVersion}` : ''}`}
           locale="ro"
           googleReady={false}
           facebookReady={false}
@@ -326,6 +342,7 @@ export default function NativeHomeScreen() {
         <MessagesScreen
           onHome={goHome}
           activePersona={me.persona}
+          initialBox={inboxBox}
           onSelectModule={(persona) => void onSelectModule(persona)}
           owner={{
             id: me.user.id,
@@ -375,6 +392,8 @@ export default function NativeHomeScreen() {
         onModule={(id) => void onSelectModule(id)}
         onLogout={() => void onLogout()}
         onNewPost={() => router.push('/camera')}
+        onNotifications={openNotifications}
+        version={`Android ${APP_VERSION} · ${apiOriginLabel()}`}
       />
     </SafeAreaView>
   );

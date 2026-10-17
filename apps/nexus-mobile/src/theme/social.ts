@@ -631,6 +631,40 @@ export const socialTokens = {
     emptyIconSize: 34,
     emptyIconInk: '#4fd9d0',
   },
+  /**
+   * The profile band — the native-first reading line under the header's buttons (`MIGRATION.md` §20.1).
+   * These numbers are not a web stylesheet's: the band was designed here, on the phone, and the sheet it
+   * opens borrows the editor sheet's own surface (`#08131c`, `#23414c`) so the two panels read as one.
+   */
+  band: {
+    surface: 'rgba(8,18,24,0.9)',
+    border: 'rgba(38,58,68,0.9)',
+    ink: '#dff2f6',
+    iconInk: '#8fe9e0',
+    separator: '#2fbdb3',
+    fade: 26,
+    minHeight: 44,
+    paddingInline: 14,
+    paddingBlock: 10,
+    fontSize: 13,
+    lineHeight: 1.35,
+    gap: 8,
+    edgeWidth: 1,
+    radius: 12,
+    sheetSurface: '#08131c',
+    sheetBorder: '#23414c',
+    sheetInk: '#eef8fb',
+    sheetLabelInk: '#9fb2bb',
+    sheetRadius: 22,
+    sheetPaddingInline: 16,
+    sheetPaddingTop: 10,
+    sheetPaddingBottom: 28,
+    grabberWidth: 44,
+    grabberHeight: 4,
+    grabberInk: '#2c4854',
+    rowGap: 4,
+    rowPaddingBlock: 10,
+  },
 } as const;
 
 /** The five profiles of the account, as the rail and the drawer already print them. */

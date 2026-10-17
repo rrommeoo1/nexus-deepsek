@@ -1,6 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
-import { bioTokens } from '../lib/profileBioText';
+import { useCallback, useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { HEADER_WORDS, deriveRelationUi, type RelationTarget, type RelationView } from '../lib/relations';
 import { initialsFor, mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
@@ -19,12 +18,12 @@ import type { TickerDoor } from './ProfileTicker';
  *     fixed counters under that — and the big circle (~92dp) on the right, with the story ring when the
  *     record has a story this reader has not seen;
  *   * the row of full-width buttons under it: the relation button (what `deriveRelationUi` says), `Mesaj`,
- *     and the round entry that holds the relations menu — or, on my own record, the editor and the share;
- *   * the description (with `Vezi mai mult` when it is long), the place and the age under the buttons.
+ *     and the round entry that holds the relations menu — or, on my own record, the editor and the share.
  *
- * Nothing here decides a relation: the button reads the store (`lib/relations.ts`), which is the app's one
- * answer for the same pair of accounts on every screen. The ticker under this header keeps what the web
- * printed minus the three counters, which now live in the fixed row above it (`MIGRATION.md` §19.2).
+ * The description, the place and the age used to stand under the buttons; they left this header with the
+ * band that now carries them (`MIGRATION.md` §20.1), so every reading of a record is printed once in the
+ * column. Nothing here decides a relation: the button reads the store (`lib/relations.ts`), which is the
+ * app's one answer for the same pair of accounts on every screen.
  */
 export function ProfileHeader({
   profile, relation, viewerUserId, hasUnseenStory = false, onBack, onShare, onEditProfile, onMenu, menuOpen, onMessage, onDoor,
@@ -54,7 +53,6 @@ export function ProfileHeader({
   visibilityWord?: string;
   style?: StyleProp<ViewStyle>;
 }) {
-  const [bioOpen, setBioOpen] = useState(false);
   const target: RelationTarget = useMemo(() => ({
     userId: profile?.user_id ?? null,
     handle: profile?.handle ?? null,
@@ -84,14 +82,6 @@ export function ProfileHeader({
     if (stat.key === 'following' || stat.key === 'followers') onDoor(stat.key, '');
   }, [onDoor]);
 
-  const openLink = useCallback((address: string) => {
-    const url = /^https?:/i.test(address) ? address : `https://${address}`;
-    void Linking.openURL(url).catch(() => undefined);
-  }, []);
-
-  const bio = String(profile?.bio ?? '').trim();
-  const location = String(profile?.location ?? '').trim();
-  const age = typeof profile?.age === 'number' && Number.isInteger(profile.age) ? profile.age : null;
   const avatar = mediaSourceForPath(profile?.avatar);
   const handle = String(profile?.handle ?? '').trim();
   const name = String(profile?.name || handle || '').trim();
@@ -250,48 +240,10 @@ export function ProfileHeader({
       ) : null}
 
       {/**
-       * What the record says about itself: the description (cut at three lines, with `Vezi mai mult` — the
-       * web's own `post.seeMore` / `post.seeLess`), then the place and the age. An address inside the words is
-       * pressable and a mention opens the profile it names, exactly as the band's own links do
-       * (`profile-bio-text.js`): the payload has no separate website field (`api.js:2989-3030`), so the
-       * description is where an address lives.
+       * Nothing else is printed here. The description, the place and the age left the header with the
+       * band that carries them under the button row (`ProfileBand`, `MIGRATION.md` §20.1): one reading,
+       * one place, so the column never prints the same words twice.
        */}
-      {bio || location || age !== null ? (
-        <View style={styles.about}>
-          {bio ? (
-            <View>
-              <Text style={styles.bio} numberOfLines={bioOpen ? undefined : socialTokens.identity.bioLines}>
-                {bioTokens(bio).map((token, index) => (
-                  <Text
-                    key={`${index}-${token.link ?? 'text'}`}
-                    style={token.link ? styles.bioLink : undefined}
-                    onPress={token.link === 'address'
-                      ? () => openLink(token.href)
-                      : token.link === 'mention' && onDoor ? () => onDoor('handle', token.href) : undefined}
-                  >
-                    {token.text}
-                  </Text>
-                ))}
-              </Text>
-              {bio.length > 90 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={bioOpen ? 'Vezi mai puțin' : 'Vezi mai mult'}
-                  onPress={() => setBioOpen((value) => !value)}
-                  style={styles.moreTarget}
-                >
-                  <Text style={styles.more}>{bioOpen ? 'Vezi mai puțin' : 'Vezi mai mult'}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null}
-          {location || age !== null ? (
-            <Text style={styles.meta} numberOfLines={1}>
-              {[location, age !== null ? `${age} ani` : ''].filter(Boolean).join(' · ')}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -388,11 +340,4 @@ const styles = StyleSheet.create({
     marginTop: socialTokens.identity.buttonTopGap,
   },
   buttonFill: { flex: 1, minWidth: 0 },
-  about: { marginTop: socialTokens.identity.bioTopGap, gap: 4 },
-  bio: { color: '#e9f2f5', fontSize: socialTokens.identity.bioSize, lineHeight: socialTokens.identity.bioSize * 1.45 },
-  bioLink: { color: socialTokens.identity.linkInk },
-  /** `post.seeMore` — the action at the end of the words, with a 44dp aim of its own. */
-  moreTarget: { minHeight: socialTokens.identity.minTarget, justifyContent: 'center' },
-  more: { color: socialTokens.identity.statLabelInk, fontSize: 13, fontStyle: 'italic' },
-  meta: { color: socialTokens.identity.metaInk, fontSize: socialTokens.identity.metaSize },
 });

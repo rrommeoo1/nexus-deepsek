@@ -1429,3 +1429,85 @@ economisiți. Pe Xiaomi s-au verificat deschiderea și închiderea prin noua ți
 44 dp; atingerea în afara ei încă deschide firul comentariului. Typecheck și lint
 trec. Banda de sus este opacă în cod; nu s-a făcut o comparație vizuală nouă pe pixel.
 
+## 20. Banda de profil, restaurată nativ (17 octombrie 2026)
+
+Decizia proprietarului: **aplicația nativă decide designul**, web-ul nu mai este referință de interfață,
+iar backend-ul rămâne pe Railway. Banda a fost scoasă în §19.2 pentru că repeta ce tipărea antetul; acum
+antetul nu mai tipărește nimic din ea, deci banda se întoarce — într-o formă proiectată pe telefon, nu
+transcrisă din stylesheet.
+
+### 20.1 Ce este
+
+`src/components/ProfileBand.tsx` + `src/lib/profileBand.ts`, așezate în `ProfileScreen` imediat sub rândul
+de butoane al antetului:
+
+* un singur rând care se mișcă spre stânga, continuu, cu `translateX` pe driver nativ
+  (`useNativeDriver: true`) și buclă fără cusătură: ruloul este urmat de copii ale lui
+  (`bandCopies`), iar la `-runWidth` poziția revine la 0 exact când o copie stă unde stătea prima;
+* ciclul: 48 s pe o coloană de 360 dp (`bandCycleMs`), ca viteza să rămână aceeași pe un bio mai lung;
+  minim 48 s, maxim 120 s;
+* „reduce motion” oprește animația și lasă textul static (`AccessibilityInfo.isReduceMotionEnabled` +
+  `reduceMotionChanged`);
+* conținutul, în ordine: **bio · locație · «Membru din <lună an>» · vârstă · tipul contului** (cu lacăt);
+  fiecare citire apare numai dacă payload-ul o are, deci nu rămân goluri și nici separatoare duble;
+* atingerea deschide o foaie de jos (`Detalii profil`) cu aceleași fapte pe rânduri — Descriere, Locație,
+  Membru din, Vârstă, Tipul contului — care se închide prin tragere (mânerul este tot capul foii) sau prin
+  atingerea fundalului.
+
+### 20.2 Vârsta, recalculată la fiecare randare
+
+`bandAge(birthDate, now, timeZone)` citește ziua de naștere ca **dată calendaristică** și o compară cu ziua
+cititorului, în fusul lui (`Intl.DateTimeFormat`), nu în UTC-ul serverului. `ProfileScreen` are deci o
+singură sursă: când payload-ul aduce `birth_date` (serverul o dă **numai proprietarului**, `api.js:3003`),
+vârsta se calculează aici; când nu (orice alt profil), se tipărește `age` primit de la server, fără
+recalculare. Ceasul este recitit la miezul nopții locale și la revenirea în aplicație (`AppState`), deci o
+zi de naștere care trece peste noapte apare fără reload.
+
+### 20.3 Ce lipsește din payload
+
+`joined_at` (data creării contului) **nu există** în răspunsul de profil: rândul «Membru din» nu apare pe
+telefon până când backend-ul nu îl trimite. Modificarea aditivă este pregătită pe un branch separat, cu
+teste, și **nu este deployată**: vezi `docs/BACKEND-ONLY.md`.
+
+### 20.4 Teste și verificare
+
+`scripts/test-profile-band.cjs` (12 teste): data de naștere validă/invalidă, ziua de naștere azi/mâine/ieri,
+29 februarie în an bisect și nebisect, fusul cititorului în jurul miezului nopții, data viitoare, varsta
+afișată (dată de naștere vs. număr server), «Membru din» pe fusuri, toate combinațiile prezent/absent,
+lacătul, ciclul, numărul de copii, plus garda pe componentă (driver nativ, reduce motion, `AppState`,
+`Modal`, `PanResponder`).
+
+Pe Xiaomi (17 octombrie, 13:1x):
+* banda apare sub butoane, măsurată `y=868–914` px fizici, cu citirile reale
+  (`Cont public pentru testarea interfeței Nexus. · Kraków, Polonia · 25 ani · Cont public`);
+* atingerea deschide foaia, cu patru rânduri (fără «Membru din», cât timp backend-ul nu trimite data);
+* tragerea de pe capul foii o închide; atingerea fundalului, de asemenea;
+* **mișcarea**: telefonul raportează „reduce motion” activ (`AccessibilityInfo` → `true`), deci banda stă
+  pe loc, exact cum cere regula. Cu `reduceMotion` ocolit temporar (editare locală, revenită imediat), două
+  capturi la 0,9 s distanță diferă — deci animația rulează pe driver nativ. Pentru a o vedea în uz normal,
+  proprietarul trebuie să dezactiveze „Remove animations” / să pornească scalele de animație; nu s-a
+  modificat nicio setare a telefonului.
+
+## 21. Ciclu de dezvoltare (fără release)
+
+`docs/DEV-WORKFLOW.md` + `tools/dev-start.ps1`: un pas care verifică adb, pornește Metro pe 8081, face
+`adb reverse` **numai** pentru 8081, aduce Nexus Dev în prim-plan cu
+`am start -n app.nexus.mobile.dev/.MainActivity` și îi dă adresa Metro a PC-ului din LAN prin deep link-ul
+dev clientului (fără tastare în launcher). API-ul rămâne pe Railway; nu se face reverse pentru el.
+
+`src/lib/apiOrigin.ts` expune `apiOriginLabel()` — `API: Railway` / `API: local` — tipărit lângă versiune
+pe ecranul de login și în subsolul sertarului (`Android 0.1.0 · API: Railway`), ca backend-ul folosit să
+fie mereu vizibil. Doar JS: Fast Refresh, fără APK nou.
+
+## 22. Notificări: ușa din sertar (17 octombrie 2026)
+
+Panoul exista (`ActivityCenter`, cinci endpoint-uri `notification*`), dar nu avea ușă. Sertarul
+(`FeedDrawer`) este indexul de uși al contului, deci primește un clopoțel (`Notificări`) lângă „Postare
+nouă”; apăsarea închide sertarul și deschide inboxul pe cutia `Activitate` (`MessagesScreen` primește
+`initialBox`, aplicat ca ajustare în randare, nu în efect). Marcajul „Mesaje” din bara de jos readuce cutia
+la conversații, iar un chip ales în inbox nu este anulat de prop.
+
+Pe Xiaomi: sertar → `Notificări` → „ACTIVITATE · SOCIAL”, „1 necitite”, „Marchează tot citit”, rândul de
+mesaj și preferințele s-au încărcat din Railway.
+
+

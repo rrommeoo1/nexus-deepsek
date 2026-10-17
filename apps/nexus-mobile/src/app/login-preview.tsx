@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
+import { apiOriginLabel } from '../lib/apiOrigin';
 
 /** Development-only visual comparison. It never calls authentication endpoints. */
 export default function LoginPreviewScreen() {
@@ -12,7 +13,7 @@ export default function LoginPreviewScreen() {
   return (
     <View style={{ flex: 1 }} pointerEvents="none">
       <StatusBar hidden />
-      <NexusLogin brand={<NexusLandingBrand />} version={`Android ${Constants.expoConfig?.version || 'dev'}`}
+      <NexusLogin brand={<NexusLandingBrand />} version={`Android ${Constants.expoConfig?.version || 'dev'} · ${apiOriginLabel()}`}
         locale="en" googleReady={false} facebookReady={false} walletNetwork="mainnet"
         busy={false} error="" onSignIn={previewOnly} onSignUp={previewOnly}
         onForgotPassword={previewOnly} onXPortal={previewOnly} onProvider={previewOnly} />

@@ -16,9 +16,22 @@ export type FeedDrawerProps = {
   onModule: (id: string) => void;
   onLogout: () => void;
   onNewPost: () => void;
+  /**
+   * The door to the account's activity: the inbox's own activity box, which is the only surface this
+   * app has for notifications (`ActivityCenter`, `GET /api/notifications`). The drawer is the index of
+   * doors the account screen opens with its three bars, so the bell belongs here rather than on a
+   * header that has no room for it (`MIGRATION.md` §22).
+   */
+  onNotifications: () => void;
+  /**
+   * The build line printed at the foot of the drawer: the app version and which backend it talks to
+   * (`Android 0.1.0 · API: Railway`). The login screen prints the same pair, and the drawer is the one
+   * surface an already-signed-in reader can always open, so the origin is never a guess.
+   */
+  version: string;
 };
 
-export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, onNewPost }: FeedDrawerProps) {
+export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, onNewPost, onNotifications, version }: FeedDrawerProps) {
   return (
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable accessibilityRole="button" accessibilityLabel="Închide meniul" onPress={onClose} style={styles.backdrop} />
@@ -51,6 +64,15 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
           >
             <Text style={styles.tileGlyph}>＋</Text>
           </Pressable>
+          {/* And the bell: the account's activity, in the inbox box that already reads it. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Notificări"
+            onPress={() => { onClose(); onNotifications(); }}
+            style={({ pressed }) => [styles.tile, pressed && { transform: [{ scale: 0.94 }] }]}
+          >
+            <Text style={styles.tileGlyph}>🔔</Text>
+          </Pressable>
         </View>
         <Pressable
           accessibilityRole="button"
@@ -60,6 +82,7 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
         >
           <LogoutMark size={19} />
         </Pressable>
+        <Text accessibilityRole="text" style={styles.version}>{version}</Text>
       </View>
     </Modal>
   );
@@ -117,4 +140,6 @@ const styles = StyleSheet.create({
     borderRadius: drawer.tileSize / 2,
     backgroundColor: socialTokens.colors.drawerSurface,
   },
+  /** The build line under the logout: small, quiet, and readable to a screen reader. */
+  version: { alignSelf: 'center', color: 'rgba(255,255,255,0.45)', fontSize: 10.5, textAlign: 'center' },
 });
