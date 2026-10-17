@@ -24,7 +24,8 @@ export function classifyAction(method, target) {
   if (/\/(report|appeal)$/.test(path) || path === "/api/profile/block" || path.startsWith("/api/social/moderation/")) {
     return { action_class: "PRIVATE_ACTION", action_type: "SAFETY_MUTATION" };
   }
-  if (path.startsWith("/api/pay/") || path.startsWith("/api/social/private-access/")) {
+  if (path.startsWith("/api/pay/") || path.startsWith("/api/social/private-access/") ||
+      path.startsWith("/api/creator/support-intents/") || path.startsWith("/api/creator/payouts")) {
     return { action_class: "FINANCIAL_ACTION", action_type: "FINANCIAL_INTENT" };
   }
   if (path.startsWith("/api/posts") || path.startsWith("/api/comments") || path.startsWith("/api/stories") ||

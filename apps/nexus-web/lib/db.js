@@ -1476,6 +1476,52 @@ CREATE TABLE IF NOT EXISTS creator_support_intents (
   CHECK(supporter_id <> creator_id),
   CHECK(gross_cents = creator_share_cents + nexus_fee_cents + safety_reserve_cents + infra_cents)
 );
+CREATE TABLE IF NOT EXISTS ledger_accounts (
+  id TEXT PRIMARY KEY,
+  owner_kind TEXT NOT NULL CHECK(owner_kind IN ('user','platform','reserve','infra')),
+  owner_id TEXT NOT NULL,
+  currency TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(owner_kind, owner_id, currency)
+);
+CREATE TABLE IF NOT EXISTS ledger_entries (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  settlement_id TEXT NOT NULL,
+  account_id TEXT NOT NULL REFERENCES ledger_accounts(id) ON DELETE RESTRICT,
+  direction TEXT NOT NULL CHECK(direction IN ('debit','credit')),
+  amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS ix_ledger_entries_account ON ledger_entries(account_id, id);
+CREATE INDEX IF NOT EXISTS ix_ledger_entries_settlement ON ledger_entries(settlement_id, id);
+CREATE TABLE IF NOT EXISTS support_settlements (
+  id TEXT PRIMARY KEY,
+  intent_id TEXT NOT NULL UNIQUE REFERENCES creator_support_intents(id) ON DELETE RESTRICT,
+  creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  currency TEXT NOT NULL,
+  gross_cents INTEGER NOT NULL CHECK(gross_cents > 0),
+  creator_share_cents INTEGER NOT NULL CHECK(creator_share_cents >= 0),
+  nexus_fee_cents INTEGER NOT NULL CHECK(nexus_fee_cents >= 0),
+  safety_reserve_cents INTEGER NOT NULL CHECK(safety_reserve_cents >= 0),
+  infra_cents INTEGER NOT NULL CHECK(infra_cents >= 0),
+  split_version TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'posted' CHECK(status IN ('posted','refunded','reversed')),
+  refund_reason TEXT,
+  posted_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  reversed_at INTEGER,
+  CHECK(gross_cents = creator_share_cents + nexus_fee_cents + safety_reserve_cents + infra_cents)
+);
+CREATE TABLE IF NOT EXISTS payout_requests (
+  id TEXT PRIMARY KEY,
+  creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  currency TEXT NOT NULL,
+  amount_cents INTEGER NOT NULL CHECK(amount_cents > 0),
+  status TEXT NOT NULL DEFAULT 'requested' CHECK(status IN ('requested','approved','paid','rejected')),
+  decided_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  decided_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+);
+CREATE INDEX IF NOT EXISTS ix_payout_requests_creator ON payout_requests(creator_id, status, id);
 CREATE TABLE IF NOT EXISTS creator_reward_epochs (
   epoch_id TEXT PRIMARY KEY,
   eligible_net_revenue_cents INTEGER NOT NULL DEFAULT 0 CHECK(eligible_net_revenue_cents >= 0),
