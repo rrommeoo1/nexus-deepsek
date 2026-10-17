@@ -3001,6 +3001,10 @@ export async function handleRequest(req, res, ctx) {
         // The calendar date itself goes to the owner alone: a reader is shown the age, because a date of
         // birth is a stronger fact about a person than a year, and the field that edits it is the owner's.
         birth_date: target.id === auth.user.id ? (normaliseBirthDate(profile.birth_date) ?? null) : null,
+        // The month the account was created, in unix seconds: the phone's band prints it as "Membru din
+        // <lună an>". Account age is a fact about the record, not about the person, so every reader gets it;
+        // the field is additive and older clients simply ignore it.
+        joined_at: Number(target.created_at) > 0 ? Number(target.created_at) : null,
         avatar: profile.avatar,
         cover: profile.cover,
         // The crop travels with the photo: a reader is shown the frame the owner chose, not the middle.
