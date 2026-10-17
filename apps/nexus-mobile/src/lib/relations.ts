@@ -107,7 +107,7 @@ export type RelationView = {
    * be wrong (`MIGRATION.md` §19.1, the discrepancy is reported there and not patched in the client).
    */
   followingKnown: boolean;
-  /** `person.following_me` — they follow me. */
+  /** `person.following_me` / `profile.following_me` — they follow me (the incoming direction). */
   followsMe: boolean;
   /** `profile.follow_request_pending` — my request waits for them. */
   requested: boolean;
@@ -217,11 +217,24 @@ function countsFrom(counts: RelationCounts): RelationCounts {
   return next;
 }
 
-/** `profile` of `GET /api/profiles/:handle` (`api.js:2989-3030`). */
+/**
+ * `profile` of `GET /api/profiles/:handle` (`api.js:2989-3030`).
+ *
+ * Two directions, two fields, and they do NOT agree on what `following_me` means (`HANDOFF.md` defect 11):
+ * `is_following` is my side (true = I follow them), while `following_me` here is theirs (true = they follow
+ * me, `repo.isFollowing(target.id, auth.user.id, persona)`). The same key on `GET /api/social/relations`
+ * means my side instead (`repo.js:1929`), which is why `patchFromPerson` reads it and this function reads it
+ * the other way round. Do not "unify" the two without changing the server on both routes.
+ *
+ * Carrying the incoming direction here is what lets a record opened cold — never seen in a list or a post —
+ * still print `Urmărește înapoi`, including a **locked** record: the shell ships both fields and no counters,
+ * so a private account can tell a follower that it follows them without showing anything else.
+ */
 export function patchFromProfile(profile?: {
   user_id?: number | null;
   is_self?: boolean;
   is_following?: boolean;
+  following_me?: boolean;
   follow_request_pending?: boolean;
   visibility?: string | null;
   counts?: RelationCounts | null;
@@ -233,6 +246,7 @@ export function patchFromProfile(profile?: {
     userId,
     ...(profile.is_self === undefined ? {} : { self: profile.is_self === true }),
     ...(profile.is_following === undefined ? {} : { following: profile.is_following === true, followingKnown: true }),
+    ...(profile.following_me === undefined ? {} : { followsMe: profile.following_me === true }),
     ...(profile.follow_request_pending === undefined ? {} : { requested: profile.follow_request_pending === true }),
     ...(profile.visibility ? { visibility: String(profile.visibility) } : {}),
     ...(profile.counts ? { counts: countsFrom(profile.counts) } : {}),

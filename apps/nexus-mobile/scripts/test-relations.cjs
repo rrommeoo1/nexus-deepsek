@@ -187,6 +187,45 @@ test('the normalizer reads each payload for the fields that payload really carri
   assert.equal(relations.patchFromPerson({ id: 0 }), null);
 });
 
+test('a profile answers both directions, and the locked shell still answers the incoming one', () => {
+  reset();
+  /**
+   * `GET /api/profiles/:handle` carries `is_following` (my side) and, since 17 Oct 2026, `following_me`
+   * (their side). Reading only the first left a record opened cold — never seen in a list or a post —
+   * unable to print `Urmărește înapoi`; that is the state the owner saw on a private account. The fields do
+   * not mean the same thing on the two routes they appear on (`HANDOFF.md` defect 11), so each payload is
+   * read where it is parsed: `patchFromProfile` for the profile, `patchFromPerson` for the relation lists.
+   */
+  const cold = relations.patchFromProfile({
+    user_id: 31, is_self: false, is_following: false, following_me: true,
+    visibility: 'private', counts: { followers: 2, following: 7, posts: 0 },
+  });
+  assert.equal(cold.followsMe, true, 'following_me of a profile is the incoming direction');
+  assert.equal(cold.following, false);
+  assert.equal(cold.followingKnown, true);
+  relations.remember(cold);
+  const back = relations.deriveRelationUi(relations.relationOf(31), { userId: 31, handle: 'devnet_test_03' }, { userId: 1 });
+  assert.equal(back.kind, 'follow_back', 'a follower I do not follow back is offered the follow back');
+  assert.equal(back.primary.label, relations.HEADER_WORDS.followBack);
+
+  // The same payload with both sides true is `Prieteni`, not two separate facts.
+  const mutual = relations.patchFromProfile({ user_id: 32, is_following: true, following_me: true, visibility: 'public' });
+  relations.remember(mutual);
+  assert.equal(relations.deriveRelationUi(relations.relationOf(32), { userId: 32, handle: 'x' }, { userId: 1 }).kind, 'friends');
+
+  // A payload that does not carry the incoming side never invents it.
+  reset();
+  const silent = relations.patchFromProfile({ user_id: 33, is_following: false, visibility: 'public' });
+  assert.equal(silent.followsMe, undefined, 'an absent following_me stays absent');
+
+  // `rememberPayload` is the one reader every screen hands its answer to, the locked shell included.
+  reset();
+  relations.rememberPayload({ locked: true, profile: { user_id: 34, handle: 'devnet_test_03', visibility: 'private', is_following: false, following_me: true }, posts: [] });
+  assert.equal(relations.relationOf(34).followsMe, true);
+  assert.equal(relations.relationOf(34).following, false);
+  assert.equal(relations.deriveRelationUi(relations.relationOf(34), { userId: 34, handle: 'devnet_test_03' }, { userId: 1 }).primary.label, relations.HEADER_WORDS.followBack);
+});
+
 test('a partial payload never wipes a fact another payload knew', () => {
   reset();
   relations.remember({ userId: 7, following: true, followingKnown: true, followsMe: true, counts: { followers: 10 } });

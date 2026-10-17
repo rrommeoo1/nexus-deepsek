@@ -110,7 +110,7 @@ export type MeResponse = {
   profiles?: PersonaRow[];
 };
 
-export type ProfileLocked = { locked: true; profile: { handle?: string; name?: string; visibility?: string; is_following?: boolean; follow_request_pending?: boolean }; posts: [] };
+export type ProfileLocked = { locked: true; profile: { handle?: string; name?: string; visibility?: string; is_following?: boolean; following_me?: boolean; follow_request_pending?: boolean }; posts: [] };
 
 export type ProfileView = {
   user_id?: number;
@@ -142,6 +142,14 @@ export type ProfileView = {
   visibility?: string;
   is_self?: boolean;
   is_following?: boolean;
+  /**
+   * `following_me` of the profile payload, the **incoming** direction: true means this person follows the
+   * reader. The same key on `GET /api/social/relations` means the opposite (my side) — `HANDOFF.md` defect
+   * 11; `lib/relations` reads each payload in its own place rather than guessing. The locked shell carries
+   * it too, which is how a private record still offers `Urmărește înapoi`.
+   */
+  following_me?: boolean;
+  follow_request_pending?: boolean;
   /**
    * `presence` of the profile payload (`api.js:3028`, `repo.profilePresenceForViewer`): whether this reader
    * may see the person's presence at all (`visible`), and whether they are there right now (`online`). The
