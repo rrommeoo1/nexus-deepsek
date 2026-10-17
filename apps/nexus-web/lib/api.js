@@ -21,6 +21,7 @@ import {
   assessSocialContent, normalizeProvenance, REPORT_CATEGORIES,
 } from "./moderation.js";
 import { normalizeCreatorAudio, normalizeCreatorStudio } from "./creator-studio.js";
+import { normalizePricingInput, pricingView } from "./creator-pricing.js";
 import {
   UploadError, beginResumableUpload, cancelResumableUpload, completeResumableUpload,
   getResumableUpload, putResumablePart,
@@ -2723,6 +2724,50 @@ export async function handleRequest(req, res, ctx) {
     const catalog = repo.listCreatorSupportCatalog(auth.user.id, username);
     if (!catalog) return json(res, 404, { ok: false, error: "creator catalog unavailable" });
     return json(res, 200, { ok: true, catalog, real_payment: false, currency: "TEST-USDC" });
+  }
+
+  // F2.c — per-action prices (§3.5). An action's price is a tip product the catalog already exposes,
+  // so the number the creator edits and the number a fan is quoted come from the same row, and the
+  // split is computed here by `splitAmount` instead of on the phone.
+  if (method === "GET" && path === "/api/creator/pricing") {
+    const own = repo.getCreatorActionPricing(auth.user.id);
+    return json(res, 200, { ok: true, owner_id: auth.user.id, private: true, can_edit: true, ...pricingView(own) });
+  }
+
+  if (method === "GET" && path.startsWith("/api/creator/pricing/")) {
+    let handle = path.slice("/api/creator/pricing/".length);
+    try { handle = decodeURIComponent(handle); } catch { return json(res, 400, { ok: false, code: "PRICING_INVALID", error: "creator username invalid" }); }
+    handle = sanitizeText(handle, 30).replace(/^@/, "").toLowerCase();
+    if (!/^[a-z0-9_]{2,30}$/.test(handle)) return json(res, 400, { ok: false, code: "PRICING_INVALID", error: "creator username invalid" });
+    const found = repo.getCreatorPricingForViewer(auth.user.id, handle);
+    if (!found) return json(res, 404, { ok: false, code: "PRICING_UNAVAILABLE", error: "creator pricing unavailable" });
+    return json(res, 200, {
+      ok: true,
+      creator: found.creator,
+      can_edit: found.creator.id === auth.user.id,
+      ...pricingView(found.pricing),
+    });
+  }
+
+  if (method === "PUT" && path === "/api/creator/pricing") {
+    const body = await readAuthJson(req);
+    if (!exactObject(body, new Set(["free", "prices"]))) {
+      return json(res, 400, { ok: false, code: "PRICING_INVALID", error: "pricing fields invalid" });
+    }
+    const decision = normalizePricingInput({ free: body.free, prices: body.prices });
+    if (!decision.ok) return json(res, 400, { ok: false, code: decision.code, error: decision.message });
+    try {
+      const saved = repo.setCreatorActionPricing({ creatorId: auth.user.id, free: decision.free, prices: decision.prices });
+      return json(res, 200, { ok: true, owner_id: auth.user.id, private: true, can_edit: true, ...pricingView(saved) });
+    } catch (error) {
+      const status = Number(error?.status);
+      if (Number.isInteger(status) && status >= 400 && status < 500) {
+        return json(res, status, { ok: false, code: String(error.code || "PRICING_INVALID"), error: String(error.message || "pricing refused") });
+      }
+      const mapped = mapM12Error(error);
+      if (mapped) return json(res, mapped.status, { ok: false, code: mapped.code, error: mapped.error });
+      throw error;
+    }
   }
 
   if (method === "POST" && path === "/api/creator/products") {

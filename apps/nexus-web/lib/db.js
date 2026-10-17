@@ -1490,6 +1490,15 @@ CREATE TABLE IF NOT EXISTS creator_support_intents (
   CHECK(supporter_id <> creator_id),
   CHECK(gross_cents = creator_share_cents + nexus_fee_cents + safety_reserve_cents + infra_cents)
 );
+CREATE TABLE IF NOT EXISTS creator_action_prices (
+  creator_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  free INTEGER NOT NULL DEFAULT 1 CHECK(free IN (0,1)),
+  appreciation_product_id INTEGER REFERENCES creator_support_products(id) ON DELETE SET NULL,
+  comment_product_id INTEGER REFERENCES creator_support_products(id) ON DELETE SET NULL,
+  share_product_id INTEGER REFERENCES creator_support_products(id) ON DELETE SET NULL,
+  updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  CHECK(free = 0 OR (appreciation_product_id IS NULL AND comment_product_id IS NULL AND share_product_id IS NULL))
+);
 CREATE TABLE IF NOT EXISTS ledger_accounts (
   id TEXT PRIMARY KEY,
   owner_kind TEXT NOT NULL CHECK(owner_kind IN ('user','platform','reserve','infra')),
