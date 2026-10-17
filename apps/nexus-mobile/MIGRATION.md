@@ -1086,6 +1086,156 @@ nu se presupune o poziție. Poziționarea decorurilor față de media importată
 necunoscut și randarea finală a fișierului exportat necesită încă verificare pe Xiaomi. Aceasta
 nu este paritate completă a editorului.
 
+
+## 19. Antetul de profil nou (fără cover) + sistemul unificat de relații (17 octombrie 2026)
+
+Cerința owner-ului, în două părți: (A) antetul profilului nativ reproiectat după modelul unui profil de
+TikTok, cu identitatea vizuală Nexus, fără copertă; (B) un singur sistem de relații (follow/unfollow,
+cereri, block, mute, mesaj) care se calculează într-un loc și se vede la fel în toate ecranele. Webul și
+backendul **nu** se ating. Abaterea de la paritatea 1:1 este o decizie a owner-ului și e documentată în
+`docs/PARITY-MATRIX.md` §13.
+
+### 19.1 Audit offline: ce poate serverul, verificat în cod (nu presupus)
+
+Endpoint-uri reale, cu parametrii și răspunsurile lor, citite din `apps/nexus-web/lib/api.js` și `lib/repo.js`:
+
+| Acțiune | Endpoint | Parametri | Răspuns | Coduri de eroare |
+|---|---|---|---|---|
+| follow / unfollow | `POST /api/follow` (`api.js:4489`) | `{user_id, persona?, active}` | 200 `{active, request_pending, counts}` | 404 `profile not found` (blocat/lipsă, `api.js:4496`, `:4508`, `:4520`), 400 target/personă invalidă |
+| cerere de urmărire (cont privat) | același | `active: true` pe un cont `visibility=private` | **202** `{active:false, request_pending:true, request_id}` (`api.js:4504-4517`) | 404 la fel |
+| anularea cererii mele | același | `active:false` | 200 `{active:false, request_pending:false, counts}` — `setFollow` marchează `cancelled` și cererile în așteptare (`repo.js:1797-1802`) | 404 la fel |
+| cereri primite/trimise | `GET /api/follow/requests?direction=incoming\|outgoing` (`api.js:4462`) | — | `{requests:[…]}` cu `requester_id/target_id/handle/name/avatar/status/created_at` | 400 direcție invalidă |
+| acceptă / refuză | `POST /api/follow/requests/:id/decision` (`api.js:4474`) | `{decision}` — valorile serverului sunt **`accept` și `decline`** (`repo.js:1873`) | 200 `{decision, request_id, requester_id, target_id, active}` | 400 decizie invalidă, 404 cerere lipsă/conflict |
+| liste de relații | `GET /api/social/relations?kind=followers\|following\|favorites&cursor=` (`api.js:4537`) | cursor multiplu de 40, ≤ 400 | `people[]` cu `relation`, `following_me`, `counts`, `earned_sigil`, `next_cursor` (`repo.js:1926-1932`) | 400 kind/cursor, 409 persona inactivă |
+| contoare | `GET /api/follows?persona=` (`api.js:4530`) | — | `{following, followers}` | 409 persona |
+| block / unblock | `POST /api/profile/block` (`api.js:4627`) | `{user_id, active}` | 200 `{active}` | 400 target invalid |
+| mute / unmute | `POST /api/profile/mute` (`api.js:4257`) | `{user_id, active, scope:'account'\|'topic', topic}` | 200 `{muted, scope, topic, block_active}` | 400 target/scope invalid |
+
+Efecte reale, luate din `repo.js` și modelate în client:
+
+* **block** șterge urmăririle în ambele sensuri și anulează cererile în ambele sensuri (`repo.js:997-1001`);
+* **mute** nu revocă nimic, doar scoate contul din candidații cititorului (`repo.js:1530-1537`);
+* **follow** acceptă implicit o cerere în așteptare (`repo.js:1794-1796`); **unfollow** anulează cererea acceptată;
+* **acceptarea unei cereri** este exact ce face persoana urmăritor al meu (`repo.js:1884`).
+
+Câmpuri prin care serverul îmi spune relația (verificate, nu presupuse):
+
+* profil (`GET /api/profiles/:handle`, `api.js:2989-3030`): `is_self`, `is_following`, `follow_request_pending`,
+  `visibility`, `counts` (`followers`, `following`, `posts`, `stories`, `reposts`, `shared_replies`), `user_id`;
+* post (`socialPostView`, `api.js:742-746`): `muted_by_me`, `blocked_by_me`, `follow_request_pending` — **fără**
+  câmp despre urmărirea autorului;
+* listă de relații (`repo.js:1929`): `following_me` este **partea mea** (`this.isFollowing(userId, person.user_id)`),
+  iar `relation` numește lista din care a venit rândul; `followsMe` se poate deduce doar din lista `followers`;
+* live (`/api/social/live`): `is_following`.
+
+**Ce NU există pe server (nu se desenează, nu se inventează):**
+
+1. **eliminarea unui urmăritor** — nu există rută (nici `repo.removeFollower`); singurul mod de a scoate pe cineva
+   din urmăritorii mei este blocarea lui, deci meniul nu are o intrare „elimină urmăritor”;
+2. **raportarea unui cont** — există raportare de postare și de comentariu, nu de cont; meniul nu o desenează;
+3. **politica de mesaje a celuilalt cont** — `message_policy` se aplică la trimitere (403, `api.js:5116-5118`) și
+   **nu** se publică într-o citire; butonul `Mesaj Nexus` nu poate fi dezactivat „dinainte” cu motiv, deci refuzul
+   se învață din trimitere (`noteMessageRefused`) și se tipărește de acolo;
+
+### 19.2 Partea A — antetul de profil (decizia owner-ului, implementată)
+
+`src/components/ProfileHeader.tsx` desenează antetul nou; `ProfileScreen.tsx` nu mai desenează coperta și
+nu mai are hero-ul web. Valorile stau o singură dată, în `theme/social.ts` (`identity`, `relations`), iar
+`scripts/test-hero-parity.cjs` apără decizia, nu o abatere:
+
+| Cerință | Unde este | Observație |
+|---|---|---|
+| fără cover, fără spațiu rezervat, fără editare de cover | `ProfileScreen` (nu mai importă `ProfileCoverPhoto`), `ProfileEditSheet` (câmpul scos, nu se mai urcă nimic pe `profile_cover`) | datele de pe server rămân neatinse (`api.js` încă trimite `cover`) |
+| rând de sus: bare (propriu) / săgeată + distribuire (altcuiva) | `ProfileHeader.styles.topRow` | ținte de 44dp; fără clopoțel (nu există rută), spus în comentariu |
+| identitate pe două coloane: nume ~28sp, `@handle` ~15sp, insignă doar dacă serverul o dă | `styles.identity`, `styles.name`, `styles.handle` | payload-ul nu are verificare ⇒ fără insignă; punctul de prezență și lacătul de vizibilitate au rămas, ca citiri |
+| avatar rotund ~92dp, fără inel gros, inel de story dacă e necitit | `styles.avatarRing`, `hasUnseenStory` din `stories[].viewed_by_me` | inel accent `#2fbdb3` când e ceva necitit |
+| statistici fixe: număr ~20sp peste etichetă ~14sp, apăsabile | `styles.stats`, `onDoor` (`following`/`followers`) | al treilea contor = `counts.posts`; nu duce nicăieri, pentru că serverul nu are o listă a postărilor |
+| rând de butoane 38dp, colț rotund, 8dp între ele, pe toată lățimea | `styles.buttons` + `RelationButton`/`MessageButton`/`RelationMenuButton` | propriu: `Editează profilul`, `Distribuie profilul`, meniu; străin: relație, `Mesaj Nexus`, meniu |
+| sub butoane: bio (cu `Vezi mai mult`), adresă apăsabilă, loc, vârstă | `styles.about`, `bioTokens`, `openLink` | adresa nu are câmp propriu în payload: e citită din descriere |
+| banda: aceleași citiri, **fără contoare** | `ProfileTicker counters={false}`; `tickerItems(profile, counters = true)` | decizia (numerele nu se repetă) e notată în `PARITY-MATRIX.md` §13; banda rămâne paritate web |
+
+### 19.3 Partea B — modelul de relații (o singură sursă de adevăr)
+
+`src/lib/relations.ts`:
+
+* store global (`RECORDS`) + abonare (`subscribeRelations`, `useRelation`), un record per cont, cu
+  `following`, `followingKnown`, `followsMe`, `requested`, `blockedByMe`, `mutedByMe`, `visibility`, `counts`,
+  `unavailable`, `messageRefused`, `busy`;
+* **un singur normalizator** pentru orice payload care numește conturi: `patchFromProfile`, `patchFromPerson`,
+  `patchFromPost`, `patchFromLive` și `rememberPayload(envelope)`, folosit de profil, feed, căutare, prieteni, live;
+* funcție pură `deriveRelationUi(relation, target, viewer)` → etichetă, ton (accent/neutru), acțiune primară,
+  confirmare, starea butonului `Mesaj`, meniul de acțiuni și `contentVisible` + motivul;
+* mutații cu scriere optimistă, reconciliere cu răspunsul serverului și **rollback pe două straturi** (starea
+  dinaintea apăsării, nu cea optimistă), `Origin` + `Idempotency-Key` (cheia o pune `nexusApi`), protecție la
+  dublu-tap prin `busy` (a doua apăsare nu mai face cerere), mesaje pentru 403/404/409/429/5xx;
+* `resolveRelation(handle)` citește un singur profil atunci când niciun payload nu a spus dacă îl urmăresc, iar
+  butonul arată citirea (spinner), niciodată un „Urmărește” ghicit; o singură cerere per cont, deduplicată;
+* `RelationButton` (lat/compact), `MessageButton` (lat) și `RelationMenuButton` (rotund, cu meniul) sunt singurele
+  locuri care desenează relația; niciun ecran nu mai are reguli proprii de follow.
+
+### 19.4 Aplicare pe ecrane (inventar) și invalidare
+
+| Ecran / componentă | Stare | Ce s-a făcut |
+|---|---|---|
+| Antet profil (propriu și străin) | **gata** | `ProfileHeader` + `RelationButton` lat; `[handle].tsx` dă `onBack`, săgeata proprie a rutei a fost scoasă |
+| Feed (card) | **gata** | `rememberPayload(page)` în `FeedScreen`; `PostCard` are butonul compact în rândul autorului |
+| Postare deschisă | **gata** | folosește `PostCard` (același rând de autor) |
+| Comentarii și răspunsuri | **parțial** | rândurile de comentarii nu au încă butonul compact (§19.6) |
+| Story rail / story viewer | **parțial** | `rememberPayload` nu e încă legat; butonul urmează în lotul următor |
+| Liste Urmăritori / Urmărești / Cereri | **gata** | `FriendsScreen`: buton compact din store, decizii prin `decideFollowRequest`, re-citire după orice schimbare (serverul e autoritatea pe listă), cu guard ca proprie citire să nu declanșeze alta |
+| Căutare (oameni) | **gata** | `rememberPayload(result)`; `ProfileRow` are butonul compact |
+| Mesaje (rând/inbox) | **parțial** | inboxul are butoanele lui de conversație; butonul de relație pe rândul de contact rămâne pentru lotul următor (are nevoie de `user_id`-ul celuilalt participant) |
+| Notificări/Activitate | **lipsă** | ecranul de notificări nu este încă portat (rând de matrice existent) |
+
+### 19.5 Verificare
+
+* **compilat**: `node node_modules/typescript/bin/tsc --noEmit` → 0 erori; ESLint pe fișierele atinse → 0 probleme
+  (`npm run lint` global are 4 erori preexistente în `ActivityCenter`/`MessagesScreen`, neatinse aici);
+* **testat unitar**: `scripts/test-relations.cjs` → **20/20** (normalizator pe fiecare payload, invariantul „un cont,
+  un răspuns” indiferent de payload, toate stările din `deriveRelationUi`, meniul doar cu ce există pe server,
+  optimist + rollback, dublu-tap, 404 ⇒ indisponibil, numerele antetului din tokenuri, inventarul static al ecranelor);
+* suite vechi: `test-hero-parity` (reancorat la decizia owner-ului), `test-ticker-parity`, `test-profile-content-parity`,
+  `test-profile-edit`, `test-comment-rows`, `test-comment-time` — toate verzi (numerele exacte în raportul de sesiune);
+* **verificat pe telefon**: **încă nu** — lotul cu telefonul (o singură sesiune, lista completă de stări) urmează;
+* **comparat numeric**: țintele stau în `theme/social.ts` (`identity`, `relations`) și sunt verificate de test;
+  măsurătoarea `uiautomator dump --compressed` (px fizici ÷ 2.6) și compozitul în `docs/parity-report/profile-header/`
+  sunt pasul rămas, făcut în același lot cu telefonul.
+
+### 19.6 Ce rămâne de făcut (lotul următor)
+
+1. butonul compact pe rândurile de comentarii, în story rail/viewer, pe rândul de contact din Mesaje;
+2. ecranul de notificări (rândul „lipsă” din §0);
+3. sesiunea pe telefon: profil propriu, profil public (Urmărește → Urmărești → Nu mai urmări), profil privat
+   (Cere să urmărești → Solicitat → anulare), acceptare din liste, aceeași stare în căutare/feed/live, block +
+   verificarea dispariției, deblocare, buton `Mesaj` cu politică restrictivă;
+4. compozitul și notele numerice în `docs/parity-report/profile-header/`;
+5. dacă owner-ul vrea `Mesaj` activ din profilul unui vizitator, trebuie o rută de conversație accesibilă din
+   afara shell-ului (inboxul este un slot al ecranului principal — §19.4).
+
+| Live (creatori) | **gata** | `rememberPayload(result)`; `LiveRow` are butonul compact (din `is_following`/`host_id`) |
+| Mențiuni/hashtag-uri | **gata** | o mențiune din descriere deschide profilul (`onDoor('handle', …)`) |
+
+Invalidare: butoanele nu au nevoie de reîncărcare, pentru că citesc același store; ce depinde de server
+(contoarele antetului, lista pe care ești) se re-citește. `ProfileScreen` primește `onRelationChanged`, iar
+shell-ul (`src/app/index.tsx`) bumpă `profileKey`; lista de prieteni se re-citește singură, cu guard.
+
+| sub bandă: bara de file și grila/listă neschimbate | `ProfileScreen` (neatins de acest val) | `test-profile-content-parity.cjs` și `test-ticker-parity.cjs` |
+| scroll normal, pull-to-refresh, insets reale | `ScrollView` + `RefreshControl` ca înainte | antetul curge cu conținutul, cum face webul |
+| stări: încărcare/eroare/privat/blocat/indisponibil/șters | `ActivityIndicator` + `Reîncearcă`; regiunea ascunsă vine din `deriveRelationUi().contentVisible`/`note` | cont șters sau blocat de el ⇒ `unavailable` (404), fără acțiuni |
+
+4. **insignă de verificare** — payload-ul profilului nu are câmp de verificare: nu se desenează insignă;
+5. **clopoțel de notificări pentru un cont** — notificările sunt per cont, nu per profil urmărit
+   (`GET /api/notifications`, `api.js:5619`): nu se desenează clopoțel;
+6. **link de profil (site)** — payload-ul nu are câmp de website; adresa trăiește în descriere și e citită ca link
+   acolo (`lib/profileBioText.ts`); `Distribuie profilul` folosește ruta aplicației (`expo-linking`);
+7. **total de aprecieri** — nu există; al treilea contor este `counts.posts`, exact cum a cerut owner-ul.
+
+**Neconcordanță server ↔ web, raportată (nu „reparată” în client):** cardul de postare al webului citește
+`post.following_me` (`app.js:4317`, `:3970`, `:3747`), câmp pe care `socialPostView` **nu îl trimite**
+(`api.js:742-746`), deci butonul de pe cardul web citește mereu „nu urmărești”. Aplicația nativă nu preia
+presupunerea: `followingKnown` din `lib/relations.ts` spune dacă payload-ul chiar a afirmat ceva, iar când nu,
+butonul citește recordul (`resolveRelation`) și arată citirea, nu un cuvânt care poate fi greșit.
+
 Verificare locală: `npm run typecheck` și ESLint pe fișierele atinse trec. `npm run lint` global
 rămâne roșu pe aceleași 4 erori din ActivityCenter/MessagesScreen și un avertisment. Nu există
 transport ADB conectat la finalul acestei iterații, deci noul layout și sunetul nu au încă

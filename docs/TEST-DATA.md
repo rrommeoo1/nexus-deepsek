@@ -287,6 +287,35 @@ mesajului, `lib/api.js` → `notifyWithInvalidation(..., "message", …)`).
 
 ### 10.7 De ce profilurile sunt publice
 
+## 8. Stările de relație pentru antetul nou și pentru sistemul unificat (runda 4)
+
+Setul de mai sus acoperă graful de bază, dar verificarea cerută de owner are nevoie de câteva stări care nu
+existau. Toate se pot crea **prin API-ul public**, între conturile de test, cu `Origin` și `Idempotency-Key`
+(cheia o pune clientul; serverul refuză fără ea). Nimic nu se șterge: fiecare pas are revenirea scrisă.
+
+Conturi folosite: `test` (Viewer) și cele cinci conturi de test din §2. Presupune sesiunea contului `test`.
+
+| # | Stare de creat | Apel | Revenire |
+|---|---|---|---|
+| 1 | **cont privat** (`sorina_marin`) | `PATCH /api/persona/social` (ca `sorina_marin`) cu `{ "visibility": "private" }` | `PATCH` cu `{ "visibility": "public" }` |
+| 2 | **cerere în așteptare** (eu → cont privat) | `POST /api/follow` `{ "user_id": <id sorina>, "persona": "social", "active": true }` → **202** `request_pending: true` | `POST /api/follow` cu `active: false` (marchează cererea `cancelled`) |
+| 3 | **cerere primită** (un cont urmărește un cont privat al meu) | ca `ana_popescu`: `POST /api/follow` cu `user_id` = `test` → 202 | ca `ana_popescu`: `POST /api/follow` cu `active: false` |
+| 4 | **cerere refuzată** | ca `test`: `POST /api/follow/requests/<id>/decision` `{ "decision": "decline" }` (serverul cunoaște `accept`/`decline`) | se repetă #3 (o cerere nouă) |
+| 5 | **prieteni reciproci** | `POST /api/follow` cu `active: true` pe un cont care mă urmărește deja (ex. `mihai_ionescu`) | `POST /api/follow` cu `active: false` |
+| 6 | **block în ambele sensuri** | `POST /api/profile/block` `{ "user_id": <id>, "active": true }`; pentru celălalt sens, același apel din sesiunea acelui cont | `POST /api/profile/block` cu `active: false` (blocarea a șters deja urmăririle în ambele sensuri) |
+| 7 | **politică de mesaje restrictivă** | ca `elena_vasilescu`: `PATCH /api/persona/social` cu `{ "message_policy": "followers" }` | `PATCH` cu `{ "message_policy": "everyone" }` |
+| 8 | **bio lung** (pentru `Vezi mai mult`) | ca `andrei_stan`: `PATCH /api/persona/social` cu un `bio` de peste 200 de caractere | `PATCH` cu bio-ul din §2 |
+| 9 | **cont fără avatar** | nu se poate crea prin API fără a șterge ceva: `/api/persona` scrie avatarul, nu îl golește | — (starea se poate proba doar pe un cont nou, neexistent) |
+
+Ordinea recomandată pentru sesiunea pe telefon: `test` (propriu) → `sorina_marin` înainte de #1 (public,
+`Urmărește` → `Urmărești` → `Nu mai urmări`) → `sorina_marin` după #1 (`Cere să urmărești` → `Solicitat` →
+anulare) → #3/#5 (acceptarea din lista de cereri) → aceeași stare verificată în căutare, pe un card de feed și
+în listă → #6 (block: dispariția din feed/căutare/listă) → deblocare → #7 (`Mesaj` cu politică restrictivă).
+
+Notă: pașii distructivi (#6) se fac **doar** între conturile de test, cu revenirea de mai sus executată imediat
+după verificare.
+
+
 O personă nouă are `visibility` implicit `friends` (= doar urmăritori reciproci). Cum `test` nu
 urmărește pe nimeni, acel implicit ar ascunde *tot* conținutul de contul pentru care se face tot
 exercițiul — exact bug-ul care a făcut prima încercare de comentarii să răspundă `404`. De aceea

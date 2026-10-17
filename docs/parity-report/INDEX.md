@@ -301,6 +301,39 @@ lacăt/hamburger/creion cu banda de metadate derulantă, plus rândurile din tab
 ## Runda 3 — corecțiile cerute pe inbox (implementate, **nemăsurate încă pe telefon**)
 
 Ce s-a făcut, cu dovada fiecărui element (toate cele patru erau în lista de „diferențe asumate" a rundei 2
+
+---
+
+## Runda 4 — antet de profil nou + sistem unificat de relații (implementate, **nemăsurate încă pe telefon**)
+
+Acest val nu este o corecție de paritate: antetul profilului nativ a fost reproiectat **prin decizia
+proprietarului** după modelul unui profil de TikTok, cu identitatea vizuală Nexus (`docs/PARITY-MATRIX.md` §13,
+`apps/nexus-mobile/MIGRATION.md` §19). Ce s-a schimbat, pe scurt:
+
+| Element | Înainte (runda 2/3) | Acum |
+|---|---|---|
+| copertă | bandă de 72px cu poza contului | **eliminată** din ecran și din editor; poza rămâne pe server, nedezvăluită |
+| avatar | 78dp, inel alb 2px | **92dp** cu inel de story (accent când e story necitit) |
+| nume / handle | 17px, handle doar în bandă | **~28sp** / **~15sp** sub el |
+| contoare | în banda derulantă | **rând fix** de 3 coloane (număr 20sp peste etichetă 14sp), apăsabile spre liste |
+| butoane de relație | absent | rând pe toată lățimea: relație (accent) + `Mesaj Nexus` + meniu rotund; pe profilul propriu: `Editează profilul` + `Distribuie profilul` + meniu |
+| creion | la capătul rândului benzii | **eliminat** (editorul e primul buton lat) |
+| bandă | 5 citiri + 3 contoare | aceleași citiri **fără contoare** (nu se repetă) |
+| file + conținut | runda 3 | **neatinse** |
+
+Relațiile: un singur store (`src/lib/relations.ts`) alimentat de fiecare payload care numește conturi, o
+funcție pură `deriveRelationUi` pentru etichetă/ton/acțiune/meniu, o singură componentă `RelationButton`
+(lat + compact) folosită în antetul de profil, cardurile de feed, lista de prieteni, căutare și live. Stările
+care nu există pe server (eliminare urmăritor, raportare de cont, citirea politicii de mesaje, insignă de
+verificare, clopoțel per cont, link de profil, total de aprecieri) **nu se desenează** și sunt listate în
+`MIGRATION.md` §19.1.
+
+Dovada de azi: `scripts/test-relations.cjs` **20/20**, `test-hero-parity.cjs` reancorat la decizie,
+`test-ticker-parity.cjs`, `test-profile-content-parity.cjs`, `test-profile-edit.cjs`, `test-comment-rows.cjs`
+și `test-comment-time.cjs` verzi, `tsc --noEmit` 0 erori. Ce lipsește din rundă: **măsurătoarea pe telefon**
+(`uiautomator dump --compressed`, px ÷ 2.6) și compozitul `profile-header/` — se fac în lotul cu telefonul,
+împreună cu stările pregătite în `docs/TEST-DATA.md` §8.
+
 și au fost scoase de acolo pentru că sunt implementate, nu declarate imposibile):
 
 | Element web | Fișier nativ nou/atins | Dovadă web |
@@ -351,4 +384,47 @@ Ce s-a făcut, cu dovada fiecărui element (toate cele patru erau în lista de �
 
 atinse.
 
+
+## Regiunea de conținut a profilului (runda 3, offline)
+
+Web (`profile-experience.js:229-308,485-555`; CSS `.profileTile*`, `.ownerPostGrid`, `.ownerFlowStream`,
+`.ownerWhisperList`, `.ownerWhisperCard`, `.ownerMomentsPanel`, `.ownerEmptyState`) → nativ
+(`ProfileScreen.tsx`, `ProfileTile.tsx`, `ProfileWhisperCard.tsx`, `ProfileMomentsShelf.tsx`,
+`ReactionControl.tsx` varianta `whisper`).
+
+| Element măsurat pe web | Măsurat | Nativ acum | Dovadă |
+|---|---|---|---|
+| `.profileTile` în `repeat(3,1fr)`, `gap:2px` | plăci de 155×155 la x=0 / 157 / 314 (469 = 3·155 + 2·2) | `tileRow` + `ProfileTile` (1:1); celulele lipsă ale ultimului rând sunt ținute deschise de `tileSpacer` | `profile/tab-1.dom.json` |
+| `.profileTilePlay`, `.profileTileViews`, `.profileRepostBadge`, `.profileTilePinned` | 26×24 r9 la 7px de colț, 11.5px; „⟳" 11px; „📌" 12px | aceleași numere din `theme/social.ts` (`archive.tile*`) | `profile/tab-1.dom.json`, `tab-3.dom.json` |
+| `.profileTile.isPinnedFirst` | `outline:1px solid #2fbdb3;offset:-1px` | ramă în interiorul celulei, doar pe Reels/Fotografii (filele unde web-ul ridică fixatele, `:518`) | `profile-experience.js:527` |
+| `.ownerWhisperCard` | x=12, l=445, padding 12, gap 8, r16, `border-left:2px rgba(33,234,220,.42)` | `ProfileWhisperCard` (`card` + `plate` pentru gradientul `160deg`) | `profile/tab-3.dom.json` |
+| `.ownerSharedReplyCard` | `border-left-color:#2a4a53` | `sharedCard` | captura: al patrulea contur = `rgb(42, 74, 83)` |
+| `.postRepostedBy` | 12px `#8ff5ee`, `bdi` `#9fb0ba`, `span` `#8e9ca5`, `margin-bottom:6px` | `repostLine`/`repostHandle`/`repostMuted`; cuvintele din `x.repost.mine|by` și `profile.sharedReplyOn` | captura + `interface-locale.js` |
+| `.rankReason` + `.rankReasonLabel` | 11px `#9fb4bd`, eticheta `#7fd8cf`, `margin:3px 0 7px` | linia `whySignals(post)` cu prefixul `profile.whySignals` („Semnal pentru tine") | `ranking-reasons.js:36-51` + captura |
+| `.ownerWhisperActions` / `.ownerWhisperAction` | rând de 38; plăci `gap:6px;padding:0 10px;r11;rgba(15,30,49,.5)`; `on` `#27dccc`/`#6eecdf`; glife 14px, numărătoare 12px `#c7d5dc` | `ReactionControl variant="whisper"` (sumar 15px/12px) + cele două presuri | captura (`b` 15px, `em` 12px) |
+| `.ownerSharedReplyOpen` | 36 înalt, `padding:0 12px`, r12, `#0e1c25`, `#8ff5ee` | `openReply` → `openReplyThread(post, commentId)` | `post-detail.css:176` + captura |
+| `.ownerMomentsPanel` | antet 13px/700 `padding:0 14px 6px`; rând `gap:12px;padding:2px 14px`; cerc 50px `2px #27ded2`; etichetă 10px `#aebac1` | `ProfileMomentsShelf` + `StoryViewer` (albumul de la primul story, story-ul de la indexul lui) | `profile/tab-4.dom.json` |
+| `.ownerEmptyState` | `min-height:208px;padding:24px 24px 34px;gap:6px`; iconiță 34px `#4fd9d0`; titlu 15px `#e7f2f6`; detaliu 14px `#93a6b0` | `ProfileEmptyState` cu `PROFILE_EMPTY_STATES[tab]` (cuvintele măsurate în captură pentru `moments`) | `profile/tab-4.dom.json` |
+| `applyOrder` pe noduri | fluxul împletește plăcile și cardurile; filele de colecție ridică fixatele | `lib/profileContent.ts`: `archiveNodes` + `archiveBands` (rânduri de 3, cardul ia tot rândul) | `profile-experience.js:485-528` |
+
+
+
+Ce rămâne deschis pe această regiune, cinstit:
+
+1. **Butonul de fixare** (`.profileTilePin`, `POST /api/posts/:id/pin`, `app.js:9318-9324`) nu este desenat:
+   `lib/postInteractions` nu are apelul, iar un buton care nu deschide nimic este o ușă pictată pe un perete.
+   Marcajul „📌" al unei postări pe care payload-ul o declară fixată **este** desenat, pentru că acela e o
+   citire, nu un control.
+2. **Conversația în card.** Web-ul deschide un `clipCommentsDrawer` *în interiorul* cardului de șoaptă
+   (`max-height:min(46dvh,360px)`, `profile-experience.css:115-117`); aplicația deschide pagina de comentarii
+   pe care `PostCard` o folosește deja, iar cardul păstrează numărătoarea și presa. Paleta de reacții chiar
+   plutește peste butonul ei, ca popover-ul web-ului.
+3. **Antetul profilului** (lacăt, hamburger, creion, banda de metadate) rămâne cel măsurat în §4 și în runda 2;
+   nota profilului rămâne **5/10** până la o captură pe telefon — `native-tab-*.xml` lipsește pentru că
+   `uiautomator dump` întoarce 0 noduri pe acest ecran.
+
+Testul care păzește fiecare rând de mai sus:
+`node apps/nexus-mobile/scripts/test-profile-content-parity.cjs` — 8 teste, 0 erori. Fiecare număr e citit din
+`docs/web-ref/profile/tab-*.dom.json`, din cele două foi de stil sau din `profile-experience.js`; niciunul nu e
+copiat în test. `tsc --noEmit`: 0 erori.
 

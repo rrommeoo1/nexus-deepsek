@@ -355,6 +355,42 @@ Textele trebuie preluate identic din `*.dom.json → textLines`.
    `comments/`+`post/`, 3 în `profile/`), deci comparația de geometrie/culoare se face pe `*.dom.json`,
    nu pe PNG.
 3. ~~Activitatea de notificări din inbox~~ → **pas pregătit** (`messages-activity`: `[data-inbox-box="activity"]`
+
+## 13. DECIZIE DE DESIGN A PROPRIETARULUI — antetul profilului nativ (fără cover) + sistemul unificat de relații
+
+**Data:** 17 octombrie 2026 · **Aplicabilitate:** **doar antetul profilului din aplicația nativă** (`apps/nexus-mobile`) și sistemul de relații al aplicației. **Nu** se aplică site-ului: `apps/nexus-web` rămâne neatins și funcțional așa cum este pe Railway.
+
+Aceasta nu este o abatere accidentală și nu este o lipsă de paritate: este o **decizie de design a
+proprietarului**. Antetul nativ al profilului a fost reproiectat după modelul unui profil de TikTok, cu
+identitatea vizuală Nexus (culorile, fonturile și iconițele produsului). Rândurile din §2–§3 ale acestei
+matrice care descriu `ownerCover`, `ownerAvatar` 78px, numele de 17px și creionul din rândul benzii sunt
+marcate ca **deviate prin decizie**, nu ca `diferit` de corectat.
+
+### 13.1 Ce se abate (și de ce)
+
+| Element web | Decizia nativă | Motivul (al proprietarului) |
+|---|---|---|
+| `.ownerCover{height:72px}` — banda de copertă | **eliminată complet**: fără poză, fără spațiu rezervat; editorul nu mai are câmp de copertă | antetul cerut nu are copertă; o poză stocată pe server rămâne acolo, nedezvăluită |
+| `.ownerAvatar` 78px cu inel alb de 2px | cerc de **92dp** cu **inel de story** (accent când există story necitit) | identitatea mare a modelului |
+| nume 17px + `@handle` ascuns în bandă | nume **~28sp bold** + `@handle` **~15sp** sub el | blocul de identitate al modelului |
+| contoarele (postări/urmăritori/urmăriți) în banda derulantă | **rând fix de statistici** (3 coloane, număr ~20sp peste etichetă ~14sp), apăsabile spre liste | numerele nu se repetă: scoase din bandă |
+| fără butoane de relație în antet | **rând de butoane** pe toată lățimea: relația (accent), `Mesaj Nexus`, buton rotund de meniu; pe propriul profil: `Editează profilul`, `Distribuie profilul`, meniu | acțiunea corectă lângă fiecare cont, peste tot |
+| creion `✎` la capătul rândului benzii | **eliminat**; editorul este primul buton lat al antetului | o singură ușă către editor, în rândul de butoane |
+| fără latură de bio în hero | descriere (cu `Vezi mai mult`), adresă apăsabilă din descriere, loc și vârstă | informația contului, sub butoane |
+
+### 13.2 Ce rămâne paritate 1:1 (neatins de decizie)
+
+* banda derulantă (`ownerTicker`): aceleași citiri, același ritm, aceleași uși — **minus cele trei contoare**, care au urcat în rândul fix (decizie §13.1). `scripts/test-ticker-parity.cjs` păstrează valorile webului;
+* bara de file (≡ ▶ ▦ ❝ ✦ ⌄) și regiunea de conținut de sub ea: neschimbate (`scripts/test-profile-content-parity.cjs`);
+* bara de sus a ecranului de cont: continuă să fie ascunsă de shell (`profile-experience.css:1`), iar cele trei bare ale antetului rămân singura ușă către sertar;
+
+### 13.3 Cum se revine la 1:1
+
+Dacă proprietarul cere vreodată antetul web și în aplicația nativă, munca este o sarcină separată: se
+reintroduce `ProfileCoverPhoto` în `ProfileScreen`, se scoate `ProfileHeader`, iar `scripts/test-hero-parity.cjs`
+își recapătă vechile verificări (fișierul păstrează azi decizia și ce a lăsat neatins, iar comment-ul lui
+spune exact asta). Nu se modifică webul pentru asta.
+
    în inbox, apoi `.notificationCenter`); rularea așteaptă credențialele de mediu.
 4. ~~Profilul altei persoane~~ → **pas pregătit** (`profile-other`: `[data-creator-profile]` de pe cardul de
    feed, preferând dialogul cu `[data-follow]`).
