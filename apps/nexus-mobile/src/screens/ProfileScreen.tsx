@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
   /**
    * The cover band, the 78dp disc, the presence dot and the chip of the web hero used to be described here.
    * The owner moved the whole identity into `ProfileHeader` — no cover, a ~92dp circle, the three counters in
-   * a fixed row, the description and the place under the buttons (`MIGRATION.md` §19.2) — so those rules live
+   * a fixed row, the button row under it, and the band below (`MIGRATION.md` §19.2, §20) — so those rules live
    * there and this screen keeps only the tab bar and the content region. The band's own row left with the
    * duplication it caused: the header prints every reading the band used to carry.
    */
