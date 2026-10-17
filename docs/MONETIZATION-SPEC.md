@@ -312,7 +312,7 @@ Nu s-a făcut în sesiunea din 17 octombrie fiindcă cere credențialele Railway
 |---|---|---|---|
 | Foaia de susținere | meniul `⋯` al profilului → „Susține” (apare doar când catalogul are produse) | produsele, prețul, împărțirea, butonul de confirmare | **neconstruit** (lotul „meniul de profil” + F2) |
 | Confirmarea | după `POST /api/creator/support-intents` | receipt-ul, `status`, „demonstrativ” | neconstruit |
-| Panoul creatorului | profil propriu → `⋯` → „Monetizează profilul” | prețuri pe tip (preseturi 2/3/3 și 3/5/5), produs de susținere real prin `POST /api/creator/products`, previzualizarea fanului; „Totul gratuit”, modul avansat și plafoanele sunt `Indisponibil`, fără rută | **construit, verificat sus pe telefon**; ce nu are endpoint este marcat |
+| Panoul creatorului | profil propriu → `⋯` → „Monetizează profilul” | prețuri pe tip (preseturi 2/3/3 și 3/5/5), previzualizarea fanului, „Totul gratuit”, modul avansat, prag/plafon; prețurile sunt produse tip reale prin `GET/PUT /api/creator/pricing`, iar confirmarea fanului arată preț, comision, sold și buget de sesiune | **construit și testat local** (`creator-pricing` 11/11 pe backend, 11/11 pe telefon, `tsc` 0); captura pe telefon rămâne de făcut |
 | Portofelul | profil propriu → `⋯` → „Portofel” | sold, încasat, retras, istoric (încasări/cheltuieli), cereri de retragere, venituri; depunerea este `Indisponibil` | **construit**; pe telefon arată `not found` până când F1 ajunge pe Railway |
 | Istoricul plăților | meniul `⋯` → „Plăți” | `GET /api/pay/history`, direcție, `real_settlements: 0` | neconstruit (numele din meniu este „Portofel”; istoricul plăților nu are încă ecran propriu) |
 

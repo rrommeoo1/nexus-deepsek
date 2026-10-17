@@ -2,8 +2,59 @@
 
 Ultima actualizare: **17 octombrie 2026** (banda de profil restaurată nativ + ciclul de dezvoltare + ușa
 notificărilor).
-Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să
-repete greșeala care a blocat task-urile anterioare.
+Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să repete greșeala care a blocat task-urile anterioare.
+
+## 0.1 Continuarea din 17 octombrie 2026 — F2.c (preț pe acțiune) și linia de sfârșit de rând
+
+**Starea repo-ului la reluare:** branch `codex/camera-draft-stability`, HEAD `0525e64`, fără commit nou.
+Modificate (nestaged): `lib/api.js`, `lib/db.js`, `lib/repo.js`; noi: `lib/creator-pricing.js`,
+`test/creator-pricing.test.js`. Nimic nu a fost resetat, stashat sau aruncat.
+
+**De ce picau 7 teste din suita web (dovadă, nu presupunere).** Un worktree curat pe `0525e64`
+(`git worktree add`, fără modificările locale, `node_modules` legat prin joncțiune) pică **11** teste;
+arborele de lucru pică **7**, toate incluse în cele 11. Deci niciun eșec nu vine din modificările F2.c.
+Cauza reală a eșecurilor comune: `core.autocrlf=true` scrie în worktree CRLF, iar contractele citesc sursa
+cu `\n    ` și măsoară fișierele în bytes. Măsurat: `app.js` = **647.904 B** pe disc, **638.364 B** în index
+(buget 638.600) — deci bugetul „depășit" era doar `\r`. Reparat fără atingerea codului de produs:
+`.gitattributes` (`* text=auto eol=lf` + reguli binary) și `tools/normalize-eol.mjs` (o singură rulare pe
+`apps/nexus-web`, 117 fișiere rescrise LF). `git status` arată din nou doar cele trei fișiere modificate;
+`git diff --stat` = 138 linii adăugate.
+
+**Rezultate reale după reparație:**
+`cd apps/nexus-web; node --test test/*.test.js` → **791 teste, 791 pass, 0 fail, exit 0**.
+`node --test test/creator-pricing.test.js` → **11/11** (8 unitare + 3 peste `handleRequest`: citirea
+proprietarului/fanului, replay-ul aceleiași chei și refuzul aceleiași chei cu alt corp, refuzurile
+`IDEMPOTENCY_KEY_REQUIRED` / `FREE_WITH_PRICES` / `PRICING_INVALID` / `PRICE_BELOW_SETTLEMENT_COST`).
+
+**Backend F2.c (deja scris, verificat acum):** `lib/creator-pricing.js` (pur: chei, preseturi 2/3/3 și
+3/5/5, prag, `normalizePricingInput`, `pricingView`, `actionAffordability`), tabela
+`creator_action_prices`, `repo.getCreatorActionPricing` / `setCreatorActionPricing` /
+`getCreatorPricingForViewer`, rute `GET /api/creator/pricing`, `GET /api/creator/pricing/:handle`,
+`PUT /api/creator/pricing` (corp exact `{free, prices}`, idempotență prin `prepareMutation`, prețul
+devine produs tip real, split prin `splitAmount`, `debit_enabled:false` → `DEMO_UNPAID`).
+
+**Telefon (F2.c), scris în continuare:**
+* `src/lib/creatorPricing.ts` — normalizarea răspunsului, `validateDraft` (prag/plafon/zecimale),
+  `draftFromView`/`draftFromPreset`, `presetOfView`/`presetOfDraft`, `fanPreview` (rândurile fanului,
+  `Indisponibil`), `confirmationFor` (preț, comision, creator, sold, buget de sesiune, blocaje),
+  `loadOwnPricing` / `loadCreatorPricing` / `saveOwnPricing`, `pricingErrorWords`;
+* `scripts/test-creator-pricing.cjs` — **11/11**, adăugat în lanțul `npm test`;
+* `src/components/SupportConfirmSheet.tsx` — confirmarea centrală (folosită acum de previzualizare);
+* `src/screens/MonetizationScreen.tsx` — rescris: `Totul gratuit` chiar salvat (implicit când nu există
+  prețuri), preseturi din server, mod avansat cu trei câmpuri, prag/plafon afișate, „Cum văd fanii” cu
+  foaia de confirmare, catalog citit de la server; acțiunile necotate rămân dezactivate + `Indisponibil`.
+
+**Comenzi și rezultate:** `node node_modules/typescript/bin/tsc --noEmit` (mobile) → **0 erori**;
+`cmd /c npm test` (mobile) → **exit 0**, ultimul bloc 11/11.
+
+**Blocaje și următorul pas concret:**
+1. Foaia de susținere pentru fan (`POST /api/creator/support-intents` + receipt) nu are gazdă pe telefon:
+   aplicația nu are încă suprafață de profil al altcuiva (`src/app/profile/[handle].tsx` este un shell).
+   Componenta de confirmare este gata și se folosește de acolo.
+2. Verificarea pe telefon (capturi) cere ADB + `NEXUS_SETTLE_DEMO=1` pentru decontări; nu s-a rulat acum.
+3. Nimic nu a fost commit-uit sau push-uit. Următoarea acțiune: `git diff` pe cele trei fișiere backend,
+   apoi commit separat pentru F2.c (fără `main`).
+
 
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 

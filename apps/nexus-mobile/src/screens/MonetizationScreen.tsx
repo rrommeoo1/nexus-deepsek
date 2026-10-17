@@ -3,115 +3,125 @@ import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { NexusApiError, nexusApi } from '../lib/nexusApi';
+import { SupportConfirmSheet } from '../components/SupportConfirmSheet';
 import {
-  PRESET_LABELS, formatJbc, parseJbc, presetPrices, supportErrorMessage, type PresetId,
-} from '../lib/pricing';
+  ACTION_HINTS, ACTION_KEYS, FREE_LABEL, SESSION_BUDGET_CENTS, UNAVAILABLE_LABEL,
+  draftFromPreset, draftFromView, fanPreview, loadOwnPricing, presetOfDraft, pricingErrorWords,
+  saveOwnPricing, validateDraft,
+  type ActionKey, type PricingDraft, type PricingView,
+} from '../lib/creatorPricing';
+import { NexusApiError, nexusApi } from '../lib/nexusApi';
+import { PRESET_LABELS, formatJbc, type PresetId } from '../lib/pricing';
 
 /**
- * `Monetizează profilul` (`MONETIZATION-SPEC.md` §2, §3.5).
+ * `Monetizează profilul` (`MONETIZATION-SPEC.md` §3.5, §5.1).
  *
- * What this screen may honestly offer is decided by the routes that exist, not by the drawing:
+ * Every number on this screen comes from `GET /api/creator/pricing` and every change goes back
+ * through `PUT /api/creator/pricing`, so the price the owner edits is the price a fan is quoted —
+ * the same tip product, the same split. `Totul gratuit` is the default state of a profile with no
+ * priced action, the two presets are the server's own 2/3/3 and 3/5/5, and the advanced mode only
+ * changes how the same three fields are typed.
  *
- *   * `POST /api/creator/products` really creates a support product, so the tip price is real and the
- *     button that saves it calls the server;
- *   * `GET /api/creator/catalog` and `GET /api/creator/dashboard` really answer, so the preview and the
- *     product list are the server's own numbers;
- *   * there is **no** route for a per-action price (appreciation, comment, distribution), none for the
- *     "everything free" switch, none for caps and none for the advanced mode — each of those is drawn
- *     as a row with the `Indisponibil` chip and says why. A switch that cannot be saved would be a lie
- *     with a thumb on it.
+ * An action the server did not price stays disabled and labelled `Indisponibil`; the preview at the
+ * bottom is the reader's exact view of the same rows, confirmation sheet included.
  */
-type SupportProduct = {
-  id: number;
-  kind: 'tip' | 'membership';
-  title: string;
-  price_cents: number;
-  status: string;
-  split_version?: string;
-};
-
-type DashboardResponse = {
-  dashboard: { products: SupportProduct[]; totals: { creator_available_cents?: number; currency?: string } };
-};
-
-type CatalogResponse = { catalog: { products: SupportProduct[] } };
-
-const PRICE_ROWS = [
-  { key: 'appreciation', label: 'Apreciere', hint: 'inima de pe o postare' },
-  { key: 'comment', label: 'Comentariu', hint: 'un comentariu scris de un fan' },
-  { key: 'share', label: 'Distribuire', hint: 'o redistribuire a postării' },
-] as const;
-
-const PRICE_ROW_ORDER = ['appreciation', 'comment', 'share'] as const;
+type CatalogProduct = { id: number; kind: string; title: string; price_cents: number; status: string };
 
 export function MonetizationScreen({ handle, onClose }: { handle: string; onClose: () => void }) {
   const insets = useSafeAreaInsets();
-  const [dashboard, setDashboard] = useState<DashboardResponse['dashboard'] | null>(null);
-  const [catalog, setCatalog] = useState<CatalogResponse['catalog'] | null>(null);
+  const [view, setView] = useState<PricingView | null>(null);
+  const [draft, setDraft] = useState<PricingDraft>({ free: true, appreciation: '', comment: '', share: '' });
+  const [products, setProducts] = useState<CatalogProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const [preset, setPreset] = useState<PresetId>('prietenos');
-  const [prices, setPrices] = useState(() => presetPrices('prietenos'));
-  const [tipText, setTipText] = useState('2');
-  const [saving, setSaving] = useState(false);
+  const [advanced, setAdvanced] = useState(false);
+  const [preview, setPreview] = useState<ActionKey | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      const [board, catalogue] = await Promise.all([
-        nexusApi<DashboardResponse>('/api/creator/dashboard'),
-        nexusApi<CatalogResponse>(`/api/creator/catalog?username=${encodeURIComponent(handle)}`),
-      ]);
-      setDashboard(board.dashboard);
-      setCatalog(catalogue.catalog);
+      const pricing = await loadOwnPricing(nexusApi);
+      setView(pricing);
+      setDraft(draftFromView(pricing));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Datele creatorului nu sunt disponibile.');
+      setError(cause instanceof Error ? cause.message : 'Prețurile profilului nu sunt disponibile.');
     } finally {
       setLoading(false);
+    }
+    // The catalog is a second read and never blocks the prices: a missing catalog only hides the list.
+    try {
+      const catalogue = await nexusApi<{ catalog: { products: CatalogProduct[] } }>(
+        `/api/creator/catalog?username=${encodeURIComponent(handle)}`,
+      );
+      setProducts(catalogue.catalog?.products ?? []);
+    } catch {
+      setProducts([]);
     }
   }, [handle]);
 
   useEffect(() => { void load(); }, [load]);
 
-  const products = dashboard?.products ?? [];
-  const activeProducts = useMemo(() => products.filter((item) => item.status === 'active'), [products]);
-  const everythingFree = activeProducts.length === 0;
-  const tipCents = parseJbc(tipText);
+  const locked = !view || !view.available || !view.can_edit;
+  const savedPreset = view ? presetOfDraft(draft, view) : null;
+  const dirty = useMemo(() => {
+    if (!view) return false;
+    if (draft.free !== view.free) return true;
+    if (draft.free) return false;
+    const saved = draftFromView(view);
+    return ACTION_KEYS.some((key) => draft[key] !== saved[key]);
+  }, [draft, view]);
+  const previewRows = useMemo(
+    () => fanPreview(view, { sessionBudgetCents: SESSION_BUDGET_CENTS }),
+    [view],
+  );
 
-  const choosePreset = (id: PresetId) => {
-    setPreset(id);
-    setPrices(presetPrices(id));
-  };
-
-  const saveTip = async () => {
-    setNotice('');
-    setError('');
-    if (!tipCents) {
-      setError('Scrie un preț între 1 și 1.000.000 JB, cu cel mult două zecimale.');
+  const persist = useCallback(async (next: PricingDraft) => {
+    if (!view) return;
+    const decision = validateDraft(next, view);
+    if (!decision.ok) {
+      setError(decision.message);
+      setNotice('');
       return;
     }
     setSaving(true);
+    setError('');
+    setNotice('');
     try {
-      await nexusApi('/api/creator/products', {
-        method: 'POST',
-        body: JSON.stringify({
-          kind: 'tip',
-          title: `Susținere ${formatJbc(tipCents)}`,
-          price_cents: tipCents,
-          interval_days: null,
-        }),
-      });
-      setNotice(`Produsul de susținere a fost creat: ${formatJbc(tipCents)}.`);
-      await load();
+      const saved = await saveOwnPricing(nexusApi, { free: decision.free, prices: decision.prices });
+      setView(saved);
+      setDraft(draftFromView(saved));
+      setNotice(saved.free
+        ? 'Salvat: totul gratuit. Niciun fan nu plătește nimic.'
+        : `Salvat: apreciere ${formatJbc(saved.actions.appreciation.price_cents)}, comentariu ${formatJbc(saved.actions.comment.price_cents)}, distribuire ${formatJbc(saved.actions.share.price_cents)}.`);
     } catch (cause) {
       const code = cause instanceof NexusApiError ? cause.code : undefined;
-      setError(supportErrorMessage(code, cause instanceof Error ? cause.message : 'Produsul nu a putut fi salvat.'));
+      setError(pricingErrorWords(code, cause instanceof Error ? cause.message : 'Prețurile nu au putut fi salvate.'));
     } finally {
       setSaving(false);
     }
+  }, [view]);
+
+  const toggleFree = () => {
+    if (locked || saving) return;
+    if (!draft.free) {
+      void persist({ ...draft, free: true });
+      return;
+    }
+    // Leaving `Totul gratuit` needs three prices, so it starts from the friendlier preset instead of
+    // saving a half-written policy.
+    setDraft(view ? draftFromPreset(view.presets.prietenos) : draft);
+    setAdvanced(true);
+    setNotice('Alege prețurile, apoi salvează: un profil plătit are nevoie de toate trei.');
+  };
+
+  const choosePreset = (id: PresetId) => {
+    if (locked || !view) return;
+    setDraft(draftFromPreset(view.presets[id]));
+    setNotice('');
+    setError('');
   };
 
   return (
@@ -127,108 +137,160 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
         {error ? <Text style={styles.error}>{error}</Text> : null}
         {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-
-        <View style={styles.row}>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel={FREE_LABEL}
+          accessibilityState={{ checked: draft.free, disabled: locked || saving }}
+          disabled={locked || saving}
+          onPress={toggleFree}
+          style={({ pressed }) => [styles.row, (locked || saving) && styles.disabledRow, pressed && styles.pressed]}
+        >
           <View style={styles.rowWords}>
-            <Text style={styles.rowTitle}>Totul gratuit</Text>
+            <Text style={styles.rowTitle}>{FREE_LABEL}</Text>
             <Text style={styles.rowHint}>Nimeni nu plătește nimic până nu pornești un preț.</Text>
           </View>
-          <View style={[styles.switchTrack, everythingFree && styles.switchTrackOn]}>
-            <View style={[styles.switchThumb, everythingFree && styles.switchThumbOn]} />
+          <View style={[styles.switchTrack, draft.free && styles.switchTrackOn]}>
+            <View style={[styles.switchThumb, draft.free && styles.switchThumbOn]} />
           </View>
-        </View>
-        <Unavailable note="Comutatorul nu are endpoint: serverul nu poate salva starea «totul gratuit»." />
+        </Pressable>
+        {locked && view ? <Unavailable note="Serverul nu permite editarea prețurilor acestui profil." /> : null}
 
-        <Text style={styles.section}>Prețuri pe tip</Text>
+        <Text style={styles.section}>Prețuri pe acțiune</Text>
         <View style={styles.presets}>
           {(Object.keys(PRESET_LABELS) as PresetId[]).map((id) => (
             <Pressable
               key={id}
               accessibilityRole="button"
-              accessibilityState={{ selected: preset === id }}
+              accessibilityState={{ selected: savedPreset === id, disabled: locked }}
+              accessibilityLabel={`Presetarea ${PRESET_LABELS[id]}`}
+              disabled={locked}
               onPress={() => choosePreset(id)}
-              style={[styles.preset, preset === id && styles.presetOn]}
+              style={[styles.preset, savedPreset === id && styles.presetOn]}
             >
-              <Text style={[styles.presetLabel, preset === id && styles.presetLabelOn]}>{PRESET_LABELS[id]}</Text>
+              <Text style={[styles.presetLabel, savedPreset === id && styles.presetLabelOn]}>{PRESET_LABELS[id]}</Text>
               <Text style={styles.presetHint}>
-                {formatJbc(PRICE_ROW_ORDER.reduce((sum, key) => sum + presetPrices(id)[key], 0))} total
+                {view
+                  ? `${formatJbc(view.presets[id].appreciation)} · ${formatJbc(view.presets[id].comment)} · ${formatJbc(view.presets[id].share)}`
+                  : '—'}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        {PRICE_ROWS.map((row) => (
-          <View key={row.key} style={styles.priceRow}>
-            <View style={styles.rowWords}>
-              <Text style={styles.rowTitle}>{row.label}</Text>
-              <Text style={styles.rowHint}>{row.hint}</Text>
+        {ACTION_KEYS.map((key) => {
+          const quote = view?.actions[key];
+          const unavailable = !quote || !quote.chargeable;
+          const value = draft[key];
+          return (
+            <View key={key} style={styles.priceRow}>
+              <View style={styles.rowWords}>
+                <Text style={styles.rowTitle}>{quote?.label ?? key}</Text>
+                <Text style={styles.rowHint}>{ACTION_HINTS[key]}</Text>
+              </View>
+              {advanced && !unavailable ? (
+                <TextInput
+                  accessibilityLabel={`Prețul pentru ${key}`}
+                  value={value}
+                  onChangeText={(text) => setDraft((current) => ({ ...current, [key]: text }))}
+                  editable={!locked && !saving}
+                  keyboardType="decimal-pad"
+                  placeholder="2"
+                  placeholderTextColor="#5b6b78"
+                  style={styles.input}
+                />
+              ) : (
+                <Text style={styles.price}>{unavailable ? '—' : draft.free ? 'Gratuit' : formatJbc(quote.price_cents)}</Text>
+              )}
+              {unavailable ? <Chip word={UNAVAILABLE_LABEL} /> : null}
             </View>
-            <Text style={styles.price}>{formatJbc(prices[row.key])}</Text>
-            <Chip word="Indisponibil" />
-          </View>
-        ))}
-        <Unavailable note="Aprecierea, comentariul și distribuirea nu au încă o rută de preț: serverul cunoaște doar produsele de susținere (tip, membership)." />
+          );
+        })}
+        {view && !view.free && ACTION_KEYS.some((key) => !view.actions[key]?.chargeable) ? (
+          <Unavailable note="O acțiune fără preț pe server rămâne oprită și spune «Indisponibil»: un buton care ar eșua la atingere ar fi o minciună." />
+        ) : null}
 
-        <Text style={styles.section}>Susținere (are endpoint)</Text>
-        <View style={styles.row}>
-          <TextInput
-            accessibilityLabel="Prețul susținerii în JB"
-            value={tipText}
-            onChangeText={setTipText}
-            keyboardType="decimal-pad"
-            style={styles.input}
-            placeholder="2"
-            placeholderTextColor="#5b6b78"
-          />
-          <Text style={styles.price}>{tipCents ? formatJbc(tipCents) : '—'}</Text>
-        </View>
+        <Pressable
+          accessibilityRole="switch"
+          accessibilityLabel="Mod avansat"
+          accessibilityState={{ checked: advanced, disabled: locked }}
+          disabled={locked}
+          onPress={() => setAdvanced((current) => !current)}
+          style={({ pressed }) => [styles.row, (locked) && styles.disabledRow, pressed && styles.pressed]}
+        >
+          <View style={styles.rowWords}>
+            <Text style={styles.rowTitle}>Mod avansat</Text>
+            <Text style={styles.rowHint}>Scrie separat prețul fiecărei acțiuni, cu cel mult două zecimale.</Text>
+          </View>
+          <View style={[styles.switchTrack, advanced && styles.switchTrackOn]}>
+            <View style={[styles.switchThumb, advanced && styles.switchThumbOn]} />
+          </View>
+        </Pressable>
+
+        {view ? (
+          <View style={styles.caps}>
+            <Text style={styles.rowHint}>Prag minim {formatJbc(view.floor_cents)} · plafon {formatJbc(view.max_price_cents)}</Text>
+            <Text style={styles.rowHint}>Împărțirea {view.split_version || '—'} vine de la server; aplicația nu o calculează.</Text>
+          </View>
+        ) : null}
+
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Salvează prețul susținerii"
-          accessibilityState={{ busy: saving, disabled: saving || !tipCents }}
-          disabled={saving || !tipCents}
-          onPress={() => { void saveTip(); }}
-          style={({ pressed }) => [styles.primary, (saving || !tipCents) && styles.disabled, pressed && styles.pressed]}
+          accessibilityLabel="Salvează prețurile"
+          accessibilityState={{ busy: saving, disabled: locked || saving || !dirty }}
+          disabled={locked || saving || !dirty}
+          onPress={() => { void persist(draft); }}
+          style={({ pressed }) => [styles.primary, (locked || saving || !dirty) && styles.disabled, pressed && styles.pressed]}
         >
-          <Text style={styles.primaryLabel}>{saving ? 'Se salvează…' : 'Salvează prețul susținerii'}</Text>
+          <Text style={styles.primaryLabel}>{saving ? 'Se salvează…' : 'Salvează prețurile'}</Text>
         </Pressable>
-        {activeProducts.length > 0 ? (
-          <Text style={styles.rowHint}>
-            Produse active: {activeProducts.map((item) => `${item.title} (${formatJbc(item.price_cents)})`).join(', ')}.
-          </Text>
-        ) : (
-          <Text style={styles.rowHint}>Niciun produs activ: nimeni nu poate trimite bani acestui profil.</Text>
-        )}
-
-
-        <Text style={styles.section}>Mod avansat și plafoane</Text>
-        {[
-          { label: 'Mod avansat', hint: 'prețuri diferite pe fiecare tip de conținut' },
-          { label: 'Plafon pe fan / lună', hint: 'cât poate cheltui un singur fan' },
-          { label: 'Plafon pe postare', hint: 'cât se poate strânge pe o postare' },
-        ].map((row) => (
-          <View key={row.label} style={styles.priceRow}>
-            <View style={styles.rowWords}>
-              <Text style={styles.rowTitle}>{row.label}</Text>
-              <Text style={styles.rowHint}>{row.hint}</Text>
-            </View>
-            <Chip word="Indisponibil" />
-          </View>
-        ))}
-        <Unavailable note="Nicio rută nu primește plafoane sau mod avansat; serverul le-ar ignora, deci nu se trimit." />
 
         <Text style={styles.section}>Cum văd fanii</Text>
-        {catalog?.products?.length ? catalog.products.map((item) => (
-          <View key={item.id} style={styles.fanRow}>
+        {previewRows.map((row) => (
+          <Pressable
+            key={row.action}
+            accessibilityRole="button"
+            accessibilityLabel={`Previzualizează ${row.label}`}
+            accessibilityState={{ disabled: row.disabled }}
+            disabled={row.disabled}
+            onPress={() => setPreview(row.action)}
+            style={({ pressed }) => [styles.priceRow, row.disabled && styles.disabledRow, pressed && styles.pressed]}
+          >
             <View style={styles.rowWords}>
-              <Text style={styles.rowTitle}>{item.title}</Text>
-              <Text style={styles.rowHint}>{item.kind === 'tip' ? 'susținere unică' : 'abonament'}</Text>
+              <Text style={styles.rowTitle}>{row.label}</Text>
+              <Text style={styles.rowHint}>{row.note}</Text>
             </View>
-            <Text style={styles.price}>{formatJbc(item.price_cents)}</Text>
-          </View>
-        )) : <Text style={styles.rowHint}>Catalogul este gol: fanii nu văd niciun buton de susținere.</Text>}
-        <Text style={styles.footnote}>Demonstrativ, fără bani reali. Prețul și împărțirea vin de la server; aplicația nu le calculează.</Text>
+            <Text style={styles.price}>{row.price_cents > 0 ? formatJbc(row.price_cents) : 'Gratuit'}</Text>
+            {row.chip ? <Chip word={row.chip} /> : null}
+          </Pressable>
+        ))}
+        <Unavailable note="Atinge o acțiune ca să vezi confirmarea fanului: prețul, comisionul, soldul și bugetul de sesiune." />
+
+        {products.length > 0 ? (
+          <>
+            <Text style={styles.section}>Catalogul citit de server</Text>
+            {products.map((item) => (
+              <View key={item.id} style={styles.fanRow}>
+                <View style={styles.rowWords}>
+                  <Text style={styles.rowTitle}>{item.title}</Text>
+                  <Text style={styles.rowHint}>{item.kind === 'tip' ? 'susținere unică' : 'abonament'} · {item.status}</Text>
+                </View>
+                <Text style={styles.price}>{formatJbc(item.price_cents)}</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
+
+        <Text style={styles.footnote}>
+          Demonstrativ, fără bani reali. Prețul și împărțirea vin de la server; aplicația nu le calculează.
+        </Text>
       </ScrollView>
+      <SupportConfirmSheet
+        visible={preview !== null}
+        view={view}
+        action={preview ?? 'appreciation'}
+        sessionBudgetCents={SESSION_BUDGET_CENTS}
+        onClose={() => setPreview(null)}
+      />
     </View>
   );
 }
@@ -274,11 +336,12 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, backgroundColor: '#1b2733' },
   chipWord: { color: '#8fa3b4', fontSize: 11, fontWeight: '700' },
   unavailable: { color: '#6f8494', fontSize: 11, lineHeight: 15, marginTop: -4 },
-  input: { flex: 1, minHeight: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: '#1c2a36', backgroundColor: '#0a121a', color: '#eaf6ff', fontSize: 15 },
+  input: { width: 92, minHeight: 40, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: '#1c2a36', backgroundColor: '#0a121a', color: '#eaf6ff', fontSize: 15, textAlign: 'right' },
+  caps: { gap: 2, paddingVertical: 4 },
   primary: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#5cf6e7' },
   primaryLabel: { color: '#02150d', fontSize: 15, fontWeight: '800' },
   disabled: { opacity: 0.5 },
+  disabledRow: { opacity: 0.6 },
   pressed: { opacity: 0.85 },
   footnote: { marginTop: 16, color: '#6f8494', fontSize: 11, lineHeight: 16 },
 });
-
