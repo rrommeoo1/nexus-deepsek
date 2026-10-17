@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { newMutationKey } from '../lib/idempotency';
 import { NexusApiError, nexusApi } from '../lib/nexusApi';
 import { formatJbc, parseJbc, supportErrorMessage } from '../lib/pricing';
+import { jungle } from '../theme/jungle';
+import { JungleBackdrop } from '../components/JungleBackdrop';
 
 /**
  * `Portofel` (`MONETIZATION-SPEC.md` §2, §4.3).
@@ -98,6 +100,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
 
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
+      <JungleBackdrop />
       <View style={styles.bar}>
         <Text style={styles.barTitle}>Portofel</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide portofelul" onPress={onClose} hitSlop={8} style={styles.close}>
@@ -207,7 +210,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#04080c' },
+  page: { flex: 1, backgroundColor: jungle.canvas },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   barTitle: { color: '#eaf6ff', fontSize: 18, fontWeight: '800' },
   close: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: '#101b24' },
@@ -216,9 +219,9 @@ const styles = StyleSheet.create({
   spinner: { marginVertical: 12 },
   error: { color: '#ff9a9a', fontSize: 13, lineHeight: 18 },
   notice: { color: '#5cf6e7', fontSize: 13, lineHeight: 18 },
-  hero: { padding: 16, borderRadius: 18, backgroundColor: '#08201f', borderWidth: 1, borderColor: '#0f4a44', gap: 4 },
+  hero: { padding: 16, borderRadius: 18, backgroundColor: jungle.surface, borderWidth: 1, borderColor: jungle.border, gap: 4 },
   heroLabel: { color: '#8fa3b4', fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
-  heroValue: { color: '#5cf6e7', fontSize: 28, fontWeight: '900' },
+  heroValue: { color: jungle.text, fontSize: 28, fontWeight: '900' },
   heroHint: { color: '#8fa3b4', fontSize: 12 },
   section: { marginTop: 14, color: '#9fb3c4', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -231,15 +234,15 @@ const styles = StyleSheet.create({
   chipWord: { color: '#8fa3b4', fontSize: 11, fontWeight: '700' },
   unavailable: { color: '#6f8494', fontSize: 11, lineHeight: 15, marginTop: -4 },
   input: { flex: 1, minHeight: 40, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1, borderColor: '#1c2a36', backgroundColor: '#0a121a', color: '#eaf6ff', fontSize: 15 },
-  primary: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#5cf6e7' },
-  primaryLabel: { color: '#02150d', fontSize: 15, fontWeight: '800' },
+  primary: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: jungle.primary },
+  primaryLabel: { color: jungle.primaryInk, fontSize: 15, fontWeight: '800' },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
   tabs: { flexDirection: 'row', gap: 8 },
   tab: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, backgroundColor: '#0a121a', borderWidth: 1, borderColor: '#1c2a36' },
-  tabOn: { borderColor: '#5cf6e7' },
+  tabOn: { borderColor: jungle.primary },
   tabLabel: { color: '#8fa3b4', fontSize: 13, fontWeight: '700' },
-  tabLabelOn: { color: '#5cf6e7' },
+  tabLabelOn: { color: jungle.primary },
   entry: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#101b24' },
   footnote: { marginTop: 16, color: '#6f8494', fontSize: 11, lineHeight: 16 },
 });

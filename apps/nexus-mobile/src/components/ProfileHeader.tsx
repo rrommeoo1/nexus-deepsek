@@ -4,6 +4,7 @@ import { HEADER_WORDS, deriveRelationUi, type RelationTarget, type RelationView 
 import { initialsFor, mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
 import { OWNER_ROW, ownerRowLabels } from '../lib/profileActions';
 import { PROFILE_MENU_WORD } from '../lib/profileMenu';
+import { jungle, fruitRing, fruitWash } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 import { MessageButton, RelationButton, RelationMenuButton } from './RelationButton';
 import { SolidViewerIcon } from './SolidViewerIcon';
@@ -124,7 +125,7 @@ export function ProfileHeader({
               accessibilityLabel={PROFILE_MENU_WORD}
               accessibilityState={{ expanded: Boolean(menuOpen) }}
               onPress={onProfileMenu}
-              style={({ pressed }) => [styles.icon, (pressed || menuOpen) && styles.iconOn]}
+              style={({ pressed }) => [styles.icon, styles.iconMenu, (pressed || menuOpen) && styles.iconOn]}
             >
               <View accessible={false} style={styles.bars}>
                 <View style={styles.bar} />
@@ -274,7 +275,7 @@ export function ProfileHeader({
               accessibilityLabel={ownerLabels.share}
               onPress={onShare}
               hitSlop={4}
-              style={({ pressed }) => [styles.ownerRound, pressed && styles.ownerPressed]}
+              style={({ pressed }) => [styles.ownerRound, styles.ownerRoundShare, pressed && styles.ownerPressed]}
             >
               <SolidViewerIcon kind="share" size={OWNER_ROW.shareGlyph} color={socialTokens.relations.neutralInk} />
             </Pressable>
@@ -297,7 +298,7 @@ const styles = StyleSheet.create({
     paddingTop: socialTokens.identity.paddingTop,
     paddingHorizontal: socialTokens.identity.paddingHorizontal,
     paddingBottom: socialTokens.identity.paddingBottom,
-    backgroundColor: '#000000',
+    backgroundColor: jungle.canvas,
   },
   /** The reader's row: the arrow on the left, the share on the right, both 44dp aims. */
   topRow: { minHeight: socialTokens.identity.topRowHeight, flexDirection: 'row', alignItems: 'center' },
@@ -309,8 +310,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 14,
   },
-  /** `.ownerMenuButton[aria-expanded=true]` on the shell: `border-color:rgba(255,255,255,.34);background:#0a0b0d`. */
-  iconOn: { borderWidth: 1, borderColor: socialTokens.hero.menuOpenBorder, backgroundColor: socialTokens.hero.menuOpenSurface },
+  /** `.ownerMenuButton[aria-expanded=true]` — the pressed/open tint of the doors in the top row. */
+  iconOn: { borderWidth: 1, borderColor: jungle.borderStrong, backgroundColor: jungle.surfaceRaised },
+  /** The fruit ring of the profile menu door: a kiwi edge at low alpha, and a wash of the same fruit. */
+  iconMenu: { borderWidth: 1, borderColor: fruitRing.menu, backgroundColor: fruitWash.menu },
   iconGlyph: { color: '#ffffff', fontSize: socialTokens.identity.iconSize, lineHeight: 26 },
   /** `.ownerMenuBars{width:20px;gap:4px}` with three `b` of `height:2px;border-radius:2px`. */
   bars: { width: socialTokens.hero.barsWidth, gap: socialTokens.hero.barsGap },
@@ -408,7 +411,7 @@ const styles = StyleSheet.create({
     borderColor: socialTokens.relations.neutralBorder,
     backgroundColor: socialTokens.relations.neutralSurface,
   },
-  ownerPrimary: { backgroundColor: socialTokens.relations.accent },
+  ownerPrimary: { backgroundColor: jungle.primary },
   ownerPressed: { opacity: 0.82 },
   ownerNeutralLabel: {
     color: socialTokens.relations.neutralInk,
@@ -416,7 +419,7 @@ const styles = StyleSheet.create({
     fontWeight: OWNER_ROW.labelWeight,
   },
   ownerPrimaryLabel: {
-    color: socialTokens.relations.accentInk,
+    color: jungle.primaryInk,
     fontSize: OWNER_ROW.labelSize,
     fontWeight: OWNER_ROW.labelWeight,
   },
@@ -430,4 +433,6 @@ const styles = StyleSheet.create({
     borderColor: socialTokens.relations.neutralBorder,
     backgroundColor: socialTokens.relations.neutralSurface,
   },
+  /** The share door wears the papaya ring, at the same low saturation as the other four. */
+  ownerRoundShare: { borderColor: fruitRing.share, backgroundColor: fruitWash.share },
 });

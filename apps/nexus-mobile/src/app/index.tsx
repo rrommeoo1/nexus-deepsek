@@ -6,6 +6,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AppHeader, headerFloats, type AppHeaderSwitch } from '../components/AppHeader';
 import { AppNav } from '../components/AppNav';
 import { FeedDrawer } from '../components/FeedDrawer';
+import { JungleBackdrop } from '../components/JungleBackdrop';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
 import type { NavSlot } from '../components/NexusMark';
@@ -255,6 +256,7 @@ export default function NativeHomeScreen() {
   if (!me) {
     return (
       <SafeAreaView style={styles.loginScreen}>
+        <JungleBackdrop opacity={0.12} anchor="bottom" />
         <NexusLogin
           brand={<NexusLandingBrand />}
           locale="ro"

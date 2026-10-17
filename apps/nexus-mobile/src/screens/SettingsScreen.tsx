@@ -1,8 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { buildLine } from '../lib/buildStamp';
+import { JungleBackdrop } from '../components/JungleBackdrop';
 import { BRAND_NAME } from '../theme/brand';
-import { socialTokens } from '../theme/social';
+import { jungle } from '../theme/jungle';
 
 /**
  * `Setări` — the last row of the profile menu (`lib/profileMenu.ts`).
@@ -35,6 +36,7 @@ export function SettingsScreen({
 
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
+      <JungleBackdrop />
       <View style={styles.bar}>
         <Text style={styles.barTitle}>Setări</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide setările" onPress={onClose} hitSlop={8} style={styles.close}>
@@ -52,7 +54,7 @@ export function SettingsScreen({
             accessibilityLabel="Banda derulantă"
             value={bandScrolling}
             onValueChange={onBandScrolling}
-            trackColor={{ false: '#1c2a36', true: socialTokens.relations.accent }}
+            trackColor={{ false: '#1c2a36', true: jungle.primary }}
             thumbColor={bandScrolling ? '#04120f' : '#8fa3b4'}
           />
         </View>
@@ -82,7 +84,7 @@ export function SettingsScreen({
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#04080c' },
+  page: { flex: 1, backgroundColor: jungle.canvas },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   barTitle: { color: '#eaf6ff', fontSize: 18, fontWeight: '800' },
   close: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: '#101b24' },

@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { JungleBackdrop } from '../components/JungleBackdrop';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator, FlatList, Keyboard, Pressable, RefreshControl, StyleSheet, Text, TextInput, View,
@@ -316,6 +317,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', initia
 
   return (
     <View style={styles.screen}>
+      <JungleBackdrop opacity={0.06} />
       <FlatList
         /** `#conversation-list` is hidden from two characters on (`messenger-search.js:103`). */
         data={serverSearching ? [] : visible}

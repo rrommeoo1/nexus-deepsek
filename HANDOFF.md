@@ -138,6 +138,55 @@ Deci nu a fost nevoie de praguri mai strânse: colțurile sunt `0,0,0,0`, iar ce
 
 **Rezultat:** `tsc --noEmit` 0 erori; `npm test` exit 0 (suita completă, acum cu 4 teste în plus).
 
+## 0.4 Pașii 3 și 4 — tema jungle și fundalul (17 octombrie 2026)
+
+**Paleta a fost extrasă din marcă, nu inventată.** `tools/brand/sample-palette.ps1` (nou) citește
+`jb-mark-1024.png`, ignoră pixelii cu alpha < 200, grupează culorile pe 5 biți pe canal și atribuie fiecare
+grup celui mai apropiat fruct. Rulare pe 96.403 pixeli opaci eșantionați:
+
+| Fruct | Acoperire | Fruct | Acoperire |
+|---|---|---|---|
+| leaf | 38,40 % | banana | 7,51 % |
+| mango | 23,57 % | papaya | 6,20 % |
+| raspberry | 14,70 % | blueberry | 0,12 % |
+| kiwi | 9,45 % | passionfruit | 0,04 % |
+
+Grupurile dominante: `#E47424`, `#EC7424` (mango/papaya), `#F4AC04`, `#FCB404`, `#F4BC2C` (banana) și
+verdele închis `#1C3404`, `#243C04` (leaf). De aici vin accentele din `src/theme/jungle.ts`.
+
+**Tokens (`src/theme/jungle.ts`, un singur loc):** câmp `#02150D`, suprafețe `#04201A` / `#062A22`, borduri
+`rgba(112,164,130,0.22)`, acțiune primară kiwi `#8BD04A` cu cerneala `#04160B`, `navActive` banană
+`#F5D33C`, `navIdle` verde-gri `#8FA79A`, `dangerInk` `#FF6B8A`, iar `media` rămâne `#000000`.
+
+**Contrast — `scripts/test-theme-contrast.cjs` (nou), 14 perechi, prag 4,5:1, toate trec:**
+
+| Pereche | Raport | Pereche | Raport |
+|---|---|---|---|
+| text pe canvas | 17,83:1 | ink pe primary | 9,97:1 |
+| text pe surface | 16,22:1 | canvas pe banana | 12,79:1 |
+| text pe sheet | 14,61:1 | navActive pe canvas | 12,79:1 |
+| textMuted pe canvas | 8,89:1 | navIdle pe canvas | 7,32:1 |
+| textQuiet pe canvas | 6,30:1 | leaf pe canvas | 5,52:1 |
+| textMuted pe sheet | 7,28:1 | dangerInk pe canvas | 7,00:1 |
+
+Raspberry-ul pur (`#D63357`) dă doar **4,01:1** pe câmp, deci nu e folosit ca text: inelul lui rămâne
+decorativ, iar cuvintele care avertizează folosesc `dangerInk`.
+
+**Aplicare discretă (fără schimbarea structurii sau a pozițiilor):** inel de fruct pe ușile din colțul de
+sus — banana pe schimbarea profilului (`AppHeader`), kiwi pe `≡` (`ProfileHeader`), papaya pe distribuire
+(`ProfileHeader`), mango pe clopoțel (`FeedDrawer`), zmeură pe ieșirea din cont (`FeedDrawer`) — fiecare la
+alpha 0,08–0,12; bara de jos are pictograma activă în banană și restul în verde-gri; butoanele primare
+(relație, monetizare, portofel, confirmarea fanului, presetările) sunt kiwi cu cerneală de câmp. Conținutul
+media nu a fost atins (testul `test-jungle-backdrop.cjs` verifică exact fișierele de media).
+
+**Fundalul (`src/components/JungleBackdrop.tsx`, nou):** un singur strat, culoare uniformă `#02150D`
+(`expo-linear-gradient` nu există în proiect), marca `jb-mark-512.png` la 90 % din lățime, opacitate 6–8 %
+pe ecrane și 12 % pe login, `memo`, `pointerEvents="none"`, fără stare, efect sau animație. Folosit pe:
+login și `login-preview`, Setări, Portofel, Monetizare, meniul profilului, foaia de confirmare, sertar,
+lista Mesaje. **Nu** pe video, foto, story, cameră sau vizualizator.
+
+**Rezultat:** `tsc --noEmit` 0 erori; `npm test` exit 0 (2 suite noi: contrast 14 perechi, fundal 3 teste).
+
 ## 0. Schimbarea de direcție (decizia proprietarului, 17 octombrie 2026)
 
 **Produsul final este aplicația Android nativă (`apps/nexus-mobile`).** Web-ul de pe Railway nu mai este

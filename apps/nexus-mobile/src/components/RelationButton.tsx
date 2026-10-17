@@ -8,6 +8,7 @@ import {
   relationMenu, resolveRelation, setBlocked, setFollowing, setMuted, useRelationResolving,
   type RelationActionId, type RelationMenuItem, type RelationTarget, type RelationView,
 } from '../lib/relations';
+import { jungle } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -243,14 +244,14 @@ const styles = StyleSheet.create({
     borderRadius: socialTokens.relations.compactRadius,
     borderWidth: 1,
   },
-  /** `.ownerFollow.isPrimary` and the reference's filled button: the product accent, with its own ink. */
-  accent: { backgroundColor: socialTokens.relations.accent, borderColor: socialTokens.relations.accent },
+  /** The primary action of the product: kiwi green with the field as its ink (`theme/jungle.ts`). */
+  accent: { backgroundColor: jungle.primary, borderColor: jungle.primary },
   neutral: { backgroundColor: socialTokens.relations.neutralSurface, borderColor: socialTokens.relations.neutralBorder },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.82 },
   label: { fontSize: socialTokens.relations.labelSize, fontWeight: '700' },
   compactLabel: { fontSize: socialTokens.relations.compactLabelSize, fontWeight: '700' },
-  accentLabel: { color: socialTokens.relations.accentInk },
+  accentLabel: { color: jungle.primaryInk },
   neutralLabel: { color: socialTokens.relations.neutralInk },
   round: {
     width: socialTokens.relations.roundSize,

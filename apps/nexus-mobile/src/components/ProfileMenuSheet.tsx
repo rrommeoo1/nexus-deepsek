@@ -1,5 +1,7 @@
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PROFILE_MENU_CLOSE_WORD, PROFILE_MENU_TITLE, PROFILE_MENU_WORD, profileMenuFor, type ProfileMenuId } from '../lib/profileMenu';
+import { jungle } from '../theme/jungle';
+import { JungleBackdrop } from './JungleBackdrop';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -28,6 +30,7 @@ export function ProfileMenuSheet({
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable accessibilityRole="button" accessibilityLabel={PROFILE_MENU_CLOSE_WORD} onPress={onClose} style={styles.backdrop} />
       <View accessibilityRole="menu" accessibilityLabel={PROFILE_MENU_TITLE} style={styles.sheet}>
+        <JungleBackdrop opacity={0.07} />
         <View style={styles.head}>
           <Text style={styles.title}>{PROFILE_MENU_TITLE}</Text>
           <Pressable
@@ -71,9 +74,9 @@ const styles = StyleSheet.create({
     padding: 10,
     gap: 6,
     borderWidth: 1,
-    borderColor: socialTokens.relations.menuBorder,
+    borderColor: jungle.border,
     borderRadius: 22,
-    backgroundColor: socialTokens.relations.menuSurface,
+    backgroundColor: jungle.sheet,
   },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 6, paddingBottom: 4 },
   title: {
@@ -87,7 +90,7 @@ const styles = StyleSheet.create({
   close: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center', borderRadius: 16 },
   closeGlyph: { color: socialTokens.relations.busyInk, fontSize: 14 },
   row: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 14, gap: 2 },
-  rowOn: { backgroundColor: '#12222c' },
+  rowOn: { backgroundColor: jungle.surfaceRaised },
   label: { color: socialTokens.relations.neutralInk, fontSize: socialTokens.relations.menuLabelSize, fontWeight: '700' },
   hint: { color: socialTokens.relations.busyInk, fontSize: 11 },
 });

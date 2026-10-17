@@ -4,6 +4,8 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SupportConfirmSheet } from '../components/SupportConfirmSheet';
+import { JungleBackdrop } from '../components/JungleBackdrop';
+import { jungle } from '../theme/jungle';
 import {
   ACTION_HINTS, ACTION_KEYS, FREE_LABEL, SESSION_BUDGET_CENTS, UNAVAILABLE_LABEL,
   draftFromPreset, draftFromView, fanPreview, loadOwnPricing, presetOfDraft, pricingErrorWords,
@@ -126,6 +128,7 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
 
   return (
     <View style={[styles.page, { paddingTop: insets.top }]}>
+      <JungleBackdrop />
       <View style={styles.bar}>
         <Text style={styles.barTitle}>Monetizează profilul</Text>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide monetizarea" onPress={onClose} hitSlop={8} style={styles.close}>
@@ -306,7 +309,7 @@ function Unavailable({ note }: { note: string }) {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: '#04080c' },
+  page: { flex: 1, backgroundColor: jungle.canvas },
   bar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12 },
   barTitle: { color: '#eaf6ff', fontSize: 18, fontWeight: '800' },
   close: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 17, backgroundColor: '#101b24' },
@@ -314,21 +317,21 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: 16, paddingBottom: 40, gap: 10 },
   spinner: { marginVertical: 12 },
   error: { color: '#ff9a9a', fontSize: 13, lineHeight: 18 },
-  notice: { color: '#5cf6e7', fontSize: 13, lineHeight: 18 },
+  notice: { color: jungle.primary, fontSize: 13, lineHeight: 18 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   rowWords: { flex: 1, minWidth: 0, gap: 2 },
   rowTitle: { color: '#eaf6ff', fontSize: 14, fontWeight: '700' },
   rowHint: { color: '#8fa3b4', fontSize: 12, lineHeight: 16 },
   switchTrack: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#1b2733', padding: 3, justifyContent: 'center' },
-  switchTrackOn: { backgroundColor: '#0f4a44' },
+  switchTrackOn: { backgroundColor: 'rgba(139,208,74,0.22)' },
   switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#7b8a97' },
-  switchThumbOn: { alignSelf: 'flex-end', backgroundColor: '#5cf6e7' },
+  switchThumbOn: { alignSelf: 'flex-end', backgroundColor: jungle.primary },
   section: { marginTop: 14, color: '#9fb3c4', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
   presets: { flexDirection: 'row', gap: 8 },
   preset: { flex: 1, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 14, borderWidth: 1, borderColor: '#1c2a36', backgroundColor: '#0a121a', gap: 2 },
-  presetOn: { borderColor: '#5cf6e7', backgroundColor: '#08201f' },
+  presetOn: { borderColor: jungle.primary, backgroundColor: jungle.surface },
   presetLabel: { color: '#cfe0ee', fontSize: 14, fontWeight: '700' },
-  presetLabelOn: { color: '#5cf6e7' },
+  presetLabelOn: { color: jungle.primary },
   presetHint: { color: '#8fa3b4', fontSize: 11 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#101b24' },
   fanRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
@@ -338,8 +341,8 @@ const styles = StyleSheet.create({
   unavailable: { color: '#6f8494', fontSize: 11, lineHeight: 15, marginTop: -4 },
   input: { width: 92, minHeight: 40, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1, borderColor: '#1c2a36', backgroundColor: '#0a121a', color: '#eaf6ff', fontSize: 15, textAlign: 'right' },
   caps: { gap: 2, paddingVertical: 4 },
-  primary: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#5cf6e7' },
-  primaryLabel: { color: '#02150d', fontSize: 15, fontWeight: '800' },
+  primary: { minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: jungle.primary },
+  primaryLabel: { color: jungle.primaryInk, fontSize: 15, fontWeight: '800' },
   disabled: { opacity: 0.5 },
   disabledRow: { opacity: 0.6 },
   pressed: { opacity: 0.85 },

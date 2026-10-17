@@ -2,6 +2,8 @@ import { Modal, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { CloseMark, LogoutMark } from './NexusMark';
 import { BrandLogo } from './BrandLogo';
 import { BRAND_NAME } from '../theme/brand';
+import { fruitRing, fruitWash, jungle } from '../theme/jungle';
+import { JungleBackdrop } from './JungleBackdrop';
 import { drawerMarks, profileModules, socialTokens } from '../theme/social';
 
 /**
@@ -51,6 +53,7 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
     <Modal visible={open} transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
       <Pressable accessibilityRole="button" accessibilityLabel="Închide meniul" onPress={onClose} style={styles.backdrop} />
       <View accessibilityRole="menu" accessibilityLabel="Schimbă profilul" style={styles.drawer}>
+        <JungleBackdrop opacity={0.07} />
         <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
           <CloseMark size={18} />
         </Pressable>
@@ -89,7 +92,7 @@ export function FeedDrawer({ open, activeModule, onClose, onModule, onLogout, on
             accessibilityRole="button"
             accessibilityLabel="Notificări"
             onPress={() => { onClose(); onNotifications(); }}
-            style={({ pressed }) => [styles.tile, pressed && { transform: [{ scale: 0.94 }] }]}
+            style={({ pressed }) => [styles.tile, styles.tileBell, pressed && { transform: [{ scale: 0.94 }] }]}
           >
             <Text style={styles.tileGlyph}>🔔</Text>
           </Pressable>
@@ -140,9 +143,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: drawer.paddingInline,
     paddingBottom: drawer.paddingBottom,
     borderWidth: drawer.borderWidth,
-    borderColor: socialTokens.colors.drawerBorder,
+    borderColor: jungle.border,
     borderRadius: drawer.radius,
-    backgroundColor: socialTokens.colors.drawerSurface,
+    backgroundColor: jungle.sheet,
     shadowColor: '#000000',
     shadowOpacity: 0.7,
     shadowRadius: 42,
@@ -160,10 +163,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: socialTokens.colors.tileBorder,
+    borderColor: jungle.border,
     borderRadius: drawer.tileRadius,
-    backgroundColor: socialTokens.colors.tileSurface,
+    backgroundColor: jungle.surfaceRaised,
   },
+  /** The bell carries the mango ring: one fruit per door, all at the same low saturation. */
+  tileBell: { borderColor: fruitRing.bell, backgroundColor: fruitWash.bell },
   tileActive: {
     borderColor: socialTokens.colors.white,
     backgroundColor: socialTokens.colors.white,
@@ -177,9 +182,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.42)',
+    borderColor: fruitRing.logout,
     borderRadius: drawer.tileSize / 2,
-    backgroundColor: socialTokens.colors.drawerSurface,
+    backgroundColor: fruitWash.logout,
   },
   /** The switch row: the same width as the grid, so the drawer reads as one column. */
   pref: {

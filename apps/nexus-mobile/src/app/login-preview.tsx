@@ -3,6 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
+import { JungleBackdrop } from '../components/JungleBackdrop';
 
 /** Development-only visual comparison. It never calls authentication endpoints. */
 export default function LoginPreviewScreen() {
@@ -11,6 +12,7 @@ export default function LoginPreviewScreen() {
   return (
     <View style={{ flex: 1 }} pointerEvents="none">
       <StatusBar hidden />
+      <JungleBackdrop opacity={0.12} anchor="bottom" />
       <NexusLogin brand={<NexusLandingBrand />}
         locale="en" googleReady={false} facebookReady={false} walletNetwork="mainnet"
         busy={false} error="" onSignIn={previewOnly} onSignUp={previewOnly}

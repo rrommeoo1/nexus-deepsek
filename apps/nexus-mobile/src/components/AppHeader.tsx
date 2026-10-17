@@ -3,6 +3,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { ModulesMark } from './NexusMark';
 import { BrandLogo } from './BrandLogo';
 import { BRAND_NAME } from '../theme/brand';
+import { fruitRing, fruitWash, jungle } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -109,16 +110,16 @@ export function AppHeader({ variant, modeId, topInset = 0, switches = [], onPres
           gap: feedHeader.gap,
           backgroundColor: floating ? 'transparent' : colors.feedHeaderSurface,
           borderBottomWidth: floating ? 0 : 1,
-          borderBottomColor: colors.greenLine,
+          borderBottomColor: jungle.border,
         },
         variant === 'screen' && {
           paddingTop: appHeader.paddingTop,
           paddingBottom: appHeader.paddingBottom,
           paddingHorizontal: appHeader.paddingInline,
           gap: appHeader.gap,
-          backgroundColor: colors.appHeaderSurface,
+          backgroundColor: jungle.surface,
           borderBottomWidth: 1,
-          borderBottomColor: colors.appHeaderLine,
+          borderBottomColor: jungle.border,
         },
       ]}
     >
@@ -242,15 +243,15 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     letterSpacing: appHeader.badge.letterSpacing,
   },
-  /** `.feedHeaderIcon` — the door that opens the drawer of profiles. */
+  /** `.feedHeaderIcon` — the door that opens the drawer of profiles, with the banana ring of the row. */
   iconButton: {
     width: feedHeader.iconButton.size,
     height: feedHeader.iconButton.size,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: feedHeader.iconButton.radius,
-    borderWidth: feedHeader.iconButton.borderWidth,
-    borderColor: feedHeader.iconButton.borderColor,
-    backgroundColor: feedHeader.iconButton.background,
+    borderWidth: 1,
+    borderColor: fruitRing.module,
+    backgroundColor: fruitWash.module,
   },
 });

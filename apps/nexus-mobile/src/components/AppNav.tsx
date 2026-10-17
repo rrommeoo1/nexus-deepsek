@@ -4,6 +4,7 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { NexusMark, type NavSlot } from './NexusMark';
 import { BrandLogo } from './BrandLogo';
 import type { MediaSource } from '../lib/socialTypes';
+import { jungle } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -93,7 +94,7 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
                   {slot === 'account' && avatarSource ? (
                     <Image source={avatarSource} style={styles.avatar} accessibilityIgnoresInvertColors />
                   ) : (
-                    <NexusMark slot={slot} color={colors.white} />
+                    <NexusMark slot={slot} color={selected ? jungle.navActive : jungle.navIdle} />
                   )}
                   {counting ? (
                     <Text style={styles.badge} allowFontScaling={false}>{Math.min(unreadCount, tokens.badge.maxCount)}</Text>
@@ -199,9 +200,9 @@ const styles = StyleSheet.create({
   discAvatar: { overflow: 'hidden' },
   /** `.appNav.social button.active:not(.createNav) i` — the open place, lit from within. */
   discActive: {
-    borderColor: socialTokens.colors.markActiveBorder,
-    backgroundColor: socialTokens.colors.markActiveBackground,
-    shadowColor: socialTokens.colors.markActiveShadow,
+    borderColor: jungle.borderStrong,
+    backgroundColor: 'rgba(139,208,74,0.12)',
+    shadowColor: 'rgba(139,208,74,0.34)',
     shadowOpacity: 1,
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 0 },
