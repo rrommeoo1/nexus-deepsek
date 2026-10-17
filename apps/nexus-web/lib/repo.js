@@ -7,6 +7,7 @@ import { assessSocialContent, MODERATION_POLICY_VERSION, publicAssessment, REPOR
 import { creatorStudioHash, normalizeCreatorAudio, normalizeCreatorStudio } from "./creator-studio.js";
 import { evaluatePrivacy } from "./privacy-matrix.js";
 import { normalizeJamendoTrack } from "./jamendo.js";
+import { ACTION_KEYS, ACTION_LABELS, ACTION_SPLIT_VERSION } from "./creator-pricing.js";
 
 export const PERSONAS = ["social", "work", "dating", "travel", "market"];
 export const SOCIAL_REACTIONS = ["LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY", "FAKE_OPINION", "DISLIKE"];
@@ -5280,6 +5281,89 @@ export function createRepo(db) {
       if (!profile || creator.account_state !== "active") return null;
       const products = this.db.prepare(`SELECT * FROM creator_support_products WHERE creator_id = ? AND status = 'active' ORDER BY kind, price_cents, id`).all(creator.id);
       return { creator: { id: creator.id, handle: creator.handle, display_name: profile.name, avatar: profile.avatar }, products };
+    },
+    /**
+     * F2.c: the owner's three action prices, read from the products that carry them. A creator with no
+     * row is free (§3.5.1), which is why a profile nobody configured never shows a price at all.
+     */
+    getCreatorActionPricing(creatorId) {
+      const row = this.db.prepare(`SELECT * FROM creator_action_prices WHERE creator_id = ?`).get(creatorId);
+      const wanted = ACTION_KEYS.map((key) => Number(row?.[`${key}_product_id`] ?? 0)).filter((id) => id > 0);
+      const products = wanted.length
+        ? this.db.prepare(`SELECT * FROM creator_support_products WHERE id IN (${wanted.map(() => "?").join(",")})`).all(...wanted)
+        : [];
+      const byId = new Map(products.map((product) => [Number(product.id), product]));
+      const actions = {};
+      for (const key of ACTION_KEYS) {
+        const product = byId.get(Number(row?.[`${key}_product_id`] ?? 0)) ?? null;
+        actions[key] = product && product.status === "active" && product.kind === "tip" ? product : null;
+      }
+      return { free: row ? Boolean(row.free) : true, actions, updated_at: row ? Number(row.updated_at) : null };
+    },
+    /**
+     * Writing the prices is one SAVEPOINT: the products it creates and the row that points at them
+     * either all land or none do. A price is never stored outside a product, so the split stays the
+     * product's and no second money table is born.
+     */
+    setCreatorActionPricing({ creatorId, free, prices = {} }) {
+      const creator = this.getUserById(creatorId);
+      const profile = this.getPersona(creatorId, "social");
+      if (!creator || !profile || creator.account_state !== "active") {
+        throw Object.assign(new Error("creator profile unavailable"), { code: "CREATOR_PROFILE_UNAVAILABLE", status: 409 });
+      }
+      const wanted = {};
+      if (!free) {
+        for (const key of ACTION_KEYS) {
+          const price = Number(prices[key]);
+          if (!Number.isInteger(price) || price <= 0) {
+            throw Object.assign(new Error(`missing price for ${key}`), { code: "PRICE_INVALID", status: 400 });
+          }
+          wanted[key] = price;
+        }
+      }
+      this.db.exec("SAVEPOINT creator_pricing");
+      try {
+        const productIds = {};
+        if (!free) {
+          for (const key of ACTION_KEYS) {
+            const title = ACTION_LABELS[key];
+            const existing = this.db.prepare(`SELECT * FROM creator_support_products
+              WHERE creator_id = ? AND kind = 'tip' AND title = ? ORDER BY id LIMIT 1`).get(creatorId, title);
+            if (existing) {
+              this.db.prepare(`UPDATE creator_support_products SET price_cents = ?, status = 'active', split_version = ? WHERE id = ?`)
+                .run(wanted[key], ACTION_SPLIT_VERSION, existing.id);
+              productIds[key] = Number(existing.id);
+            } else {
+              const created = this.createCreatorSupportProduct({ creatorId, kind: "tip", title, priceCents: wanted[key] });
+              productIds[key] = Number(created.id);
+            }
+          }
+        }
+        const columns = ACTION_KEYS.map((key) => `${key}_product_id`).join(", ");
+        const slots = ACTION_KEYS.map(() => "?").join(", ");
+        this.db.prepare(`INSERT INTO creator_action_prices (creator_id, free, ${columns}) VALUES (?, ?, ${slots})
+          ON CONFLICT(creator_id) DO UPDATE SET free = excluded.free,
+            appreciation_product_id = excluded.appreciation_product_id, comment_product_id = excluded.comment_product_id,
+            share_product_id = excluded.share_product_id, updated_at = unixepoch()`)
+          .run(creatorId, free ? 1 : 0, ...ACTION_KEYS.map((key) => productIds[key] ?? null));
+        this.db.exec("RELEASE creator_pricing");
+      } catch (error) {
+        this.db.exec("ROLLBACK TO creator_pricing");
+        this.db.exec("RELEASE creator_pricing");
+        throw error;
+      }
+      return this.getCreatorActionPricing(creatorId);
+    },
+    /** The reader's view: the same block, synthetic and visibility rules as the catalog, so a hidden profile leaks nothing. */
+    getCreatorPricingForViewer(viewerId, creatorHandle) {
+      const creator = this.getUserByHandle(String(creatorHandle || "").toLowerCase());
+      if (!creator || this.isAccountBlockedBetween(viewerId, creator.id) || (creator.traffic_class !== "HUMAN_ORGANIC" && creator.id !== viewerId)) return null;
+      const profile = this.getPersona(creator.id, "social");
+      if (!profile || creator.account_state !== "active") return null;
+      return {
+        creator: { id: creator.id, handle: creator.handle, display_name: profile.name, avatar: profile.avatar },
+        pricing: this.getCreatorActionPricing(creator.id),
+      };
     },
     createCreatorSupportIntent({ supporterId, productId }) {
       const product = this.db.prepare(`SELECT csp.*, u.traffic_class creator_traffic_class FROM creator_support_products csp
