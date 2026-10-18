@@ -218,26 +218,31 @@ export type PricingDraftResult =
   | { ok: false; action: ActionKey | null; message: string };
 
 /**
- * What the owner typed → the route's body. `Totul gratuit` carries no prices; a paid policy carries
- * all three, because a partial policy would leave the app guessing which action is free.
+ * What the owner typed → the route's body. Every action stands alone: an empty field or `0` means
+ * that action is free, and the minimum price applies only to the actions that are actually paid.
+ * `Totul gratuit` remains the shortcut that sends no prices at all.
  */
 export function validateDraft(draft: PricingDraft, view: PricingView): PricingDraftResult {
   if (draft.free) return { ok: true, free: true, prices: null };
   const prices = {} as Record<ActionKey, number>;
   for (const key of ACTION_KEYS) {
-    const cents = parseJbc(draft[key]);
+    const raw = draft[key].trim();
+    // `parseJbc` refuses zero on purpose (a price is positive or absent), so zero is recognised here.
+    const zero = raw === '' || /^0+(?:[.,]0+)?$/.test(raw);
+    const cents = zero ? 0 : parseJbc(raw);
     if (cents === null) {
-      return { ok: false, action: key, message: `Scrie un preț pentru ${ACTION_LABELS[key].toLowerCase()}, cu cel mult două zecimale.` };
+      return { ok: false, action: key, message: `Scrie un preț pentru ${ACTION_LABELS[key].toLowerCase()}, cu cel mult două zecimale, sau lasă gol pentru gratuit.` };
     }
     if (cents > view.max_price_cents) {
       return { ok: false, action: key, message: `Prețul maxim este ${formatJbc(view.max_price_cents)}.` };
     }
-    if (view.floor_cents > 0 && cents < view.floor_cents) {
-      return { ok: false, action: key, message: `Prețul minim care acoperă decontarea este ${formatJbc(view.floor_cents)}.` };
+    if (cents > 0 && view.floor_cents > 0 && cents < view.floor_cents) {
+      return { ok: false, action: key, message: `Prețul minim care acoperă decontarea este ${formatJbc(view.floor_cents)}; scrie 0 pentru ${ACTION_LABELS[key].toLowerCase()} gratuită.` };
     }
     prices[key] = cents;
   }
-  return { ok: true, free: false, prices };
+  const anyPaid = ACTION_KEYS.some((key) => prices[key] > 0);
+  return { ok: true, free: !anyPaid, prices };
 }
 
 export type FanRow = {

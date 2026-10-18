@@ -7,13 +7,13 @@ import { SupportConfirmSheet } from '../components/SupportConfirmSheet';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 import { jungle } from '../theme/jungle';
 import {
-  ACTION_HINTS, ACTION_KEYS, FREE_LABEL, SESSION_BUDGET_CENTS, UNAVAILABLE_LABEL,
+  ACTION_HINTS, ACTION_KEYS, FREE_LABEL, SESSION_BUDGET_CENTS,
   centsToInput, draftFromView, fanPreview, loadOwnPricing, pricingErrorWords,
   saveOwnPricing, validateDraft,
   type ActionKey, type PricingDraft, type PricingView,
 } from '../lib/creatorPricing';
 import { NexusApiError, nexusApi } from '../lib/nexusApi';
-import { formatJbc } from '../lib/pricing';
+import { formatJbc, parseJbc } from '../lib/pricing';
 import { serverErrorWords } from '../lib/serverErrors';
 
 /**
@@ -171,12 +171,12 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
 
         <Text style={styles.section}>Prețuri pe acțiune</Text>
         <Text style={styles.rowHint}>
-          Scrie tu cât costă fiecare acțiune, în JUNGLE. Pragul minim acoperă decontarea; sub el serverul refuză.
+          Scrie tu cât costă fiecare acțiune, în JUNGLE. Lasă gol sau scrie 0 pentru o acțiune gratuită;
+          pragul minim se aplică doar prețurilor peste 0.
         </Text>
 
         {ACTION_KEYS.map((key) => {
           const quote = view?.actions[key];
-          const unavailable = !quote || !quote.chargeable;
           const value = draft[key];
           return (
             <View key={key} style={styles.priceRow}>
@@ -184,31 +184,33 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
                 <Text style={styles.rowTitle}>{quote?.label ?? key}</Text>
                 <Text style={styles.rowHint}>{ACTION_HINTS[key]}</Text>
               </View>
-              {!draft.free && !unavailable ? (
+              {!draft.free ? (
                 <TextInput
                   accessibilityLabel={`Prețul pentru ${key}`}
                   value={value}
                   onChangeText={(text) => setDraft((current) => ({ ...current, [key]: text }))}
                   editable={!locked && !saving}
                   keyboardType="decimal-pad"
-                  placeholder="2"
+                  placeholder={view && view.floor_cents > 0 ? centsToInput(view.floor_cents) : '0'}
                   placeholderTextColor="#5b6b78"
                   style={styles.input}
                 />
               ) : (
-                <Text style={styles.price}>{unavailable ? '—' : draft.free ? 'Gratuit' : formatJbc(quote.price_cents)}</Text>
+                <Text style={styles.price}>{view ? 'Gratuit' : '—'}</Text>
               )}
-              {unavailable ? <Chip word={UNAVAILABLE_LABEL} /> : null}
+              {!draft.free && parseJbc(value) === 0 ? <Chip word="Gratuit" /> : null}
             </View>
           );
         })}
-        {view && !view.free && ACTION_KEYS.some((key) => !view.actions[key]?.chargeable) ? (
-          <Unavailable note="O acțiune fără preț pe server rămâne oprită și spune «Indisponibil»: un buton care ar eșua la atingere ar fi o minciună." />
-        ) : null}
 
         {view ? (
           <View style={styles.caps}>
-            <Text style={styles.rowHint}>Prag minim {formatJbc(view.floor_cents)} · plafon {formatJbc(view.max_price_cents)}</Text>
+            <Text style={styles.rowHint}>
+              Prag minim {formatJbc(view.floor_cents)} · plafon {formatJbc(view.max_price_cents)}
+            </Text>
+            <Text style={styles.rowHint}>
+              Pragul acoperă costul de decontare al unei plăți; sub el platforma ar pierde bani, deci serverul refuză.
+            </Text>
             <Text style={styles.rowHint}>Împărțirea {view.split_version || '—'} vine de la server; aplicația nu o calculează.</Text>
           </View>
         ) : null}

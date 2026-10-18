@@ -154,8 +154,20 @@ test('un preț sub prag sau peste plafon este refuzat cu motivul lui', () => {
   assert.equal(high.ok, false);
   assert.match(high.message, /Prețul maxim/);
   const empty = creatorPricing.validateDraft({ free: false, appreciation: '', comment: '3', share: '3' }, view);
-  assert.equal(empty.ok, false);
-  assert.equal(empty.action, 'appreciation');
+  assert.equal(empty.ok, true);
+  assert.deepEqual(empty.prices, { appreciation: 0, comment: 300, share: 300 });
+  assert.equal(empty.free, false);
+});
+
+test('fiecare acțiune are prețul ei, iar 0 sau gol înseamnă gratuit pentru acea acțiune', () => {
+  const view = creatorPricing.pricingViewFromPayload(paidPayload());
+  const onePaid = creatorPricing.validateDraft({ free: false, appreciation: '2', comment: '0', share: '' }, view);
+  assert.deepEqual(onePaid, { ok: true, free: false, prices: { appreciation: 200, comment: 0, share: 0 } });
+  const allFree = creatorPricing.validateDraft({ free: false, appreciation: '0', comment: '0', share: '0' }, view);
+  assert.deepEqual(allFree, { ok: true, free: true, prices: { appreciation: 0, comment: 0, share: 0 } });
+  const zeroIsFree = creatorPricing.validateDraft({ free: false, appreciation: '0,00', comment: '3', share: '3' }, view);
+  assert.equal(zeroIsFree.ok, true);
+  assert.equal(zeroIsFree.prices.appreciation, 0);
 });
 
 test('salvarea trimite exact corpul rutei: «totul gratuit» fără prețuri, plătit cu toate trei', async () => {
