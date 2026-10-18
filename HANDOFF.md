@@ -798,3 +798,78 @@ ghicit, nu se schimbă datele și nu se șterge nimic.
 După sesiune: un rând nou în §2.5 cu tabelul de mai sus bifat, numele capturilor (`story-foreign`,
 `comment-chip`, `private-shell`, `followers-list`) și orice abatere. `following_me` are două sensuri în cod
 (defectul 11) — dacă eticheta iese invers pe ecran, se notează acolo, nu se „repairă” o singură parte.
+
+## 10. Runda 18 octombrie 2026 — politica v3, migrarea CHECK-ului, modelul de autofinanțare
+
+### 10.1 Ce s-a livrat, pe scurt
+
+| # | Pas | Stare | Compilat | Testat unitar | Deployat | Verificat pe blockchain | Verificat pe telefon | Ce cer de la tine |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `docs/PRICING-CALCULUS.md` rescris: feliile v3 în bps, invarianții, formula, tabelul N×EGLD | **gata** | — | tabelul e verificat de `test/split-policy.test.js` | pe `main` (commit `30fdb7e`) | nu se aplică | nu se aplică | — |
+| 2 | `lib/split-policy.js`: feliile, `minimumPriceCents`, refuzul motivat, parametri din mediu | **gata** | da | 9 teste, inclusiv proprietăți 1…1000 | da | nu se aplică | nu se aplică | — |
+| 3 | Migrarea `price_cents` (1…100000000), rebuild fără pierderi | **gata** | da | 3 teste: copie a unei baze vechi, crash înainte de commit, `openDb` pe un fișier „deployed” | **da** (dovada: 3 bani acceptat pe Railway) | nu se aplică | nu se aplică | acceptarea migrării (ai cerut-o explicit) |
+| 4 | `pricingView`: prag recalculat, motivul, `policy_version`, feliile pe fiecare acțiune | **gata** | da | 30 teste pricing + HTTP | **da** | nu se aplică | nu | — |
+| 5 | Self-funding: `lib/self-funding.js` + `tools/monetization/self-funding.mjs` | **gata parțial** | da | 4 teste | nu (unealtă locală) | nu se aplică | nu | **prețurile reale de cost** |
+| 6 | `MONETIZATION-SPEC.md` §8, `MONETIZATION-RISKS.md` #18–#23 | **gata** | — | — | pe `main` | nu se aplică | nu se aplică | răspunsuri la #18–#23 |
+| 7 | PaidMark, foaia de confirmare, adaptorul simulat, feliile în ecran | **neînceput** | — | — | — | — | — | — |
+| 8 | Token JUNGLE + gaz măsurat pe devnet | **blocat** | — | — | — | **nu** | — | EGLD în trezoreria devnet |
+| 9 | Telefon (meniu, bandă, Monetizare, `$`, foaie) | **blocat** | — | — | — | — | **nu** | confirmi că ești pe Feed |
+| 10 | Registrul local (15 849 intenții) pe o copie | **neînceput** | — | — | — | — | — | — |
+
+
+### 10.2 Fapte verificate pe deploy (18 oct 2026, `main` = `30fdb7e`)
+
+Sonda `tools/probe-policy-deploy.mjs`, rulată din `nexus_deepsek` (citește sesiunile locale, nu le tipărește):
+
+- `/health` → **200**; `/api/me` → **200**.
+- `GET /api/creator/pricing` → `floor_cents: 3`, `floor_reason: "POLICY_V3"`,
+  `policy_version: "SPLIT_V3_70_5_4_4_1"`, `floor_basis: { gas_cents: 1, mode: "batched", batch_size: 10,
+  egld_eur: 30 }`, `display_currency: "JUNGLE"`.
+- `PUT { appreciation: 2 }` → **400** `PRICE_BELOW_SETTLEMENT_COST`, cu mesajul
+  „rezerva de infrastructură (0¢) nu acoperă gazul acțiunii (1¢)”.
+- `PUT { appreciation: 3, comment: 0 }` → **200**; acțiunea are `price_cents: 3`, `creator_cents: 2`,
+  `infra_cents: 1`, celelalte felii 0. **Asta dovedește că migrarea CHECK-ului a rulat pe baza reală**:
+  înainte, 3 bani nu putea fi scris deloc.
+- Cititorul vede `creator.monetized: true` după salvare; `PUT { free: true }` → 200, iar cititorul vede
+  `monetized: false`. Contul de test a fost readus la „gratuit”.
+
+### 10.3 Fapte verificate local
+
+- `node --test` pe fișierele atinse: **56/56** (pricing, settlement, ledger, M12, split-policy, migrare).
+- Migrarea pe un fișier vechi: 3 rânduri păstrate (100, 200, 100000000), `foreign_key_check` gol, 1 ban
+  acceptat după, 0 și 100000001 refuzate, iar un crash înainte de `COMMIT` lasă tabelul vechi intact.
+- `test/self-funding.test.js` confirmă cifra neplăcută: **la 0,03 JUNGLE marja platformei este zero**
+  (2 bani creator + 1 ban gaz), deci pragul de rentabilitate nu există la prețul minim.
+- Suita web completă, în worktree-ul `nexus-main`: **801 teste, 790 pass, 11 fail**. Toate cele 11 sunt în
+  afara zonei atinse: cinci compară text din `public/app.js`, iar fișierul are **CRLF** în acel worktree
+  (9 540 de linii) și **LF** într-un checkout curat (0) — pe checkout curat trec; `wallet-connect` pică și
+  pe `main` curat, înainte de schimbările mele.
+
+### 10.4 Presupuneri, spuse ca presupuneri
+
+- Gazul de **500 000** (decontare) și **150 000** (ancorare) este **limită de protocol**, nu măsurătoare.
+  Nu există EGLD în conturile de devnet, deci nu s-a putut semna nimic.
+- Cursul **30 €/EGLD** este implicitul configurabil, nu o cotă de piață.
+- Modelul de autofinanțare folosește Railway 20 €/lună și domeniu 1 €/lună ca **exemplu**; restul
+  costurilor sunt „de completat”. Profitul din §7.2 din `PRICING-CALCULUS.md` este un maxim, nu o prognoză.
+- Feliile `founder` și `shareholders` sunt conturi contabile; **nu** sunt conturi ledger separate încă
+  (schema are patru coloane). Banii se reconstituie din `split_version`; granularitatea lipsește.
+
+### 10.5 Ce nu s-a făcut, și de ce
+
+- **PaidMark și foaia de plată** (pașii 4–5 din brief): neatinse în această rundă. Backendul are acum
+  `monetized` și feliile, dar componenta centrală `PaidMark` și foaia de confirmare rămân de scris.
+- **Telefonul**: nu l-am deschis. Regulile rămân: numai aplicația, focus verificat, fără
+  Home/Back/setări/cortină, doar devnet. Îmi trebuie confirmarea ta că ești pe Feed.
+- **Registrul local**: neînceput; se face pe o copie, cu marcaj reversibil.
+
+### 10.6 Decizii care așteaptă un răspuns scris
+
+1. **0,02 JUNGLE**: nu este posibil cu minim 60 % pentru creator și cu infrastructura plătind gazul —
+   0,03 este pragul absolut (2 bani creator + 1 ban gaz). Ca să scadă la 0,02 ar trebui coborât
+   `min_creator_bps` sub 5000 **și** acceptat ca rezerva să fie zero. Nu am făcut niciuna.
+2. **Cursul de referință EGLD/EUR** (acum 30, parametru `NEXUS_EGLD_EUR`).
+3. **Lotul de decontare** N (acum 10) și dacă rămâne `batched`; `per_action` urcă pragul la 0,08 la 30 €.
+4. **Conturile ledger separate** pentru fondator/acționari/ardere: cere o migrare aditivă
+   (`owner_kind` are azi patru valori).
+

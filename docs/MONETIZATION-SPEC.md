@@ -349,3 +349,52 @@ Like-uri plătite (interzise de server prin `likes_paid: false`, `api.js:2715`),
 payout real, abonamente cu reînnoire automată, economie pentru conținut adult, cumpărare prin magazinele de
 aplicații. Fiecare cere o decizie care nu există încă — vezi `docs/MONETIZATION-RISKS.md`.
 
+
+## 8. Politica de împărțire v3 și modul de decontare (18 octombrie 2026)
+
+Această secțiune înlocuiește §3.5 ca sursă a cifrelor de preț; §3.5 rămâne istoricul deciziei de test.
+Numerele exacte, formula și tabelul prețului minim stau în `docs/PRICING-CALCULUS.md`.
+
+### 8.1 Feliile
+
+`SPLIT_V3_70_5_4_4_1`, în puncte de bază: creator 7000, fondul rețelei 500, fondator 400, acționari 400,
+ardere 100, iar **restul (~1600) este rezerva de infrastructură** care plătește gazul. Fiecare felie se
+rotunjește în jos; creatorul are drept de minim 60 % (diferența se ia din rezervă), iar tot restul
+rotunjirilor rămâne în rezervă. Conservarea se verifică la cent pentru fiecare preț de la 1 la 1000
+(`test/split-policy.test.js`).
+
+Fondator și acționari sunt **conturi contabile ale companiei** (`platform_fund:*`), nu persoane și nu
+deținători de token. Nicio rută nu le plătește automat; o ieșire din ele este o decizie manuală,
+înregistrată. Codul împarte un număr, nu face transferuri către oameni.
+
+### 8.2 `batched` (implicit) și `per_action` (setare)
+
+| | `batched` | `per_action` |
+|---|---|---|
+| intrarea banilor | fanul depune JUNGLE într-un sold on-chain (o tranzacție reală) | la fel |
+| fiecare acțiune plătită | debitează soldul imediat după confirmare; chitanță semnată de server | o tranzacție către creator, imediat |
+| decontarea | la N acțiuni sau T minute: un transfer către creator + o ancorare Merkle | nu există lot |
+| costul pe acțiune | `(gaz_decontare + gaz_ancorare) / N` | `gaz_transfer_ESDT` |
+| prețul minim la 30 €/EGLD | 0,03 JUNGLE | 0,08 JUNGLE |
+| când se folosește | mereu, dacă nu se cere altceva | doar când prețul ales acoperă pragul acestui mod |
+
+Riscurile fiecăruia, pe scurt: `batched` **ține banii fanului în custodie** între depunere și decontare
+(și între plată și lot), deci are nevoie de reconciliere zilnică și de o politică pentru soldul rămas;
+`per_action` nu ține nimic, dar costă de N ori mai mult și face prețurile mici imposibile la cursuri
+mari. Ambele sunt **devnet only**: niciun transfer cu valoare reală, nicio promisiune de payout.
+
+### 8.3 Ce refuză serverul
+
+- un preț sub pragul recalculat din parametri (`PRICE_BELOW_SETTLEMENT_COST`), cu motivul în răspuns;
+- un preț la care creatorul ar primi sub 60 % (`CREATOR_SHARE_TOO_LOW`);
+- o politică ai cărei parametri încalcă invarianții (`PRICING_POLICY_INVALID`);
+- un produs sub 1 cent: migrarea `migrateCreatorProductPriceFloor` relaxează CHECK-ul vechi, dar 0
+  rămâne „gratuit” și nu se stochează ca produs.
+
+### 8.4 Ancorarea chitanțelor
+
+Fiecare lot produce o rădăcină Merkle peste chitanțele acțiunilor lui; rădăcina și numărul de chitanțe
+intră într-o tranzacție de ancorare. Serverul poate dovedi apoi, pentru orice acțiune, că chitanța ei
+este în rădăcina ancorată, fără să publice lista. Cât timp devnet-ul nu are EGLD, ancorarea rulează pe
+adaptorul simulat și este marcată ca atare în răspuns (`chain: "simulated"`).
+

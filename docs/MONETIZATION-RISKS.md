@@ -28,6 +28,14 @@ printr-o deducție din cod. Un răspuns parțial se notează ca atare.
 | 15 | **Tokenul cu valoare de referință fixă față de euro** (1 JB = 1 EUR, `reference_eur_per_jb`, doar pentru test) intră în categoria jetoanelor ancorate („asset-referenced token”) sau a monedei electronice („e-money token”) în sensul MiCA, chiar dacă nu se emit pe mainnet? Ce înseamnă asta pentru whitepaper, rezervă și autorizare? | orice ieșire din devnet, textul care explică tokenul, emisia ESDT `JUNGLE`, politica de rezervă | jurist + proprietar |
 | 16 | **Cine plătește gazul** pentru decontări și retrageri? Propunerea este un portofel de trezorerie al platformei, dar cine îl alimentează, din ce buget, cu ce limită zilnică și ce se întâmplă când se golește? | `payout_requests`, worker-ul de decontare, pragul de retragere, mesajul „indisponibil temporar” | proprietar + contabil |
 | 17 | **Ce se întâmplă cu fondurile din soldul intern** dacă un creator își șterge contul, dacă platforma se închide sau dacă tokenul își pierde valoarea de referință? Se răscumpără, se blochează, se donează? | politica de închidere de cont, `refund`, textul din „Despre” | proprietar + jurist |
+| 18 | **Custodia soldului fanului** (modul `batched`): banii stau în contul platformei între depunere și decontare. Ce se întâmplă la insolvență, atac, sau dacă platforma se închide cu solduri pozitive? Cine răspunde? | modul `batched`, reconcilierea zilnică, textul din foaia de confirmare, limita de sold | proprietar + jurist + contabil |
+| 19 | **Titluri de valoare / MiCA**: feliile `founder` și `shareholders` sunt conturi contabile, dar dacă apar ca promisiune de profit pentru deținătorii de token, intră sub MiCA sau sub legea titlurilor? | ce se scrie în „Cum se împarte o plată”, dacă feliile se pot promite public, emisia JUNGLE | jurist |
+| 20 | **Taxe**: TVA pe comision, pe abonament și pe bacșiș; microtaxă; cine emite factura și către cine? | textul din chitanță, datele păstrate, raportarea | contabil + jurist |
+| 21 | **KYC/AML la retragerea către persoane**: de la ce sumă, cu ce furnizor, în ce jurisdicție, și ce facem cu soldurile neidentificate? | retragerea creatorului, pragul, datele cerute | jurist + furnizor de plăți |
+| 22 | **Structura companiei**: ce entitate deține conturile `platform_fund:*`, cine are drept de semnătură, cum se aprobă o ieșire din fondul fondatorului sau al acționarilor? | orice plată manuală din cele două conturi, auditul, răspunderea | proprietar + jurist |
+| 23 | **Ce se întâmplă dacă JUNGLE are piață**: prețul minim este calculat la 1 JUNGLE = 1 € (parametru). Dacă tokenul se tranzacționează altfel, pragul în JUNGLE trebuie recalculat, iar sumele istorice rămân în versiunea lor. | parametrul `NEXUS_EGLD_EUR`/referința, textele care arată prețul, chitanțele vechi | proprietar + contabil |
+
+
 
 ### 1.1 Răspunsuri provizorii, doar pentru devnet (17 octombrie 2026)
 
