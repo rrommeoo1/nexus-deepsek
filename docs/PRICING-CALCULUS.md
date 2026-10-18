@@ -126,6 +126,14 @@ Aceleași cifre cu 250 000 gas (cifra simulatorului proprietarului):
 3. **O tranzacție per acțiune sau agregare** — numai agregarea face 0,02–0,03 sustenabil la 30 €.
 4. Acceptarea migrării `price_cents` (nimic sub 1,00 nu poate fi stocat azi).
 
+## 6. Starea măsurătorii (18 octombrie 2026)
+
+Cele cinci conturi de devnet din `docs/.test-wallets.local` au **0 EGLD și niciun token**
+(`tools/probe-devnet-balances.mjs`). Prin urmare cifra de 500 000 gas / 250 000 gas este încă o
+**valoare de protocol**, nu o măsurătoare proprie: nu există EGLD pentru o tranzacție de test și nici
+token JUNGLE emis. Măsurătoarea se face imediat după alimentare, cu un transfer ESDT real și
+`gasUsed` citit din API; abia atunci tabelul de la §3 se recalculează cu cifra reală.
+
 | ESDT la 500 000 gas (protocol) | 500 000 | 1,5 ¢ |
 
 Deci simulatorul proprietarului a folosit 250 000 gas pentru ESDT, jumătate din limita de protocol.

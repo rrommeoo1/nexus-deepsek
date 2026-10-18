@@ -315,6 +315,18 @@ fi stocat. Cifrele, formula și tabelul la EGLD 10/20/30/50 € sunt în `docs/P
 schimbarea economiei așteaptă decizia proprietarului (cursul de referință, 60 % sau 50 %, o
 tranzacție per acțiune sau agregare).
 
+**Aplicația, după deploy (commit `3b95223` pe `codex/camera-draft-stability`):** `validateDraft`
+acceptă `0` sau câmp gol pe fiecare acțiune și aplică pragul doar valorilor peste 0; ecranul arată
+inputul și pentru acțiunile încă gratuite (înainte, o acțiune fără produs nu putea primi preț deloc),
+iar sub prag scrie de ce există. `npx tsc --noEmit` → 0, `npm test` (mobil) → exit 0, 12 teste în
+`test-creator-pricing.cjs`.
+
+**Soldurile devnet sunt toate zero** (`tools/probe-devnet-balances.mjs`, 18 octombrie 2026): cele cinci
+adrese din `docs/.test-wallets.local` au `egld: "0"` și niciun token. Deci **măsurătoarea reală a
+gazului și plata fanului pe blockchain nu pot fi făcute încă** — nu există nici token JUNGLE emis,
+nici EGLD de devnet pentru gaz. Pasul de plată se construiește cu adaptor simulat, marcat ca atare,
+până la alimentarea conturilor.
+
 **Runda de UI, în cod (neinstalată pe telefon):**
 
 - Sertarul (`FeedDrawer`) a fost **șters**; antetul de Feed nu mai are nici marca, nici butonul lui. Meniul
