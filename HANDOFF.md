@@ -840,10 +840,11 @@ Sonda `tools/probe-policy-deploy.mjs`, rulată din `nexus_deepsek` (citește ses
   acceptat după, 0 și 100000001 refuzate, iar un crash înainte de `COMMIT` lasă tabelul vechi intact.
 - `test/self-funding.test.js` confirmă cifra neplăcută: **la 0,03 JUNGLE marja platformei este zero**
   (2 bani creator + 1 ban gaz), deci pragul de rentabilitate nu există la prețul minim.
-- Suita web completă, în worktree-ul `nexus-main`: **801 teste, 790 pass, 11 fail**. Toate cele 11 sunt în
-  afara zonei atinse: cinci compară text din `public/app.js`, iar fișierul are **CRLF** în acel worktree
-  (9 540 de linii) și **LF** într-un checkout curat (0) — pe checkout curat trec; `wallet-connect` pică și
-  pe `main` curat, înainte de schimbările mele.
+- Suita web completă, într-un checkout **curat** (`nexus-check`, LF) la commitul deployat `30fdb7e`, cu
+  `node_modules` legat: **801 teste, 800 pass, 1 fail** — singurul eșec este `test/wallet-connect.test.js`,
+  care pică și pe `main` curat, înainte de schimbările acestei runde. Cele 11 eșecuri văzute în worktree-ul
+  `nexus-main` sunt artefacte de CRLF (fișierele au 9 540 de linii CRLF acolo, 0 într-un checkout curat) și
+  dispar când fișierele sunt LF.
 
 ### 10.4 Presupuneri, spuse ca presupuneri
 
