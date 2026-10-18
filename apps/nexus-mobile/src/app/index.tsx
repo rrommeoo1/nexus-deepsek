@@ -8,13 +8,14 @@ import { AppNav } from '../components/AppNav';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
 import { NexusLogin } from '../components/NexusLogin';
+import { XPortalSheet } from '../components/XPortalSheet';
 import type { NavSlot } from '../components/NexusMark';
 import type { TickerDoor } from '../components/ProfileTicker';
 import type { InboxBox } from '../lib/messageSearch';
 import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
-import { clearSession, readSession, signInWithEmail, signOut } from '../lib/session';
+import { clearSession, readSession, signInWithEmail, signOut, type LoginResult } from '../lib/session';
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
 import { readUnreadTotal } from '../lib/unread';
@@ -65,6 +66,8 @@ export default function NativeHomeScreen() {
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  /** The xPortal login sheet: the only surface that can turn a wallet signature into a session. */
+  const [xportalOpen, setXportalOpen] = useState(false);
   const [backendVersion, setBackendVersion] = useState('');
   const [slot, setSlot] = useState<NavSlot>('primary');
   const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
@@ -152,6 +155,25 @@ export default function NativeHomeScreen() {
     } catch (cause) {
       clearSession();
       setError(cause instanceof Error ? cause.message : 'Autentificarea a eșuat.');
+    } finally { setBusy(false); }
+  }, [ensureSocialPersona, loadMe]);
+
+  /**
+   * A finished xPortal signature: the token is already a session by the time this runs, so all that
+   * is left is reading the account (`/api/me`) and landing on the Social profile, exactly like the
+   * email form does. A session the server refuses to confirm is not kept.
+   */
+  const onXPortalSession = useCallback(async (result: LoginResult) => {
+    setXportalOpen(false);
+    setBusy(true);
+    try {
+      const current = await loadMe();
+      if (!current) throw new Error(`Sesiunea pentru @${result.user.handle} nu a putut fi confirmată.`);
+      await ensureSocialPersona(current);
+    } catch (cause) {
+      clearSession();
+      setMe(null);
+      setError(cause instanceof Error ? cause.message : 'Conectarea xPortal nu a putut fi confirmată.');
     } finally { setBusy(false); }
   }, [ensureSocialPersona, loadMe]);
 
@@ -261,8 +283,13 @@ export default function NativeHomeScreen() {
           onSignIn={(email, password) => void onSignIn(email, password)}
           onSignUp={() => setError('Crearea contului se face momentan în versiunea web; serverul închide înscrierea directă.')}
           onForgotPassword={() => setError('Recuperarea se face prin xPortal, conform serverului.')}
-          onXPortal={() => setError('Conectarea xPortal nu este încă portată în aplicația Android.')}
+          onXPortal={() => { setError(''); setXportalOpen(true); }}
           onProvider={() => setError('Google și Facebook nu sunt configurate pe server.')}
+        />
+        <XPortalSheet
+          visible={xportalOpen}
+          onClose={() => setXportalOpen(false)}
+          onAuthenticated={(result) => onXPortalSession(result)}
         />
       </SafeAreaView>
     );

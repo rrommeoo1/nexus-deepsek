@@ -6,6 +6,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { newMutationKey } from '../lib/idempotency';
+import { paymentRequired, quoteFromFailure, type ActionQuote } from '../lib/actionPayments';
+import { ActionPaymentSheet } from './ActionPaymentSheet';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
@@ -80,6 +82,13 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const [clock, setClock] = useState(0);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
+  /**
+   * A comment is a paid action here (`lib/action-payments.js`): the write answers `402 PAYMENT_REQUIRED`
+   * with a quote until a devnet transfer for it exists. This holds the comment waiting on that transfer
+   * together with the server's own quote; `paid` remembers that the transfer went out, so closing the
+   * sheet afterwards does not put the words back as a failed row.
+   */
+  const [commentPayment, setCommentPayment] = useState<{ entry: PendingComment; quote: ActionQuote | null; paid: boolean } | null>(null);
   const requestId = useRef(0);
   const engagementTicket = useRef(0);
   const nextTempId = useRef(-1);
@@ -162,9 +171,12 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
     return () => { shown.remove(); hidden.remove(); };
   }, []);
 
-  const submitPending = useCallback((entry: PendingComment) => {
-    setPending((items) => items.map((item) => item.key === entry.key ? { ...item, state: 'sending', error: undefined } : item));
-    createComment(post.id, entry.body, entry.parentId ?? undefined, entry.key)
+  const submitPending = useCallback((entry: PendingComment, paymentIntentId?: string | null) => {
+    // Retrying after a payment re-adds the row that the refusal took away; the draft never leaves the entry.
+    setPending((items) => items.some((item) => item.key === entry.key)
+      ? items.map((item) => item.key === entry.key ? { ...item, state: 'sending', error: undefined } : item)
+      : [...items, { ...entry, state: 'sending', error: undefined }]);
+    createComment(post.id, entry.body, entry.parentId ?? undefined, entry.key, paymentIntentId)
       .then((answer) => {
         setPending((items) => items.filter((item) => item.key !== entry.key));
         setPage((previous) => previous ? {
@@ -176,10 +188,22 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
         setCollapsed({});
         setRevealed((current) => ({ ...current, ...(entry.parentId ? { [entry.parentId]: 1000 } : {}) }));
         scrollToComment.current = answer.comment.id;
+        // The comment is where the reader typed it now; a receipt on top of it would only hide the result.
+        setCommentPayment((current) => current && current.entry.key === entry.key ? null : current);
         onCommentCreated?.(post.id);
       })
       .catch((cause) => {
-        const message = cause instanceof Error ? cause.message : 'Comentariul nu a putut fi trimis.';
+        // A price is not a failure: the server named the amount, so the sheet asks for it and the text stays.
+        if (paymentRequired(cause)) {
+          setPending((items) => items.filter((item) => item.key !== entry.key));
+          setCommentPayment({ entry, quote: quoteFromFailure(cause), paid: false });
+          setError('');
+          return;
+        }
+        const message = paymentIntentId
+          // The transfer is on devnet; the write was refused after it. Never let that read as unpaid.
+          ? `Transferul a plecat, dar comentariul nu a fost publicat. Reîncarcă înainte de a reîncerca.${cause instanceof Error && cause.message ? ` (${cause.message})` : ''}`
+          : cause instanceof Error ? cause.message : 'Comentariul nu a putut fi trimis.';
         setPending((items) => items.map((item) => item.key === entry.key ? { ...item, state: 'failed', error: message } : item));
       });
   }, [onCommentCreated, post.id]);
@@ -473,12 +497,42 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
         </KeyboardAvoidingView>
   );
 
-  if (presentation !== 'sheet') return content;
+  /**
+   * The approval of one paid comment. `onPaid` re-sends the same comment with the ledger row as
+   * `payment_intent_id`, under the same idempotency key the first attempt used, so a double tap can only
+   * ever produce one comment. Declining keeps the words as a retryable row instead of swallowing them.
+   */
+  const paymentGate = (
+    <ActionPaymentSheet
+      visible={Boolean(commentPayment)}
+      postId={post.id}
+      action="comment"
+      quote={commentPayment?.quote ?? null}
+      onPaid={(approval) => {
+        const waiting = commentPayment?.entry;
+        if (!waiting) return;
+        setCommentPayment((current) => current ? { ...current, paid: true } : current);
+        submitPending(waiting, approval.id);
+      }}
+      onClose={() => {
+        const waiting = commentPayment;
+        setCommentPayment(null);
+        if (!waiting || waiting.paid) return;
+        setPending((items) => items.some((item) => item.key === waiting.entry.key) ? items : [
+          ...items,
+          { ...waiting.entry, state: 'failed', error: 'Plata nu a fost aprobată, deci comentariul nu a fost publicat.' },
+        ]);
+      }}
+    />
+  );
+
+  if (presentation !== 'sheet') return <>{content}{paymentGate}</>;
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide comentariile" onPress={onClose} style={styles.dismiss} />
         {content}
+        {paymentGate}
       </View>
     </Modal>
   );

@@ -6,10 +6,15 @@ import {
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ReactionControl } from './ReactionControl';
+import { ActionPaymentSheet } from './ActionPaymentSheet';
 import { RemoteImage, RemoteImageSound, RemoteImageSource, RemoteVideo } from './PostMedia';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { PostDecorations } from './PostDecorations';
 import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
+import {
+  intentIsPaid, paymentRequired, quoteFromFailure,
+  type ActionQuote, type PaymentIntent,
+} from '../lib/actionPayments';
 import {
   audioAttributionFor, compactCount, initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems,
   relativeTime, viewerReaction,
@@ -126,6 +131,8 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [mediaFailed, setMediaFailed] = useState(false);
+  /** The paid appreciation waiting for its confirmation: the quote the server refused the like with. */
+  const [likePayment, setLikePayment] = useState<{ kind: string; quote: ActionQuote | null } | null>(null);
 
   const mine = viewerReaction(summary);
   const plays = active && playing && isVideo;
@@ -134,12 +141,32 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
     setNotice(cause instanceof Error ? cause.message : 'Acțiunea nu a putut fi trimisă.');
   }
 
-  const react = (kind: string) => {
+  /**
+   * An appreciation is a paid action on this network (`lib/action-payments.js`): the server refuses
+   * the reaction with `402 PAYMENT_REQUIRED` and the quote for it, and the like lands only once its
+   * devnet transfer exists. The reader looks at the numbers on `ActionPaymentSheet`, and the second
+   * call carries the ledger row back as `payment_intent_id`.
+   */
+  const react = (kind: string, paymentIntentId?: string | null, approval?: PaymentIntent | null) => {
     const nextActive = mine !== kind;
-    setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
-    setPostReaction(post.id, kind, nextActive)
-      .then((answer) => setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction }))
-      .catch(fail);
+    const optimistic = !nextActive || Boolean(paymentIntentId || approval);
+    if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
+    setPostReaction(post.id, kind, nextActive, { paymentIntentId })
+      .then((answer) => {
+        setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction });
+        setLikePayment(null);
+        setNotice('');
+      })
+      .catch((cause) => {
+        if (paymentRequired(cause)) {
+          setLikePayment({ kind, quote: quoteFromFailure(cause) });
+          // A refusal after a real transfer is a charge: never let it look unpaid.
+          if (approval && intentIsPaid(approval)) fail(new Error('Transferul a plecat, dar aprecierea nu a fost înregistrată. Reîncarcă.'));
+          return;
+        }
+        if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: mine }));
+        fail(cause);
+      });
   };
 
   const save = () => {
@@ -327,6 +354,19 @@ function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, on
           </Pressable>
         </View>
       ) : null}
+
+      {/**
+       * The paid like: `onPaid` re-sends the same reaction with the ledger row as `payment_intent_id`,
+       * so the appreciation lands once the devnet transfer exists — and only then.
+       */}
+      <ActionPaymentSheet
+        visible={Boolean(likePayment)}
+        postId={post.id}
+        action="appreciation"
+        quote={likePayment?.quote ?? null}
+        onPaid={(approval) => { if (likePayment) react(likePayment.kind, approval.id, approval); }}
+        onClose={() => setLikePayment(null)}
+      />
 
     </View>
   );

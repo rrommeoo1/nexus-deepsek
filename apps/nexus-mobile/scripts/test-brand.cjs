@@ -38,6 +38,8 @@ const EXCEPTIONS = [
   { pattern: /^--nexus-/, reason: 'CSS custom property carried over from the web theme' },
   { pattern: /\/api\//, reason: 'API path' },
   { pattern: /nexus-dev/i, reason: 'local development script name' },
+  { pattern: /__nexus(?:Resume|Copy)/, reason: 'bridge globals the WebView page and React Native share (relay resume, copy); never drawn' },
+  { pattern: /^nexus-xportal$/, reason: 'envelope tag on the WebView bridge messages; a protocol value, not a label' },
 ];
 
 function isException(value) {

@@ -8,7 +8,7 @@
 //   2. init WalletConnectV2Provider on the matching chain
 //   3. provider.connect() -> { uri, approval }; render uri as QR + deep-link
 //   4. provider.login({ approval, token: init }) -> xPortal notifies & signs
-//   5. assemble NativeAuth accessToken, POST /auth/mvx/native -> Nexus session
+//   5. assemble NativeAuth accessToken, POST /auth/mvx/native -> Jungle Book session
 
 import { EventEmitter } from "events";
 import QRCode from "qrcode";
@@ -49,6 +49,58 @@ function errMessage(err) {
   const base = err?.message || err?.reason || String(err);
   const cause = err?.cause?.message || err?.cause?.reason;
   return cause ? `${base} (${cause})` : base;
+}
+
+/**
+ * Turns the relay's own refusal into a sentence a reader can act on.
+ *
+ * WalletConnect Cloud answers a project's socket only when the page's origin is listed under
+ * "Allowed origins". `localhost` and `127.0.0.1` are accepted without being listed, so a flow that
+ * works on the developer machine can still be dead on the deployed origin. The relay says it as code
+ * 3000 ("Unauthorized: origin not allowed"), the SDK logs it and then retries forever, which is what
+ * the generic 15 s timeout used to hide. The origin stays in the sentence: it is exactly the value
+ * that has to be added in the dashboard.
+ */
+export function explainRelayRefusal(diagnostics, origin = "") {
+  const text = (Array.isArray(diagnostics) ? diagnostics.join(" ") : String(diagnostics ?? ""))
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!text) return "";
+  const target = String(origin || "").trim() || "originea aplicației";
+  if (/origin not allowed/i.test(text)) {
+    return (
+      `xPortal nu poate porni: WalletConnect refuză originea ${target}. ` +
+      `Adaugă exact ${target} (fără cale și fără bară la final) în WalletConnect Cloud → proiectul Jungle Book → ` +
+      `Settings → Allowed origins, apoi încearcă din nou. Relay-ul acceptă din oficiu doar localhost și 127.0.0.1.`
+    );
+  }
+  if (/project not found|invalid project|project id is not valid/i.test(text)) {
+    return (
+      "xPortal nu poate porni: WalletConnect nu recunoaște Project ID-ul acestui server. " +
+      "Verifică WALLETCONNECT_PROJECT_ID în configurația serverului (trebuie să fie ID-ul din WalletConnect Cloud)."
+    );
+  }
+  return "";
+}
+
+/**
+ * Runs `run` at most once at a time and hands every concurrent caller the same attempt.
+ *
+ * A second `init()` on one page logs "WalletConnect Core is already initialized" and opens a second
+ * relay socket; the two then fight over the same storage and the same pairing. The sheet can be
+ * reopened while an attempt is still running, so the second tap joins the first. A finished attempt
+ * (failed or not) frees the slot for the next try.
+ */
+export function createSingleFlight(run) {
+  let active = null;
+  return (options) => {
+    if (active) return active;
+    const attempt = Promise.resolve().then(() => run(options));
+    active = attempt;
+    const release = () => { if (active === attempt) active = null; };
+    attempt.then(release, release);
+    return attempt;
+  };
 }
 
 async function connectWithDiagnostics(provider, chainId) {
@@ -110,12 +162,48 @@ export function buildAccessToken(address, init, signature) {
 
 export function selectWalletConnectProjectId(value) {
   const projectId = String(value ?? "").trim();
-  if (!/^[a-f0-9]{32}$/i.test(projectId)) throw new Error("WalletConnect Nexus nu este configurat");
+  if (!/^[a-f0-9]{32}$/i.test(projectId)) throw new Error("WalletConnect Jungle Book nu este configurat");
   return projectId;
 }
 
-export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) {
+/**
+ * The dapp metadata xPortal receives in the pairing proposal.
+ *
+ * `redirect` is the one field that tells the wallet where to send the reader after approval. Without
+ * it xPortal stays in front (or goes to its home), and the reader has to find Jungle Book again by
+ * hand. `native` is the app's own scheme (a deep link, `singleTask`, so the running task is reused and
+ * the WebView keeps its WalletConnect session); `universal` is the page that started the login, which
+ * is what a wallet without the scheme can open instead.
+ */
+export function walletConnectMetadata({ origin = "", redirectNative = "", redirectUniversal = "" } = {}) {
+  // The wallet shows the name, the description and the icon exactly as they arrive here, so all
+  // three carry the product name a reader knows. The icon is served by the same origin as the
+  // bridge page (`apps/nexus-web/public/jungle-book-mark-512.png`, 512×512); an empty list left
+  // xPortal with a blank tile and nothing to recognise the request by.
+  const metadata = {
+    name: "Jungle Book",
+    description: "Jungle Book — un portofel, fiecare latură a ta",
+    url: origin || "https://localhost",
+    icons: origin ? [`${origin}/jungle-book-mark-512.png`] : [],
+  };
+  const redirect = {};
+  const nativeScheme = String(redirectNative ?? "").trim();
+  const universalLink = String(redirectUniversal ?? "").trim();
+  if (nativeScheme) redirect.native = nativeScheme;
+  if (universalLink) redirect.universal = universalLink;
+  if (redirect.native || redirect.universal) metadata.redirect = redirect;
+  return metadata;
+}
+
+async function runXPortalLogin({ onStatus, onLog, freshPairing = true, redirect = {} } = {}) {
   const report = (msg) => typeof onStatus === "function" && onStatus(msg);
+  // Diagnostics only: events and counts, never a pairing URI (it carries the symmetric key).
+  const log = (event, fields = {}) => {
+    try { if (typeof onLog === "function") onLog({ event, ...fields }); } catch { /* a log never breaks a login */ }
+  };
+  const startedAt = Date.now();
+  const redirectNative = String(redirect?.native ?? "").trim();
+  const redirectUniversal = String(redirect?.universal ?? "").trim();
   report("obțin challenge NativeAuth…");
   let initData;
   try {
@@ -130,13 +218,25 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
   const { init, chainId, wcProjectId } = initData;
   let selectedProjectId;
   try { selectedProjectId = selectWalletConnectProjectId(wcProjectId); }
-  catch { throw new Error("WalletConnect Nexus nu este configurat pentru această origine"); }
+  catch { throw new Error("WalletConnect Jungle Book nu este configurat pentru această origine"); }
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://localhost";
   const diagnostics = [];
+  let refusalError = "";
+  let rejectRefusal = () => {};
+  // The relay answers a refused origin within a second and then retries forever. Waiting for the
+  // 15 s connect timeout would report "no session" and hide the actual cause.
+  const refusal = new Promise((_, reject) => { rejectRefusal = reject; });
+  refusal.catch(() => {});
   const originalConsole = {};
   for (const level of ["error", "warn", "debug"]) {
     originalConsole[level] = console[level];
     console[level] = (...args) => {
       diagnostics.push(args.map((value) => value?.message || (typeof value === "string" ? value : JSON.stringify(value))).join(" "));
+      if (diagnostics.length > 20) diagnostics.shift();
+      if (!refusalError) {
+        refusalError = explainRelayRefusal(diagnostics.slice(-4), origin);
+        if (refusalError) rejectRefusal(new Error(refusalError));
+      }
       originalConsole[level](...args);
     };
   }
@@ -159,31 +259,35 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
       RELAY_URL,
       projectId,
       {
-        metadata: {
-          name: "Nexus",
-          description: "Nexus — one wallet, every side of you",
-          url: typeof window !== "undefined" ? window.location.origin : "https://localhost",
-          icons: [],
-        },
+        metadata: walletConnectMetadata({
+          origin,
+          redirectNative,
+          redirectUniversal,
+        }),
         logger: "error",
       }
     );
     await withTimeout(candidate.init(), "inițializarea WalletConnect", INIT_TIMEOUT_MS);
+    log("provider-ready", { ms: Date.now() - startedAt, chainId, redirectNative: Boolean(redirectNative) });
     return candidate;
   };
 
   if (freshPairing && typeof window !== "undefined") {
     report("resetez conexiunea xPortal anterioară…");
+    let cleared = 0;
     for (const storageName of ["localStorage", "sessionStorage"]) {
-      try { clearNexusWalletConnectState(window[storageName]); } catch { /* storage can be disabled by the browser */ }
+      try { cleared += clearNexusWalletConnectState(window[storageName]); } catch { /* storage can be disabled by the browser */ }
     }
+    // A pairing left in the WebView belongs to a session xPortal may already have forgotten; the next
+    // attempt always starts from zero so a stale topic cannot shadow the fresh one.
+    log("storage-cleared", { keys: cleared, freshPairing: true });
   }
   report("inițializez conexiunea securizată…");
   let provider;
   let connect;
   try {
     provider = await createProvider(selectedProjectId);
-    report("conectez Nexus la WalletConnect Relay…");
+    report("conectez Jungle Book la WalletConnect Relay…");
     // A session can remain acknowledged in the browser after xPortal has
     // forgotten or removed it. Reusing that one-sided state opens xPortal
     // without a WalletConnect URI and no approval sheet is displayed. Mobile
@@ -192,13 +296,20 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
     const persistedSession = selectReusableSession(provider.walletConnector, chainId, { freshPairing });
     connect = persistedSession
       ? { uri: null, approval: async () => persistedSession, reusedSession: true }
-      : await withTimeout(connectWithDiagnostics(provider, chainId), "crearea pairing-ului WalletConnect", CONNECT_TIMEOUT_MS);
+      : await withTimeout(
+        Promise.race([connectWithDiagnostics(provider, chainId), refusal]),
+        "crearea pairing-ului WalletConnect",
+        CONNECT_TIMEOUT_MS
+      );
   } catch (err) {
     restoreConsole();
+    // A relay refusal is the whole story: it already names the origin to allowlist. Anything else
+    // keeps the generic sentence plus the last SDK lines, which is all a browser can report.
+    const refusalSentence = refusalError || explainRelayRefusal(diagnostics, origin);
+    if (refusalSentence) throw new Error(refusalSentence);
     const detail = diagnostics.filter(Boolean).slice(-3).join(" · ");
-    const origin = typeof window !== "undefined" ? window.location.origin : "originea Nexus";
     throw new Error(
-      "WalletConnect nu a creat sesiunea. Verifică dacă Project ID-ul Nexus este emis de WalletConnect Dashboard și dacă originea " +
+      "WalletConnect nu a creat sesiunea. Verifică dacă Project ID-ul Jungle Book este emis de WalletConnect Dashboard și dacă originea " +
       origin +
       " este permisă în Allowlist. xPortal se poate deschide numai după generarea URI-ului de pairing. " +
       (detail || errMessage(err))
@@ -210,8 +321,27 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
   if (!uri && !reusedSession) {
     throw new Error("WalletConnect nu a returnat un URI de pairing");
   }
+  log("pairing", {
+    topic: pairingTopic(uri),
+    reused: Boolean(reusedSession),
+    ms: Date.now() - startedAt,
+  });
+  return { provider, init, chainId, uri, approval, reusedSession, redirectNative };
+}
 
-  return { provider, init, chainId, uri, approval, reusedSession };
+/**
+ * Starts the pairing, or joins the one already running on this page.
+ *
+ * One page owns one WalletConnect client; a second concurrent start would initialize Core twice and
+ * open a second relay socket against the same storage. See `createSingleFlight`.
+ */
+export const startXPortalLogin = createSingleFlight(runXPortalLogin);
+
+/** `wc:<topic>@2?…` → `<topic>`; the rest of the URI carries the symmetric key and never leaves. */
+export function pairingTopic(uri) {
+  const value = String(uri ?? "");
+  const match = /^wc:([^@?]{8,128})@2/.exec(value);
+  return match ? match[1] : "";
 }
 
 export async function finalizeXPortalLogin(
@@ -260,7 +390,7 @@ export async function finalizeXPortalLogin(
       : buildAccessToken(address, init, signature);
 
   phase('server');
-  report("Semnătură primită ✓ · finalizez loginul în Nexus…");
+  report("Semnătură primită ✓ · finalizez loginul în Jungle Book…");
   // Keep one request identity for this pairing, including a lost HTTP response.
   // getRandomValues also works on local HTTP, unlike crypto.randomUUID/subtle.
   if (!loginState.mutationKey) {
@@ -282,7 +412,7 @@ export async function finalizeXPortalLogin(
     data = await res.json();
   } catch (err) {
     phase('failed');
-    if (controller.signal.aborted) throw new Error('finalizarea sesiunii Nexus a expirat');
+    if (controller.signal.aborted) throw new Error('finalizarea sesiunii Jungle Book a expirat');
     throw new Error("nu am putut apela " + endpoint + ": " + errMessage(err));
   } finally { clearTimeout(timer); if (loginState.sessionAbort === controller) delete loginState.sessionAbort; }
   if (!data?.ok) {
@@ -305,15 +435,37 @@ export function xPortalUniversalLink(uri) {
     : "https://xportal.app.link/";
 }
 
-export async function resumeXPortalTransport({ provider } = {}) {
+/**
+ * Brings the relay websocket back after the phone left the page.
+ *
+ * Android suspends a WebView's socket while xPortal is in front, and the WalletConnect relayer can
+ * still report `connected` while it is dead. The page therefore restarts the transport and waits for
+ * the relayer to answer, so a signature that arrived in the background is replayed into the pending
+ * `login()` promise instead of being lost until the next attempt.
+ *
+ * Returns a plain status object; it never throws, because a failed resume is a diagnostic, not a
+ * reason to abandon an approval that may still arrive.
+ */
+export async function resumeXPortalTransport({ provider, waitMs = 4000 } = {}) {
   const relayer = provider?.walletConnector?.core?.relayer;
-  if (!relayer) return false;
-  // Mobile browsers can keep `connected=true` while their websocket has been
-  // suspended in the background. A forced restart also replays messages that
-  // arrived while xPortal was in the foreground (including the NativeAuth
-  // signature response).
-  if (typeof relayer.restartTransport === "function") {
-    await relayer.restartTransport();
+  if (!relayer) return { supported: false, connected: false, restarted: false };
+  const before = Boolean(relayer.connected);
+  let restarted = false;
+  let error = "";
+  try {
+    if (typeof relayer.restartTransport === "function") {
+      await relayer.restartTransport();
+      restarted = true;
+    } else if (!before && typeof relayer.transportOpen === "function") {
+      await relayer.transportOpen();
+      restarted = true;
+    }
+  } catch (cause) {
+    error = errMessage(cause);
   }
-  return Boolean(relayer.connected);
+  const deadline = Date.now() + Math.max(0, Number(waitMs) || 0);
+  while (!relayer.connected && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return { supported: true, connected: Boolean(relayer.connected), restarted, wasConnected: before, error };
 }

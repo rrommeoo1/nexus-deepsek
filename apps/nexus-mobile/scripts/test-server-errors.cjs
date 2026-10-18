@@ -47,6 +47,18 @@ test('o eroare de rețea spune că serverul nu răspunde, iar restul rămâne al
   assert.equal(errors.serverErrorWords(undefined, 'fallback'), 'fallback');
 });
 
+test('un refuz despre bani are propoziția lui, nu „not found"-ul transportului', () => {
+  assert.match(errors.serverErrorWords({ status: 402, code: 'PAYMENT_REQUIRED' }, 'x'), /se plătește întâi/);
+  assert.match(errors.serverErrorWords({ status: 409, code: 'PAYMENT_ALREADY_USED' }, 'x'), /deja folosită/);
+  assert.match(errors.serverErrorWords({ status: 402, code: 'CHAIN_INSUFFICIENT_FUNDS' }, 'x'), /EGLD/);
+  assert.match(errors.serverErrorWords({ status: 402, code: 'CHAIN_TRANSACTION_FAILED' }, 'x'), /eșuat pe devnet/);
+  assert.match(errors.serverErrorWords({ status: 402 }, 'serverul a tăcut'), /serverul a tăcut/,
+    'un cod necunoscut păstrează vorba serverului');
+  assert.doesNotMatch(errors.serverErrorWords({ status: 402, code: 'PAYMENT_REQUIRED' }, 'x'), /not found/i);
+  assert.match(errors.serverErrorWords({ status: 401, code: 'PAYMENT_REQUIRED' }, 'x'), /Sesiunea/,
+    'o sesiune moartă rămâne o sesiune moartă, chiar și la o plată');
+});
+
 test('ecranul de monetizare nu tipărește mesajul brut și are buton de reîncercare', () => {
   const source = readFileSync(resolve(ROOT, 'src/screens/MonetizationScreen.tsx'), 'utf8');
   assert.match(source, /serverErrorWords\(/);

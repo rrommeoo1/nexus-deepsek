@@ -189,6 +189,42 @@ export async function signInWithEmail(email: string, password: string): Promise<
   return { user: payload.user, emailVerified: Boolean(payload.email_verified) };
 }
 
+/**
+ * Signs in with an xPortal NativeAuth token, which the WebView bridge produced
+ * (`lib/xportalLogin.ts`): the wallet signed the server's own challenge, so the token is the proof.
+ *
+ * The server validates the signature, the chain, the origin and the expiry (`validateNativeAuthToken`
+ * in `apps/nexus-web/lib/api.js`), then answers with a session cookie — the same answer the email
+ * form gets, so the session is kept the same way and every later request carries the same bearer
+ * token. The phone never decides who the wallet is; it only delivers what xPortal signed.
+ */
+export async function signInWithXPortalToken(token: string): Promise<LoginResult> {
+  const response = await fetch(`${API_ORIGIN}/auth/mvx/native`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: API_ORIGIN,
+      // One key per signature: a retried delivery of the same token replays the first answer instead
+      // of opening a second session for it.
+      'Idempotency-Key': newMutationKey('xportal-login'),
+    },
+    body: JSON.stringify({ token }),
+  });
+  const body: unknown = await response.json().catch(() => null);
+  if (!response.ok || !body || typeof body !== 'object' || (body as { ok?: boolean }).ok !== true) {
+    const payload = body && typeof body === 'object' ? body as { error?: string } : null;
+    throw new Error(payload?.error || `Serverul a răspuns cu ${response.status}.`);
+  }
+  const cookies = readSetCookie(response.headers);
+  const sessionToken = cookieValue(cookies, 'nexus_session');
+  const deviceId = cookieValue(cookies, 'nexus_device_id');
+  writeSession({ token: sessionToken, deviceId, cookieSession: !sessionToken });
+  const payload = body as LoginBody & { address?: string };
+  return { user: payload.user, emailVerified: Boolean(payload.email_verified) };
+}
+
 export async function signOut(): Promise<void> {
   const headers = authHeaders();
   clearSession();

@@ -1,8 +1,182 @@
 # HANDOFF — Jungle Book nativ (fost Nexus) (branch `codex/camera-draft-stability`)
 
-Ultima actualizare: **18 octombrie 2026** (rândul propriu are din nou două intrări — `Editează profilul` și
-`⋯` — iar meniul acelui `⋯` începe cu porțile numite de proprietar, în ordinea numită).
+Ultima actualizare: **18 octombrie 2026** (foaia xPortal are acum o singură mașină de stări: nu mai poate spune
+„se așteaptă” după o încercare moartă și nu mai poate merge înapoi când sosește un eveniment târziu din pagină).
 Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să repete greșeala care a blocat task-urile anterioare.
+
+## 0.13 Foaia xPortal: o singură mașină de stări (18 octombrie 2026)
+
+**Simptomul raportat:** după o încercare de conectare care se terminase (refuz, expirare, origine refuzată),
+foaia putea rămâne pe „se așteaptă aprobarea în xPortal”, iar un eveniment târziu venit din pagina punte
+(`preparing`, `pairing`) readucea foaia la un pas anterior. Două locuri scriau aceeași stare (`phase` +
+`seconds`), deci ultimul care scria câștiga.
+
+**Ce s-a schimbat:**
+
+| Fișier | Ce face acum |
+|---|---|
+| `apps/nexus-mobile/src/lib/xportalState.ts` (nou) | `xPortalReduce(state, event)` — singurul loc în care se schimbă starea. Stări: `idle`, `preparing`, `pairing`, `signature`, `token`, `failed`, `expired`; plus `seconds`, `reopened`, `returns`. Gărzi: `token` și `failed` sunt finale; `error` nu poate anula un `token`; un `preparing` târziu nu întoarce foaia; `active` după `expired` deschide o fereastră nouă de pairing; `tick` scade secundele doar în `preparing`/`pairing`/`signature` și trece în `expired` la 0. Ajutoare: `xPortalIsWaiting` (doar `pairing`/`signature`), `xPortalIsFinished` (`token`/`failed`), `xPortalWaitLabel`, `XPORTAL_WAIT_SECONDS = 120`. |
+| `apps/nexus-mobile/src/components/XPortalSheet.tsx` | `useReducer(xPortalReduce)` în locul lui `phase`/`seconds`/`WAIT_SECONDS`; effect-urile și evenimentele trimit `open`, `close`, `phase`, `pairing`, `token`, `error`, `tick`, `reopen`, `active`. Numărătoarea de o secundă rulează **doar** cât `xPortalIsWaiting`. „Deschide din nou xPortal” trimite `reopen` (linkurile rămân vizibile și după expirare), iar listener-ul de `AppState` trimite `active` la revenire. |
+| `apps/nexus-mobile/scripts/test-xportal-state.cjs` (nou) | 12 teste pe reducer: expirare la 120 s, pași care nu merg înapoi, finalitatea `token`/`failed`, `reopen`/`active`/`returns`, textul etichetei. Intrat în `npm test`. |
+| `apps/nexus-mobile/scripts/test-xportal-login.cjs` | Verifică acum absența `WAIT_SECONDS = 120` din foaie și prezența `useReducer`, `xPortalIsWaiting`, `dispatch({ type: 'tick' })`, `waitLabel` (20 de teste, de la 17). |
+| `apps/nexus-web/src/wc-client.js` + `public/wc-bundle.js` | Textele care ajung pe ecran în foaie nu mai numesc alt produs: „WalletConnect Jungle Book nu este configurat”, „Project ID-ul Jungle Book…”, „conectez Jungle Book la WalletConnect Relay…”, „finalizarea sesiunii Jungle Book a expirat”. Bundle-ul reconstruit cu `node scripts/build-wc.mjs`. |
+| `apps/nexus-web/test/wallet-connect.test.js` | Așteaptă noile texte (`projectId` în loc de `nexusId` în testul de `finalize`). |
+
+**Verificat pe 18 octombrie 2026 (Windows, Node 24.19):**
+
+| Comandă | Rezultat |
+|---|---|
+| `apps/nexus-mobile` → `node scripts/test-xportal-state.cjs` | 12/12 |
+| `apps/nexus-mobile` → `node scripts/test-xportal-login.cjs` | 20/20 |
+| `apps/nexus-mobile` → `node scripts/test-brand.cjs` | ok (niciun „Nexus” vizibil în `src/`) |
+| `apps/nexus-mobile` → `npx tsc --noEmit` | exit 0, fără erori |
+| `apps/nexus-web` → `npm test` | **812/812** |
+| `apps/nexus-web` → `node scripts/build-wc.mjs` | `public/wc-bundle.js` 1,3 mb, „built successfully” |
+
+**Rămas de făcut aici:**
+
+1. **Originea locală nu e în WalletConnect Cloud.** Pentru `http://192.168.1.153:5000` relay-ul răspunde
+   „Origin not allowed”; foaia afișează propoziția cu originea exactă de adăugat. `API_ORIGIN` are ca
+   implicit Railway (`https://nexus-deepsek-production.up.railway.app`), deci originea locală apare doar când
+   Metro e pornit cu `EXPO_PUBLIC_NEXUS_API_URL=http://192.168.1.153:5000`. Două căi: (a) se pornește Metro
+   **fără** acea variabilă (telefonul vorbește cu Railway, a cărei origine trebuie însă confirmată în
+   dashboard), sau (b) se adaugă `http://192.168.1.153:5000` la Allowed Origins (proiectul `16df…fc98`).
+   Vezi §0.12 „Cum comuți între serverul local și Railway”.
+2. **Testul pe telefon nu a fost făcut în această rundă** (fără dispozitiv în sesiune). Secvența: tap pe
+   „Conectează”, raport „ACUM: amprenta”, așteptare ≤ 60 s, apoi logcat filtrat + `logEvent` din punte.
+3. **Client WC singleton + curățarea pairing-urilor moarte + starea încercării persistată** — neînceput
+   (vezi §2 „Ce lucrez acum”).
+
+## 0.12 xPortal publicat pe Railway + comutarea local ↔ Railway (18 octombrie 2026)
+
+**Aprobat de proprietar:** „ai acordul meu să faci push pe `main` pentru modificări de backend aditive, cu
+verificare și revert”. Push făcut dintr-un worktree curat pe `origin/main`
+(`C:\Users\Romeo\projects\nexus_deepsek-deploy-xportal`), commit **`4f44697`** pe `main`, fără modificări
+adiacente din arborele de lucru.
+
+| Fișier | De ce a intrat în deploy |
+| --- | --- |
+| `apps/nexus-web/public/xportal-bridge.html`, `xportal-bridge.js` | pagina punte nu era versionată deloc (404 pe producție) |
+| `apps/nexus-web/public/wc-bundle.js` | reconstruit din `src/wc-client.js`; are `walletConnectMetadata`, `pairingTopic`, `wasConnected`; **niciun export eliminat** față de bundle-ul anterior (11 → 13) |
+| `apps/nexus-web/src/wc-client.js` | sursa bundle-ului, ca bundle-ul publicat să fie reproductibil din sursa publicată |
+| `apps/nexus-web/lib/env.js` | `PUBLIC_WALLETCONNECT_PROJECT_ID` + valori implicite **doar** în `NEXUS_DEPLOYMENT_MODE=preview` și **doar** pentru originea exactă din `NEXUS_ORIGIN`; variabilele de mediu au prioritate; `walletConnectAttestation` întoarce acum și `projectId` rezolvat |
+| `apps/nexus-web/lib/api.js` | `/auth/mvx/init` întoarce `wcProjectId: wcAttestation.projectId` (înainte citea variabila brută, deci ar fi răspuns `null` cu valorile implicite) |
+| `apps/nexus-web/test/core.test.js`, `test/wallet-connect.test.js` | testul noii reguli de attestation (11 aserțiuni) și testele clientului |
+
+**De ce implicitul e acceptabil:** Project ID-ul WalletConnect nu este un secret — `/auth/mvx/init` îl trimite
+oricui deschide pagina (`wcProjectId`). Implicitul nu poate attesta un host străin (compară exact cu
+`NEXUS_ORIGIN`), nu se aplică în afara modului `preview`, iar `NEXUS_WC_*` setat explicit câștigă întotdeauna.
+Gate-ul de producție reală (`NEXUS_DEPLOYMENT_MODE` absent) a rămas neschimbat: fără variabile, serverul refuză
+să pornească.
+
+**Verificat pe `https://nexus-deepsek-production.up.railway.app`, după deploy:**
+
+| Verificare | Rezultat |
+| --- | --- |
+| `GET /health` | 200 `{"ok":true,"status":"ready"}` |
+| `GET /xportal-bridge.html` | **200**, are `id="qr"` și `<script src="/xportal-bridge.js">` |
+| `GET /xportal-bridge.js` | **200**, are `__nexusResume` și `__nexusCopy` |
+| `GET /wc-bundle.js` | **200**, 1 345 879 B, are `walletConnectMetadata` / `wasConnected` |
+| `GET /auth/mvx/init` cu `Origin` corect | **200**, `origin` = originea Railway, `wcProjectId` = `16df…fc98` |
+| `GET /api/profiles/test` cu sesiune din `docs/.test-sessions.local` | **200** (câmpuri `ok,profile,posts,reposts,shared_replies,stories`) |
+| `GET /` și `GET /app.js` | 200 / 200 (web-ul servește în continuare) |
+| `POST /auth/email/login` cu parolă greșită | **401** `invalid credentials` (ruta de parolă funcționează) |
+| `POST /auth/email/login` cu conturile de test documentate | **403** „verifică adresa de email înainte de autentificare” — toate conturile din fișier sunt neverificate, deci **loginul cu parolă nu a putut fi dus până la capăt** cu ele; codul acestei rute nu e atins de deploy |
+
+**Neconfirmat de aici:** lista de domenii permise din WalletConnect Cloud (dashboard-ul nu e citibil din repo).
+Dacă pagina punte raportează `Origin … not in allowlist`, singurul pas este adăugarea originii
+`https://nexus-deepsek-production.up.railway.app` în WalletConnect Cloud → proiectul `16df…fc98` → Project
+Settings → Allowlist (potrivire exactă, cu schemă). Serverul nu are nevoie de altceva: `/auth/mvx/init` e 200.
+
+### Cum comuți între serverul local și Railway (telefon)
+
+Valoarea e **injectată în bundle la build**, deci schimbarea originii cere repornirea Metro cu `--clear` și
+reîncărcarea aplicației. Nu se folosește `adb reverse` pentru API.
+
+```powershell
+# 1) serverul local (dacă nu rulează deja) — ascultă pe :5000, din apps/nexus-web/.env
+cd C:\Users\Romeo\projects\nexus_deepsek\apps\nexus-web
+node server.js
+
+# 2) Metro cu originea locală
+cd C:\Users\Romeo\projects\nexus_deepsek\apps\nexus-mobile
+$env:EXPO_PUBLIC_NEXUS_API_URL='http://192.168.1.153:5000'
+node node_modules\expo\bin\cli start --dev-client --port 8081 --clear
+
+# 3) reîncărcare completă pe telefon (fără să închizi manual aplicația)
+adb -s 192.168.1.184:36819 shell am force-stop app.nexus.mobile.dev
+adb -s 192.168.1.184:36819 shell am start -a android.intent.action.VIEW -d "nexusdev://expo-development-client/?url=http%3A%2F%2F192.168.1.153%3A8081"
+```
+
+Pentru **Railway** (implicitul din `src/lib/apiOrigin.ts`): aceleași comenzi fără linia cu
+`EXPO_PUBLIC_NEXUS_API_URL` (sau `Remove-Item Env:\EXPO_PUBLIC_NEXUS_API_URL` înainte de `expo start`), tot cu
+`--clear`. Originea aleasă se citește pe ecran: subsolul ecranului de conectare și sertarul scriu
+`API: local` sau `API: Railway` (`src/lib/apiOrigin.ts`). Dovadă fără să te uiți pe telefon:
+`Get-NetTCPConnection -LocalPort 5000 | Where-Object RemoteAddress -eq '192.168.1.184'` arată conexiunile
+telefonului către serverul local.
+
+**Unelte:** `adb` lipsea de pe mașină; platform-tools au fost instalate în
+`%LOCALAPPDATA%\Android\Sdk\platform-tools` (locul în care `scripts/nexus-env.ps1` îl caută), iar telefonul e
+conectat prin ADB wireless la `192.168.1.184:36819`. `uiautomator dump` poate refuza cu
+„could not get idle state” cât timp feed-ul video rulează; în cazul acela verificarea se face din
+`adb logcat --pid=<pid>` și din jurnalul Metro (`builds/metro-local.log`).
+
+
+
+## 0.11 Ce lipsește pe serverul de producție ca loginul xPortal să poată porni (18 octombrie 2026)
+
+Verificat direct pe `https://nexus-deepsek-production.up.railway.app` — adresa pe care o folosește aplicația
+instalată acum (bundle-ul Metro servit telefonului conține exact acest `API_ORIGIN`):
+
+| Verificare | Rezultat | Ce înseamnă |
+| --- | --- | --- |
+| `GET /xportal-bridge.html` | **404** | pagina punte nu este în imagine: `public/xportal-bridge.html` și `xportal-bridge.js` erau neversionate, iar `Dockerfile` copiază doar `apps/nexus-web` din git |
+| `GET /xportal-bridge.js` | **404** | la fel — fără pagină, WebView-ul din foaie nu are ce încărca |
+| `GET /wc-bundle.js` | 200, 1 340 259 B (= `origin/main`) | bundle-ul publicat nu are `walletConnectMetadata` / `wasConnected`; cel construit local are 1 345 912 B și le are |
+| `GET /auth/mvx/init` cu `Origin: https://nexus-deepsek-production.up.railway.app` | **503** `WALLETCONNECT_PROJECT_NOT_ATTESTED` | Railway rulează `NEXUS_DEPLOYMENT_MODE=preview` (`docs/railway-persistent-deployment.md`) și nu are cele trei variabile cerute de `lib/env.js` |
+
+Consecința pe telefon: butonul xPortal se oprește la „Serverul a refuzat pagina de conectare (404).” xPortal nu
+se deschide deloc, deci nici aprobarea cu amprenta nu are unde să apară.
+
+**Ce s-a făcut** (detalii și dovezi în §0.12): cele trei fișiere au fost publicate pe `main`, iar cele trei
+variabile nu mai sunt necesare — modul `preview` își attestă singur originea din `NEXUS_ORIGIN`. `GET
+/auth/mvx/init` răspunde acum **200** cu `wcProjectId` pe producție.
+
+Alternativa verificată, fără deploy: serverul local (`:5000`) este complet pregătit pentru flux
+(`/xportal-bridge.html` 200, `/auth/mvx/init` 200 cu `wcProjectId`), deci telefonul poate testa cu
+`EXPO_PUBLIC_NEXUS_API_URL=http://192.168.1.153:5000` — origine deja trecută în `NEXUS_WC_ATTESTED_ORIGINS`
+și `NEXUS_ACCEPTED_ORIGINS` din `apps/nexus-web/.env`, iar build-ul debug permite cleartext.
+
+
+## 0.10 xPortal întoarce cititorul în aplicație după aprobare (18 octombrie 2026)
+
+Regula proprietarului: după ce aprobă în xPortal, cititorul se întoarce **singur** în Jungle Book, cu
+conectarea gata — nu caută aplicația de mână, nu reia pairing-ul. Cauza găsită: metadata WalletConnect nu
+avea `redirect.native`, deci xPortal nu avea unde să întoarcă; iar socketul relay al WebView-ului adoarme cât
+timp xPortal e în față, deci semnătura sosită în fundal nu ajungea în `login()`.
+
+| Unde | Fișier | Ce s-a schimbat |
+| --- | --- | --- |
+| client web | `apps/nexus-web/src/wc-client.js` | `walletConnectMetadata({origin, redirectNative, redirectUniversal})` scrie `metadata.redirect` (scheme trimmate, câmpul lipsește când nu e dat); `startXPortalLogin({redirect})` îl pasează providerului; `resumeXPortalTransport` întoarce `{supported, connected, restarted, wasConnected, error}`, așteaptă până la 4 s și nu aruncă niciodată |
+| pagina punte | `apps/nexus-web/public/xportal-bridge.js` | citește `?redirect=` (doar schemă goală, `/^[a-z][a-z0-9+.-]{1,30}:\/\/$/`) și `?universal=` (doar http(s)); `window.__nexusResume` repornește transportul și postează `relay` + `log relay-resume`; `window.__nexusCopy` copiază linkul (clipboard, cu `execCommand` ca rezervă); faze `preparing`/`pairing`/`signature`/`token`/`failed`; QR prin `renderWcQr`; `visibilitychange` cere și ea reluarea; timeout 180 s pe login |
+| pagina punte | `apps/nexus-web/public/xportal-bridge.html` | container `#qr` (132 px, fundal deschis) pentru codul QR |
+| telefon | `apps/nexus-mobile/src/lib/xportalLogin.ts` | `xPortalRedirectScheme` (`nexusdev` → `nexusdev://`, orice altceva → gol), `xPortalBridgeUrl(origin, {native, universal})`, tipuri `phase`/`relay`/`copied`/`log`, `diagnosticFields` (aruncă `wc:…`, cheile și valorile cu `symKey`, taie la 64), `xPortalPairingTopic`, `logXPortal` |
+| telefon | `apps/nexus-mobile/src/components/XPortalSheet.tsx` | redirect derivat din `Constants.expoConfig?.scheme`; numărătoare `WAIT_SECONDS = 120` (doar informează, pagina așteaptă mai departe); `AppState === 'active'` injectează `__nexusResume`; linkuri „Deschide xPortal din nou" și „Copiază linkul de conectare"; rânduri proprii pentru `relay` și `notice` |
+| teste | `apps/nexus-web/test/wallet-connect.test.js` | 17 teste: metadata cu/fără redirect, reluarea care raportează eșecul, pagina care pasează `redirect` și postează `relay` |
+| teste | `apps/nexus-mobile/scripts/test-xportal-login.cjs` | 17 teste: schema de redirect, parametrii din URL, fazele, `relay`/`copied` citite strict, logul fără symKey, topicul, foaia care cere reluarea |
+| brand | `apps/nexus-mobile/scripts/test-brand.cjs` | excepția acoperă acum `__nexusResume` și `__nexusCopy` (globale de punte, nedesenate) |
+
+**Verificat acum:** `node node_modules/typescript/bin/tsc --noEmit` → **0 erori**; `cmd /c npm test` (mobil) →
+**exit 0**, `test-xportal-login` **17/17**; `node --test test/wallet-connect.test.js
+test/native-auth-session.test.js test/p0-deployment-contract.test.js test/p3-localization-rtl.test.js
+test/p0-offline-private-cache.test.js` → **31/31**; `node scripts/build-wc.mjs` → `public/wc-bundle.js`
+(1.3 mb) conține `metadata.redirect`, `resumeXPortalTransport`, `wasConnected`.
+
+**Rămas de făcut aici:** testul pe telefon (A: aprobare → revenire automată; B: refuz în xPortal → propoziția
+„Ai anulat…"; C: revenire fără aprobare → „Se așteaptă confirmarea… (Ns)"), plus confirmarea schemei de
+producție (acum `nexusdev`, din `app.json`). `AndroidManifest.xml` nu are `<queries>` pentru `xportal` — nu
+blochează, fiindcă nu folosim `canOpenURL`. O conectare pornită înainte de un cold start nu se reia (topicul
+nu e persistat); `singleTask` face cazul rar.
 
 ## 0.9 Rândul propriu `[Editează profilul] [⋯]` și meniul reordonat (18 octombrie 2026)
 

@@ -10,6 +10,25 @@
  */
 export const MONETIZATION_NOT_DEPLOYED = 'Monetizarea nu este încă activată pe server.';
 
+/**
+ * A refusal about money is not a broken screen. These are the codes `lib/action-payments.js` sends with
+ * its `paymentError`, worded the same way the payment sheet words them (`actionPayments.ts`
+ * `paymentSentence`) so a reader never learns two vocabularies for one transfer. Kept as literals here
+ * rather than imported: this module stays importable by the test runner on its own.
+ */
+const MONEY_WORDS: Record<string, string> = {
+  PAYMENT_REQUIRED: 'Acțiunea se plătește întâi, apoi se scrie.',
+  PAYMENT_ALREADY_USED: 'Plata a fost deja folosită pentru o acțiune. Aprobă o plată nouă.',
+  PAYMENT_FAILED: 'Transferul nu a trecut pe devnet; nu s-a scris nimic.',
+  PAYMENT_NOT_FOUND: 'Plata nu mai există pe acest cont. Începe din nou.',
+  SELF_PAYMENT: 'Postarea îți aparține, deci nu plătești nimic.',
+  ACTION_FREE: 'Acțiunea nu se plătește pe acest profil.',
+  IDEMPOTENCY_CONFLICT: 'Cheia plății a fost folosită pentru altă acțiune. Reîncarcă și încearcă din nou.',
+  CHAIN_INSUFFICIENT_FUNDS: 'Portofelul devnet nu are destul EGLD pentru această plată.',
+  CHAIN_BROADCAST_REFUSED: 'Devnet a refuzat tranzacția. Încearcă din nou.',
+  CHAIN_TRANSACTION_FAILED: 'Tranzacția a eșuat pe devnet; nu s-a scris nimic.',
+};
+
 export type ServerFailure = {
   status?: number | null;
   code?: string | null;
@@ -60,5 +79,8 @@ export function serverErrorWords(
   if (status === 401 || status === 403) {
     return 'Sesiunea nu mai este valabilă. Intră din nou în cont.';
   }
+  // Money comes after the session check: a 402 with a dead session is still a dead session.
+  const money = Object.prototype.hasOwnProperty.call(MONEY_WORDS, code) ? MONEY_WORDS[code] : '';
+  if (money) return money;
   return fallback;
 }

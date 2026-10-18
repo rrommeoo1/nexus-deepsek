@@ -15,6 +15,14 @@ pentru `scripts/test-brand.cjs`, care pică dacă în `src/` reapare un text viz
 Nu s-a atins **web-ul** (`apps/nexus-web`) și nici **backend-ul**: rebrand-ul este al aplicației native.
 Datele de test de pe server (de exemplu numele „Test Nexus”) rămân exact cum sunt.
 
+**Singura excepție (18 octombrie 2026):** textele de eroare și de progres din
+`apps/nexus-web/src/wc-client.js` sunt afișate **pe ecranul telefonului**, în foaia xPortal, deci intră la
+categoria „vizibil”, nu la „web”. S-au schimbat doar cele patru propoziții care ajung acolo
+(„WalletConnect Jungle Book nu este configurat”, „Project ID-ul Jungle Book…”, „conectez Jungle Book la
+WalletConnect Relay…”, „finalizarea sesiunii Jungle Book a expirat”); restul web-ului rămâne „Nexus”, după
+decizia de mai sus. `public/wc-bundle.js` se reconstruiește din sursă (`node scripts/build-wc.mjs`), iar
+`test/wallet-connect.test.js` așteaptă noile texte.
+
 Documentele istorice de produs din `docs/00…24` descriu specificația scrisă sub numele vechi și **nu** au
 fost rescrise: sunt arhivă, nu interfață. S-au schimbat doar titlurile documentelor vii (README, HANDOFF,
 MIGRATION, DEV-WORKFLOW) și s-a adăugat acest fișier.

@@ -12,9 +12,19 @@ import type { CommentPage, CommentView, ReactionSummary } from './socialTypes';
  *   GET  /api/posts/:id/comments  ?sort&cursor       lib/api.js:3917
  *   POST /api/posts/:id/comments  { body, parent_id }lib/api.js:3948
  *
+ * A like and a comment are paid actions on this network (`lib/action-payments.js`), so the two write
+ * routes above accept a `payment_intent_id` and answer `402 PAYMENT_REQUIRED` with the quote until one
+ * arrives. The three calls that produce it are here too:
+ *
+ *   GET  /api/posts/:id/action-quote  ?action        lib/api.js:2797
+ *   POST /api/posts/:id/action-payment { action }    lib/api.js:2809
+ *   GET  /api/action-payments/:intent                lib/api.js:2830  (re-read, never re-signed)
+ *
  * `nexusApi` already mints the `Idempotency-Key` the server's replay boundary demands, so these
  * helpers only describe the payload and the honest shape of the answer.
  */
+import type { PaidAction } from './actionPayments';
+
 export type ReactionAnswer = ReactionSummary & {
   ok: true;
   post_id: number;
@@ -36,10 +46,16 @@ export type CommentEngagementPage = {
   total_visible: number; next_cursor: string | null;
 };
 
-export function setPostReaction(postId: number, kind: string, active: boolean): Promise<ReactionAnswer> {
+export function setPostReaction(
+  postId: number,
+  kind: string,
+  active: boolean,
+  options: { paymentIntentId?: string | null } = {},
+): Promise<ReactionAnswer> {
+  const payment = options.paymentIntentId ? { payment_intent_id: options.paymentIntentId } : {};
   return nexusApi<ReactionAnswer>(`/api/posts/${postId}/reaction`, {
     method: 'POST',
-    body: JSON.stringify({ kind, active }),
+    body: JSON.stringify({ kind, active, ...payment }),
   });
 }
 
@@ -73,12 +89,48 @@ export function fetchComments(postId: number, options: { sort?: 'relevant' | 'ne
   return nexusApi<CommentPage>(`/api/posts/${postId}/comments?${params.toString()}`);
 }
 
-export function createComment(postId: number, body: string, parentId?: number, idempotencyKey?: string): Promise<CommentCreated> {
+export function createComment(
+  postId: number,
+  body: string,
+  parentId?: number,
+  idempotencyKey?: string,
+  paymentIntentId?: string | null,
+): Promise<CommentCreated> {
+  const payload = {
+    body,
+    ...(parentId ? { parent_id: parentId } : {}),
+    ...(paymentIntentId ? { payment_intent_id: paymentIntentId } : {}),
+  };
   return nexusApi<CommentCreated>(`/api/posts/${postId}/comments`, {
     method: 'POST',
     ...(idempotencyKey ? { headers: { 'Idempotency-Key': idempotencyKey } } : {}),
-    body: JSON.stringify(parentId ? { body, parent_id: parentId } : { body }),
+    body: JSON.stringify(payload),
   });
+}
+
+/**
+ * The paid action itself, in three calls: the quote names the number, the payment signs and broadcasts
+ * the devnet transfer and answers with the ledger row, and the re-read returns a transfer that already
+ * exists without signing it again. Shapes are normalised in `lib/actionPayments.ts`.
+ */
+export type ActionPaymentAnswer = { ok: true; post_id: number; action: string; payment: unknown; real_funds: boolean };
+export type ActionPaymentRead = { ok: true; payment: unknown; real_funds: boolean };
+
+export function fetchActionQuote(postId: number, action: PaidAction): Promise<unknown> {
+  return nexusApi<unknown>(`/api/posts/${postId}/action-quote?action=${encodeURIComponent(action)}`);
+}
+
+/** `idempotencyKey` is the replay boundary of the payment: the same key returns the same transfer. */
+export function payForAction(postId: number, action: PaidAction, idempotencyKey: string): Promise<ActionPaymentAnswer> {
+  return nexusApi<ActionPaymentAnswer>(`/api/posts/${postId}/action-payment`, {
+    method: 'POST',
+    headers: { 'Idempotency-Key': idempotencyKey },
+    body: JSON.stringify({ action }),
+  });
+}
+
+export function fetchActionPayment(intentId: string): Promise<ActionPaymentRead> {
+  return nexusApi<ActionPaymentRead>(`/api/action-payments/${intentId}`);
 }
 
 /** The server only permits the original comment author/persona to edit and inspect versions. */

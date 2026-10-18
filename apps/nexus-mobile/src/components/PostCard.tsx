@@ -3,6 +3,10 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { openCommentsPage } from '../lib/commentNavigation';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
+import {
+  intentIsPaid, paymentRequired, quoteFromFailure, type ActionQuote, type PaymentIntent,
+} from '../lib/actionPayments';
+import { ActionPaymentSheet } from './ActionPaymentSheet';
 import { RelationButton } from './RelationButton';
 import { ReactionControl } from './ReactionControl';
 import { MediaViewer } from './MediaViewer';
@@ -44,6 +48,12 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
   const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
   const [confirmedCommentCount, setConfirmedCommentCount] = useState(0);
   const [notice, setNotice] = useState('');
+  /**
+   * The paid like. Reacting is a paid action on this network, so the card does not assume success: it
+   * sends the write, and if the server answers `402 PAYMENT_REQUIRED` it holds the server's own quote
+   * here and lets `ActionPaymentSheet` carry the confirmation, the signed devnet transfer and the retry.
+   */
+  const [likePayment, setLikePayment] = useState<{ kind: string; quote: ActionQuote | null } | null>(null);
   const mine = viewerReaction(summary);
   const commentCount = Math.max(Number(post.comment_count ?? 0), confirmedCommentCount);
   const commentCreated = (postId: number) => {
@@ -54,12 +64,29 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
     setNotice(cause instanceof Error ? cause.message : 'Acțiunea nu a putut fi trimisă.');
   }
 
-  const react = (kind: string) => {
+  const react = (kind: string, paymentIntentId?: string | null, approval?: PaymentIntent | null) => {
     const nextActive = mine !== kind;
-    setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
-    setPostReaction(post.id, kind, nextActive)
-      .then((answer) => setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction }))
-      .catch(fail);
+    const optimistic = !nextActive || Boolean(paymentIntentId || approval);
+    // The like is only drawn as taken once it is paid for; until then the summary stays as the server left it.
+    if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
+    setPostReaction(post.id, kind, nextActive, { paymentIntentId })
+      .then((answer) => {
+        setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction });
+        setLikePayment(null);
+        setNotice('');
+      })
+      .catch((cause) => {
+        if (paymentRequired(cause)) {
+          setLikePayment({ kind, quote: quoteFromFailure(cause) });
+          // A refused write on top of a paid transfer is a real charge: never let it look unpaid.
+          if (approval && intentIsPaid(approval)) {
+            fail(new Error('Transferul a plecat, dar aprecierea nu a fost înregistrată. Reîncarcă.'));
+          }
+          return;
+        }
+        if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: mine }));
+        fail(cause);
+      });
   };
 
   const save = () => {
@@ -182,7 +209,20 @@ export function PostCard({ post, gallery, onOpen, fit = 'cover' }: {
       </Pressable>
 
       <MediaViewer post={viewerOpen ? post : null} gallery={gallery} onClose={() => setViewerOpen(false)} onCommentCreated={commentCreated} onOpenCommentsRoot={(current) => { setViewerOpen(false); openCommentsPage(current); }} />
+      {/**
+       * The paid like. `onPaid` re-sends the same reaction carrying the ledger row as `payment_intent_id`,
+       * so the appreciation lands once the transfer exists — and only then.
+       */}
+      <ActionPaymentSheet
+        visible={Boolean(likePayment)}
+        postId={post.id}
+        action="appreciation"
+        quote={likePayment?.quote ?? null}
+        onPaid={(approval) => { if (likePayment) react(likePayment.kind, approval.id, approval); }}
+        onClose={() => setLikePayment(null)}
+      />
     </>
+
   );
 }
 

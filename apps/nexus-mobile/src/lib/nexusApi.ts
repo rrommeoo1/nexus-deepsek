@@ -8,7 +8,12 @@ const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 export { API_ORIGIN };
 
 export class NexusApiError extends Error {
-  constructor(message: string, readonly status: number, readonly code?: string) {
+  /**
+   * `detail` is the server's own payload for a refusal that carries one — the paid-action routes send
+   * `{ quote }` on `402 PAYMENT_REQUIRED` and `{ intent }` once a transfer exists (`api.js`
+   * `actionPaymentFailure`), and that quote is the only price the confirmation sheet may print.
+   */
+  constructor(message: string, readonly status: number, readonly code?: string, readonly detail?: unknown) {
     super(message);
   }
 }
@@ -36,8 +41,15 @@ export async function nexusApi<T>(path: string, options: RequestInit = {}): Prom
   const response = await fetch(`${API_ORIGIN}${path}`, { ...options, credentials: 'include', headers });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !body || typeof body !== 'object' || !('ok' in body) || body.ok !== true) {
-    const payload = body && typeof body === 'object' ? body as { error?: string; code?: string } : null;
-    throw new NexusApiError(payload?.error || `Serverul a răspuns cu ${response.status}.`, response.status, payload?.code);
+    const payload = body && typeof body === 'object'
+      ? body as { error?: string; code?: string; detail?: unknown }
+      : null;
+    throw new NexusApiError(
+      payload?.error || `Serverul a răspuns cu ${response.status}.`,
+      response.status,
+      payload?.code,
+      payload?.detail,
+    );
   }
   return body as T;
 }
