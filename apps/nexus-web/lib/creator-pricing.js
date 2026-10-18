@@ -59,9 +59,11 @@ function invalid(code, message) {
 /**
  * What the owner sent → the prices that will be stored, or the exact refusal.
  *
- * `free: true` means "no action is paid" and therefore carries no prices; sending both is a
- * contradiction, not a default. `free: false` requires all three prices, because a partial policy
- * would leave the app guessing which action is free.
+ * Each action stands alone: a missing key or a `0` means that action is free, and the minimum price
+ * applies only to the actions that are actually paid. `free: true` stays the shortcut for "nothing
+ * is paid"; sending it together with a non-zero price is still a contradiction, not a default.
+ * The view derives `monetized` from the prices themselves, so a profile with one paid action is a
+ * paid profile and the other two actions stay free.
  */
 export function normalizePricingInput({ free, prices, cost_per_action_cents = costPerActionCents() }) {
   if (typeof free !== "boolean") return invalid("PRICING_INVALID", "free must be true or false");
@@ -72,22 +74,24 @@ export function normalizePricingInput({ free, prices, cost_per_action_cents = co
   const unknown = Object.keys(input).filter((key) => !ACTION_KEYS.includes(key));
   if (unknown.length) return invalid("PRICING_INVALID", `unknown action: ${unknown.sort().join(", ")}`);
 
-  if (free) {
-    const paid = ACTION_KEYS.filter((key) => input[key] != null && Number(input[key]) !== 0);
-    if (paid.length) return invalid("FREE_WITH_PRICES", `a free profile cannot carry a price (${paid.join(", ")})`);
-    return { ok: true, free: true, prices: Object.fromEntries(ACTION_KEYS.map((key) => [key, 0])) };
-  }
-
-  const normalized = {};
+  const normalized = Object.fromEntries(ACTION_KEYS.map((key) => [key, 0]));
   for (const key of ACTION_KEYS) {
+    if (input[key] == null) continue;
     const price = Number(input[key]);
     if (!Number.isSafeInteger(price)) return invalid("PRICE_INVALID", `${key}: price must be a whole number of cents`);
+    if (price < 0) return invalid("PRICE_INVALID", `${key}: price cannot be negative`);
     if (price > MAX_PRICE_CENTS) return invalid("PRICE_INVALID", `${key}: price must be at most ${MAX_PRICE_CENTS} cents`);
+    if (price === 0) continue;
     const allowed = assertPriceAllowed({ price_cents: price, split_version: ACTION_SPLIT_VERSION, cost_per_action_cents });
     if (!allowed.ok) return invalid(allowed.reason, `${key}: ${allowed.message}`);
     normalized[key] = price;
   }
-  return { ok: true, free: false, prices: normalized };
+  const monetized = ACTION_KEYS.some((key) => normalized[key] > 0);
+  if (free && monetized) {
+    const paid = ACTION_KEYS.filter((key) => normalized[key] > 0);
+    return invalid("FREE_WITH_PRICES", `a free profile cannot carry a price (${paid.join(", ")})`);
+  }
+  return { ok: true, free: !monetized, monetized, prices: normalized };
 }
 
 /** One action of the view: the price, the split the server computed, and where the price lives. */
@@ -129,13 +133,19 @@ export function pricingView({ free = true, actions = {}, cost_per_action_cents =
   const floor = pricingFloorCents(cost_per_action_cents);
   return {
     available: true,
-    free: anyChargeable ? Boolean(free) : true,
+    free: !anyChargeable,
+    monetized: anyChargeable,
     currency,
-    display_currency: "JB",
+    display_currency: "JUNGLE",
     display_decimals: 2,
     split_version: ACTION_SPLIT_VERSION,
     cost_per_action_cents,
     floor_cents: floor.floor_cents,
+    floor_reason: "SETTLEMENT_COST",
+    floor_basis: {
+      settlement_share_of_price: 0.02,
+      message: `Prețul minim acoperă costul de decontare: ${floor.floor_cents} JUNGLE`,
+    },
     max_price_cents: MAX_PRICE_CENTS,
     presets: PRICE_PRESETS,
     actions: rows,

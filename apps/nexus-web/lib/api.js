@@ -802,6 +802,9 @@ export async function handleRequest(req, res, ctx) {
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname;
   const method = req.method?.toUpperCase() ?? "GET";
+  // (d) One query per response, cached in the repo: every author object in whatever this request
+  // returns learns whether its creator charges for at least one action.
+  res.nexusAuthorFlags = typeof repo.monetizedAuthorIds === "function" ? repo.monetizedAuthorIds() : null;
 
   if (process.env.NODE_ENV === "production" && !requestIsSecure(req) && path !== "/health" && (path.startsWith("/auth/") || path.startsWith("/api/") || path.startsWith("/wallets/"))) {
     return json(res, 400, { ok: false, error: "HTTPS este obligatoriu pentru autentificare și date de cont" });

@@ -1,5 +1,11 @@
+import { withMonetizedAuthors } from "./creator-monetized.js";
+
 export function json(res, status, payload) {
-  const body = JSON.stringify(payload);
+  // Every JSON response goes through here, so `monetized` cannot be forgotten on a new endpoint.
+  // The set is put on the response by `handleRequest`; a unit test calling `json` directly (or a
+  // response that never set it) is left exactly as it was.
+  const decorated = withMonetizedAuthors(payload, res?.nexusAuthorFlags);
+  const body = JSON.stringify(decorated);
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",

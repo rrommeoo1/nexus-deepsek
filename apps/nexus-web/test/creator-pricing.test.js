@@ -67,7 +67,11 @@ test('every invalid write is refused by name, and a free policy carries no price
   assert.equal(normalizePricingInput({ free: 'no', prices: {} }).code, 'PRICING_INVALID');
   assert.equal(normalizePricingInput({ free: true, prices: { appreciation: 200 } }).code, 'FREE_WITH_PRICES');
   assert.deepEqual(normalizePricingInput({ free: true }).prices, { appreciation: 0, comment: 0, share: 0 });
-  assert.equal(normalizePricingInput({ free: false, prices: { appreciation: 200, comment: 300 } }).code, 'PRICE_INVALID');
+  // A missing action is free, not an error: the price applies only where the creator wrote one.
+  const partial = normalizePricingInput({ free: false, prices: { appreciation: 200, comment: 300 } });
+  assert.equal(partial.ok, true);
+  assert.deepEqual(partial.prices, { appreciation: 200, comment: 300, share: 0 });
+  assert.equal(partial.monetized, true);
   assert.equal(normalizePricingInput({ free: false, prices: { ...PRICE_PRESETS.prietenos, tip: 200 } }).code, 'PRICING_INVALID');
   const belowFloor = normalizePricingInput({ free: false, prices: { appreciation: 100, comment: 300, share: 300 } });
   assert.equal(belowFloor.ok, false);
@@ -249,6 +253,30 @@ test('the owner reads and writes prices over HTTP, and the fan reads the same nu
     assert.equal(publicAfter.body.actions.comment.price_cents, 300);
   } finally { f.db.close(); }
 });
+test('one paid action makes the profile monetized, and every author payload says so', async () => {
+  const f = httpFixture();
+  try {
+    const saved = await f.call('PUT', '/api/creator/pricing', { free: false, prices: { appreciation: 200 } });
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+    assert.equal(saved.body.monetized, true);
+    assert.equal(saved.body.free, false);
+    assert.equal(saved.body.display_currency, 'JUNGLE');
+    assert.equal(saved.body.actions.appreciation.chargeable, true);
+    assert.equal(saved.body.actions.comment.chargeable, false);
+
+    const reader = await f.call('GET', '/api/creator/pricing/http_creator', {}, 1);
+    assert.equal(reader.status, 200);
+    assert.equal(reader.body.creator.monetized, true);
+
+    const cleared = await f.call('PUT', '/api/creator/pricing', { free: false, prices: { appreciation: 0 } });
+    assert.equal(cleared.status, 200);
+    assert.equal(cleared.body.monetized, false);
+    assert.equal(cleared.body.free, true);
+    assert.equal((await f.call('GET', '/api/creator/pricing/http_creator', {}, 1)).body.creator.monetized, false);
+  } finally { f.db.close(); }
+});
+
+
 
 test('a replayed save returns the first answer, and a reused key with another body is refused', async () => {
   const f = httpFixture();

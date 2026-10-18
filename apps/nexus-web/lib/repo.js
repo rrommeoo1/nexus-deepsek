@@ -5311,24 +5311,29 @@ export function createRepo(db) {
       if (!creator || !profile || creator.account_state !== "active") {
         throw Object.assign(new Error("creator profile unavailable"), { code: "CREATOR_PROFILE_UNAVAILABLE", status: 409 });
       }
+      // Each action stands alone: `0` (or a missing key) means that action is free, and only the
+      // actions with a price get a product row. The minimum is checked by the caller's
+      // `normalizePricingInput`, so nothing here can invent a price below it.
       const wanted = {};
-      if (!free) {
-        for (const key of ACTION_KEYS) {
-          const price = Number(prices[key]);
-          if (!Number.isInteger(price) || price <= 0) {
-            throw Object.assign(new Error(`missing price for ${key}`), { code: "PRICE_INVALID", status: 400 });
-          }
-          wanted[key] = price;
+      for (const key of ACTION_KEYS) {
+        const price = Number(prices[key] ?? 0);
+        if (!Number.isSafeInteger(price) || price < 0) {
+          throw Object.assign(new Error(`price for ${key} must be a whole number of cents`), { code: "PRICE_INVALID", status: 400 });
         }
+        wanted[key] = price;
+      }
+      const paid = ACTION_KEYS.filter((key) => wanted[key] > 0);
+      if (free && paid.length) {
+        throw Object.assign(new Error(`a free profile cannot carry a price (${paid.join(", ")})`), { code: "FREE_WITH_PRICES", status: 400 });
       }
       this.db.exec("SAVEPOINT creator_pricing");
       try {
         const productIds = {};
-        if (!free) {
-          for (const key of ACTION_KEYS) {
-            const title = ACTION_LABELS[key];
-            const existing = this.db.prepare(`SELECT * FROM creator_support_products
-              WHERE creator_id = ? AND kind = 'tip' AND title = ? ORDER BY id LIMIT 1`).get(creatorId, title);
+        for (const key of ACTION_KEYS) {
+          const title = ACTION_LABELS[key];
+          const existing = this.db.prepare(`SELECT * FROM creator_support_products
+            WHERE creator_id = ? AND kind = 'tip' AND title = ? ORDER BY id LIMIT 1`).get(creatorId, title);
+          if (wanted[key] > 0) {
             if (existing) {
               this.db.prepare(`UPDATE creator_support_products SET price_cents = ?, status = 'active', split_version = ? WHERE id = ?`)
                 .run(wanted[key], ACTION_SPLIT_VERSION, existing.id);
@@ -5337,6 +5342,13 @@ export function createRepo(db) {
               const created = this.createCreatorSupportProduct({ creatorId, kind: "tip", title, priceCents: wanted[key] });
               productIds[key] = Number(created.id);
             }
+          } else {
+            // Free now: the old product is paused rather than deleted, so a later price can reuse the
+            // row and no record of a charged action disappears.
+            if (existing && existing.status === "active") {
+              this.db.prepare(`UPDATE creator_support_products SET status = 'paused' WHERE id = ?`).run(existing.id);
+            }
+            productIds[key] = null;
           }
         }
         const columns = ACTION_KEYS.map((key) => `${key}_product_id`).join(", ");
@@ -5345,14 +5357,36 @@ export function createRepo(db) {
           ON CONFLICT(creator_id) DO UPDATE SET free = excluded.free,
             appreciation_product_id = excluded.appreciation_product_id, comment_product_id = excluded.comment_product_id,
             share_product_id = excluded.share_product_id, updated_at = unixepoch()`)
-          .run(creatorId, free ? 1 : 0, ...ACTION_KEYS.map((key) => productIds[key] ?? null));
+          .run(creatorId, paid.length ? 0 : 1, ...ACTION_KEYS.map((key) => productIds[key] ?? null));
         this.db.exec("RELEASE creator_pricing");
       } catch (error) {
         this.db.exec("ROLLBACK TO creator_pricing");
         this.db.exec("RELEASE creator_pricing");
         throw error;
       }
+      this._monetizedCache = null;
       return this.getCreatorActionPricing(creatorId);
+    },
+    /**
+     * The one place `monetized` comes from: the ids of creators that charge for at least one action.
+     *
+     * One query for the whole response, cached for a couple of seconds, so a feed page with fifty
+     * authors costs the same as a page with one. `pricingView` and the author decorator both read
+     * this, and a pricing write clears the cache.
+     */
+    monetizedAuthorIds() {
+      const now = Date.now();
+      if (this._monetizedCache && now - this._monetizedCache.at < 2000) return this._monetizedCache.ids;
+      const rows = this.db.prepare(`SELECT DISTINCT cap.creator_id FROM creator_action_prices cap
+        JOIN creator_support_products p
+          ON p.id IN (cap.appreciation_product_id, cap.comment_product_id, cap.share_product_id)
+        WHERE p.status = 'active' AND p.kind = 'tip' AND p.price_cents > 0`).all();
+      const ids = new Set(rows.map((row) => Number(row.creator_id)));
+      this._monetizedCache = { at: now, ids };
+      return ids;
+    },
+    isMonetizedCreator(creatorId) {
+      return this.monetizedAuthorIds().has(Number(creatorId));
     },
     /** The reader's view: the same block, synthetic and visibility rules as the catalog, so a hidden profile leaks nothing. */
     getCreatorPricingForViewer(viewerId, creatorHandle) {
