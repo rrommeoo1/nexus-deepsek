@@ -36967,7 +36967,7 @@ if (typeof EventEmitter.prototype.off !== "function") {
   EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
 }
 var RELAY_URL = "wss://relay.walletconnect.com";
-var PROVIDER_TIMEOUT_MS = 12e4;
+var PROVIDER_TIMEOUT_MS = 3e5;
 var INIT_TIMEOUT_MS = 2e4;
 var CONNECT_TIMEOUT_MS = 15e3;
 var SESSION_TIMEOUT_MS = 25e3;

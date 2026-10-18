@@ -22,7 +22,10 @@ if (typeof EventEmitter.prototype.off !== "function") {
 }
 
 const RELAY_URL = "wss://relay.walletconnect.com";
-const PROVIDER_TIMEOUT_MS = 120_000;
+// xPortal needs a long time between "Connect approved" and its NativeAuth signature sheet: the wallet
+// cold-starts its bundle, then asks for the fingerprint. Two minutes cancelled attempts that the wallet
+// was still working on, so the whole approval + signature window is five minutes.
+const PROVIDER_TIMEOUT_MS = 300_000;
 const INIT_TIMEOUT_MS = 20_000;
 const CONNECT_TIMEOUT_MS = 15_000;
 const SESSION_TIMEOUT_MS = 25_000;
