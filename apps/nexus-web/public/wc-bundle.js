@@ -44,7 +44,7 @@ var __toESM = (mod3, isNodeMode, target) => (target = mod3 != null ? __create(__
 var __toCommonJS = (mod3) => __copyProps(__defProp({}, "__esModule", { value: true }), mod3);
 var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
-// node_modules/@esbuild-plugins/node-globals-polyfill/process.js
+// ../../node_modules/@esbuild-plugins/node-globals-polyfill/process.js
 function defaultSetTimout() {
   throw new Error("setTimeout has not been defined");
 }
@@ -174,7 +174,7 @@ function uptime() {
 }
 var cachedSetTimeout, cachedClearTimeout, queue, draining, currentQueue, queueIndex, title, platform, browser, env, argv, version, versions, release, config, on, addListener, once, off, removeListener, removeAllListeners, emit, performance, performanceNow, startTime, process, defines;
 var init_process = __esm({
-  "node_modules/@esbuild-plugins/node-globals-polyfill/process.js"() {
+  "../../node_modules/@esbuild-plugins/node-globals-polyfill/process.js"() {
     cachedSetTimeout = defaultSetTimout;
     cachedClearTimeout = defaultClearTimeout;
     if (typeof globalThis.setTimeout === "function") {
@@ -251,7 +251,7 @@ var init_process = __esm({
   }
 });
 
-// node_modules/@esbuild-plugins/node-globals-polyfill/Buffer.js
+// ../../node_modules/@esbuild-plugins/node-globals-polyfill/Buffer.js
 function init() {
   inited = true;
   var code2 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -1099,7 +1099,7 @@ function ieee754write(buffer, value, offset, isLE4, mLen, nBytes) {
 }
 var lookup, revLookup, Arr, inited, MAX_ARGUMENTS_LENGTH, INVALID_BASE64_RE;
 var init_Buffer = __esm({
-  "node_modules/@esbuild-plugins/node-globals-polyfill/Buffer.js"() {
+  "../../node_modules/@esbuild-plugins/node-globals-polyfill/Buffer.js"() {
     init_process();
     init_buffer();
     lookup = [];
@@ -1798,9 +1798,9 @@ var init_Buffer = __esm({
   }
 });
 
-// node_modules/@esbuild-plugins/node-globals-polyfill/_buffer.js
+// ../../node_modules/@esbuild-plugins/node-globals-polyfill/_buffer.js
 var init_buffer = __esm({
-  "node_modules/@esbuild-plugins/node-globals-polyfill/_buffer.js"() {
+  "../../node_modules/@esbuild-plugins/node-globals-polyfill/_buffer.js"() {
     init_Buffer();
   }
 });
@@ -2193,9 +2193,9 @@ var init_events = __esm({
   }
 });
 
-// node_modules/qrcode/lib/can-promise.js
+// ../../node_modules/qrcode/lib/can-promise.js
 var require_can_promise = __commonJS({
-  "node_modules/qrcode/lib/can-promise.js"(exports, module) {
+  "../../node_modules/qrcode/lib/can-promise.js"(exports, module) {
     init_process();
     init_buffer();
     module.exports = function() {
@@ -2204,9 +2204,9 @@ var require_can_promise = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/utils.js
+// ../../node_modules/qrcode/lib/core/utils.js
 var require_utils = __commonJS({
-  "node_modules/qrcode/lib/core/utils.js"(exports) {
+  "../../node_modules/qrcode/lib/core/utils.js"(exports) {
     init_process();
     init_buffer();
     var toSJISFunction;
@@ -2285,9 +2285,9 @@ var require_utils = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/error-correction-level.js
+// ../../node_modules/qrcode/lib/core/error-correction-level.js
 var require_error_correction_level = __commonJS({
-  "node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
+  "../../node_modules/qrcode/lib/core/error-correction-level.js"(exports) {
     init_process();
     init_buffer();
     exports.L = { bit: 1 };
@@ -2332,9 +2332,9 @@ var require_error_correction_level = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/bit-buffer.js
+// ../../node_modules/qrcode/lib/core/bit-buffer.js
 var require_bit_buffer = __commonJS({
-  "node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/bit-buffer.js"(exports, module) {
     init_process();
     init_buffer();
     function BitBuffer() {
@@ -2369,9 +2369,9 @@ var require_bit_buffer = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/bit-matrix.js
+// ../../node_modules/qrcode/lib/core/bit-matrix.js
 var require_bit_matrix = __commonJS({
-  "node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/bit-matrix.js"(exports, module) {
     init_process();
     init_buffer();
     function BitMatrix(size3) {
@@ -2400,9 +2400,9 @@ var require_bit_matrix = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/alignment-pattern.js
+// ../../node_modules/qrcode/lib/core/alignment-pattern.js
 var require_alignment_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/alignment-pattern.js"(exports) {
     init_process();
     init_buffer();
     var getSymbolSize = require_utils().getSymbolSize;
@@ -2437,9 +2437,9 @@ var require_alignment_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/finder-pattern.js
+// ../../node_modules/qrcode/lib/core/finder-pattern.js
 var require_finder_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/finder-pattern.js"(exports) {
     init_process();
     init_buffer();
     var getSymbolSize = require_utils().getSymbolSize;
@@ -2458,9 +2458,9 @@ var require_finder_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/mask-pattern.js
+// ../../node_modules/qrcode/lib/core/mask-pattern.js
 var require_mask_pattern = __commonJS({
-  "node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
+  "../../node_modules/qrcode/lib/core/mask-pattern.js"(exports) {
     init_process();
     init_buffer();
     exports.Patterns = {
@@ -2602,9 +2602,9 @@ var require_mask_pattern = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/error-correction-code.js
+// ../../node_modules/qrcode/lib/core/error-correction-code.js
 var require_error_correction_code = __commonJS({
-  "node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
+  "../../node_modules/qrcode/lib/core/error-correction-code.js"(exports) {
     init_process();
     init_buffer();
     var ECLevel = require_error_correction_level();
@@ -2965,9 +2965,9 @@ var require_error_correction_code = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/galois-field.js
+// ../../node_modules/qrcode/lib/core/galois-field.js
 var require_galois_field = __commonJS({
-  "node_modules/qrcode/lib/core/galois-field.js"(exports) {
+  "../../node_modules/qrcode/lib/core/galois-field.js"(exports) {
     init_process();
     init_buffer();
     var EXP_TABLE = new Uint8Array(512);
@@ -3000,9 +3000,9 @@ var require_galois_field = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/polynomial.js
+// ../../node_modules/qrcode/lib/core/polynomial.js
 var require_polynomial = __commonJS({
-  "node_modules/qrcode/lib/core/polynomial.js"(exports) {
+  "../../node_modules/qrcode/lib/core/polynomial.js"(exports) {
     init_process();
     init_buffer();
     var GF = require_galois_field();
@@ -3038,9 +3038,9 @@ var require_polynomial = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/reed-solomon-encoder.js
+// ../../node_modules/qrcode/lib/core/reed-solomon-encoder.js
 var require_reed_solomon_encoder = __commonJS({
-  "node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/reed-solomon-encoder.js"(exports, module) {
     init_process();
     init_buffer();
     var Polynomial = require_polynomial();
@@ -3072,9 +3072,9 @@ var require_reed_solomon_encoder = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/version-check.js
+// ../../node_modules/qrcode/lib/core/version-check.js
 var require_version_check = __commonJS({
-  "node_modules/qrcode/lib/core/version-check.js"(exports) {
+  "../../node_modules/qrcode/lib/core/version-check.js"(exports) {
     init_process();
     init_buffer();
     exports.isValid = function isValid(version5) {
@@ -3083,9 +3083,9 @@ var require_version_check = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/regex.js
+// ../../node_modules/qrcode/lib/core/regex.js
 var require_regex = __commonJS({
-  "node_modules/qrcode/lib/core/regex.js"(exports) {
+  "../../node_modules/qrcode/lib/core/regex.js"(exports) {
     init_process();
     init_buffer();
     var numeric = "[0-9]+";
@@ -3113,9 +3113,9 @@ var require_regex = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/mode.js
+// ../../node_modules/qrcode/lib/core/mode.js
 var require_mode = __commonJS({
-  "node_modules/qrcode/lib/core/mode.js"(exports) {
+  "../../node_modules/qrcode/lib/core/mode.js"(exports) {
     init_process();
     init_buffer();
     var VersionCheck = require_version_check();
@@ -3196,9 +3196,9 @@ var require_mode = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/version.js
+// ../../node_modules/qrcode/lib/core/version.js
 var require_version = __commonJS({
-  "node_modules/qrcode/lib/core/version.js"(exports) {
+  "../../node_modules/qrcode/lib/core/version.js"(exports) {
     init_process();
     init_buffer();
     var Utils = require_utils();
@@ -3293,9 +3293,9 @@ var require_version = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/format-info.js
+// ../../node_modules/qrcode/lib/core/format-info.js
 var require_format_info = __commonJS({
-  "node_modules/qrcode/lib/core/format-info.js"(exports) {
+  "../../node_modules/qrcode/lib/core/format-info.js"(exports) {
     init_process();
     init_buffer();
     var Utils = require_utils();
@@ -3313,9 +3313,9 @@ var require_format_info = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/numeric-data.js
+// ../../node_modules/qrcode/lib/core/numeric-data.js
 var require_numeric_data = __commonJS({
-  "node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/numeric-data.js"(exports, module) {
     init_process();
     init_buffer();
     var Mode = require_mode();
@@ -3350,9 +3350,9 @@ var require_numeric_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/alphanumeric-data.js
+// ../../node_modules/qrcode/lib/core/alphanumeric-data.js
 var require_alphanumeric_data = __commonJS({
-  "node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/alphanumeric-data.js"(exports, module) {
     init_process();
     init_buffer();
     var Mode = require_mode();
@@ -3431,9 +3431,9 @@ var require_alphanumeric_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/byte-data.js
+// ../../node_modules/qrcode/lib/core/byte-data.js
 var require_byte_data = __commonJS({
-  "node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/byte-data.js"(exports, module) {
     init_process();
     init_buffer();
     var Mode = require_mode();
@@ -3463,9 +3463,9 @@ var require_byte_data = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/kanji-data.js
+// ../../node_modules/qrcode/lib/core/kanji-data.js
 var require_kanji_data = __commonJS({
-  "node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
+  "../../node_modules/qrcode/lib/core/kanji-data.js"(exports, module) {
     init_process();
     init_buffer();
     var Mode = require_mode();
@@ -3504,9 +3504,9 @@ var require_kanji_data = __commonJS({
   }
 });
 
-// node_modules/dijkstrajs/dijkstra.js
+// ../../node_modules/dijkstrajs/dijkstra.js
 var require_dijkstra = __commonJS({
-  "node_modules/dijkstrajs/dijkstra.js"(exports, module) {
+  "../../node_modules/dijkstrajs/dijkstra.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -3607,9 +3607,9 @@ var require_dijkstra = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/segments.js
+// ../../node_modules/qrcode/lib/core/segments.js
 var require_segments = __commonJS({
-  "node_modules/qrcode/lib/core/segments.js"(exports) {
+  "../../node_modules/qrcode/lib/core/segments.js"(exports) {
     init_process();
     init_buffer();
     var Mode = require_mode();
@@ -3795,9 +3795,9 @@ var require_segments = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/core/qrcode.js
+// ../../node_modules/qrcode/lib/core/qrcode.js
 var require_qrcode = __commonJS({
-  "node_modules/qrcode/lib/core/qrcode.js"(exports) {
+  "../../node_modules/qrcode/lib/core/qrcode.js"(exports) {
     init_process();
     init_buffer();
     var Utils = require_utils();
@@ -4058,9 +4058,9 @@ var require_qrcode = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/utils.js
+// ../../node_modules/qrcode/lib/renderer/utils.js
 var require_utils2 = __commonJS({
-  "node_modules/qrcode/lib/renderer/utils.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/utils.js"(exports) {
     init_process();
     init_buffer();
     function hex2rgba(hex) {
@@ -4140,9 +4140,9 @@ var require_utils2 = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/canvas.js
+// ../../node_modules/qrcode/lib/renderer/canvas.js
 var require_canvas = __commonJS({
-  "node_modules/qrcode/lib/renderer/canvas.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/canvas.js"(exports) {
     init_process();
     init_buffer();
     var Utils = require_utils2();
@@ -4195,9 +4195,9 @@ var require_canvas = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/renderer/svg-tag.js
+// ../../node_modules/qrcode/lib/renderer/svg-tag.js
 var require_svg_tag = __commonJS({
-  "node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
+  "../../node_modules/qrcode/lib/renderer/svg-tag.js"(exports) {
     init_process();
     init_buffer();
     var Utils = require_utils2();
@@ -4255,9 +4255,9 @@ var require_svg_tag = __commonJS({
   }
 });
 
-// node_modules/qrcode/lib/browser.js
+// ../../node_modules/qrcode/lib/browser.js
 var require_browser = __commonJS({
-  "node_modules/qrcode/lib/browser.js"(exports) {
+  "../../node_modules/qrcode/lib/browser.js"(exports) {
     init_process();
     init_buffer();
     var canPromise = require_can_promise();
@@ -4327,9 +4327,9 @@ var require_browser = __commonJS({
   }
 });
 
-// node_modules/bech32/index.js
+// ../../node_modules/bech32/index.js
 var require_bech32 = __commonJS({
-  "node_modules/bech32/index.js"(exports, module) {
+  "../../node_modules/bech32/index.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -4473,9 +4473,9 @@ var require_bech32 = __commonJS({
   }
 });
 
-// node_modules/bignumber.js/bignumber.js
+// ../../node_modules/bignumber.js/bignumber.js
 var require_bignumber = __commonJS({
-  "node_modules/bignumber.js/bignumber.js"(exports, module) {
+  "../../node_modules/bignumber.js/bignumber.js"(exports, module) {
     init_process();
     init_buffer();
     (function(globalObject) {
@@ -5826,9 +5826,9 @@ var require_bignumber = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/utils.codec.js
+// ../../node_modules/@multiversx/sdk-core/out/core/utils.codec.js
 var require_utils_codec = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/utils.codec.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/utils.codec.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -5911,9 +5911,9 @@ var require_utils_codec = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/abi/codec/utils.js
+// ../../node_modules/@multiversx/sdk-core/out/abi/codec/utils.js
 var require_utils3 = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/abi/codec/utils.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/abi/codec/utils.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -5975,9 +5975,9 @@ var require_utils3 = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/tokenOperations/codec.js
+// ../../node_modules/@multiversx/sdk-core/out/tokenOperations/codec.js
 var require_codec = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/tokenOperations/codec.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/tokenOperations/codec.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -6045,9 +6045,9 @@ var require_codec = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/config.js
+// ../../node_modules/@multiversx/sdk-core/out/core/config.js
 var require_config = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/config.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/config.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -6060,9 +6060,9 @@ var require_config = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/constants.js
+// ../../node_modules/@multiversx/sdk-core/out/core/constants.js
 var require_constants = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/constants.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/constants.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -6103,9 +6103,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/errors.js
+// ../../node_modules/@multiversx/sdk-core/out/core/errors.js
 var require_errors = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/errors.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/errors.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -6441,9 +6441,9 @@ var require_events = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/stream-browser.js
+// ../../node_modules/readable-stream/lib/internal/streams/stream-browser.js
 var require_stream_browser = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/stream-browser.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/stream-browser.js"(exports, module) {
     init_process();
     init_buffer();
     module.exports = require_events().EventEmitter;
@@ -8189,10 +8189,10 @@ var init_process2 = __esm({
   }
 });
 
-// node_modules/rollup-plugin-node-polyfills/polyfills/inherits.js
+// ../../node_modules/rollup-plugin-node-polyfills/polyfills/inherits.js
 var inherits, inherits_default;
 var init_inherits = __esm({
-  "node_modules/rollup-plugin-node-polyfills/polyfills/inherits.js"() {
+  "../../node_modules/rollup-plugin-node-polyfills/polyfills/inherits.js"() {
     init_process();
     init_buffer();
     if (typeof Object.create === "function") {
@@ -8725,9 +8725,9 @@ var require_util = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/buffer_list.js
+// ../../node_modules/readable-stream/lib/internal/streams/buffer_list.js
 var require_buffer_list = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/buffer_list.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/buffer_list.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -8969,9 +8969,9 @@ var require_buffer_list = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/destroy.js
+// ../../node_modules/readable-stream/lib/internal/streams/destroy.js
 var require_destroy = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/destroy.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/destroy.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -9060,9 +9060,9 @@ var require_destroy = __commonJS({
   }
 });
 
-// node_modules/readable-stream/errors-browser.js
+// ../../node_modules/readable-stream/errors-browser.js
 var require_errors_browser = __commonJS({
-  "node_modules/readable-stream/errors-browser.js"(exports, module) {
+  "../../node_modules/readable-stream/errors-browser.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -9171,9 +9171,9 @@ var require_errors_browser = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/state.js
+// ../../node_modules/readable-stream/lib/internal/streams/state.js
 var require_state = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/state.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/state.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -9198,9 +9198,9 @@ var require_state = __commonJS({
   }
 });
 
-// node_modules/inherits/inherits_browser.js
+// ../../node_modules/inherits/inherits_browser.js
 var require_inherits_browser = __commonJS({
-  "node_modules/inherits/inherits_browser.js"(exports, module) {
+  "../../node_modules/inherits/inherits_browser.js"(exports, module) {
     init_process();
     init_buffer();
     if (typeof Object.create === "function") {
@@ -9232,9 +9232,9 @@ var require_inherits_browser = __commonJS({
   }
 });
 
-// node_modules/util-deprecate/browser.js
+// ../../node_modules/util-deprecate/browser.js
 var require_browser2 = __commonJS({
-  "node_modules/util-deprecate/browser.js"(exports, module) {
+  "../../node_modules/util-deprecate/browser.js"(exports, module) {
     init_process();
     init_buffer();
     module.exports = deprecate3;
@@ -9271,9 +9271,9 @@ var require_browser2 = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/_stream_writable.js
+// ../../node_modules/readable-stream/lib/_stream_writable.js
 var require_stream_writable = __commonJS({
-  "node_modules/readable-stream/lib/_stream_writable.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/_stream_writable.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -9744,9 +9744,9 @@ var require_stream_writable = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/_stream_duplex.js
+// ../../node_modules/readable-stream/lib/_stream_duplex.js
 var require_stream_duplex = __commonJS({
-  "node_modules/readable-stream/lib/_stream_duplex.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/_stream_duplex.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -9839,9 +9839,9 @@ var require_stream_duplex = __commonJS({
   }
 });
 
-// node_modules/safe-buffer/index.js
+// ../../node_modules/safe-buffer/index.js
 var require_safe_buffer = __commonJS({
-  "node_modules/safe-buffer/index.js"(exports, module) {
+  "../../node_modules/safe-buffer/index.js"(exports, module) {
     init_process();
     init_buffer();
     var buffer = require_buffer();
@@ -9899,9 +9899,9 @@ var require_safe_buffer = __commonJS({
   }
 });
 
-// node_modules/string_decoder/lib/string_decoder.js
+// ../../node_modules/string_decoder/lib/string_decoder.js
 var require_string_decoder = __commonJS({
-  "node_modules/string_decoder/lib/string_decoder.js"(exports) {
+  "../../node_modules/string_decoder/lib/string_decoder.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -10139,9 +10139,9 @@ var require_string_decoder = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/end-of-stream.js
+// ../../node_modules/readable-stream/lib/internal/streams/end-of-stream.js
 var require_end_of_stream = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/end-of-stream.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -10230,9 +10230,9 @@ var require_end_of_stream = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/async_iterator.js
+// ../../node_modules/readable-stream/lib/internal/streams/async_iterator.js
 var require_async_iterator = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/async_iterator.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/async_iterator.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -10415,9 +10415,9 @@ var require_async_iterator = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/from-browser.js
+// ../../node_modules/readable-stream/lib/internal/streams/from-browser.js
 var require_from_browser = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/from-browser.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/from-browser.js"(exports, module) {
     init_process();
     init_buffer();
     module.exports = function() {
@@ -10426,9 +10426,9 @@ var require_from_browser = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/_stream_readable.js
+// ../../node_modules/readable-stream/lib/_stream_readable.js
 var require_stream_readable = __commonJS({
-  "node_modules/readable-stream/lib/_stream_readable.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/_stream_readable.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -11161,9 +11161,9 @@ var require_stream_readable = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/_stream_transform.js
+// ../../node_modules/readable-stream/lib/_stream_transform.js
 var require_stream_transform = __commonJS({
-  "node_modules/readable-stream/lib/_stream_transform.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/_stream_transform.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -11264,9 +11264,9 @@ var require_stream_transform = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/_stream_passthrough.js
+// ../../node_modules/readable-stream/lib/_stream_passthrough.js
 var require_stream_passthrough = __commonJS({
-  "node_modules/readable-stream/lib/_stream_passthrough.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/_stream_passthrough.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -11283,9 +11283,9 @@ var require_stream_passthrough = __commonJS({
   }
 });
 
-// node_modules/readable-stream/lib/internal/streams/pipeline.js
+// ../../node_modules/readable-stream/lib/internal/streams/pipeline.js
 var require_pipeline = __commonJS({
-  "node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports, module) {
+  "../../node_modules/readable-stream/lib/internal/streams/pipeline.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -11370,9 +11370,9 @@ var require_pipeline = __commonJS({
   }
 });
 
-// node_modules/readable-stream/readable-browser.js
+// ../../node_modules/readable-stream/readable-browser.js
 var require_readable_browser = __commonJS({
-  "node_modules/readable-stream/readable-browser.js"(exports, module) {
+  "../../node_modules/readable-stream/readable-browser.js"(exports, module) {
     init_process();
     init_buffer();
     exports = module.exports = require_stream_readable();
@@ -11387,9 +11387,9 @@ var require_readable_browser = __commonJS({
   }
 });
 
-// node_modules/keccak/lib/api/keccak.js
+// ../../node_modules/keccak/lib/api/keccak.js
 var require_keccak = __commonJS({
-  "node_modules/keccak/lib/api/keccak.js"(exports, module) {
+  "../../node_modules/keccak/lib/api/keccak.js"(exports, module) {
     init_process();
     init_buffer();
     var { Transform } = require_readable_browser();
@@ -11455,9 +11455,9 @@ var require_keccak = __commonJS({
   }
 });
 
-// node_modules/keccak/lib/api/shake.js
+// ../../node_modules/keccak/lib/api/shake.js
 var require_shake = __commonJS({
-  "node_modules/keccak/lib/api/shake.js"(exports, module) {
+  "../../node_modules/keccak/lib/api/shake.js"(exports, module) {
     init_process();
     init_buffer();
     var { Transform } = require_readable_browser();
@@ -11516,9 +11516,9 @@ var require_shake = __commonJS({
   }
 });
 
-// node_modules/keccak/lib/api/index.js
+// ../../node_modules/keccak/lib/api/index.js
 var require_api = __commonJS({
-  "node_modules/keccak/lib/api/index.js"(exports, module) {
+  "../../node_modules/keccak/lib/api/index.js"(exports, module) {
     init_process();
     init_buffer();
     var createKeccak = require_keccak();
@@ -11557,9 +11557,9 @@ var require_api = __commonJS({
   }
 });
 
-// node_modules/keccak/lib/keccak-state-unroll.js
+// ../../node_modules/keccak/lib/keccak-state-unroll.js
 var require_keccak_state_unroll = __commonJS({
-  "node_modules/keccak/lib/keccak-state-unroll.js"(exports) {
+  "../../node_modules/keccak/lib/keccak-state-unroll.js"(exports) {
     init_process();
     init_buffer();
     var P1600_ROUND_CONSTANTS = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648];
@@ -11742,9 +11742,9 @@ var require_keccak_state_unroll = __commonJS({
   }
 });
 
-// node_modules/keccak/lib/keccak.js
+// ../../node_modules/keccak/lib/keccak.js
 var require_keccak2 = __commonJS({
-  "node_modules/keccak/lib/keccak.js"(exports, module) {
+  "../../node_modules/keccak/lib/keccak.js"(exports, module) {
     init_process();
     init_buffer();
     var keccakState = require_keccak_state_unroll();
@@ -11827,18 +11827,18 @@ var require_keccak2 = __commonJS({
   }
 });
 
-// node_modules/keccak/js.js
+// ../../node_modules/keccak/js.js
 var require_js = __commonJS({
-  "node_modules/keccak/js.js"(exports, module) {
+  "../../node_modules/keccak/js.js"(exports, module) {
     init_process();
     init_buffer();
     module.exports = require_api()(require_keccak2());
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/address.js
+// ../../node_modules/@multiversx/sdk-core/out/core/address.js
 var require_address = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/address.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/address.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12132,9 +12132,9 @@ var require_address = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-core/out/core/message.js
+// ../../node_modules/@multiversx/sdk-core/out/core/message.js
 var require_message = __commonJS({
-  "node_modules/@multiversx/sdk-core/out/core/message.js"(exports) {
+  "../../node_modules/@multiversx/sdk-core/out/core/message.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12211,7 +12211,7 @@ var require_message = __commonJS({
   }
 });
 
-// node_modules/tslib/tslib.es6.js
+// ../../node_modules/tslib/tslib.es6.js
 var tslib_es6_exports = {};
 __export(tslib_es6_exports, {
   __assign: () => __assign,
@@ -12516,7 +12516,7 @@ function __classPrivateFieldSet(receiver, privateMap, value) {
 }
 var extendStatics, __assign;
 var init_tslib_es6 = __esm({
-  "node_modules/tslib/tslib.es6.js"() {
+  "../../node_modules/tslib/tslib.es6.js"() {
     init_process();
     init_buffer();
     extendStatics = function(d3, b4) {
@@ -12540,9 +12540,9 @@ var init_tslib_es6 = __esm({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/utils/delay.js
+// ../../node_modules/@walletconnect/time/dist/cjs/utils/delay.js
 var require_delay = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/utils/delay.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/utils/delay.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12559,9 +12559,9 @@ var require_delay = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/constants/misc.js
+// ../../node_modules/@walletconnect/time/dist/cjs/constants/misc.js
 var require_misc = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/constants/misc.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/constants/misc.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12572,9 +12572,9 @@ var require_misc = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/constants/time.js
+// ../../node_modules/@walletconnect/time/dist/cjs/constants/time.js
 var require_time = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/constants/time.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/constants/time.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12608,9 +12608,9 @@ var require_time = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/constants/index.js
+// ../../node_modules/@walletconnect/time/dist/cjs/constants/index.js
 var require_constants2 = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/constants/index.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/constants/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12621,9 +12621,9 @@ var require_constants2 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/utils/convert.js
+// ../../node_modules/@walletconnect/time/dist/cjs/utils/convert.js
 var require_convert = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/utils/convert.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/utils/convert.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12641,9 +12641,9 @@ var require_convert = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/utils/index.js
+// ../../node_modules/@walletconnect/time/dist/cjs/utils/index.js
 var require_utils4 = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/utils/index.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/utils/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12654,9 +12654,9 @@ var require_utils4 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/watch.js
+// ../../node_modules/@walletconnect/time/dist/cjs/watch.js
 var require_watch = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/watch.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/watch.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12698,9 +12698,9 @@ var require_watch = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/types/watch.js
+// ../../node_modules/@walletconnect/time/dist/cjs/types/watch.js
 var require_watch2 = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/types/watch.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/types/watch.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12712,9 +12712,9 @@ var require_watch2 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/types/index.js
+// ../../node_modules/@walletconnect/time/dist/cjs/types/index.js
 var require_types = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/types/index.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/types/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12724,9 +12724,9 @@ var require_types = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/time/dist/cjs/index.js
+// ../../node_modules/@walletconnect/time/dist/cjs/index.js
 var require_cjs = __commonJS({
-  "node_modules/@walletconnect/time/dist/cjs/index.js"(exports) {
+  "../../node_modules/@walletconnect/time/dist/cjs/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -12739,10 +12739,10 @@ var require_cjs = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/events/dist/esm/events.js
+// ../../node_modules/@walletconnect/events/dist/esm/events.js
 var IEvents;
 var init_events2 = __esm({
-  "node_modules/@walletconnect/events/dist/esm/events.js"() {
+  "../../node_modules/@walletconnect/events/dist/esm/events.js"() {
     init_process();
     init_buffer();
     IEvents = class {
@@ -12750,19 +12750,19 @@ var init_events2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/events/dist/esm/index.js
+// ../../node_modules/@walletconnect/events/dist/esm/index.js
 var init_esm = __esm({
-  "node_modules/@walletconnect/events/dist/esm/index.js"() {
+  "../../node_modules/@walletconnect/events/dist/esm/index.js"() {
     init_process();
     init_buffer();
     init_events2();
   }
 });
 
-// node_modules/@walletconnect/heartbeat/dist/index.es.js
+// ../../node_modules/@walletconnect/heartbeat/dist/index.es.js
 var import_time, n, s, r, i;
 var init_index_es = __esm({
-  "node_modules/@walletconnect/heartbeat/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/heartbeat/dist/index.es.js"() {
     init_process();
     init_buffer();
     init_events();
@@ -12811,7 +12811,7 @@ var init_index_es = __esm({
   }
 });
 
-// node_modules/destr/dist/index.mjs
+// ../../node_modules/destr/dist/index.mjs
 function jsonParseTransform(key, value) {
   if (key === "__proto__" || key === "constructor" && value && typeof value === "object" && "prototype" in value) {
     warnKeyDropped(key);
@@ -12878,7 +12878,7 @@ function destr(value, options = {}) {
 }
 var suspectProtoRx, suspectConstructorRx, JsonSigRx;
 var init_dist = __esm({
-  "node_modules/destr/dist/index.mjs"() {
+  "../../node_modules/destr/dist/index.mjs"() {
     init_process();
     init_buffer();
     suspectProtoRx = /"(?:_|\\u0{2}5[Ff]){2}(?:p|\\u0{2}70)(?:r|\\u0{2}72)(?:o|\\u0{2}6[Ff])(?:t|\\u0{2}74)(?:o|\\u0{2}6[Ff])(?:_|\\u0{2}5[Ff]){2}"\s*:/;
@@ -12887,7 +12887,7 @@ var init_dist = __esm({
   }
 });
 
-// node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs
+// ../../node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs
 function wrapToPromise(value) {
   if (!value || typeof value.then !== "function") {
     return Promise.resolve(value);
@@ -12984,14 +12984,14 @@ function filterKeyByBase(key, base3) {
 }
 var BASE64_PREFIX;
 var init_unstorage_zVDD2mZo = __esm({
-  "node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs"() {
+  "../../node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/shared/unstorage.zVDD2mZo.mjs"() {
     init_process();
     init_buffer();
     BASE64_PREFIX = "base64:";
   }
 });
 
-// node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs
+// ../../node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs
 function defineDriver(factory) {
   return factory;
 }
@@ -13397,7 +13397,7 @@ async function dispose(driver) {
 }
 var DRIVER_NAME, memory;
 var init_dist2 = __esm({
-  "node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs"() {
+  "../../node_modules/@walletconnect/keyvaluestorage/node_modules/unstorage/dist/index.mjs"() {
     init_process();
     init_buffer();
     init_dist();
@@ -13440,7 +13440,7 @@ var init_dist2 = __esm({
   }
 });
 
-// node_modules/idb-keyval/dist/index.js
+// ../../node_modules/idb-keyval/dist/index.js
 function promisifyRequest(request) {
   return new Promise((resolve, reject) => {
     request.oncomplete = request.onsuccess = () => resolve(request.result);
@@ -13511,13 +13511,13 @@ function keys(customStore = defaultGetStore()) {
 }
 var defaultGetStoreFunc;
 var init_dist3 = __esm({
-  "node_modules/idb-keyval/dist/index.js"() {
+  "../../node_modules/idb-keyval/dist/index.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@walletconnect/safe-json/dist/esm/index.js
+// ../../node_modules/@walletconnect/safe-json/dist/esm/index.js
 function safeJsonParse(value) {
   if (typeof value !== "string") {
     throw new Error(`Cannot safe json parse value of type ${typeof value}`);
@@ -13533,7 +13533,7 @@ function safeJsonStringify(value) {
 }
 var JSONStringify, JSONParse;
 var init_esm2 = __esm({
-  "node_modules/@walletconnect/safe-json/dist/esm/index.js"() {
+  "../../node_modules/@walletconnect/safe-json/dist/esm/index.js"() {
     init_process();
     init_buffer();
     JSONStringify = (data) => JSON.stringify(data, (_3, value) => typeof value === "bigint" ? value.toString() + "n" : value);
@@ -13550,14 +13550,14 @@ var init_esm2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/keyvaluestorage/dist/index.es.js
+// ../../node_modules/@walletconnect/keyvaluestorage/dist/index.es.js
 function k(i2) {
   var t;
   return [i2[0], safeJsonParse((t = i2[1]) != null ? t : "")];
 }
 var x, z, D, E, _, l2, c, K, N, y, O, j, h;
 var init_index_es2 = __esm({
-  "node_modules/@walletconnect/keyvaluestorage/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/keyvaluestorage/dist/index.es.js"() {
     init_process();
     init_buffer();
     init_dist2();
@@ -13718,7 +13718,7 @@ var init_index_es2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/logger/dist/index.es.js
+// ../../node_modules/@walletconnect/logger/dist/index.es.js
 function se(e2) {
   try {
     return JSON.stringify(e2);
@@ -14008,7 +14008,7 @@ function Ue(e2) {
 }
 var b, ie, G, E2, le, A, P, ae, Oe, Z, k2, x2, ze, _e, y2, je, q, Se, Ee, ke, B, J, Ce, Ie, Te, xe, Be, Ae, Pe, Ve, Ne, $e, Fe, H, Me, De, W, p, w;
 var init_index_es3 = __esm({
-  "node_modules/@walletconnect/logger/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/logger/dist/index.es.js"() {
     init_process();
     init_buffer();
     b = { exports: {} };
@@ -14175,10 +14175,10 @@ var init_index_es3 = __esm({
   }
 });
 
-// node_modules/@walletconnect/types/dist/index.js
+// ../../node_modules/@walletconnect/types/dist/index.js
 var n2, h2, a, g, u, p2, d, x3, y3, v2, C, S, M;
 var init_dist4 = __esm({
-  "node_modules/@walletconnect/types/dist/index.js"() {
+  "../../node_modules/@walletconnect/types/dist/index.js"() {
     init_process();
     init_buffer();
     init_esm();
@@ -14251,7 +14251,7 @@ var init_dist4 = __esm({
   }
 });
 
-// node_modules/@walletconnect/relay-auth/dist/index.es.js
+// ../../node_modules/@walletconnect/relay-auth/dist/index.es.js
 function En(t) {
   return t instanceof Uint8Array || ArrayBuffer.isView(t) && t.constructor.name === "Uint8Array";
 }
@@ -14961,7 +14961,7 @@ async function Qo(t, e2, n4, r3, o4 = (0, import_time2.fromMiliseconds)(Date.now
 }
 var import_time2, it, _t, xn, An, wt, St, _n, Sn, vn, In, Un, Tn, Fn, Nn, Ln, On, Hn, zn, Mn, $n, kn, Rn, jn, Zn, Gn, x4, Vn, Yn, P2, Q2, Jn, Kn, vt, be2, Wn, Xn, K3, Lt, er, nr, M2, N3, nt, rr, Ht, Be2, Ce2, ur, cr, Se2, gt, qt, Ie2, G2, j2, yt, wr, Er, kt, Ue2, xr, Te2, Br, Cr, Sr, vr, Rt, jt, Zt, ut, Dt, Gt, xt, Vt, Yt, Jt, dt, Kt, Wt, Ne2, Ur, Tr, He, Fr, Nr, Lr, Or, Hr, ze2, zr, Bt, ht, Mr, qr, k3, $r, kr, Rr, jr, Zr, Gr, Vr, Yr, Jr, Kr, Wr, Xr, Pr, Qr, to, eo, no, ro, oo, so, io, uo, co, ao, fo, Do, ho, lo, bo, po, wo, Eo, Me2, go, yo, Co, Ao, mo, qe, _o, So, vo, Io, Uo, ke2, To, Fo, No, Lo, Oo, Ho, zo, Mo, qo, $o, ko, Re2, je2, Ze, Qt, Ro, Ge2, jo, Ve2, Zo, Go, Vo, Ye, Yo, Je, Jo, Ko, Wo, Ke, Xe, te2, Pe2;
 var init_index_es4 = __esm({
-  "node_modules/@walletconnect/relay-auth/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/relay-auth/dist/index.es.js"() {
     init_process();
     init_buffer();
     import_time2 = __toESM(require_cjs());
@@ -15329,7 +15329,7 @@ var init_index_es4 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/vendor/base-x.js
+// ../../node_modules/multiformats/esm/vendor/base-x.js
 function base(ALPHABET, name2) {
   if (ALPHABET.length >= 255) {
     throw new TypeError("Alphabet too long");
@@ -15462,7 +15462,7 @@ function base(ALPHABET, name2) {
 }
 var src, _brrp__multiformats_scope_baseX, base_x_default;
 var init_base_x = __esm({
-  "node_modules/multiformats/esm/vendor/base-x.js"() {
+  "../../node_modules/multiformats/esm/vendor/base-x.js"() {
     init_process();
     init_buffer();
     src = base;
@@ -15471,10 +15471,10 @@ var init_base_x = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bytes.js
+// ../../node_modules/multiformats/esm/src/bytes.js
 var empty, equals3, coerce, fromString3, toString4;
 var init_bytes = __esm({
-  "node_modules/multiformats/esm/src/bytes.js"() {
+  "../../node_modules/multiformats/esm/src/bytes.js"() {
     init_process();
     init_buffer();
     empty = new Uint8Array(0);
@@ -15506,10 +15506,10 @@ var init_bytes = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base.js
+// ../../node_modules/multiformats/esm/src/bases/base.js
 var Encoder, Decoder, ComposedDecoder, or2, Codec, from3, baseX, decode, encode, rfc4648;
 var init_base = __esm({
-  "node_modules/multiformats/esm/src/bases/base.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base.js"() {
     init_process();
     init_buffer();
     init_base_x();
@@ -15668,14 +15668,14 @@ var init_base = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/identity.js
+// ../../node_modules/multiformats/esm/src/bases/identity.js
 var identity_exports = {};
 __export(identity_exports, {
   identity: () => identity
 });
 var identity;
 var init_identity = __esm({
-  "node_modules/multiformats/esm/src/bases/identity.js"() {
+  "../../node_modules/multiformats/esm/src/bases/identity.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15689,14 +15689,14 @@ var init_identity = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base2.js
+// ../../node_modules/multiformats/esm/src/bases/base2.js
 var base2_exports = {};
 __export(base2_exports, {
   base2: () => base2
 });
 var base2;
 var init_base2 = __esm({
-  "node_modules/multiformats/esm/src/bases/base2.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base2.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15709,14 +15709,14 @@ var init_base2 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base8.js
+// ../../node_modules/multiformats/esm/src/bases/base8.js
 var base8_exports = {};
 __export(base8_exports, {
   base8: () => base8
 });
 var base8;
 var init_base8 = __esm({
-  "node_modules/multiformats/esm/src/bases/base8.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base8.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15729,14 +15729,14 @@ var init_base8 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base10.js
+// ../../node_modules/multiformats/esm/src/bases/base10.js
 var base10_exports = {};
 __export(base10_exports, {
   base10: () => base10
 });
 var base10;
 var init_base10 = __esm({
-  "node_modules/multiformats/esm/src/bases/base10.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base10.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15748,7 +15748,7 @@ var init_base10 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base16.js
+// ../../node_modules/multiformats/esm/src/bases/base16.js
 var base16_exports = {};
 __export(base16_exports, {
   base16: () => base16,
@@ -15756,7 +15756,7 @@ __export(base16_exports, {
 });
 var base16, base16upper;
 var init_base16 = __esm({
-  "node_modules/multiformats/esm/src/bases/base16.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base16.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15775,7 +15775,7 @@ var init_base16 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base32.js
+// ../../node_modules/multiformats/esm/src/bases/base32.js
 var base32_exports = {};
 __export(base32_exports, {
   base32: () => base32,
@@ -15790,7 +15790,7 @@ __export(base32_exports, {
 });
 var base32, base32upper, base32pad, base32padupper, base32hex, base32hexupper, base32hexpad, base32hexpadupper, base32z;
 var init_base32 = __esm({
-  "node_modules/multiformats/esm/src/bases/base32.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base32.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15851,7 +15851,7 @@ var init_base32 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base36.js
+// ../../node_modules/multiformats/esm/src/bases/base36.js
 var base36_exports = {};
 __export(base36_exports, {
   base36: () => base36,
@@ -15859,7 +15859,7 @@ __export(base36_exports, {
 });
 var base36, base36upper;
 var init_base36 = __esm({
-  "node_modules/multiformats/esm/src/bases/base36.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base36.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15876,7 +15876,7 @@ var init_base36 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base58.js
+// ../../node_modules/multiformats/esm/src/bases/base58.js
 var base58_exports = {};
 __export(base58_exports, {
   base58btc: () => base58btc,
@@ -15884,7 +15884,7 @@ __export(base58_exports, {
 });
 var base58btc, base58flickr;
 var init_base58 = __esm({
-  "node_modules/multiformats/esm/src/bases/base58.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base58.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15901,7 +15901,7 @@ var init_base58 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base64.js
+// ../../node_modules/multiformats/esm/src/bases/base64.js
 var base64_exports = {};
 __export(base64_exports, {
   base64: () => base64,
@@ -15911,7 +15911,7 @@ __export(base64_exports, {
 });
 var base64, base64pad, base64url, base64urlpad;
 var init_base64 = __esm({
-  "node_modules/multiformats/esm/src/bases/base64.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base64.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15942,7 +15942,7 @@ var init_base64 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/bases/base256emoji.js
+// ../../node_modules/multiformats/esm/src/bases/base256emoji.js
 var base256emoji_exports = {};
 __export(base256emoji_exports, {
   base256emoji: () => base256emoji
@@ -15966,7 +15966,7 @@ function decode2(str) {
 }
 var alphabet, alphabetBytesToChars, alphabetCharsToBytes, base256emoji;
 var init_base256emoji = __esm({
-  "node_modules/multiformats/esm/src/bases/base256emoji.js"() {
+  "../../node_modules/multiformats/esm/src/bases/base256emoji.js"() {
     init_process();
     init_buffer();
     init_base();
@@ -15988,7 +15988,7 @@ var init_base256emoji = __esm({
   }
 });
 
-// node_modules/multiformats/esm/vendor/varint.js
+// ../../node_modules/multiformats/esm/vendor/varint.js
 function encode3(num, out, offset) {
   out = out || [];
   offset = offset || 0;
@@ -16021,7 +16021,7 @@ function read2(buf, offset) {
 }
 var encode_1, MSB, REST, MSBALL, INT, decode3, MSB$1, REST$1, N1, N22, N32, N4, N5, N6, N7, N8, N9, length, varint, _brrp_varint, varint_default;
 var init_varint = __esm({
-  "node_modules/multiformats/esm/vendor/varint.js"() {
+  "../../node_modules/multiformats/esm/vendor/varint.js"() {
     init_process();
     init_buffer();
     encode_1 = encode3;
@@ -16054,10 +16054,10 @@ var init_varint = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/varint.js
+// ../../node_modules/multiformats/esm/src/varint.js
 var decode4, encodeTo, encodingLength;
 var init_varint2 = __esm({
-  "node_modules/multiformats/esm/src/varint.js"() {
+  "../../node_modules/multiformats/esm/src/varint.js"() {
     init_process();
     init_buffer();
     init_varint();
@@ -16078,10 +16078,10 @@ var init_varint2 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/hashes/digest.js
+// ../../node_modules/multiformats/esm/src/hashes/digest.js
 var create, decode5, equals4, Digest;
 var init_digest = __esm({
-  "node_modules/multiformats/esm/src/hashes/digest.js"() {
+  "../../node_modules/multiformats/esm/src/hashes/digest.js"() {
     init_process();
     init_buffer();
     init_bytes();
@@ -16124,10 +16124,10 @@ var init_digest = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/hashes/hasher.js
+// ../../node_modules/multiformats/esm/src/hashes/hasher.js
 var from4, Hasher;
 var init_hasher = __esm({
-  "node_modules/multiformats/esm/src/hashes/hasher.js"() {
+  "../../node_modules/multiformats/esm/src/hashes/hasher.js"() {
     init_process();
     init_buffer();
     init_digest();
@@ -16150,7 +16150,7 @@ var init_hasher = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/hashes/sha2-browser.js
+// ../../node_modules/multiformats/esm/src/hashes/sha2-browser.js
 var sha2_browser_exports = {};
 __export(sha2_browser_exports, {
   sha256: () => sha256,
@@ -16158,7 +16158,7 @@ __export(sha2_browser_exports, {
 });
 var sha, sha256, sha512;
 var init_sha2_browser = __esm({
-  "node_modules/multiformats/esm/src/hashes/sha2-browser.js"() {
+  "../../node_modules/multiformats/esm/src/hashes/sha2-browser.js"() {
     init_process();
     init_buffer();
     init_hasher();
@@ -16176,14 +16176,14 @@ var init_sha2_browser = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/hashes/identity.js
+// ../../node_modules/multiformats/esm/src/hashes/identity.js
 var identity_exports2 = {};
 __export(identity_exports2, {
   identity: () => identity2
 });
 var code, name, encode4, digest, identity2;
 var init_identity2 = __esm({
-  "node_modules/multiformats/esm/src/hashes/identity.js"() {
+  "../../node_modules/multiformats/esm/src/hashes/identity.js"() {
     init_process();
     init_buffer();
     init_bytes();
@@ -16201,19 +16201,19 @@ var init_identity2 = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/codecs/raw.js
+// ../../node_modules/multiformats/esm/src/codecs/raw.js
 var init_raw = __esm({
-  "node_modules/multiformats/esm/src/codecs/raw.js"() {
+  "../../node_modules/multiformats/esm/src/codecs/raw.js"() {
     init_process();
     init_buffer();
     init_bytes();
   }
 });
 
-// node_modules/multiformats/esm/src/codecs/json.js
+// ../../node_modules/multiformats/esm/src/codecs/json.js
 var textEncoder, textDecoder;
 var init_json = __esm({
-  "node_modules/multiformats/esm/src/codecs/json.js"() {
+  "../../node_modules/multiformats/esm/src/codecs/json.js"() {
     init_process();
     init_buffer();
     textEncoder = new TextEncoder();
@@ -16221,10 +16221,10 @@ var init_json = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/cid.js
+// ../../node_modules/multiformats/esm/src/cid.js
 var CID, parseCIDtoBytes, toStringV0, toStringV1, DAG_PB_CODE, SHA_256_CODE, encodeCID, cidSymbol, readonly, hidden, version3, deprecate2, IS_CID_DEPRECATION;
 var init_cid = __esm({
-  "node_modules/multiformats/esm/src/cid.js"() {
+  "../../node_modules/multiformats/esm/src/cid.js"() {
     init_process();
     init_buffer();
     init_varint2();
@@ -16538,9 +16538,9 @@ if (cid) {
   }
 });
 
-// node_modules/multiformats/esm/src/index.js
+// ../../node_modules/multiformats/esm/src/index.js
 var init_src = __esm({
-  "node_modules/multiformats/esm/src/index.js"() {
+  "../../node_modules/multiformats/esm/src/index.js"() {
     init_process();
     init_buffer();
     init_cid();
@@ -16551,10 +16551,10 @@ var init_src = __esm({
   }
 });
 
-// node_modules/multiformats/esm/src/basics.js
+// ../../node_modules/multiformats/esm/src/basics.js
 var bases, hashes;
 var init_basics = __esm({
-  "node_modules/multiformats/esm/src/basics.js"() {
+  "../../node_modules/multiformats/esm/src/basics.js"() {
     init_process();
     init_buffer();
     init_identity();
@@ -16591,7 +16591,7 @@ var init_basics = __esm({
   }
 });
 
-// node_modules/uint8arrays/esm/src/util/as-uint8array.js
+// ../../node_modules/uint8arrays/esm/src/util/as-uint8array.js
 function asUint8Array(buf) {
   if (globalThis.Buffer != null) {
     return new Uint8Array(buf.buffer, buf.byteOffset, buf.byteLength);
@@ -16599,13 +16599,13 @@ function asUint8Array(buf) {
   return buf;
 }
 var init_as_uint8array = __esm({
-  "node_modules/uint8arrays/esm/src/util/as-uint8array.js"() {
+  "../../node_modules/uint8arrays/esm/src/util/as-uint8array.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/uint8arrays/esm/src/alloc.js
+// ../../node_modules/uint8arrays/esm/src/alloc.js
 function allocUnsafe3(size3 = 0) {
   if (globalThis.Buffer != null && globalThis.Buffer.allocUnsafe != null) {
     return asUint8Array(globalThis.Buffer.allocUnsafe(size3));
@@ -16613,14 +16613,14 @@ function allocUnsafe3(size3 = 0) {
   return new Uint8Array(size3);
 }
 var init_alloc = __esm({
-  "node_modules/uint8arrays/esm/src/alloc.js"() {
+  "../../node_modules/uint8arrays/esm/src/alloc.js"() {
     init_process();
     init_buffer();
     init_as_uint8array();
   }
 });
 
-// node_modules/uint8arrays/esm/src/util/bases.js
+// ../../node_modules/uint8arrays/esm/src/util/bases.js
 function createCodec(name2, prefix, encode6, decode7) {
   return {
     name: name2,
@@ -16635,7 +16635,7 @@ function createCodec(name2, prefix, encode6, decode7) {
 }
 var string, ascii, BASES, bases_default;
 var init_bases = __esm({
-  "node_modules/uint8arrays/esm/src/util/bases.js"() {
+  "../../node_modules/uint8arrays/esm/src/util/bases.js"() {
     init_process();
     init_buffer();
     init_basics();
@@ -16674,7 +16674,7 @@ var init_bases = __esm({
   }
 });
 
-// node_modules/uint8arrays/esm/src/from-string.js
+// ../../node_modules/uint8arrays/esm/src/from-string.js
 function fromString4(string2, encoding = "utf8") {
   const base3 = bases_default[encoding];
   if (!base3) {
@@ -16686,7 +16686,7 @@ function fromString4(string2, encoding = "utf8") {
   return base3.decoder.decode(`${base3.prefix}${string2}`);
 }
 var init_from_string = __esm({
-  "node_modules/uint8arrays/esm/src/from-string.js"() {
+  "../../node_modules/uint8arrays/esm/src/from-string.js"() {
     init_process();
     init_buffer();
     init_bases();
@@ -16694,7 +16694,7 @@ var init_from_string = __esm({
   }
 });
 
-// node_modules/detect-browser/es/index.js
+// ../../node_modules/detect-browser/es/index.js
 function detect(userAgent) {
   if (!!userAgent) {
     return parseUserAgent(userAgent);
@@ -16765,7 +16765,7 @@ function createVersionParts(count) {
 }
 var __spreadArray, BrowserInfo, NodeInfo, SearchBotDeviceInfo, BotInfo, ReactNativeInfo, SEARCHBOX_UA_REGEX, SEARCHBOT_OS_REGEX, REQUIRED_VERSION_PARTS, userAgentRules, operatingSystemRules;
 var init_es = __esm({
-  "node_modules/detect-browser/es/index.js"() {
+  "../../node_modules/detect-browser/es/index.js"() {
     init_process();
     init_buffer();
     __spreadArray = function(to3, from10, pack) {
@@ -16903,9 +16903,9 @@ var init_es = __esm({
   }
 });
 
-// node_modules/@walletconnect/window-getters/dist/cjs/index.js
+// ../../node_modules/@walletconnect/window-getters/dist/cjs/index.js
 var require_cjs2 = __commonJS({
-  "node_modules/@walletconnect/window-getters/dist/cjs/index.js"(exports) {
+  "../../node_modules/@walletconnect/window-getters/dist/cjs/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -16970,9 +16970,9 @@ var require_cjs2 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/window-metadata/dist/cjs/index.js
+// ../../node_modules/@walletconnect/window-metadata/dist/cjs/index.js
 var require_cjs3 = __commonJS({
-  "node_modules/@walletconnect/window-metadata/dist/cjs/index.js"(exports) {
+  "../../node_modules/@walletconnect/window-metadata/dist/cjs/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -17067,7 +17067,7 @@ var require_cjs3 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js
 function fromBig(n4, le5 = false) {
   if (le5)
     return { h: Number(n4 & U32_MASK64), l: Number(n4 >> _32n & U32_MASK64) };
@@ -17089,7 +17089,7 @@ function add(Ah, Al, Bh, Bl) {
 }
 var U32_MASK64, _32n, shrSH, shrSL, rotrSH, rotrSL, rotrBH, rotrBL, rotr32H, rotr32L, rotlSH, rotlSL, rotlBH, rotlBL, add3L, add3H, add4L, add4H, add5L, add5H;
 var init_u64 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_u64.js"() {
     init_process();
     init_buffer();
     U32_MASK64 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
@@ -17115,17 +17115,17 @@ var init_u64 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js
 var crypto2;
 var init_crypto = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/crypto.js"() {
     init_process();
     init_buffer();
     crypto2 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js
 function isBytes(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -17274,7 +17274,7 @@ function randomBytes(bytesLength = 32) {
 }
 var isLE, swap8IfBE, swap32IfBE, hasHexBuiltin, hexes, asciis, Hash;
 var init_utils = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/utils.js"() {
     init_process();
     init_buffer();
     init_crypto();
@@ -17292,7 +17292,7 @@ var init_utils = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js
 function keccakP(s2, rounds = 24) {
   const B3 = new Uint32Array(5 * 2);
   for (let round = 24 - rounds; round < 24; round++) {
@@ -17335,7 +17335,7 @@ function keccakP(s2, rounds = 24) {
 }
 var _0n, _1n, _2n, _7n, _256n, _0x71n, SHA3_PI, SHA3_ROTL, _SHA3_IOTA, IOTAS, SHA3_IOTA_H, SHA3_IOTA_L, rotlH, rotlL, Keccak, gen, keccak_256;
 var init_sha3 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha3.js"() {
     init_process();
     init_buffer();
     init_u64();
@@ -17482,37 +17482,37 @@ var init_sha3 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Abi.js
+// ../../node_modules/ox/_esm/core/Abi.js
 var init_Abi = __esm({
-  "node_modules/ox/_esm/core/Abi.js"() {
+  "../../node_modules/ox/_esm/core/Abi.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/version.js
+// ../../node_modules/ox/_esm/core/version.js
 var version4;
 var init_version = __esm({
-  "node_modules/ox/_esm/core/version.js"() {
+  "../../node_modules/ox/_esm/core/version.js"() {
     init_process();
     init_buffer();
     version4 = "0.1.1";
   }
 });
 
-// node_modules/ox/_esm/core/internal/errors.js
+// ../../node_modules/ox/_esm/core/internal/errors.js
 function getVersion() {
   return version4;
 }
 var init_errors = __esm({
-  "node_modules/ox/_esm/core/internal/errors.js"() {
+  "../../node_modules/ox/_esm/core/internal/errors.js"() {
     init_process();
     init_buffer();
     init_version();
   }
 });
 
-// node_modules/ox/_esm/core/Errors.js
+// ../../node_modules/ox/_esm/core/Errors.js
 function walk(err, fn) {
   if (fn?.(err))
     return err;
@@ -17522,7 +17522,7 @@ function walk(err, fn) {
 }
 var BaseError;
 var init_Errors = __esm({
-  "node_modules/ox/_esm/core/Errors.js"() {
+  "../../node_modules/ox/_esm/core/Errors.js"() {
     init_process();
     init_buffer();
     init_errors();
@@ -17613,17 +17613,17 @@ var init_Errors = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/crypto.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/crypto.js
 var crypto3;
 var init_crypto2 = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/crypto.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/crypto.js"() {
     init_process();
     init_buffer();
     crypto3 = typeof globalThis === "object" && "crypto" in globalThis ? globalThis.crypto : void 0;
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/utils.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/utils.js
 function isBytes2(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -17724,7 +17724,7 @@ function randomBytes2(bytesLength = 32) {
 }
 var isLE2, swap32IfBE2, Hash2;
 var init_utils2 = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/utils.js"() {
     init_process();
     init_buffer();
     init_crypto2();
@@ -17735,7 +17735,7 @@ var init_utils2 = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/_md.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/_md.js
 function setBigUint64(view, byteOffset, value, isLE4) {
   if (typeof view.setBigUint64 === "function")
     return view.setBigUint64(byteOffset, value, isLE4);
@@ -17756,7 +17756,7 @@ function Maj(a2, b4, c2) {
 }
 var HashMD, SHA256_IV;
 var init_md = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/_md.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/_md.js"() {
     init_process();
     init_buffer();
     init_utils2();
@@ -17863,7 +17863,7 @@ var init_md = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/_u64.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/_u64.js
 function fromBig2(n4, le5 = false) {
   if (le5)
     return { h: Number(n4 & U32_MASK642), l: Number(n4 >> _32n2 & U32_MASK642) };
@@ -17881,7 +17881,7 @@ function split2(lst, le5 = false) {
 }
 var U32_MASK642, _32n2, rotlSH2, rotlSL2, rotlBH2, rotlBL2;
 var init_u642 = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/_u64.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/_u64.js"() {
     init_process();
     init_buffer();
     U32_MASK642 = /* @__PURE__ */ BigInt(2 ** 32 - 1);
@@ -17893,7 +17893,7 @@ var init_u642 = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/sha3.js
 function keccakP2(s2, rounds = 24) {
   const B3 = new Uint32Array(5 * 2);
   for (let round = 24 - rounds; round < 24; round++) {
@@ -17936,7 +17936,7 @@ function keccakP2(s2, rounds = 24) {
 }
 var _0n2, _1n2, _2n2, _7n2, _256n2, _0x71n2, SHA3_PI2, SHA3_ROTL2, _SHA3_IOTA2, IOTAS2, SHA3_IOTA_H2, SHA3_IOTA_L2, rotlH2, rotlL2, Keccak2, gen2, keccak_2562;
 var init_sha32 = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/sha3.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/sha3.js"() {
     init_process();
     init_buffer();
     init_u642();
@@ -18083,10 +18083,10 @@ var init_sha32 = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/sha2.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/sha2.js
 var SHA256_K, SHA256_W, SHA256, sha2562;
 var init_sha2 = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/sha2.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/sha2.js"() {
     init_process();
     init_buffer();
     init_md();
@@ -18232,7 +18232,7 @@ var init_sha2 = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js
 function isBytes3(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -18431,7 +18431,7 @@ function memoized(fn) {
 }
 var _0n3, _1n3, hasHexBuiltin2, hexes2, asciis2, isPosBig, bitMask, u8n, u8fr, validatorFns;
 var init_utils3 = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/abstract/utils.js"() {
     init_process();
     init_buffer();
     _0n3 = /* @__PURE__ */ BigInt(0);
@@ -18458,7 +18458,7 @@ var init_utils3 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/internal/bytes.js
+// ../../node_modules/ox/_esm/core/internal/bytes.js
 function assertSize3(bytes, size_) {
   if (size(bytes) > size_)
     throw new SizeOverflowError({
@@ -18494,7 +18494,7 @@ function pad2(bytes, options = {}) {
 }
 var charCodeMap;
 var init_bytes2 = __esm({
-  "node_modules/ox/_esm/core/internal/bytes.js"() {
+  "../../node_modules/ox/_esm/core/internal/bytes.js"() {
     init_process();
     init_buffer();
     init_Bytes();
@@ -18509,7 +18509,7 @@ var init_bytes2 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/internal/hex.js
+// ../../node_modules/ox/_esm/core/internal/hex.js
 function assertSize4(hex, size_) {
   if (size2(hex) > size_)
     throw new SizeOverflowError2({
@@ -18565,14 +18565,14 @@ function trim(value, options = {}) {
   return `0x${data}`;
 }
 var init_hex = __esm({
-  "node_modules/ox/_esm/core/internal/hex.js"() {
+  "../../node_modules/ox/_esm/core/internal/hex.js"() {
     init_process();
     init_buffer();
     init_Hex();
   }
 });
 
-// node_modules/ox/_esm/core/Json.js
+// ../../node_modules/ox/_esm/core/Json.js
 function stringify2(value, replacer, space) {
   return JSON.stringify(value, (key, value2) => {
     if (typeof replacer === "function")
@@ -18584,14 +18584,14 @@ function stringify2(value, replacer, space) {
 }
 var bigIntSuffix;
 var init_Json = __esm({
-  "node_modules/ox/_esm/core/Json.js"() {
+  "../../node_modules/ox/_esm/core/Json.js"() {
     init_process();
     init_buffer();
     bigIntSuffix = "#__bigint";
   }
 });
 
-// node_modules/ox/_esm/core/Hex.js
+// ../../node_modules/ox/_esm/core/Hex.js
 function assert(value, options = {}) {
   const { strict = false } = options;
   if (!value)
@@ -18697,7 +18697,7 @@ function validate(value, options = {}) {
 }
 var encoder, hexes3, IntegerOutOfRangeError, InvalidHexTypeError, InvalidHexValueError, SizeOverflowError2, SliceOffsetOutOfBoundsError2, SizeExceedsPaddingSizeError2;
 var init_Hex = __esm({
-  "node_modules/ox/_esm/core/Hex.js"() {
+  "../../node_modules/ox/_esm/core/Hex.js"() {
     init_process();
     init_buffer();
     init_Errors();
@@ -18780,7 +18780,7 @@ var init_Hex = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Bytes.js
+// ../../node_modules/ox/_esm/core/Bytes.js
 function assert2(value) {
   if (value instanceof Uint8Array)
     return;
@@ -18850,7 +18850,7 @@ function validate2(value) {
 }
 var encoder2, InvalidBytesTypeError, SizeOverflowError, SizeExceedsPaddingSizeError;
 var init_Bytes = __esm({
-  "node_modules/ox/_esm/core/Bytes.js"() {
+  "../../node_modules/ox/_esm/core/Bytes.js"() {
     init_process();
     init_buffer();
     init_Errors();
@@ -18897,7 +18897,7 @@ var init_Bytes = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Hash.js
+// ../../node_modules/ox/_esm/core/Hash.js
 function keccak256(value, options = {}) {
   const { as = typeof value === "string" ? "Hex" : "Bytes" } = options;
   const bytes = keccak_2562(from6(value));
@@ -18906,7 +18906,7 @@ function keccak256(value, options = {}) {
   return fromBytes(bytes);
 }
 var init_Hash = __esm({
-  "node_modules/ox/_esm/core/Hash.js"() {
+  "../../node_modules/ox/_esm/core/Hash.js"() {
     init_process();
     init_buffer();
     init_sha32();
@@ -18915,10 +18915,10 @@ var init_Hash = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/internal/lru.js
+// ../../node_modules/ox/_esm/core/internal/lru.js
 var LruMap;
 var init_lru = __esm({
-  "node_modules/ox/_esm/core/internal/lru.js"() {
+  "../../node_modules/ox/_esm/core/internal/lru.js"() {
     init_process();
     init_buffer();
     LruMap = class extends Map {
@@ -18953,10 +18953,10 @@ var init_lru = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Caches.js
+// ../../node_modules/ox/_esm/core/Caches.js
 var caches, checksum;
 var init_Caches = __esm({
-  "node_modules/ox/_esm/core/Caches.js"() {
+  "../../node_modules/ox/_esm/core/Caches.js"() {
     init_process();
     init_buffer();
     init_lru();
@@ -18967,7 +18967,7 @@ var init_Caches = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/PublicKey.js
+// ../../node_modules/ox/_esm/core/PublicKey.js
 function assert3(publicKey, options = {}) {
   const { compressed } = options;
   const { prefix, x: x7, y: y6 } = publicKey;
@@ -19052,7 +19052,7 @@ function toHex3(publicKey, options = {}) {
 }
 var InvalidError, InvalidPrefixError, InvalidCompressedPrefixError, InvalidUncompressedPrefixError, InvalidSerializedSizeError;
 var init_PublicKey = __esm({
-  "node_modules/ox/_esm/core/PublicKey.js"() {
+  "../../node_modules/ox/_esm/core/PublicKey.js"() {
     init_process();
     init_buffer();
     init_Bytes();
@@ -19130,7 +19130,7 @@ var init_PublicKey = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Address.js
+// ../../node_modules/ox/_esm/core/Address.js
 function assert4(value, options = {}) {
   const { strict = true } = options;
   if (!addressRegex.test(value))
@@ -19185,7 +19185,7 @@ function isEqual(addressA, addressB) {
 }
 var addressRegex, InvalidAddressError, InvalidInputError, InvalidChecksumError;
 var init_Address = __esm({
-  "node_modules/ox/_esm/core/Address.js"() {
+  "../../node_modules/ox/_esm/core/Address.js"() {
     init_process();
     init_buffer();
     init_Bytes();
@@ -19232,18 +19232,18 @@ var init_Address = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/AbiItem.js
+// ../../node_modules/ox/_esm/core/AbiItem.js
 var init_AbiItem = __esm({
-  "node_modules/ox/_esm/core/AbiItem.js"() {
+  "../../node_modules/ox/_esm/core/AbiItem.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Solidity.js
+// ../../node_modules/ox/_esm/core/Solidity.js
 var arrayRegex, bytesRegex, integerRegex, maxInt8, maxInt16, maxInt24, maxInt32, maxInt40, maxInt48, maxInt56, maxInt64, maxInt72, maxInt80, maxInt88, maxInt96, maxInt104, maxInt112, maxInt120, maxInt128, maxInt136, maxInt144, maxInt152, maxInt160, maxInt168, maxInt176, maxInt184, maxInt192, maxInt200, maxInt208, maxInt216, maxInt224, maxInt232, maxInt240, maxInt248, maxInt256, minInt8, minInt16, minInt24, minInt32, minInt40, minInt48, minInt56, minInt64, minInt72, minInt80, minInt88, minInt96, minInt104, minInt112, minInt120, minInt128, minInt136, minInt144, minInt152, minInt160, minInt168, minInt176, minInt184, minInt192, minInt200, minInt208, minInt216, minInt224, minInt232, minInt240, minInt248, minInt256, maxUint8, maxUint16, maxUint24, maxUint32, maxUint40, maxUint48, maxUint56, maxUint64, maxUint72, maxUint80, maxUint88, maxUint96, maxUint104, maxUint112, maxUint120, maxUint128, maxUint136, maxUint144, maxUint152, maxUint160, maxUint168, maxUint176, maxUint184, maxUint192, maxUint200, maxUint208, maxUint216, maxUint224, maxUint232, maxUint240, maxUint248, maxUint256;
 var init_Solidity = __esm({
-  "node_modules/ox/_esm/core/Solidity.js"() {
+  "../../node_modules/ox/_esm/core/Solidity.js"() {
     init_process();
     init_buffer();
     arrayRegex = /^(.*)\[([0-9]*)\]$/;
@@ -19348,7 +19348,7 @@ var init_Solidity = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/AbiParameters.js
+// ../../node_modules/ox/_esm/core/AbiParameters.js
 function encodePacked(types, values) {
   if (types.length !== values.length)
     throw new LengthMismatchError({
@@ -19365,7 +19365,7 @@ function encodePacked(types, values) {
 }
 var BytesSizeMismatchError, LengthMismatchError, InvalidTypeError;
 var init_AbiParameters = __esm({
-  "node_modules/ox/_esm/core/AbiParameters.js"() {
+  "../../node_modules/ox/_esm/core/AbiParameters.js"() {
     init_process();
     init_buffer();
     init_Address();
@@ -19459,74 +19459,74 @@ var init_AbiParameters = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/AbiConstructor.js
+// ../../node_modules/ox/_esm/core/AbiConstructor.js
 var init_AbiConstructor = __esm({
-  "node_modules/ox/_esm/core/AbiConstructor.js"() {
+  "../../node_modules/ox/_esm/core/AbiConstructor.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AbiError.js
+// ../../node_modules/ox/_esm/core/AbiError.js
 var init_AbiError = __esm({
-  "node_modules/ox/_esm/core/AbiError.js"() {
+  "../../node_modules/ox/_esm/core/AbiError.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AbiEvent.js
+// ../../node_modules/ox/_esm/core/AbiEvent.js
 var init_AbiEvent = __esm({
-  "node_modules/ox/_esm/core/AbiEvent.js"() {
+  "../../node_modules/ox/_esm/core/AbiEvent.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AbiFunction.js
+// ../../node_modules/ox/_esm/core/AbiFunction.js
 var init_AbiFunction = __esm({
-  "node_modules/ox/_esm/core/AbiFunction.js"() {
+  "../../node_modules/ox/_esm/core/AbiFunction.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AccessList.js
+// ../../node_modules/ox/_esm/core/AccessList.js
 var init_AccessList = __esm({
-  "node_modules/ox/_esm/core/AccessList.js"() {
+  "../../node_modules/ox/_esm/core/AccessList.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AccountProof.js
+// ../../node_modules/ox/_esm/core/AccountProof.js
 var init_AccountProof = __esm({
-  "node_modules/ox/_esm/core/AccountProof.js"() {
+  "../../node_modules/ox/_esm/core/AccountProof.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/AesGcm.js
+// ../../node_modules/ox/_esm/core/AesGcm.js
 var init_AesGcm = __esm({
-  "node_modules/ox/_esm/core/AesGcm.js"() {
+  "../../node_modules/ox/_esm/core/AesGcm.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Rlp.js
+// ../../node_modules/ox/_esm/core/Rlp.js
 var init_Rlp = __esm({
-  "node_modules/ox/_esm/core/Rlp.js"() {
+  "../../node_modules/ox/_esm/core/Rlp.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/node_modules/@noble/hashes/esm/hmac.js
+// ../../node_modules/ox/node_modules/@noble/hashes/esm/hmac.js
 var HMAC, hmac;
 var init_hmac = __esm({
-  "node_modules/ox/node_modules/@noble/hashes/esm/hmac.js"() {
+  "../../node_modules/ox/node_modules/@noble/hashes/esm/hmac.js"() {
     init_process();
     init_buffer();
     init_utils2();
@@ -19599,7 +19599,7 @@ var init_hmac = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js
 function mod(a2, b4) {
   const result = a2 % b4;
   return result >= _0n4 ? result : b4 + result;
@@ -19848,7 +19848,7 @@ function mapHashToField(key, fieldOrder, isLE4 = false) {
 }
 var _0n4, _1n4, _2n3, _3n, _4n, _5n, _8n, FIELD_FIELDS;
 var init_modular = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/abstract/modular.js"() {
     init_process();
     init_buffer();
     init_utils2();
@@ -19882,7 +19882,7 @@ var init_modular = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js
 function constTimeNegate(condition, item) {
   const neg = item.negate();
   return condition ? neg : item;
@@ -20113,7 +20113,7 @@ function validateBasic(curve) {
 }
 var _0n5, _1n5, pointPrecomputes, pointWindowSizes;
 var init_curve = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/abstract/curve.js"() {
     init_process();
     init_buffer();
     init_modular();
@@ -20125,7 +20125,7 @@ var init_curve = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js
 function validateSigVerOpts(opts) {
   if (opts.lowS !== void 0)
     abool("lowS", opts.lowS);
@@ -20902,7 +20902,7 @@ function weierstrass(curveDef) {
 }
 var DERErr, DER, _0n6, _1n6, _2n4, _3n2, _4n2;
 var init_weierstrass = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
     init_process();
     init_buffer();
     init_curve();
@@ -21021,7 +21021,7 @@ var init_weierstrass = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js
 function getHash(hash) {
   return {
     hash,
@@ -21034,7 +21034,7 @@ function createCurve(curveDef, defHash) {
   return { ...create2(defHash), create: create2 };
 }
 var init_shortw_utils = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/_shortw_utils.js"() {
     init_process();
     init_buffer();
     init_hmac();
@@ -21043,7 +21043,7 @@ var init_shortw_utils = __esm({
   }
 });
 
-// node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
+// ../../node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js
 function sqrtMod(y6) {
   const P5 = secp256k1P;
   const _3n6 = BigInt(3), _6n = BigInt(6), _11n = BigInt(11), _22n = BigInt(22);
@@ -21068,7 +21068,7 @@ function sqrtMod(y6) {
 }
 var secp256k1P, secp256k1N, _0n7, _1n7, _2n5, divNearest, Fpk1, secp256k1;
 var init_secp256k1 = __esm({
-  "node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js"() {
+  "../../node_modules/ox/node_modules/@noble/curves/esm/secp256k1.js"() {
     init_process();
     init_buffer();
     init_sha2();
@@ -21121,7 +21121,7 @@ var init_secp256k1 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Signature.js
+// ../../node_modules/ox/_esm/core/Signature.js
 var Signature_exports = {};
 __export(Signature_exports, {
   InvalidRError: () => InvalidRError,
@@ -21331,7 +21331,7 @@ function yParityToV(yParity) {
 }
 var InvalidSerializedSizeError2, MissingPropertiesError, InvalidRError, InvalidSError, InvalidYParityError, InvalidVError;
 var init_Signature = __esm({
-  "node_modules/ox/_esm/core/Signature.js"() {
+  "../../node_modules/ox/_esm/core/Signature.js"() {
     init_process();
     init_buffer();
     init_secp256k1();
@@ -21414,26 +21414,26 @@ var init_Signature = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Authorization.js
+// ../../node_modules/ox/_esm/core/Authorization.js
 var init_Authorization = __esm({
-  "node_modules/ox/_esm/core/Authorization.js"() {
+  "../../node_modules/ox/_esm/core/Authorization.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Base58.js
+// ../../node_modules/ox/_esm/core/Base58.js
 var init_Base58 = __esm({
-  "node_modules/ox/_esm/core/Base58.js"() {
+  "../../node_modules/ox/_esm/core/Base58.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Base64.js
+// ../../node_modules/ox/_esm/core/Base64.js
 var integerToCharacter, characterToInteger;
 var init_Base64 = __esm({
-  "node_modules/ox/_esm/core/Base64.js"() {
+  "../../node_modules/ox/_esm/core/Base64.js"() {
     init_process();
     init_buffer();
     integerToCharacter = /* @__PURE__ */ Object.fromEntries(Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/").map((a2, i2) => [i2, a2.charCodeAt(0)]));
@@ -21446,26 +21446,26 @@ var init_Base64 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/BinaryStateTree.js
+// ../../node_modules/ox/_esm/core/BinaryStateTree.js
 var init_BinaryStateTree = __esm({
-  "node_modules/ox/_esm/core/BinaryStateTree.js"() {
+  "../../node_modules/ox/_esm/core/BinaryStateTree.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Kzg.js
+// ../../node_modules/ox/_esm/core/Kzg.js
 var init_Kzg = __esm({
-  "node_modules/ox/_esm/core/Kzg.js"() {
+  "../../node_modules/ox/_esm/core/Kzg.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Blobs.js
+// ../../node_modules/ox/_esm/core/Blobs.js
 var blobsPerTransaction, bytesPerFieldElement, fieldElementsPerBlob, bytesPerBlob, maxBytesPerTransaction;
 var init_Blobs = __esm({
-  "node_modules/ox/_esm/core/Blobs.js"() {
+  "../../node_modules/ox/_esm/core/Blobs.js"() {
     init_process();
     init_buffer();
     blobsPerTransaction = 6;
@@ -21478,82 +21478,82 @@ var init_Blobs = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Transaction.js
+// ../../node_modules/ox/_esm/core/Transaction.js
 var init_Transaction = __esm({
-  "node_modules/ox/_esm/core/Transaction.js"() {
+  "../../node_modules/ox/_esm/core/Transaction.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Withdrawal.js
+// ../../node_modules/ox/_esm/core/Withdrawal.js
 var init_Withdrawal = __esm({
-  "node_modules/ox/_esm/core/Withdrawal.js"() {
+  "../../node_modules/ox/_esm/core/Withdrawal.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Block.js
+// ../../node_modules/ox/_esm/core/Block.js
 var init_Block = __esm({
-  "node_modules/ox/_esm/core/Block.js"() {
+  "../../node_modules/ox/_esm/core/Block.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/BlockOverrides.js
+// ../../node_modules/ox/_esm/core/BlockOverrides.js
 var init_BlockOverrides = __esm({
-  "node_modules/ox/_esm/core/BlockOverrides.js"() {
+  "../../node_modules/ox/_esm/core/BlockOverrides.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Bloom.js
+// ../../node_modules/ox/_esm/core/Bloom.js
 var init_Bloom = __esm({
-  "node_modules/ox/_esm/core/Bloom.js"() {
+  "../../node_modules/ox/_esm/core/Bloom.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Bls.js
+// ../../node_modules/ox/_esm/core/Bls.js
 var init_Bls = __esm({
-  "node_modules/ox/_esm/core/Bls.js"() {
+  "../../node_modules/ox/_esm/core/Bls.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/BlsPoint.js
+// ../../node_modules/ox/_esm/core/BlsPoint.js
 var init_BlsPoint = __esm({
-  "node_modules/ox/_esm/core/BlsPoint.js"() {
+  "../../node_modules/ox/_esm/core/BlsPoint.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/ContractAddress.js
+// ../../node_modules/ox/_esm/core/ContractAddress.js
 var init_ContractAddress = __esm({
-  "node_modules/ox/_esm/core/ContractAddress.js"() {
+  "../../node_modules/ox/_esm/core/ContractAddress.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Ed25519.js
+// ../../node_modules/ox/_esm/core/Ed25519.js
 var init_Ed25519 = __esm({
-  "node_modules/ox/_esm/core/Ed25519.js"() {
+  "../../node_modules/ox/_esm/core/Ed25519.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@adraffy/ens-normalize/dist/index.mjs
+// ../../node_modules/@adraffy/ens-normalize/dist/index.mjs
 var S0, L0, V0, T0, L_COUNT, V_COUNT, T_COUNT, N_COUNT, S_COUNT, S1, L1, V1, T1;
 var init_dist5 = __esm({
-  "node_modules/@adraffy/ens-normalize/dist/index.mjs"() {
+  "../../node_modules/@adraffy/ens-normalize/dist/index.mjs"() {
     init_process();
     init_buffer();
     S0 = 44032;
@@ -21572,32 +21572,32 @@ var init_dist5 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Ens.js
+// ../../node_modules/ox/_esm/core/Ens.js
 var init_Ens = __esm({
-  "node_modules/ox/_esm/core/Ens.js"() {
+  "../../node_modules/ox/_esm/core/Ens.js"() {
     init_process();
     init_buffer();
     init_dist5();
   }
 });
 
-// node_modules/ox/_esm/core/Fee.js
+// ../../node_modules/ox/_esm/core/Fee.js
 var init_Fee = __esm({
-  "node_modules/ox/_esm/core/Fee.js"() {
+  "../../node_modules/ox/_esm/core/Fee.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Filter.js
+// ../../node_modules/ox/_esm/core/Filter.js
 var init_Filter = __esm({
-  "node_modules/ox/_esm/core/Filter.js"() {
+  "../../node_modules/ox/_esm/core/Filter.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@scure/base/lib/esm/index.js
+// ../../node_modules/@scure/base/lib/esm/index.js
 function isBytes4(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -21831,7 +21831,7 @@ function radix2(bits, revPadding = false) {
 }
 var gcd, radix2carry, powers, base322, genBase58, base58;
 var init_esm3 = __esm({
-  "node_modules/@scure/base/lib/esm/index.js"() {
+  "../../node_modules/@scure/base/lib/esm/index.js"() {
     init_process();
     init_buffer();
     gcd = (a2, b4) => b4 === 0 ? a2 : gcd(b4, a2 % b4);
@@ -21848,17 +21848,17 @@ var init_esm3 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/internal/entropy.js
+// ../../node_modules/ox/_esm/core/internal/entropy.js
 var extraEntropy;
 var init_entropy = __esm({
-  "node_modules/ox/_esm/core/internal/entropy.js"() {
+  "../../node_modules/ox/_esm/core/internal/entropy.js"() {
     init_process();
     init_buffer();
     extraEntropy = false;
   }
 });
 
-// node_modules/ox/_esm/core/Secp256k1.js
+// ../../node_modules/ox/_esm/core/Secp256k1.js
 var Secp256k1_exports = {};
 __export(Secp256k1_exports, {
   createKeyPair: () => createKeyPair,
@@ -21932,7 +21932,7 @@ function verify(options) {
 }
 var noble;
 var init_Secp256k1 = __esm({
-  "node_modules/ox/_esm/core/Secp256k1.js"() {
+  "../../node_modules/ox/_esm/core/Secp256k1.js"() {
     init_process();
     init_buffer();
     init_secp256k1();
@@ -21945,15 +21945,15 @@ var init_Secp256k1 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/HdKey.js
+// ../../node_modules/ox/_esm/core/HdKey.js
 var init_HdKey = __esm({
-  "node_modules/ox/_esm/core/HdKey.js"() {
+  "../../node_modules/ox/_esm/core/HdKey.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@noble/ciphers/esm/utils.js
+// ../../node_modules/@noble/ciphers/esm/utils.js
 function isBytes5(a2) {
   return a2 instanceof Uint8Array || ArrayBuffer.isView(a2) && a2.constructor.name === "Uint8Array";
 }
@@ -22060,7 +22060,7 @@ function copyBytes(bytes) {
 }
 var isLE3, wrapCipher;
 var init_utils4 = __esm({
-  "node_modules/@noble/ciphers/esm/utils.js"() {
+  "../../node_modules/@noble/ciphers/esm/utils.js"() {
     init_process();
     init_buffer();
     isLE3 = /* @__PURE__ */ (() => new Uint8Array(new Uint32Array([287454020]).buffer)[0] === 68)();
@@ -22116,58 +22116,58 @@ var init_utils4 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Keystore.js
+// ../../node_modules/ox/_esm/core/Keystore.js
 var init_Keystore = __esm({
-  "node_modules/ox/_esm/core/Keystore.js"() {
+  "../../node_modules/ox/_esm/core/Keystore.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Log.js
+// ../../node_modules/ox/_esm/core/Log.js
 var init_Log = __esm({
-  "node_modules/ox/_esm/core/Log.js"() {
+  "../../node_modules/ox/_esm/core/Log.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@scure/bip39/esm/index.js
+// ../../node_modules/@scure/bip39/esm/index.js
 var init_esm4 = __esm({
-  "node_modules/@scure/bip39/esm/index.js"() {
+  "../../node_modules/@scure/bip39/esm/index.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Mnemonic.js
+// ../../node_modules/ox/_esm/core/Mnemonic.js
 var init_Mnemonic = __esm({
-  "node_modules/ox/_esm/core/Mnemonic.js"() {
+  "../../node_modules/ox/_esm/core/Mnemonic.js"() {
     init_process();
     init_buffer();
     init_esm4();
   }
 });
 
-// node_modules/ox/_esm/core/P256.js
+// ../../node_modules/ox/_esm/core/P256.js
 var init_P256 = __esm({
-  "node_modules/ox/_esm/core/P256.js"() {
+  "../../node_modules/ox/_esm/core/P256.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/PersonalMessage.js
+// ../../node_modules/ox/_esm/core/PersonalMessage.js
 var init_PersonalMessage = __esm({
-  "node_modules/ox/_esm/core/PersonalMessage.js"() {
+  "../../node_modules/ox/_esm/core/PersonalMessage.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/eventemitter3/index.js
+// ../../node_modules/eventemitter3/index.js
 var require_eventemitter3 = __commonJS({
-  "node_modules/eventemitter3/index.js"(exports, module) {
+  "../../node_modules/eventemitter3/index.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -22329,20 +22329,20 @@ var require_eventemitter3 = __commonJS({
   }
 });
 
-// node_modules/eventemitter3/index.mjs
+// ../../node_modules/eventemitter3/index.mjs
 var import_index2;
 var init_eventemitter3 = __esm({
-  "node_modules/eventemitter3/index.mjs"() {
+  "../../node_modules/eventemitter3/index.mjs"() {
     init_process();
     init_buffer();
     import_index2 = __toESM(require_eventemitter3(), 1);
   }
 });
 
-// node_modules/ox/_esm/core/RpcResponse.js
+// ../../node_modules/ox/_esm/core/RpcResponse.js
 var BaseError2, InvalidInputError2, ResourceNotFoundError, ResourceUnavailableError, TransactionRejectedError, MethodNotSupportedError, LimitExceededError, VersionNotSupportedError, InvalidRequestError, MethodNotFoundError, InvalidParamsError, InternalError, ParseError;
 var init_RpcResponse = __esm({
-  "node_modules/ox/_esm/core/RpcResponse.js"() {
+  "../../node_modules/ox/_esm/core/RpcResponse.js"() {
     init_process();
     init_buffer();
     BaseError2 = class extends Error {
@@ -22714,10 +22714,10 @@ var init_RpcResponse = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/Provider.js
+// ../../node_modules/ox/_esm/core/Provider.js
 var ProviderRpcError, UserRejectedRequestError, UnauthorizedError, UnsupportedMethodError, DisconnectedError, ChainDisconnectedError, SwitchChainError, UnsupportedNonOptionalCapabilityError, UnsupportedChainIdError, DuplicateIdError, UnknownBundleIdError, BundleTooLargeError, AtomicReadyWalletRejectedUpgradeError, AtomicityNotSupportedError;
 var init_Provider = __esm({
-  "node_modules/ox/_esm/core/Provider.js"() {
+  "../../node_modules/ox/_esm/core/Provider.js"() {
     init_process();
     init_buffer();
     init_eventemitter3();
@@ -23048,138 +23048,138 @@ var init_Provider = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/RpcRequest.js
+// ../../node_modules/ox/_esm/core/RpcRequest.js
 var init_RpcRequest = __esm({
-  "node_modules/ox/_esm/core/RpcRequest.js"() {
+  "../../node_modules/ox/_esm/core/RpcRequest.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/RpcSchema.js
+// ../../node_modules/ox/_esm/core/RpcSchema.js
 var init_RpcSchema = __esm({
-  "node_modules/ox/_esm/core/RpcSchema.js"() {
+  "../../node_modules/ox/_esm/core/RpcSchema.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/RpcTransport.js
+// ../../node_modules/ox/_esm/core/RpcTransport.js
 var init_RpcTransport = __esm({
-  "node_modules/ox/_esm/core/RpcTransport.js"() {
+  "../../node_modules/ox/_esm/core/RpcTransport.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Siwe.js
+// ../../node_modules/ox/_esm/core/Siwe.js
 var init_Siwe = __esm({
-  "node_modules/ox/_esm/core/Siwe.js"() {
+  "../../node_modules/ox/_esm/core/Siwe.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/StateOverrides.js
+// ../../node_modules/ox/_esm/core/StateOverrides.js
 var init_StateOverrides = __esm({
-  "node_modules/ox/_esm/core/StateOverrides.js"() {
+  "../../node_modules/ox/_esm/core/StateOverrides.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/Value.js
+// ../../node_modules/ox/_esm/core/Value.js
 var init_Value = __esm({
-  "node_modules/ox/_esm/core/Value.js"() {
+  "../../node_modules/ox/_esm/core/Value.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelope.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelope.js
 var init_TransactionEnvelope = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelope.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelope.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js
 var init_TransactionEnvelopeEip1559 = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelopeEip1559.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js
 var init_TransactionEnvelopeEip2930 = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelopeEip2930.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js
 var init_TransactionEnvelopeEip4844 = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelopeEip4844.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js
 var init_TransactionEnvelopeEip7702 = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelopeEip7702.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js
+// ../../node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js
 var init_TransactionEnvelopeLegacy = __esm({
-  "node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js"() {
+  "../../node_modules/ox/_esm/core/TransactionEnvelopeLegacy.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionReceipt.js
+// ../../node_modules/ox/_esm/core/TransactionReceipt.js
 var init_TransactionReceipt = __esm({
-  "node_modules/ox/_esm/core/TransactionReceipt.js"() {
+  "../../node_modules/ox/_esm/core/TransactionReceipt.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TransactionRequest.js
+// ../../node_modules/ox/_esm/core/TransactionRequest.js
 var init_TransactionRequest = __esm({
-  "node_modules/ox/_esm/core/TransactionRequest.js"() {
+  "../../node_modules/ox/_esm/core/TransactionRequest.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/TypedData.js
+// ../../node_modules/ox/_esm/core/TypedData.js
 var init_TypedData = __esm({
-  "node_modules/ox/_esm/core/TypedData.js"() {
+  "../../node_modules/ox/_esm/core/TypedData.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/ValidatorData.js
+// ../../node_modules/ox/_esm/core/ValidatorData.js
 var init_ValidatorData = __esm({
-  "node_modules/ox/_esm/core/ValidatorData.js"() {
+  "../../node_modules/ox/_esm/core/ValidatorData.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/WebAuthnP256.js
+// ../../node_modules/ox/_esm/core/WebAuthnP256.js
 var createChallenge;
 var init_WebAuthnP256 = __esm({
-  "node_modules/ox/_esm/core/WebAuthnP256.js"() {
+  "../../node_modules/ox/_esm/core/WebAuthnP256.js"() {
     init_process();
     init_buffer();
     createChallenge = Uint8Array.from([
@@ -23203,25 +23203,25 @@ var init_WebAuthnP256 = __esm({
   }
 });
 
-// node_modules/ox/_esm/core/WebCryptoP256.js
+// ../../node_modules/ox/_esm/core/WebCryptoP256.js
 var init_WebCryptoP256 = __esm({
-  "node_modules/ox/_esm/core/WebCryptoP256.js"() {
+  "../../node_modules/ox/_esm/core/WebCryptoP256.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/core/X25519.js
+// ../../node_modules/ox/_esm/core/X25519.js
 var init_X25519 = __esm({
-  "node_modules/ox/_esm/core/X25519.js"() {
+  "../../node_modules/ox/_esm/core/X25519.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/ox/_esm/index.js
+// ../../node_modules/ox/_esm/index.js
 var init_esm5 = __esm({
-  "node_modules/ox/_esm/index.js"() {
+  "../../node_modules/ox/_esm/index.js"() {
     init_process();
     init_buffer();
     init_Abi();
@@ -23294,7 +23294,7 @@ var init_esm5 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js
 function setBigUint643(view, byteOffset, value, isLE4) {
   if (typeof view.setBigUint64 === "function")
     return view.setBigUint64(byteOffset, value, isLE4);
@@ -23315,7 +23315,7 @@ function Maj2(a2, b4, c2) {
 }
 var HashMD2, SHA256_IV2, SHA384_IV2, SHA512_IV2;
 var init_md2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_md.js"() {
     init_process();
     init_buffer();
     init_utils();
@@ -23458,10 +23458,10 @@ var init_md2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js
 var SHA256_K2, SHA256_W2, SHA2562, K512, SHA512_Kh, SHA512_Kl, SHA512_W_H, SHA512_W_L, SHA512, SHA384, T256_IV, SHA512_256, sha2563, sha5122, sha384, sha512_256;
 var init_sha22 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha2.js"() {
     init_process();
     init_buffer();
     init_md2();
@@ -23868,10 +23868,10 @@ var init_sha22 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js
 var BSIGMA;
 var init_blake = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/_blake.js"() {
     init_process();
     init_buffer();
     BSIGMA = /* @__PURE__ */ Uint8Array.from([
@@ -24136,7 +24136,7 @@ var init_blake = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js
 function G1b(a2, b4, c2, d3, msg, x7) {
   const Xl = msg[x7], Xh = msg[x7 + 1];
   let Al = BBUF[2 * a2], Ah = BBUF[2 * a2 + 1];
@@ -24189,7 +24189,7 @@ function checkBlake2Opts(outputLen, opts = {}, keyLen, saltLen, persLen) {
 }
 var B2B_IV, BBUF, BLAKE2, BLAKE2b, blake2b;
 var init_blake2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/blake2.js"() {
     init_process();
     init_buffer();
     init_blake();
@@ -24429,7 +24429,7 @@ var init_blake2 = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs
 function utf8Count(str) {
   const strLength = str.length;
   let byteLength3 = 0;
@@ -24556,7 +24556,7 @@ function utf8Decode(bytes, inputOffset, byteLength3) {
 }
 var sharedTextEncoder, TEXT_ENCODER_THRESHOLD, CHUNK_SIZE, sharedTextDecoder, TEXT_DECODER_THRESHOLD;
 var init_utf8 = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/utils/utf8.mjs"() {
     init_process();
     init_buffer();
     sharedTextEncoder = new TextEncoder();
@@ -24567,10 +24567,10 @@ var init_utf8 = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs
 var ExtData;
 var init_ExtData = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/ExtData.mjs"() {
     init_process();
     init_buffer();
     ExtData = class {
@@ -24584,10 +24584,10 @@ var init_ExtData = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs
 var DecodeError;
 var init_DecodeError = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/DecodeError.mjs"() {
     init_process();
     init_buffer();
     DecodeError = class _DecodeError extends Error {
@@ -24605,7 +24605,7 @@ var init_DecodeError = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs
 function setUint64(view, offset, value) {
   const high = value / 4294967296;
   const low = value;
@@ -24630,14 +24630,14 @@ function getUint64(view, offset) {
 }
 var UINT32_MAX;
 var init_int = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/utils/int.mjs"() {
     init_process();
     init_buffer();
     UINT32_MAX = 4294967295;
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs
 function encodeTimeSpecToTimestamp({ sec, nsec }) {
   if (sec >= 0 && nsec >= 0 && sec <= TIMESTAMP64_MAX_SEC) {
     if (nsec === 0 && sec <= TIMESTAMP32_MAX_SEC) {
@@ -24710,7 +24710,7 @@ function decodeTimestampExtension(data) {
 }
 var EXT_TIMESTAMP, TIMESTAMP32_MAX_SEC, TIMESTAMP64_MAX_SEC, timestampExtension;
 var init_timestamp = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/timestamp.mjs"() {
     init_process();
     init_buffer();
     init_DecodeError();
@@ -24726,10 +24726,10 @@ var init_timestamp = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs
 var _ExtensionCodec, ExtensionCodec;
 var init_ExtensionCodec = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/ExtensionCodec.mjs"() {
     init_process();
     init_buffer();
     init_ExtData();
@@ -24798,7 +24798,7 @@ var init_ExtensionCodec = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs
 function isArrayBufferLike(buffer) {
   return buffer instanceof ArrayBuffer || typeof SharedArrayBuffer !== "undefined" && buffer instanceof SharedArrayBuffer;
 }
@@ -24814,16 +24814,16 @@ function ensureUint8Array(buffer) {
   }
 }
 var init_typedArrays = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/utils/typedArrays.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs
 var DEFAULT_MAX_DEPTH, DEFAULT_INITIAL_BUFFER_SIZE, Encoder2;
 var init_Encoder = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/Encoder.mjs"() {
     init_process();
     init_buffer();
     init_utf8();
@@ -25234,34 +25234,34 @@ var init_Encoder = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/encode.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/encode.mjs
 function encode5(value, options) {
   const encoder3 = new Encoder2(options);
   return encoder3.encodeSharedRef(value);
 }
 var init_encode = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/encode.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/encode.mjs"() {
     init_process();
     init_buffer();
     init_Encoder();
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs
 function prettyByte(byte) {
   return `${byte < 0 ? "-" : ""}0x${Math.abs(byte).toString(16).padStart(2, "0")}`;
 }
 var init_prettyByte = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/utils/prettyByte.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs
 var DEFAULT_MAX_KEY_LENGTH, DEFAULT_MAX_LENGTH_PER_KEY, CachedKeyDecoder;
 var init_CachedKeyDecoder = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/CachedKeyDecoder.mjs"() {
     init_process();
     init_buffer();
     init_utf8();
@@ -25322,10 +25322,10 @@ var init_CachedKeyDecoder = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs
 var STATE_ARRAY, STATE_MAP_KEY, STATE_MAP_VALUE, mapKeyConverter, StackPool, HEAD_BYTE_REQUIRED, EMPTY_VIEW, EMPTY_BYTES, MORE_DATA, sharedCachedKeyDecoder, Decoder2;
 var init_Decoder = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/Decoder.mjs"() {
     init_process();
     init_buffer();
     init_prettyByte();
@@ -25966,22 +25966,22 @@ var init_Decoder = __esm({
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/decode.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/decode.mjs
 function decode6(buffer, options) {
   const decoder = new Decoder2(options);
   return decoder.decode(buffer);
 }
 var init_decode = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/decode.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/decode.mjs"() {
     init_process();
     init_buffer();
     init_Decoder();
   }
 });
 
-// node_modules/@msgpack/msgpack/dist.esm/index.mjs
+// ../../node_modules/@msgpack/msgpack/dist.esm/index.mjs
 var init_dist6 = __esm({
-  "node_modules/@msgpack/msgpack/dist.esm/index.mjs"() {
+  "../../node_modules/@msgpack/msgpack/dist.esm/index.mjs"() {
     init_process();
     init_buffer();
     init_encode();
@@ -25989,15 +25989,15 @@ var init_dist6 = __esm({
   }
 });
 
-// node_modules/uint8arrays/esm/src/compare.js
+// ../../node_modules/uint8arrays/esm/src/compare.js
 var init_compare = __esm({
-  "node_modules/uint8arrays/esm/src/compare.js"() {
+  "../../node_modules/uint8arrays/esm/src/compare.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/uint8arrays/esm/src/concat.js
+// ../../node_modules/uint8arrays/esm/src/concat.js
 function concat4(arrays, length2) {
   if (!length2) {
     length2 = arrays.reduce((acc, curr) => acc + curr.length, 0);
@@ -26011,7 +26011,7 @@ function concat4(arrays, length2) {
   return asUint8Array(output);
 }
 var init_concat = __esm({
-  "node_modules/uint8arrays/esm/src/concat.js"() {
+  "../../node_modules/uint8arrays/esm/src/concat.js"() {
     init_process();
     init_buffer();
     init_alloc();
@@ -26019,15 +26019,15 @@ var init_concat = __esm({
   }
 });
 
-// node_modules/uint8arrays/esm/src/equals.js
+// ../../node_modules/uint8arrays/esm/src/equals.js
 var init_equals = __esm({
-  "node_modules/uint8arrays/esm/src/equals.js"() {
+  "../../node_modules/uint8arrays/esm/src/equals.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/uint8arrays/esm/src/to-string.js
+// ../../node_modules/uint8arrays/esm/src/to-string.js
 function toString5(array, encoding = "utf8") {
   const base3 = bases_default[encoding];
   if (!base3) {
@@ -26039,16 +26039,16 @@ function toString5(array, encoding = "utf8") {
   return base3.encoder.encode(array).substring(1);
 }
 var init_to_string = __esm({
-  "node_modules/uint8arrays/esm/src/to-string.js"() {
+  "../../node_modules/uint8arrays/esm/src/to-string.js"() {
     init_process();
     init_buffer();
     init_bases();
   }
 });
 
-// node_modules/uint8arrays/esm/src/xor.js
+// ../../node_modules/uint8arrays/esm/src/xor.js
 var init_xor = __esm({
-  "node_modules/uint8arrays/esm/src/xor.js"() {
+  "../../node_modules/uint8arrays/esm/src/xor.js"() {
     init_process();
     init_buffer();
     init_alloc();
@@ -26056,9 +26056,9 @@ var init_xor = __esm({
   }
 });
 
-// node_modules/uint8arrays/esm/src/index.js
+// ../../node_modules/uint8arrays/esm/src/index.js
 var init_src2 = __esm({
-  "node_modules/uint8arrays/esm/src/index.js"() {
+  "../../node_modules/uint8arrays/esm/src/index.js"() {
     init_process();
     init_buffer();
     init_compare();
@@ -26070,7 +26070,7 @@ var init_src2 = __esm({
   }
 });
 
-// node_modules/@noble/ciphers/esm/_arx.js
+// ../../node_modules/@noble/ciphers/esm/_arx.js
 function rotl(a2, b4) {
   return a2 << b4 | a2 >>> 32 - b4;
 }
@@ -26170,7 +26170,7 @@ function createCipher(core, opts) {
 }
 var _utf8ToBytes, sigma16, sigma32, sigma16_32, sigma32_32, BLOCK_LEN, BLOCK_LEN32, MAX_COUNTER, U32_EMPTY;
 var init_arx = __esm({
-  "node_modules/@noble/ciphers/esm/_arx.js"() {
+  "../../node_modules/@noble/ciphers/esm/_arx.js"() {
     init_process();
     init_buffer();
     init_utils4();
@@ -26186,7 +26186,7 @@ var init_arx = __esm({
   }
 });
 
-// node_modules/@noble/ciphers/esm/_poly1305.js
+// ../../node_modules/@noble/ciphers/esm/_poly1305.js
 function wrapConstructorWithKey(hashCons) {
   const hashC = (msg, key) => hashCons(key).update(toBytes5(msg)).digest();
   const tmp = hashCons(new Uint8Array(32));
@@ -26197,7 +26197,7 @@ function wrapConstructorWithKey(hashCons) {
 }
 var u8to16, Poly1305, poly1305;
 var init_poly1305 = __esm({
-  "node_modules/@noble/ciphers/esm/_poly1305.js"() {
+  "../../node_modules/@noble/ciphers/esm/_poly1305.js"() {
     init_process();
     init_buffer();
     init_utils4();
@@ -26449,7 +26449,7 @@ var init_poly1305 = __esm({
   }
 });
 
-// node_modules/@noble/ciphers/esm/chacha.js
+// ../../node_modules/@noble/ciphers/esm/chacha.js
 function chachaCore(s2, k5, n4, out, cnt, rounds = 20) {
   let y00 = s2[0], y01 = s2[1], y02 = s2[2], y03 = s2[3], y04 = k5[0], y05 = k5[1], y06 = k5[2], y07 = k5[3], y08 = k5[4], y09 = k5[5], y10 = k5[6], y11 = k5[7], y12 = cnt, y13 = n4[0], y14 = n4[1], y15 = n4[2];
   let x00 = y00, x01 = y01, x02 = y02, x03 = y03, x04 = y04, x05 = y05, x06 = y06, x07 = y07, x08 = y08, x09 = y09, x10 = y10, x11 = y11, x12 = y12, x13 = y13, x14 = y14, x15 = y15;
@@ -26629,7 +26629,7 @@ function computeTag(fn, key, nonce, data, AAD) {
 }
 var chacha20, xchacha20, ZEROS16, updatePadded, ZEROS32, _poly1305_aead, chacha20poly1305, xchacha20poly1305;
 var init_chacha = __esm({
-  "node_modules/@noble/ciphers/esm/chacha.js"() {
+  "../../node_modules/@noble/ciphers/esm/chacha.js"() {
     init_process();
     init_buffer();
     init_arx();
@@ -26687,10 +26687,10 @@ var init_chacha = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js
 var HMAC2, hmac2;
 var init_hmac2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hmac.js"() {
     init_process();
     init_buffer();
     init_utils();
@@ -26763,7 +26763,7 @@ var init_hmac2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js
 function extract2(hash, ikm, salt) {
   ahash(hash);
   if (salt === void 0)
@@ -26796,7 +26796,7 @@ function expand(hash, prk, info, length2 = 32) {
 }
 var HKDF_COUNTER, EMPTY_BUFFER, hkdf;
 var init_hkdf = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/hkdf.js"() {
     init_process();
     init_buffer();
     init_hmac2();
@@ -26807,10 +26807,10 @@ var init_hkdf = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js
 var sha2564;
 var init_sha256 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/hashes/esm/sha256.js"() {
     init_process();
     init_buffer();
     init_sha22();
@@ -26818,7 +26818,7 @@ var init_sha256 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js
 function _abool2(value, title3 = "") {
   if (typeof value !== "boolean") {
     const prefix = title3 && `"${title3}"`;
@@ -26979,7 +26979,7 @@ function memoized2(fn) {
 }
 var _0n8, _1n8, isPosBig2, bitMask2, notImplemented;
 var init_utils5 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/utils.js"() {
     init_process();
     init_buffer();
     init_utils();
@@ -26994,7 +26994,7 @@ var init_utils5 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js
 function mod2(a2, b4) {
   const result = a2 % b4;
   return result >= _0n9 ? result : b4 + result;
@@ -27311,7 +27311,7 @@ function mapHashToField2(key, fieldOrder, isLE4 = false) {
 }
 var _0n9, _1n9, _2n6, _3n3, _4n3, _5n2, _7n3, _8n2, _9n, _16n, isNegativeLE, FIELD_FIELDS2;
 var init_modular2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/modular.js"() {
     init_process();
     init_buffer();
     init_utils5();
@@ -27348,7 +27348,7 @@ var init_modular2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js
 function negateCt(condition, item) {
   const neg = item.negate();
   return condition ? neg : item;
@@ -27496,7 +27496,7 @@ function _createCurveFields(type, CURVE, curveOpts = {}, FpFnLE) {
 }
 var _0n10, _1n10, pointPrecomputes2, pointWindowSizes2, wNAF2;
 var init_curve2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/curve.js"() {
     init_process();
     init_buffer();
     init_utils5();
@@ -27635,7 +27635,7 @@ var init_curve2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js
 function isEdValidXY(Fp2, CURVE, x7, y6) {
   const x22 = Fp2.sqr(x7);
   const y22 = Fp2.sqr(y6);
@@ -28116,7 +28116,7 @@ function twistedEdwards(c2) {
 }
 var _0n11, _1n11, _2n7, _8n3, PrimeEdwardsPoint;
 var init_edwards = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/edwards.js"() {
     init_process();
     init_buffer();
     init_utils5();
@@ -28196,7 +28196,7 @@ var init_edwards = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js
 function validateOpts2(curve) {
   _validateObject(curve, {
     adjustScalarBytes: "function",
@@ -28314,7 +28314,7 @@ function montgomery(curveDef) {
 }
 var _0n12, _1n12, _2n8;
 var init_montgomery = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/montgomery.js"() {
     init_process();
     init_buffer();
     init_utils5();
@@ -28325,7 +28325,7 @@ var init_montgomery = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js
 function ed25519_pow_2_252_3(x7) {
   const _10n = BigInt(10), _20n = BigInt(20), _40n = BigInt(40), _80n = BigInt(80);
   const P5 = ed25519_CURVE_p;
@@ -28403,7 +28403,7 @@ function ristretto255_map(bytes) {
 }
 var _0n13, _1n13, _2n9, _3n4, _5n3, _8n4, ed25519_CURVE_p, ed25519_CURVE, ED25519_SQRT_M1, Fp, Fn2, ed25519Defaults, ed25519, x25519, SQRT_M1, SQRT_AD_MINUS_ONE, INVSQRT_A_MINUS_D, ONE_MINUS_D_SQ, D_MINUS_ONE_SQ, invertSqrt, MAX_255B, bytes255ToNumberLE, _RistrettoPoint;
 var init_ed25519 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/ed25519.js"() {
     init_process();
     init_buffer();
     init_sha22();
@@ -28574,7 +28574,7 @@ var init_ed25519 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js
 function _splitEndoScalar(k5, basis, n4) {
   const [[a1, b1], [a2, b22]] = basis;
   const c1 = divNearest2(b22 * k5, n4);
@@ -29478,7 +29478,7 @@ function weierstrass2(c2) {
 }
 var divNearest2, DERErr2, DER2, _0n14, _1n14, _2n10, _3n5, _4n4;
 var init_weierstrass2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/abstract/weierstrass.js"() {
     init_process();
     init_buffer();
     init_hmac2();
@@ -29600,23 +29600,23 @@ var init_weierstrass2 = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js
 function createCurve2(curveDef, defHash) {
   const create2 = (hash) => weierstrass2({ ...curveDef, hash });
   return { ...create2(defHash), create: create2 };
 }
 var init_shortw_utils2 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/_shortw_utils.js"() {
     init_process();
     init_buffer();
     init_weierstrass2();
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js
 var p256_CURVE, p384_CURVE, p521_CURVE, Fp256, Fp384, Fp521, p256, p384, p521;
 var init_nist = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/nist.js"() {
     init_process();
     init_buffer();
     init_sha22();
@@ -29658,10 +29658,10 @@ var init_nist = __esm({
   }
 });
 
-// node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js
+// ../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js
 var p2562;
 var init_p256 = __esm({
-  "node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js"() {
+  "../../node_modules/@walletconnect/utils/node_modules/@noble/curves/esm/p256.js"() {
     init_process();
     init_buffer();
     init_nist();
@@ -29669,19 +29669,19 @@ var init_p256 = __esm({
   }
 });
 
-// node_modules/@walletconnect/relay-api/dist/index.es.js
+// ../../node_modules/@walletconnect/relay-api/dist/index.es.js
 var C2;
 var init_index_es5 = __esm({
-  "node_modules/@walletconnect/relay-api/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/relay-api/dist/index.es.js"() {
     init_process();
     init_buffer();
     C2 = { waku: { publish: "waku_publish", batchPublish: "waku_batchPublish", subscribe: "waku_subscribe", batchSubscribe: "waku_batchSubscribe", subscription: "waku_subscription", unsubscribe: "waku_unsubscribe", batchUnsubscribe: "waku_batchUnsubscribe", batchFetchMessages: "waku_batchFetchMessages" }, irn: { publish: "irn_publish", batchPublish: "irn_batchPublish", subscribe: "irn_subscribe", batchSubscribe: "irn_batchSubscribe", subscription: "irn_subscription", unsubscribe: "irn_unsubscribe", batchUnsubscribe: "irn_batchUnsubscribe", batchFetchMessages: "irn_batchFetchMessages" }, iridium: { publish: "iridium_publish", batchPublish: "iridium_batchPublish", subscribe: "iridium_subscribe", batchSubscribe: "iridium_batchSubscribe", subscription: "iridium_subscription", unsubscribe: "iridium_unsubscribe", batchUnsubscribe: "iridium_batchUnsubscribe", batchFetchMessages: "iridium_batchFetchMessages" } };
   }
 });
 
-// node_modules/blakejs/util.js
+// ../../node_modules/blakejs/util.js
 var require_util2 = __commonJS({
-  "node_modules/blakejs/util.js"(exports, module) {
+  "../../node_modules/blakejs/util.js"(exports, module) {
     init_process();
     init_buffer();
     var ERROR_MSG_INPUT = "Input must be an string, Buffer or Uint8Array";
@@ -29753,9 +29753,9 @@ var require_util2 = __commonJS({
   }
 });
 
-// node_modules/blakejs/blake2b.js
+// ../../node_modules/blakejs/blake2b.js
 var require_blake2b = __commonJS({
-  "node_modules/blakejs/blake2b.js"(exports, module) {
+  "../../node_modules/blakejs/blake2b.js"(exports, module) {
     init_process();
     init_buffer();
     var util = require_util2();
@@ -30229,9 +30229,9 @@ var require_blake2b = __commonJS({
   }
 });
 
-// node_modules/blakejs/blake2s.js
+// ../../node_modules/blakejs/blake2s.js
 var require_blake2s = __commonJS({
-  "node_modules/blakejs/blake2s.js"(exports, module) {
+  "../../node_modules/blakejs/blake2s.js"(exports, module) {
     init_process();
     init_buffer();
     var util = require_util2();
@@ -30523,9 +30523,9 @@ var require_blake2s = __commonJS({
   }
 });
 
-// node_modules/blakejs/index.js
+// ../../node_modules/blakejs/index.js
 var require_blakejs = __commonJS({
-  "node_modules/blakejs/index.js"(exports, module) {
+  "../../node_modules/blakejs/index.js"(exports, module) {
     init_process();
     init_buffer();
     var b2b = require_blake2b();
@@ -30545,7 +30545,7 @@ var require_blakejs = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/utils/dist/index.js
+// ../../node_modules/@walletconnect/utils/dist/index.js
 var dist_exports = {};
 __export(dist_exports, {
   BASE10: () => ve3,
@@ -31896,7 +31896,7 @@ function bo2({ logger: e2, name: t }) {
 }
 var import_time3, import_window_getters, import_window_metadata, import_blakejs, G3, Ke2, Fe2, qe2, g2, Q3, Sn2, He2, de3, On2, Be3, Dn, Zn2, er2, ut2, ar2, ur2, K4, lt2, dt2, ft2, Ee3, pt, ve3, y4, S2, ee2, _2, Se3, D2, F, br2, St2, q2, Oe3, Tt2, $e3, po2;
 var init_dist7 = __esm({
-  "node_modules/@walletconnect/utils/dist/index.js"() {
+  "../../node_modules/@walletconnect/utils/dist/index.js"() {
     init_process();
     init_buffer();
     init_es();
@@ -32013,10 +32013,10 @@ var init_dist7 = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js
 var PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS, INTERNAL_ERROR, SERVER_ERROR, RESERVED_ERROR_CODES, SERVER_ERROR_CODE_RANGE, STANDARD_ERROR_MAP, DEFAULT_ERROR;
 var init_constants = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/constants.js"() {
     init_process();
     init_buffer();
     PARSE_ERROR = "PARSE_ERROR";
@@ -32039,7 +32039,7 @@ var init_constants = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js
 function isServerErrorCode(code2) {
   return code2 <= SERVER_ERROR_CODE_RANGE[0] && code2 >= SERVER_ERROR_CODE_RANGE[1];
 }
@@ -32090,16 +32090,16 @@ function parseConnectionError(e2, url, type) {
   return e2.message.includes("getaddrinfo ENOTFOUND") || e2.message.includes("connect ECONNREFUSED") ? new Error(`Unavailable ${type} RPC url at ${url}`) : e2;
 }
 var init_error = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/error.js"() {
     init_process();
     init_buffer();
     init_constants();
   }
 });
 
-// node_modules/@walletconnect/environment/dist/cjs/crypto.js
+// ../../node_modules/@walletconnect/environment/dist/cjs/crypto.js
 var require_crypto = __commonJS({
-  "node_modules/@walletconnect/environment/dist/cjs/crypto.js"(exports) {
+  "../../node_modules/@walletconnect/environment/dist/cjs/crypto.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -32121,9 +32121,9 @@ var require_crypto = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/environment/dist/cjs/env.js
+// ../../node_modules/@walletconnect/environment/dist/cjs/env.js
 var require_env = __commonJS({
-  "node_modules/@walletconnect/environment/dist/cjs/env.js"(exports) {
+  "../../node_modules/@walletconnect/environment/dist/cjs/env.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -32144,9 +32144,9 @@ var require_env = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/environment/dist/cjs/index.js
+// ../../node_modules/@walletconnect/environment/dist/cjs/index.js
 var require_cjs4 = __commonJS({
-  "node_modules/@walletconnect/environment/dist/cjs/index.js"(exports) {
+  "../../node_modules/@walletconnect/environment/dist/cjs/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -32157,14 +32157,14 @@ var require_cjs4 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js
 var env_exports = {};
 __export(env_exports, {
   isNodeJs: () => isNodeJs
 });
 var import_environment, isNodeJs;
 var init_env = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/env.js"() {
     init_process();
     init_buffer();
     import_environment = __toESM(require_cjs4());
@@ -32173,7 +32173,7 @@ var init_env = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js
 function payloadId(entropy = 3) {
   const date = Date.now() * Math.pow(10, entropy);
   const extra = Math.floor(Math.random() * Math.pow(10, entropy));
@@ -32220,7 +32220,7 @@ function formatErrorMessage(error, data) {
   return error;
 }
 var init_format = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/format.js"() {
     init_process();
     init_buffer();
     init_error();
@@ -32228,7 +32228,7 @@ var init_format = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js
 function isValidRoute(route) {
   if (route.includes("*")) {
     return isValidWildcardRoute(route);
@@ -32263,16 +32263,16 @@ function isValidTrailingWildcardRoute(route) {
   return !isValidDefaultRoute(route) && isValidWildcardRoute(route) && !route.split("*")[1].trim();
 }
 var init_routing = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/routing.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-types/dist/index.es.js
+// ../../node_modules/@walletconnect/jsonrpc-types/dist/index.es.js
 var e, o2, n3, r2;
 var init_index_es6 = __esm({
-  "node_modules/@walletconnect/jsonrpc-types/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-types/dist/index.es.js"() {
     init_process();
     init_buffer();
     e = class {
@@ -32295,16 +32295,16 @@ var init_index_es6 = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js
 var init_types = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/types.js"() {
     init_process();
     init_buffer();
     init_index_es6();
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js
 function getUrlProtocol(url) {
   const matches = url.match(new RegExp(/^\w+:/, "gi"));
   if (!matches || !matches.length)
@@ -32328,7 +32328,7 @@ function isLocalhostUrl(url) {
 }
 var HTTP_REGEX, WS_REGEX;
 var init_url = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/url.js"() {
     init_process();
     init_buffer();
     HTTP_REGEX = "^https?:";
@@ -32336,7 +32336,7 @@ var init_url = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js
 function isJsonRpcPayload(payload) {
   return typeof payload === "object" && "id" in payload && "jsonrpc" in payload && payload.jsonrpc === "2.0";
 }
@@ -32356,13 +32356,13 @@ function isJsonRpcValidationInvalid(validation) {
   return "error" in validation && validation.valid === false;
 }
 var init_validators = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/validators.js"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js
+// ../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js
 var esm_exports = {};
 __export(esm_exports, {
   DEFAULT_ERROR: () => DEFAULT_ERROR,
@@ -32409,7 +32409,7 @@ __export(esm_exports, {
   validateJsonRpcError: () => validateJsonRpcError
 });
 var init_esm6 = __esm({
-  "node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-utils/dist/esm/index.js"() {
     init_process();
     init_buffer();
     init_constants();
@@ -32424,10 +32424,10 @@ var init_esm6 = __esm({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js
+// ../../node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js
 var o3;
 var init_index_es7 = __esm({
-  "node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-provider/dist/index.es.js"() {
     init_process();
     init_buffer();
     init_events();
@@ -32496,9 +32496,9 @@ var init_index_es7 = __esm({
   }
 });
 
-// node_modules/ws/browser.js
+// ../../node_modules/ws/browser.js
 var require_browser3 = __commonJS({
-  "node_modules/ws/browser.js"(exports, module) {
+  "../../node_modules/ws/browser.js"(exports, module) {
     "use strict";
     init_process();
     init_buffer();
@@ -32510,10 +32510,10 @@ var require_browser3 = __commonJS({
   }
 });
 
-// node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js
+// ../../node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js
 var v4, w3, d2, h3, b2, f;
 var init_index_es8 = __esm({
-  "node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js"() {
+  "../../node_modules/@walletconnect/jsonrpc-ws-connection/dist/index.es.js"() {
     init_process();
     init_buffer();
     init_events();
@@ -32623,29 +32623,29 @@ var init_index_es8 = __esm({
   }
 });
 
-// node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs
+// ../../node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs
 function isEqualsSameValueZero(value, other) {
   return value === other || Number.isNaN(value) && Number.isNaN(other);
 }
 var init_isEqualsSameValueZero = __esm({
-  "node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs"() {
+  "../../node_modules/es-toolkit/dist/_internal/isEqualsSameValueZero.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
+// ../../node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs
 function getSymbols(object) {
   return Object.getOwnPropertySymbols(object).filter((symbol) => Object.prototype.propertyIsEnumerable.call(object, symbol));
 }
 var init_getSymbols = __esm({
-  "node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
+  "../../node_modules/es-toolkit/dist/compat/_internal/getSymbols.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
+// ../../node_modules/es-toolkit/dist/compat/_internal/getTag.mjs
 function getTag(value) {
   if (value == null) {
     return value === void 0 ? "[object Undefined]" : "[object Null]";
@@ -32653,16 +32653,16 @@ function getTag(value) {
   return Object.prototype.toString.call(value);
 }
 var init_getTag = __esm({
-  "node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
+  "../../node_modules/es-toolkit/dist/compat/_internal/getTag.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/es-toolkit/dist/compat/_internal/tags.mjs
+// ../../node_modules/es-toolkit/dist/compat/_internal/tags.mjs
 var regexpTag, stringTag, numberTag, booleanTag, argumentsTag, symbolTag, dateTag, mapTag, setTag, arrayTag, functionTag, arrayBufferTag, objectTag, errorTag, dataViewTag, uint8ArrayTag, uint8ClampedArrayTag, uint16ArrayTag, uint32ArrayTag, bigUint64ArrayTag, int8ArrayTag, int16ArrayTag, int32ArrayTag, bigInt64ArrayTag, float32ArrayTag, float64ArrayTag;
 var init_tags = __esm({
-  "node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
+  "../../node_modules/es-toolkit/dist/compat/_internal/tags.mjs"() {
     init_process();
     init_buffer();
     regexpTag = "[object RegExp]";
@@ -32694,7 +32694,7 @@ var init_tags = __esm({
   }
 });
 
-// node_modules/es-toolkit/dist/predicate/isPlainObject.mjs
+// ../../node_modules/es-toolkit/dist/predicate/isPlainObject.mjs
 function isPlainObject(value) {
   if (!value || typeof value !== "object") {
     return false;
@@ -32707,13 +32707,13 @@ function isPlainObject(value) {
   return Object.prototype.toString.call(value) === "[object Object]";
 }
 var init_isPlainObject = __esm({
-  "node_modules/es-toolkit/dist/predicate/isPlainObject.mjs"() {
+  "../../node_modules/es-toolkit/dist/predicate/isPlainObject.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/es-toolkit/dist/predicate/isEqualWith.mjs
+// ../../node_modules/es-toolkit/dist/predicate/isEqualWith.mjs
 function isEqualWith(a2, b4, areValuesEqual) {
   return isEqualWithImpl(a2, b4, void 0, void 0, void 0, void 0, areValuesEqual);
 }
@@ -32890,7 +32890,7 @@ function areObjectsEqual(a2, b4, stack, areValuesEqual) {
   }
 }
 var init_isEqualWith = __esm({
-  "node_modules/es-toolkit/dist/predicate/isEqualWith.mjs"() {
+  "../../node_modules/es-toolkit/dist/predicate/isEqualWith.mjs"() {
     init_process();
     init_buffer();
     init_isPlainObject();
@@ -32901,22 +32901,22 @@ var init_isEqualWith = __esm({
   }
 });
 
-// node_modules/es-toolkit/dist/function/noop.mjs
+// ../../node_modules/es-toolkit/dist/function/noop.mjs
 function noop3() {
 }
 var init_noop = __esm({
-  "node_modules/es-toolkit/dist/function/noop.mjs"() {
+  "../../node_modules/es-toolkit/dist/function/noop.mjs"() {
     init_process();
     init_buffer();
   }
 });
 
-// node_modules/es-toolkit/dist/predicate/isEqual.mjs
+// ../../node_modules/es-toolkit/dist/predicate/isEqual.mjs
 function isEqual2(a2, b4) {
   return isEqualWith(a2, b4, noop3);
 }
 var init_isEqual = __esm({
-  "node_modules/es-toolkit/dist/predicate/isEqual.mjs"() {
+  "../../node_modules/es-toolkit/dist/predicate/isEqual.mjs"() {
     init_process();
     init_buffer();
     init_isEqualWith();
@@ -32924,19 +32924,19 @@ var init_isEqual = __esm({
   }
 });
 
-// node_modules/es-toolkit/dist/compat/index.mjs
+// ../../node_modules/es-toolkit/dist/compat/index.mjs
 var init_compat = __esm({
-  "node_modules/es-toolkit/dist/compat/index.mjs"() {
+  "../../node_modules/es-toolkit/dist/compat/index.mjs"() {
     init_process();
     init_buffer();
     init_isEqual();
   }
 });
 
-// node_modules/@walletconnect/core/dist/index.js
+// ../../node_modules/@walletconnect/core/dist/index.js
 var import_time4, import_window_getters2, ct3, lt3, W4, S3, Dt3, zt3, Kt3, gt3, Mt3, $t3, Ut3, qt3, Vt3, Bt3, Ft3, Gt3, Wt3, pt2, Ht3, p3, Yt3, v5, Jt3, Q4, D3, H4, jt3, Xt3, dt3, b3, Zt3, Qt3, Mi, te4, ee3, U2, q3, T3, ie3, se3, re3, P4, oe3, ne3, qi, ae3, Y3, he4, ce2, le4, ge4, x6, O3, Bi, Fi, Gi, Wi, pe4, de4, ue3, ye4, me4, _e4, be4, Hi, Yi, we4, fe4, ve4, Ee4, Ie4, Te4, Pe4, Re4, Se4, Ce4, Ji;
 var init_dist8 = __esm({
-  "node_modules/@walletconnect/core/dist/index.js"() {
+  "../../node_modules/@walletconnect/core/dist/index.js"() {
     init_process();
     init_buffer();
     init_events();
@@ -34668,7 +34668,7 @@ var init_dist8 = __esm({
   }
 });
 
-// node_modules/@walletconnect/sign-client/dist/index.js
+// ../../node_modules/@walletconnect/sign-client/dist/index.js
 var dist_exports2 = {};
 __export(dist_exports2, {
   AUTH_CONTEXT: () => ct4,
@@ -34708,7 +34708,7 @@ __export(dist_exports2, {
 });
 var import_time5, be5, Ae4, xe4, _e5, fe5, gs, ys, Ce5, ws, ms, _s, tt2, fs, ke3, st2, Z3, it4, T4, Se5, V3, rt3, nt3, ot2, at2, Ss, ct4, lt4, pt3, ht3, ue4, $3, Es, Rs, dt4, Is, Ts, qs, vs, Ps, ut4, Ns, Os;
 var init_dist9 = __esm({
-  "node_modules/@walletconnect/sign-client/dist/index.js"() {
+  "../../node_modules/@walletconnect/sign-client/dist/index.js"() {
     init_process();
     init_buffer();
     init_events();
@@ -36019,9 +36019,9 @@ var init_dist9 = __esm({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/operation.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/operation.js
 var require_operation = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/operation.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/operation.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36042,9 +36042,9 @@ var require_operation = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/constants.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/constants.js
 var require_constants3 = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/constants.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/constants.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36058,9 +36058,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/errors.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/errors.js
 var require_errors2 = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/errors.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/errors.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36116,9 +36116,9 @@ var require_errors2 = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/logger.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/logger.js
 var require_logger = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/logger.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/logger.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36136,9 +36136,9 @@ var require_logger = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/utils.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/utils.js
 var require_utils5 = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/utils.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/utils.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36304,9 +36304,9 @@ var require_utils5 = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/walletConnectV2Provider.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/walletConnectV2Provider.js
 var require_walletConnectV2Provider = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/walletConnectV2Provider.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/walletConnectV2Provider.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36931,9 +36931,9 @@ var require_walletConnectV2Provider = __commonJS({
   }
 });
 
-// node_modules/@multiversx/sdk-wallet-connect-provider/out/index.js
+// ../../node_modules/@multiversx/sdk-wallet-connect-provider/out/index.js
 var require_out = __commonJS({
-  "node_modules/@multiversx/sdk-wallet-connect-provider/out/index.js"(exports) {
+  "../../node_modules/@multiversx/sdk-wallet-connect-provider/out/index.js"(exports) {
     "use strict";
     init_process();
     init_buffer();
@@ -36958,7 +36958,7 @@ var require_out = __commonJS({
   }
 });
 
-// apps/nexus-web/src/wc-client.js
+// src/wc-client.js
 init_process();
 init_buffer();
 init_events();
@@ -37044,8 +37044,32 @@ function selectWalletConnectProjectId(value) {
   if (!/^[a-f0-9]{32}$/i.test(projectId)) throw new Error("WalletConnect Nexus nu este configurat");
   return projectId;
 }
-async function startXPortalLogin({ onStatus, freshPairing = true } = {}) {
+function walletConnectMetadata({ origin = "", redirectNative = "", redirectUniversal = "" } = {}) {
+  const metadata = {
+    name: "Nexus",
+    description: "Nexus \u2014 one wallet, every side of you",
+    url: origin || "https://localhost",
+    icons: []
+  };
+  const redirect = {};
+  const nativeScheme = String(redirectNative ?? "").trim();
+  const universalLink = String(redirectUniversal ?? "").trim();
+  if (nativeScheme) redirect.native = nativeScheme;
+  if (universalLink) redirect.universal = universalLink;
+  if (redirect.native || redirect.universal) metadata.redirect = redirect;
+  return metadata;
+}
+async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirect = {} } = {}) {
   const report = (msg) => typeof onStatus === "function" && onStatus(msg);
+  const log2 = (event, fields = {}) => {
+    try {
+      if (typeof onLog === "function") onLog({ event, ...fields });
+    } catch {
+    }
+  };
+  const startedAt = Date.now();
+  const redirectNative = String(redirect?.native ?? "").trim();
+  const redirectUniversal = String(redirect?.universal ?? "").trim();
   report("ob\u021Bin challenge NativeAuth\u2026");
   let initData;
   try {
@@ -37093,26 +37117,28 @@ async function startXPortalLogin({ onStatus, freshPairing = true } = {}) {
       RELAY_URL,
       projectId,
       {
-        metadata: {
-          name: "Nexus",
-          description: "Nexus \u2014 one wallet, every side of you",
-          url: typeof window !== "undefined" ? window.location.origin : "https://localhost",
-          icons: []
-        },
+        metadata: walletConnectMetadata({
+          origin: typeof window !== "undefined" ? window.location.origin : "https://localhost",
+          redirectNative,
+          redirectUniversal
+        }),
         logger: "error"
       }
     );
     await withTimeout(candidate.init(), "ini\u021Bializarea WalletConnect", INIT_TIMEOUT_MS);
+    log2("provider-ready", { ms: Date.now() - startedAt, chainId, redirectNative: Boolean(redirectNative) });
     return candidate;
   };
   if (freshPairing && typeof window !== "undefined") {
     report("resetez conexiunea xPortal anterioar\u0103\u2026");
+    let cleared = 0;
     for (const storageName of ["localStorage", "sessionStorage"]) {
       try {
-        clearNexusWalletConnectState(window[storageName]);
+        cleared += clearNexusWalletConnectState(window[storageName]);
       } catch {
       }
     }
+    log2("storage-cleared", { keys: cleared, freshPairing: true });
   }
   report("ini\u021Bializez conexiunea securizat\u0103\u2026");
   let provider;
@@ -37135,7 +37161,17 @@ async function startXPortalLogin({ onStatus, freshPairing = true } = {}) {
   if (!uri && !reusedSession) {
     throw new Error("WalletConnect nu a returnat un URI de pairing");
   }
-  return { provider, init: init3, chainId, uri, approval, reusedSession };
+  log2("pairing", {
+    topic: pairingTopic(uri),
+    reused: Boolean(reusedSession),
+    ms: Date.now() - startedAt
+  });
+  return { provider, init: init3, chainId, uri, approval, reusedSession, redirectNative };
+}
+function pairingTopic(uri) {
+  const value = String(uri ?? "");
+  const match = /^wc:([^@?]{8,128})@2/.exec(value);
+  return match ? match[1] : "";
 }
 async function finalizeXPortalLogin(loginState, { onStatus, onPhase, endpoint = "/auth/mvx/native", extra = {} } = {}) {
   const { provider, init: init3 } = loginState;
@@ -37209,25 +37245,42 @@ async function renderWcQr(uri) {
 function xPortalUniversalLink(uri) {
   return uri ? `https://xportal.app.link/wc?uri=${encodeURIComponent(uri)}` : "https://xportal.app.link/";
 }
-async function resumeXPortalTransport({ provider } = {}) {
+async function resumeXPortalTransport({ provider, waitMs = 4e3 } = {}) {
   const relayer = provider?.walletConnector?.core?.relayer;
-  if (!relayer) return false;
-  if (typeof relayer.restartTransport === "function") {
-    await relayer.restartTransport();
+  if (!relayer) return { supported: false, connected: false, restarted: false };
+  const before = Boolean(relayer.connected);
+  let restarted = false;
+  let error = "";
+  try {
+    if (typeof relayer.restartTransport === "function") {
+      await relayer.restartTransport();
+      restarted = true;
+    } else if (!before && typeof relayer.transportOpen === "function") {
+      await relayer.transportOpen();
+      restarted = true;
+    }
+  } catch (cause) {
+    error = errMessage(cause);
   }
-  return Boolean(relayer.connected);
+  const deadline = Date.now() + Math.max(0, Number(waitMs) || 0);
+  while (!relayer.connected && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return { supported: true, connected: Boolean(relayer.connected), restarted, wasConnected: before, error };
 }
 export {
   buildAccessToken,
   clearNexusWalletConnectState,
   finalizeXPortalLogin,
   getSessionAccount,
+  pairingTopic,
   renderWcQr,
   resumeXPortalTransport,
   selectNativeAuthMethod,
   selectReusableSession,
   selectWalletConnectProjectId,
   startXPortalLogin,
+  walletConnectMetadata,
   xPortalUniversalLink
 };
 /*!
