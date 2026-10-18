@@ -7,7 +7,6 @@ import { PROFILE_MENU_WORD } from '../lib/profileMenu';
 import { jungle, fruitRing, fruitWash } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 import { MessageButton, RelationButton, RelationMenuButton } from './RelationButton';
-import { SolidViewerIcon } from './SolidViewerIcon';
 import { RemoteImageSource } from './PostMedia';
 import type { TickerDoor } from './ProfileTicker';
 
@@ -22,12 +21,12 @@ import type { TickerDoor } from './ProfileTicker';
  *     fixed counters under that — and the big circle (~92dp) on the right, with the story ring when the
  *     record has a story this reader has not seen;
  *   * the row of full-width buttons under it: the relation button (what `deriveRelationUi` says), `Mesaj`,
- *     and the round entry that holds the relations menu — or, on my own record, the editor, the green
- *     monetisation door and a round share that carries no word (`lib/profileActions.ts`).
+ *     and the round entry that holds the relations menu — or, on my own record, the editor and the round
+ *     `⋯` that opens the profile menu (`lib/profileActions.ts`).
  *
- * The owner's index of doors is not in this row: the three bars at the top open `ProfileMenuSheet`, which
- * holds the wallet, the two sides of the ledger, the notifications, the monetisation and the settings.
- * The drawer — profiles, new post, bell, logout — belongs to the feed and is opened by its own button.
+ * The owner's index of doors is not in this row: the three bars at the top and the round `⋯` under them
+ * open the same `ProfileMenuSheet`, which holds the monetisation, the share, the wallet, the settings, and
+ * the doors the retired drawer used to carry.
  *
  * The description, the place and the age used to stand under the buttons; they left this header with the
  * band that now carries them (`MIGRATION.md` §20.1), so every reading of a record is printed once in the
@@ -36,7 +35,6 @@ import type { TickerDoor } from './ProfileTicker';
  */
 export function ProfileHeader({
   profile, relation, viewerUserId, hasUnseenStory = false, onBack, onShare, onEditProfile, onProfileMenu, menuOpen, onMessage, onDoor,
-  onMonetize,
   presence = '', visibility = '', visibilityWord: visibilitySay = '', style,
 }: {
   profile?: ProfileView | null;
@@ -47,13 +45,11 @@ export function ProfileHeader({
   hasUnseenStory?: boolean;
   /** A visitor's own top row: the arrow back to where the reader came from. */
   onBack?: () => void;
-  /** `Distribuie profilul`: the platform's own share sheet, no server call and no new dependency. */
+  /** The platform's own share sheet — a visitor's top row; on my own record it is a row of the menu. */
   onShare?: () => void;
   onEditProfile?: () => void;
-  /** My own record's three bars open the profile menu (`lib/profileMenu.ts`), never the drawer. */
+  /** My own record's `⋯` and three bars open the profile menu (`lib/profileMenu.ts`), never the drawer. */
   onProfileMenu?: () => void;
-  /** The first door of the owner's menu: the monetisation screen. */
-  onMonetize?: () => void;
   menuOpen?: boolean;
   onMessage?: () => void;
   /** The counters that lead somewhere: `following` and `followers` open their lists (`api.js:4537`). */
@@ -245,7 +241,7 @@ export function ProfileHeader({
 
       {isSelf ? (
         <View style={styles.ownerRow}>
-          {/** The editor: neutral, wide, and the word still comes from the relation library. */}
+          {/** The editor: neutral, wide, and the word still comes from the profile-actions library. */}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={ownerLabels.edit}
@@ -255,29 +251,20 @@ export function ProfileHeader({
             <Text numberOfLines={1} style={styles.ownerNeutralLabel}>{ownerLabels.edit}</Text>
           </Pressable>
           {/**
-           * The money door: green, filled, wide — the one action of the row that is not neutral. It opens
-           * the monetisation screen itself, not a menu: the rest of the owner's index is behind the bars.
+           * The round `⋯`: the owner's index of doors, opened where the thumb already is. `Monetizează
+           * profilul` and `Distribuie profilul` live in that menu now, so the row carries one word and one
+           * glyph — exactly what the owner asked for on 18 October 2026.
            */}
-          {onMonetize ? (
+          {onProfileMenu ? (
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={ownerLabels.monetize}
-              onPress={onMonetize}
-              style={({ pressed }) => [styles.ownerWide, styles.ownerPrimary, pressed && styles.ownerPressed]}
+              accessibilityLabel={PROFILE_MENU_WORD}
+              accessibilityState={{ expanded: Boolean(menuOpen) }}
+              onPress={onProfileMenu}
+              hitSlop={(OWNER_ROW.menuTarget - OWNER_ROW.menuSize) / 2}
+              style={({ pressed }) => [styles.ownerRound, (pressed || menuOpen) && styles.ownerPressed]}
             >
-              <Text numberOfLines={1} style={styles.ownerPrimaryLabel}>{ownerLabels.monetize}</Text>
-            </Pressable>
-          ) : null}
-          {/** The round entry: the share glyph alone, no word drawn, 44 dp aimed. */}
-          {onShare ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={ownerLabels.share}
-              onPress={onShare}
-              hitSlop={4}
-              style={({ pressed }) => [styles.ownerRound, styles.ownerRoundShare, pressed && styles.ownerPressed]}
-            >
-              <SolidViewerIcon kind="share" size={OWNER_ROW.shareGlyph} color={socialTokens.relations.neutralInk} />
+              <Text accessible={false} style={styles.ownerMenuGlyph}>⋯</Text>
             </Pressable>
           ) : null}
         </View>
@@ -411,28 +398,27 @@ const styles = StyleSheet.create({
     borderColor: socialTokens.relations.neutralBorder,
     backgroundColor: socialTokens.relations.neutralSurface,
   },
-  ownerPrimary: { backgroundColor: jungle.primary },
   ownerPressed: { opacity: 0.82 },
   ownerNeutralLabel: {
     color: socialTokens.relations.neutralInk,
     fontSize: OWNER_ROW.labelSize,
     fontWeight: OWNER_ROW.labelWeight,
   },
-  ownerPrimaryLabel: {
-    color: jungle.primaryInk,
-    fontSize: OWNER_ROW.labelSize,
-    fontWeight: OWNER_ROW.labelWeight,
-  },
   ownerRound: {
-    width: OWNER_ROW.shareSize,
-    height: OWNER_ROW.shareSize,
+    width: OWNER_ROW.menuSize,
+    height: OWNER_ROW.menuSize,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: OWNER_ROW.shareSize / 2,
+    borderRadius: OWNER_ROW.menuSize / 2,
     borderWidth: 1,
     borderColor: socialTokens.relations.neutralBorder,
     backgroundColor: socialTokens.relations.neutralSurface,
   },
-  /** The share door wears the papaya ring, at the same low saturation as the other four. */
-  ownerRoundShare: { borderColor: fruitRing.share, backgroundColor: fruitWash.share },
+  /** The three dots of the round entry. Drawn as text so the glyph matches the platform's own ellipsis. */
+  ownerMenuGlyph: {
+    color: socialTokens.relations.neutralInk,
+    fontSize: OWNER_ROW.menuGlyph,
+    lineHeight: OWNER_ROW.menuGlyph + 4,
+    fontWeight: '800',
+  },
 });

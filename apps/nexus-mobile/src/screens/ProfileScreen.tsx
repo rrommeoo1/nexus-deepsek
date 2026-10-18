@@ -277,7 +277,6 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         onShare={onShare ? onShare : shareProfile}
         onEditProfile={() => setEditOpen(true)}
         onProfileMenu={() => setMenuOpen(true)}
-        onMonetize={onMonetize}
         menuOpen={menuOpen}
         onMessage={onMessage}
         onDoor={onDoor}
@@ -436,13 +435,14 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       version={version}
       build={build}
       handlers={{
-        newPost: onNewPost,
+        monetize: onMonetize,
+        share: onShare ? onShare : shareProfile,
         wallet: onWallet,
+        settings: onSettings,
+        newPost: onNewPost,
         income: onIncome,
         spending: onSpending,
         notifications: onNotifications,
-        monetize: onMonetize,
-        settings: onSettings,
         logout: onLogout,
       }}
     />

@@ -11,13 +11,14 @@
  * a host cannot open disappears instead of staying as a row that opens nothing.
  */
 export type ProfileMenuId =
-  | 'newPost'
+  | 'monetize'
+  | 'share'
   | 'wallet'
+  | 'settings'
+  | 'newPost'
   | 'income'
   | 'spending'
-  | 'monetize'
   | 'notifications'
-  | 'settings'
   | 'logout';
 
 export type ProfileMenuItem = {
@@ -37,15 +38,20 @@ export const PROFILE_MENU_SWITCH_WORD = 'Schimbă profilul';
 /** One profile the menu can switch to, in the owner's order (Social first). */
 export type ProfileSwitchOption = { persona: string; label: string };
 
-/** In the owner's order: write, money, prices, activity, settings, and the way out. */
+/**
+ * In the owner's order (18 October 2026). The first four are the ones the owner named when the row of
+ * buttons became `[Editează profilul] [⋯]`; the rest are the doors the retired drawer used to hold and
+ * that the owner moved here rather than lose. `profileMenuFor` draws only the rows a host can open.
+ */
 export const PROFILE_MENU: readonly ProfileMenuItem[] = Object.freeze([
-  { id: 'newPost', label: 'Postare nouă', hint: 'deschide camera' },
+  { id: 'monetize', label: 'Monetizează profilul', hint: 'cât costă un like, un comentariu, o distribuire' },
+  { id: 'share', label: 'Distribuie profilul', hint: 'trimite profilul mai departe' },
   { id: 'wallet', label: 'Portofel', hint: 'sold, retrageri, cereri' },
+  { id: 'settings', label: 'Setări', hint: 'despre aplicație, build, server' },
+  { id: 'newPost', label: 'Postare nouă', hint: 'deschide camera' },
   { id: 'income', label: 'Venituri', hint: 'deconturile tale, pe rând' },
   { id: 'spending', label: 'Cheltuieli', hint: 'ce ai plătit, pe rând' },
-  { id: 'monetize', label: 'Prețurile mele', hint: 'cât costă un like, un comentariu, o distribuire' },
   { id: 'notifications', label: 'Notificări', hint: 'activitatea contului' },
-  { id: 'settings', label: 'Setări', hint: 'despre aplicație, build, server' },
   { id: 'logout', label: 'Ieși din cont', hint: 'închide sesiunea pe acest telefon' },
 ]);
 

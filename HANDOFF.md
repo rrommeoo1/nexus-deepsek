@@ -1,8 +1,86 @@
 # HANDOFF — Jungle Book nativ (fost Nexus) (branch `codex/camera-draft-stability`)
 
-Ultima actualizare: **17 octombrie 2026** (banda de profil restaurată nativ + ciclul de dezvoltare + ușa
-notificărilor).
+Ultima actualizare: **18 octombrie 2026** (rândul propriu are din nou două intrări — `Editează profilul` și
+`⋯` — iar meniul acelui `⋯` începe cu porțile numite de proprietar, în ordinea numită).
 Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să repete greșeala care a blocat task-urile anterioare.
+
+## 0.9 Rândul propriu `[Editează profilul] [⋯]` și meniul reordonat (18 octombrie 2026)
+
+Regula proprietarului: pe profilul propriu rândul are **exact două intrări** — `Editează profilul`, lat, și
+un `⋯` rotund — iar meniul deschis de ele începe cu **Monetizează profilul, Distribuie profilul, Portofel,
+Setări**. Cele trei butoane din runda anterioară (editor, monetizare verde, distribuire rotundă) au fost
+desfăcute; niciunul nu mai are o a doua casă în rând.
+
+| Unde | Ce s-a schimbat |
+| --- | --- |
+| `src/lib/profileActions.ts` | `OWNER_ROW` ține `menuSize` / `menuTarget` / `menuGlyph` în locul `shareSize` / `shareTarget` / `shareGlyph`; `OWNER_ROW_WORDS` are doar `edit`, `editShort` și `menu: 'Deschide meniul'`; `ownerRowLabels` întoarce `{edit}`, iar `ownerWideLabelRoom` scade un singur gol și ținta rotundă (fără împărțire la 2) |
+| `src/lib/profileMenu.ts` | ordinea `ProfileMenuId` și a lui `PROFILE_MENU`: primele patru porți cerute, apoi porțile fostului sertar (postare nouă, notificări, ieșire din cont) și cele două jumătăți ale registrului (Venituri, Cheltuieli) — nouă rânduri, același index de porți |
+| `src/components/ProfileHeader.tsx` | rândul propriu desenează editorul și `⋯`; `⋯` are `accessibilityLabel={PROFILE_MENU_WORD}` și `accessibilityState={{expanded}}`, țintă de 44 dp prin `hitSlop=(menuTarget-menuSize)/2`; stilurile `ownerPrimary` / `ownerPrimaryLabel` / `ownerRoundShare` au fost șterse, a apărut `ownerMenuGlyph` |
+| `src/screens/ProfileScreen.tsx` | `onMonetize` nu mai coboară în antet; `handlers` ale foaiei primesc `monetize`, `share` (același `Share.share` pe care îl folosea rotundul), `wallet`, `settings` în ordinea din meniu |
+| `scripts/test-profile-menu.cjs` | 10 teste: ordinea celor nouă porți, geometria rândului (`menuSize`/`menuTarget`), eticheta lată care încape la scara 1 → 2 pe 469 dp, scurtarea pe un ecran de 200 dp, și antetul fără `ownerPrimary`, fără `kind="share"`, fără `onMonetize`, cu `⋯` și `expanded` |
+
+**Verificat acum:** `node node_modules/typescript/bin/tsc --noEmit` → **0 erori**; `cmd /c npm test` (mobil) →
+**exit 0**, fără niciun `fail`; `node scripts/test-profile-menu.cjs` → **10/10**.
+
+**Rămas de făcut aici:** captura pe telefon a rândului și a meniului (ADB răspunde, dar runda asta nu a atins
+dispozitivul), plus confirmarea că `⋯` și cele trei bare deschid aceeași foaie.
+
+
+## 0.8 Aprecierea și comentariul se plătesc — devnet, cu citat de la server (18 octombrie 2026)
+
+Cerința proprietarului: fiecare apreciere și fiecare comentariu este o **tranzacție reală** (3 ¢ like,
+4 ¢ comentariu, distribuirea gratuită), nu un contor local. Ce s-a construit, în două repo-uri:
+
+| Unde | Fișier | Ce face |
+| --- | --- | --- |
+| server | `lib/devnet-payments.js` (nou) | citește contul plătitorului de pe devnet, semnează transferul cu portofelul de test, difuzează, recitește starea; adresele vin din `docs/.test-wallets.local` |
+| server | `lib/action-payments.js` (nou) | citat (`quoteAction`), plată (`payForAction`, `Idempotency-Key`), poarta (`requirePaidAction`), reconciliere pe lanț, `consumeActionPaymentIntent` — o singură folosire |
+| server | `lib/api.js` | `GET /api/posts/:id/action-quote`, `POST /api/posts/:id/action-payment`, `GET /api/action-payments/:intent`; like-ul (`api.js:4006`) și comentariul (`api.js:4108`) trec prin poartă; `allowComments: false` răspunde `403` înainte de preț |
+| server | `lib/db.js`, `lib/repo.js` | tabela `action_payment_intents`, index, consum atomic |
+| telefon | `src/lib/actionPayments.ts` | citește citatul, știe ce înseamnă fiecare cod, formatează sumele din wei (`egldFromWei`), `paymentKeyRotates` |
+| telefon | `src/components/ActionPaymentSheet.tsx` | foaia de plată: preț, comision, total, sold, cât lipsește, faucet, „verifică din nou”, chitanță cu hash și explorer |
+| telefon | `PostCard.tsx`, `CommentsSheet.tsx` | la `402 PAYMENT_REQUIRED` deschid foaia; după aprobare retrimit **aceeași** scriere cu `payment_intent_id` |
+
+Decizii care contează mai departe:
+
+1. **Clientul nu calculează bani.** Prețul și sumele pe lanț vin din `detail.quote` al refuzului `402`;
+   telefonul doar le formatează. Testul verifică faptul că suma în wei bate stringul `amount_egld`.
+2. **Cheia de idempotență nu se schimbă la o conexiune căzută** — reluarea aceleiași chei este modul de a
+   recupera un transfer care a plecat. Se rotește doar când serverul a închis rândul (`paymentKeyRotates`).
+3. **Fără fonduri, foaia spune adevărul**: `CHAIN_INSUFFICIENT_FUNDS` cu adresa, soldul și suma necesară, plus
+   un buton de recitire a soldului după faucet, ca cititorul să nu închidă foaia ca să afle că poate plăti.
+4. **Serverul nu mai cade tăcut pe „simulat”.** Implicitul este `devnet`, iar un host fără portofele refuză
+   plata cu `503 WALLET_STORE_MISSING` **înainte** să scrie vreun rând. Modul demonstrativ se cere explicit:
+   `NEXUS_PAYMENTS_CHAIN=simulated` (sau `off`), iar rândul rămâne marcat `chain_mode: "simulated"`.
+
+**Verificat acum:**
+
+| Verificare | Rezultat |
+| --- | --- |
+| `npx tsc --noEmit` (mobil) | **0 erori** |
+| `npm test` (mobil, 16 fișiere) | **exit 0**, niciun `fail`; 13 teste în `scripts/test-action-payments.cjs` |
+| `node --test test/action-payments.test.js test/p1-action-ledger.test.js test/creator-pricing.test.js` | **28/28** (12 în `action-payments`, inclusiv noul „fără portofele = refuz, nu simulare”) |
+| suita web întreagă (`test/*.test.js`) | **812/813** — singurul roșu este `test/wallet-connect.test.js`, care moare la import: `src/wc-client.js` cere pachetul `qrcode`, care nu e în `package.json` și nu e instalat (problema exista înainte de această rundă) |
+| citat real de pe devnet pentru un like de 3 ¢ | `0.001 EGLD` + `0.000114 EGLD` comision = `0.001114 EGLD`; sold `0`, lipsă `0.001114`; `can_afford:false` |
+| `payForAction` fără EGLD | refuz `402 CHAIN_INSUFFICIENT_FUNDS` cu `{address, balance_egld, required_egld, faucet_url}`, iar rândul din registru rămâne `failed` cu `tx_hash: null` |
+
+**Blocat, cu motiv:** nu există încă un hash real. Cele cinci portofele din `docs/.test-wallets.local` au
+`egld: "0"` (`tools/probe-devnet-balances.mjs`), iar faucetul devnet cere captcha în browser — nu poate fi
+declanșat dintr-un script. `adb` lipsește complet (SDK-ul Android nu e instalat, `ANDROID_HOME` arată într-un
+dosar gol), deci nici instalarea pe telefon nu se poate face din această sesiune.
+
+**Următorii pași, în ordine:**
+
+1. Faucet pentru primul portofel (`https://devnet-wallet.multiversx.com/faucet`), apoi
+   `node tools/probe-devnet-balances.mjs` → `egld` peste `0.0012`.
+2. `GET /api/posts/:id/action-quote?action=appreciation` → `can_afford: true` (fără asta, foaia arată corect
+   cât lipsește și nu lasă butonul de plată activ).
+3. Un like din telefon → `tx_hash` în chitanță; hash-ul se deschide în explorer.
+4. Instalare `adb` (platform-tools) ca să repete pasul 3 pe telefon și să facă captura.
+
+Documentul de economie a fost adus la zi: `docs/MONETIZATION-SPEC.md` §9 (contract, reguli de client, ce e
+dovedit) și §8.2 (`per_action` are adaptor real; `batched` rămâne neconstruit).
+
 
 ## 0.1 Continuarea din 17 octombrie 2026 — F2.c (preț pe acțiune) și linia de sfârșit de rând
 
