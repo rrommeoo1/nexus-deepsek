@@ -383,6 +383,10 @@ Riscurile fiecăruia, pe scurt: `batched` **ține banii fanului în custodie** �
 `per_action` nu ține nimic, dar costă de N ori mai mult și face prețurile mici imposibile la cursuri
 mari. Ambele sunt **devnet only**: niciun transfer cu valoare reală, nicio promisiune de payout.
 
+**Starea de azi:** niciunul dintre cele două moduri nu are încă un adaptor de lanț în cod. `batched`
+există ca parametru de calcul (`NEXUS_SETTLEMENT_MODE`, `NEXUS_BATCH_SIZE`) și ca politică în §8.4;
+fluxul on-chain (depunere, decontare, ancorare) rămâne de construit și de rulat pe devnet.
+
 ### 8.3 Ce refuză serverul
 
 - un preț sub pragul recalculat din parametri (`PRICE_BELOW_SETTLEMENT_COST`), cu motivul în răspuns;
@@ -395,6 +399,8 @@ mari. Ambele sunt **devnet only**: niciun transfer cu valoare reală, nicio prom
 
 Fiecare lot produce o rădăcină Merkle peste chitanțele acțiunilor lui; rădăcina și numărul de chitanțe
 intră într-o tranzacție de ancorare. Serverul poate dovedi apoi, pentru orice acțiune, că chitanța ei
-este în rădăcina ancorată, fără să publice lista. Cât timp devnet-ul nu are EGLD, ancorarea rulează pe
-adaptorul simulat și este marcată ca atare în răspuns (`chain: "simulated"`).
+este în rădăcina ancorată, fără să publice lista. Cât timp devnet-ul nu are EGLD, ancorarea nu are cum
+să ruleze: nu există încă un loc în schemă pentru rădăcină, iar fluxul este următorul pas după
+alimentarea conturilor. Când va exista, fiecare răspuns va purta `chain: "simulated"` sau
+`chain: "devnet"`, ca să nu poată fi confundate.
 
