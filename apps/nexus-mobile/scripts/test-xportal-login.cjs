@@ -265,6 +265,11 @@ test('foaia scrie nota încercării la pairing şi o şterge când încercarea s
 test('fraza de eroare păstrează originea exactă de adăugat în WalletConnect', () => {
   const sentence = 'xPortal nu poate porni: WalletConnect refuză originea https://nexus.example. Adaugă exact https://nexus.example în WalletConnect Cloud → Settings → Allowed origins.';
   assert.equal(login.xPortalFailureSentence(sentence), sentence);
-  // Restul erorilor rămân pe rezumatul scurt.
+  // A doua formulare, cea pe care o scrie clientul web când refuzul nu a fost prins la timp: propoziția
+  // poartă originea, deci rămâne neatinsă (fără ea, cititorul nu are ce adăuga în dashboard).
+  const fallback = 'WalletConnect nu a creat sesiunea. Verifică dacă Project ID-ul Jungle Book este emis de WalletConnect Dashboard și dacă originea https://nexus-deepsek-production.up.railway.app este permisă în Allowlist.';
+  assert.equal(login.xPortalFailureSentence(fallback), fallback);
+  // Restul erorilor rămân pe rezumatul scurt: „allowlist” fără origine nu se poate urma.
+  assert.match(login.xPortalFailureSentence('WalletConnect nu a creat sesiunea: project id allowlist relay'), /WalletConnect Dashboard/);
   assert.match(login.xPortalFailureSentence('relay nu a răspuns'), /Serverul nu poate deschide conexiunea WalletConnect/);
 });

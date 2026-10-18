@@ -248,9 +248,12 @@ export function xPortalFailureSentence(message: string): string {
   const detail = String(message || '').trim();
   if (/reject|declin|cancel|anulat|4001/i.test(detail)) return 'Ai anulat conectarea în xPortal. Poți încerca din nou.';
   // The page names the exact origin that has to be allowlisted; that sentence is the instruction a
-  // reader has to follow, so it is printed unchanged instead of being replaced by a summary. Both
-  // wordings count: the web client's and the relay watcher's in the bridge page.
-  if ((/allowed origins|refuză originea/i.test(detail)) && /https?:\/\//i.test(detail)) return detail;
+  // reader has to follow, so it is printed unchanged instead of being replaced by a summary. Three
+  // wordings count, because three layers can write it: the web client's refusal (`explainRelayRefusal`),
+  // its fallback (`…este permisă în Allowlist`), and the relay watcher in the bridge page. The origin has
+  // to be in the sentence — without it the summary below is the honest answer, since a reader cannot act
+  // on "allowlist" alone.
+  if ((/allowed origins|allowlist|refuză originea/i.test(detail)) && /https?:\/\//i.test(detail)) return detail;
   if (/wc-bundle|project id|allowlist|relay/i.test(detail)) {
     return 'Serverul nu poate deschide conexiunea WalletConnect acum. Verifică Project ID-ul și originea în WalletConnect Dashboard.';
   }

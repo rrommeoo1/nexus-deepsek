@@ -1,8 +1,94 @@
 # HANDOFF — Jungle Book nativ (fost Nexus) (branch `codex/camera-draft-stability`)
 
-Ultima actualizare: **18 octombrie 2026** (foaia xPortal are acum o singură mașină de stări: nu mai poate spune
-„se așteaptă” după o încercare moartă și nu mai poate merge înapoi când sosește un eveniment târziu din pagină).
+Ultima actualizare: **18 octombrie 2026** (telefonul e din nou conectat, Metro rulează pe Railway, foaia xPortal
+ajunge până la relay — și se oprește acolo pentru că originea Railway nu este în Allowed Origins; §0.14 are
+cronologia, dovada și exact ce trebuie adăugat. Foaia are o singură mașină de stări, §0.13).
 Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să repete greșeala care a blocat task-urile anterioare.
+
+## 0.14 Telefonul, primul ciclu xPortal și singurul lucru care lipsește: originea allowlisted (18 octombrie 2026)
+
+**Rezultatul rundei, într-o propoziție:** aplicația pornește de pe Railway, foaia xPortal se deschide și
+își face treaba până la relay, iar relay-ul refuză **originea Railway**; WalletConnect Cloud acceptă din
+oficiu doar `localhost`/`127.0.0.1`, deci singurul pas rămas este adăugarea originii în dashboard. Nu este
+un defect de cod: este o listă de origini permise care nu conține domeniul aplicației.
+
+### Ce a funcționat pe telefon (doar un singur `adb`, wireless)
+
+| Pas | Comandă care a mers | Rezultat |
+|---|---|---|
+| Un singur adb | `Get-Process adb \| Stop-Process -Force`, apoi `& $adb start-server` | după restart lista era goală; `& $adb connect 192.168.1.184:36819` a readus telefonul ca `device` |
+| Portul neschimbat | `& $adb mdns services` | `adb-b42122b-huYC9y _adb-tls-connect._tcp 192.168.1.184:36819` — același port ca în prompt |
+| Ecran | `dumpsys power \| Select-String mWakefulness` | `Awake` |
+| Prim-plan | `dumpsys activity activities \| Select-String topResumedActivity` | `app.nexus.mobile.dev/.MainActivity` pe display 0; `mCurrentFocus` arăta `null`/`SubScreenLauncher` pentru că telefonul are un al doilea display (sub-ecran), nu pentru că aplicația nu era în față |
+| Metro fără origine locală | `builds\metro-railway.cmd` → `node node_modules\expo\bin\cli start --dev-client --port 8081 --clear` cu `set "EXPO_PUBLIC_NEXUS_API_URL="` | „Waiting on http://localhost:8081”, `Android Bundled 24212ms` |
+| Tunel doar pentru Metro | `& $adb -s 192.168.1.184:36819 reverse tcp:8081 tcp:8081` | `host-26 tcp:8081 tcp:8081`; `reverse --remove tcp:5000` a răspuns „listener not found”, deci API-ul nu trecea prin tunel |
+| Reîncărcare | `am start -a android.intent.action.VIEW -d "nexusdev://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"` | loginul „JUNGLE BOOK” încărcat, fără APK nou |
+
+**Capcană de proces (de reținut):** dacă Metro e pornit în aceeași comandă care așteaptă mai mult de 30 s,
+harness-ul omoară arborele de procese și Metro moare după „Waiting on 8081” (primul `page-error` din foaie a
+fost exact asta: `unexpected end of stream on http://localhost:8081`). Soluția care ține: un fișier
+`builds\metro-railway.cmd` pornit cu `Start-Process -WindowStyle Hidden`, apoi poll separat.
+
+### Cronologia celor două cicluri
+
+| # | Când | Ce am făcut | Ce a răspuns aplicația | Durata |
+|---|---|---|---|---|
+| 1 | 17:00:47 | tap pe „Conectează xPortal” (609,1414, citit din `uiautomator dump`) | foaia: „conectez Nexus la WalletConnect Relay…”, apoi „Serverul nu poate deschide conexiunea WalletConnect acum…” | eșec la **46 551 ms** |
+| 2 | 17:26 | după reparația de mai jos, același tap | foaia afișează **propoziția întreagă, cu origine**: „WalletConnect nu a creat sesiunea. … dacă originea **https://nexus-deepsek-production.up.railway.app** este permisă în Allowlist. … crearea pairing-ului WalletConnect a expirat” | eșec la ~60 s |
+
+Jurnalul paginii (Metro, `[xportal]`): `sheet-open`, `bridge-start redirectNative=true`, `storage-cleared`,
+`provider-ready ms=721`, `app-active stage=preparing waitedSeconds=0`, `page-error`, apoi
+`login-failed error=WalletConnect nu a creat sesiunea…`. `relay-refused` **nu** a apărut în ciclul 1: refuzul
+nu a fost prins din console, deci clientul a căzut pe propoziția lui de rezervă — care, din fericire, poartă
+și ea originea.
+
+### Dovada că originea e problema (fără să ghicesc)
+
+`builds\wc-relay-probe.cjs` semnează un JWT de relay și încearcă handshake-ul cu diverse antete:
+
+| Origine trimisă | Rezultat |
+|---|---|
+| `https://nexus-deepsek-production.up.railway.app` (fără UA, UA de WebView, UA de browser, ± `packageName`) | **DENIED 3000 Unauthorized: origin not allowed** |
+| `https://example.com` | DENIED 3000, aceeași propoziție |
+| **fără antet `Origin`** | ALLOWED |
+| `http://localhost:5000`, `http://localhost:8081`, `http://127.0.0.1:5000`, `https://localhost` | ALLOWED |
+
+Deci: proiectul `16df…fc98` nu are nicio origine publică în listă, iar WebView-ul trimite mereu `Origin` —
+pagina punte este servită de `API_ORIGIN`, adică de Railway.
+
+### Reparația făcută în această rundă
+
+Foaia ascundea exact informația de care avea nevoie proprietarul: `xPortalFailureSentence` păstra
+propoziția paginii doar dacă ea conținea „allowed origins”/„refuză originea”, iar clientul web scrie și
+„…este permisă în **Allowlist**”. Textul cu origine era deci înlocuit cu rezumatul „Verifică Project ID-ul…”.
+Acum și formularea cu „Allowlist” rămâne neatinsă, cu condiția să poarte o origine `http(s)://` (fără origine,
+rezumatul e răspunsul cinstit). Test: `test-xportal-login.cjs` are două cazuri noi — cel din dashboard
+(`Allowed origins`) și cel de rezervă al clientului (`Allowlist` + origine).
+
+### Ce lipsește, exact
+
+1. **Una singură, obligatorie:** adaugă în WalletConnect Cloud → proiectul `16df…fc98` → Settings → Allowed
+   origins:
+   `https://nexus-deepsek-production.up.railway.app`
+   (fără cale, fără bară la final; potrivire exactă, cu schemă). Fără ea, relay-ul răspunde 3000 pentru orice
+   pagină servită de Railway, iar fluxul nu poate trece de `createProvider` → niciun URI de pairing nu există,
+   deci xPortal nu are ce aproba și amprenta nu are unde apărea.
+2. **Dacă vrei să testăm înainte de dashboard**, singura cale care funcționează azi este originea locală, pe
+   care relay-ul o acceptă din oficiu: Metro cu `EXPO_PUBLIC_NEXUS_API_URL=http://localhost:5000`,
+   `& $adb reverse tcp:5000 tcp:5000`, iar serverul local pornit cu `NEXUS_ORIGIN=http://localhost:5000`
+   (altfel `/auth/mvx/init` nu attestă originea). Asta mută însă și API-ul pe laptop, deci iese din regula
+   „rămâi pe Railway” — o folosim doar dacă o ceri explicit.
+3. **După ce originea e în listă**, ciclurile 1–3 (inclusiv B: revenire manuală din recents, C: `force-stop` în
+   timpul așteptării) pot rula fără nicio schimbare de cod. Nu e nevoie de APK nou: tot ce s-a schimbat în
+   această rundă e în bundle-ul Metro (`xportalLogin.ts`).
+
+### Corectură la §0.12
+
+Ecranul de conectare **nu** afișează „API: Railway”. Eticheta `apiOriginLabel()` este randată doar în
+`index.tsx:385` (Settings) și `:405` (footer-ul profilului propriu); pe login nu există niciun subsol cu ea
+(`builds\ui4.xml` nu conține „API:”). Originea aleasă se citește deocamdată din foaie (propoziția de refuz a
+relay-ului o numește) sau din Settings după login. Nu am schimbat ecranul: dacă vrei eticheta și pe login,
+e o linie în `NexusLogin`, dar nu blochează nimic.
 
 ## 0.13 Foaia xPortal: o singură mașină de stări (18 octombrie 2026)
 
