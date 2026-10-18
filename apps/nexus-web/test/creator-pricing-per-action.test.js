@@ -22,9 +22,9 @@ test("each action carries its own price and zero means free", () => {
 });
 
 test("the floor applies only to the actions that are actually paid", () => {
-  const atFloor = normalizePricingInput({ free: false, prices: { appreciation: 105, comment: 0, share: 0 } });
+  const atFloor = normalizePricingInput({ free: false, prices: { appreciation: 3, comment: 0, share: 0 } });
   assert.equal(atFloor.ok, true);
-  const below = normalizePricingInput({ free: false, prices: { appreciation: 104, comment: 0, share: 0 } });
+  const below = normalizePricingInput({ free: false, prices: { appreciation: 2, comment: 0, share: 0 } });
   assert.equal(below.ok, false);
   assert.equal(below.code, "PRICE_BELOW_SETTLEMENT_COST");
 });
@@ -39,9 +39,9 @@ test("the view prints JUNGLE, derives monetized, and explains its floor", () => 
   assert.equal(free.display_currency, "JUNGLE");
   assert.equal(free.monetized, false);
   assert.equal(free.free, true);
-  assert.equal(free.floor_cents, 105);
-  assert.equal(free.floor_reason, "SETTLEMENT_COST");
-  assert.match(free.floor_basis.message, /105 JUNGLE/);
+  assert.equal(free.floor_cents, 3);
+  assert.equal(free.floor_reason, "POLICY_V3");
+  assert.match(free.floor_basis.message, /0\.03 JUNGLE/);
 
   const paid = pricingView({ free: false, actions: { comment: { id: 7, price_cents: 200 } } });
   assert.equal(paid.monetized, true);

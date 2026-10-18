@@ -8,6 +8,7 @@ import { creatorStudioHash, normalizeCreatorAudio, normalizeCreatorStudio } from
 import { evaluatePrivacy } from "./privacy-matrix.js";
 import { normalizeJamendoTrack } from "./jamendo.js";
 import { ACTION_KEYS, ACTION_LABELS, ACTION_SPLIT_VERSION } from "./creator-pricing.js";
+import { splitForStorage } from "./creator-ledger.js";
 
 export const PERSONAS = ["social", "work", "dating", "travel", "market"];
 export const SOCIAL_REACTIONS = ["LIKE", "LOVE", "HAHA", "WOW", "SAD", "ANGRY", "FAKE_OPINION", "DISLIKE"];
@@ -5268,7 +5269,7 @@ export function createRepo(db) {
       const profile = this.getPersona(creatorId, "social");
       const creator = this.getUserById(creatorId);
       if (!profile || creator?.account_state !== "active") throw Object.assign(new Error("creator profile unavailable"), { code: "CREATOR_PROFILE_UNAVAILABLE" });
-      const splitVersion = kind === "tip" ? "CORE_TIP_V1_90_5_3_2" : "CORE_MEMBERSHIP_V1_85_10_3_2";
+      const splitVersion = kind === "tip" ? ACTION_SPLIT_VERSION : "CORE_MEMBERSHIP_V1_85_10_3_2";
       const info = this.db.prepare(`INSERT INTO creator_support_products
         (creator_id, kind, title, price_cents, interval_days, split_version) VALUES (?, ?, ?, ?, ?, ?)`)
         .run(creatorId, kind, title, priceCents, kind === "membership" ? intervalDays : null, splitVersion);
@@ -5409,12 +5410,13 @@ export function createRepo(db) {
       const excluded = supporter.traffic_class !== "HUMAN_ORGANIC" || product.creator_traffic_class !== "HUMAN_ORGANIC";
       const quoted = Number(product.price_cents);
       const gross = excluded ? 0 : quoted;
-      const creatorBps = product.kind === "tip" ? 9000 : 8500;
-      const nexusBps = product.kind === "tip" ? 500 : 1000;
-      const creatorShare = Math.floor(gross * creatorBps / 10000);
-      const nexusFee = Math.floor(gross * nexusBps / 10000);
-      const safetyReserve = Math.floor(gross * 300 / 10000);
-      const infra = gross - creatorShare - nexusFee - safetyReserve;
+      // The intent is stored in the same four buckets a settlement recomputes, under the product's own
+      // split version — v3 for anything priced today, 90/5/3/2 for a product that predates it.
+      const shares = gross > 0 ? splitForStorage(gross, product.split_version) : { creator: 0, fee: 0, reserve: 0, infra: 0 };
+      const creatorShare = shares.creator;
+      const nexusFee = shares.fee;
+      const safetyReserve = shares.reserve;
+      const infra = shares.infra;
       const id = randomBytes(12).toString("hex");
       const status = excluded ? "excluded_synthetic" : "demo_unpaid";
       const commitment = sha256Hex(JSON.stringify({ id, supporterId, creatorId: product.creator_id, productId, quoted, gross, creatorShare, nexusFee, safetyReserve, infra, currency: product.currency, splitVersion: product.split_version, status }));

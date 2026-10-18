@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { openDb } from '../lib/db.js';
 import { createRepo } from '../lib/repo.js';
-import { createLedger, splitAmount } from '../lib/creator-ledger.js';
+import { createLedger, splitForStorage } from '../lib/creator-ledger.js';
 import {
   creatorLedger, depositTreasury, payCreatorPayout, reconcileCreatorLedger, refundIntent,
   requestCreatorPayout, settleIntent,
@@ -33,7 +33,7 @@ test('I1: a settlement credits exactly the split and debits the treasury for the
   try {
     depositTreasury({ db, amountCents: 10000 });
     const posted = settleIntent({ db, creatorId: creator.id, intentId: intent.id, allowDemo: true });
-    const shares = splitAmount(Number(intent.gross_cents), intent.split_version);
+    const shares = splitForStorage(Number(intent.gross_cents), intent.split_version);
     assert.equal(Number(posted.settlement.gross_cents), Number(intent.gross_cents));
     assert.equal(Number(posted.settlement.creator_share_cents), shares.creator);
     const credits = posted.entries.filter((row) => row.direction === 'credit').reduce((sum, row) => sum + Number(row.amount_cents), 0);

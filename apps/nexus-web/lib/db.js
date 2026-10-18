@@ -1449,7 +1449,7 @@ CREATE TABLE IF NOT EXISTS creator_support_products (
   creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   kind TEXT NOT NULL CHECK(kind IN ('tip','membership')),
   title TEXT NOT NULL,
-  price_cents INTEGER NOT NULL CHECK(price_cents BETWEEN 100 AND 100000000),
+  price_cents INTEGER NOT NULL CHECK(price_cents BETWEEN 1 AND 100000000),
   currency TEXT NOT NULL DEFAULT 'TEST-USDC' CHECK(currency = 'TEST-USDC'),
   interval_days INTEGER CHECK(interval_days IS NULL OR interval_days BETWEEN 1 AND 366),
   split_version TEXT NOT NULL,
@@ -2590,6 +2590,71 @@ function migrateMessagingTables(db) {
     addMessage.run(conversation.id, message.from_id, message.body, `legacy:${message.id}`, message.created_at);
   }
 }
+/**
+ * The columns the price-floor rebuild carries, in table order. Named explicitly so a future column
+ * cannot be silently dropped by `SELECT *`.
+ */
+const CREATOR_PRODUCT_COLUMNS =
+  "id, creator_id, kind, title, price_cents, currency, interval_days, split_version, status, created_at";
+
+/**
+ * Policy v3 prices start at one cent, but the table was born with `CHECK(price_cents BETWEEN 100 AND
+ * 100000000)`, so 0,03 JUNGLE cannot be stored at all. SQLite cannot alter a CHECK in place: the only
+ * lossless move is to build the table again, copy every row, and swap it in inside one transaction.
+ *
+ * The rebuild is restart-safe: a crash before `COMMIT` rolls back to the old table, and the row count
+ * and `PRAGMA foreign_key_check` are both asserted before the commit. The function never throws — the
+ * boot continues on the old table and a human reads the warning — and it does nothing on a database
+ * that already carries the new CHECK.
+ */
+export function migrateCreatorProductPriceFloor(db, { beforeCommit = null } = {}) {
+  let table;
+  try {
+    table = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'creator_support_products'").get();
+  } catch (error) {
+    return { migrated: false, reason: "unreadable", error: shortReason(error), carried: 0 };
+  }
+  if (!table?.sql) return { migrated: false, reason: "table_absent", carried: 0 };
+  if (!/BETWEEN\s+100\s+AND\s+100000000\b/i.test(String(table.sql))) {
+    return { migrated: false, reason: "current", carried: 0 };
+  }
+  const before = Number(db.prepare("SELECT COUNT(*) count FROM creator_support_products").get().count);
+  db.exec("PRAGMA foreign_keys = OFF");
+  try {
+    db.exec("BEGIN IMMEDIATE");
+    db.exec(`CREATE TABLE creator_support_products_v3 (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      creator_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL CHECK(kind IN ('tip','membership')),
+      title TEXT NOT NULL,
+      price_cents INTEGER NOT NULL CHECK(price_cents BETWEEN 1 AND 100000000),
+      currency TEXT NOT NULL DEFAULT 'TEST-USDC' CHECK(currency = 'TEST-USDC'),
+      interval_days INTEGER CHECK(interval_days IS NULL OR interval_days BETWEEN 1 AND 366),
+      split_version TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused','closed')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    )`);
+    db.exec(`INSERT INTO creator_support_products_v3 (${CREATOR_PRODUCT_COLUMNS})
+      SELECT ${CREATOR_PRODUCT_COLUMNS} FROM creator_support_products`);
+    const carried = Number(db.prepare("SELECT COUNT(*) count FROM creator_support_products_v3").get().count);
+    if (carried !== before) throw new Error(`row count changed ${before} → ${carried}`);
+    db.exec("DROP TABLE creator_support_products");
+    db.exec("ALTER TABLE creator_support_products_v3 RENAME TO creator_support_products");
+    db.exec("CREATE INDEX IF NOT EXISTS idx_creator_products_catalog ON creator_support_products(creator_id, status, kind, price_cents)");
+    const broken = db.prepare("PRAGMA foreign_key_check").all();
+    if (broken.length) throw new Error(`foreign_key_check reported ${broken.length} rows`);
+    if (beforeCommit) beforeCommit({ carried });
+    db.exec("COMMIT");
+    return { migrated: true, reason: "rebuilt", carried, before };
+  } catch (error) {
+    try { db.exec("ROLLBACK"); } catch { /* the transaction may already be gone */ }
+    return { migrated: false, reason: "failed", error: shortReason(error), carried: 0, before };
+  } finally {
+    db.exec("PRAGMA foreign_keys = ON");
+  }
+}
+
+
 
 export function openDb(path = DB_PATH) {
   mkdirSync(dirname(path), { recursive: true });
@@ -2606,6 +2671,12 @@ export function openDb(path = DB_PATH) {
   // after it meet the shape this build actually names.
   migrateSchemaColumns(db);
   db.exec(SCHEMA);
+  // The price floor of policy v3 (0,03 JUNGLE) cannot fit the old CHECK, and `CREATE TABLE IF NOT
+  // EXISTS` cannot loosen one. Rebuild is the only lossless move, so it happens here, before any
+  // query reads a product.
+  const priceFloor = migrateCreatorProductPriceFloor(db);
+  if (priceFloor.migrated) console.warn(`creator product price floor rebuilt: ${priceFloor.carried} rows carried`);
+  if (priceFloor.reason === "failed") console.warn(`creator product price floor migration failed, old table kept: ${priceFloor.error}`);
   migrateUsersTable(db);
   migrateWalletsTable(db);
   migrateSessionSchema(db);

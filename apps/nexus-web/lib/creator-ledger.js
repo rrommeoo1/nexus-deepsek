@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { getPolicy, isSplitPolicy, splitByPolicy } from "./split-policy.js";
 
 /**
  * F1 — the double-entry core of creator monetisation, without a database.
@@ -104,6 +105,30 @@ export function assertPriceAllowed({ price_cents, split_version = "CORE_TIP_V1_9
   return { ok: true, reason: null, message: null, shares };
 }
 
+/**
+ * The four stored buckets of a payment, whatever version priced it.
+ *
+ * A v3 payment has six slices; the schema keeps four columns (creator, network fee, reserve, infra),
+ * so the three company accounts (founder + shareholders + burn) are stored together in `reserve`.
+ * That mapping is the *only* place the two shapes meet: `creator + fee + reserve + infra` is the gross
+ * in both versions, so the CHECK on `creator_support_intents` keeps holding.
+ *
+ * Legacy versions go through `splitAmount`, exactly as before — an intent priced under 90/5/3/2 is
+ * still recomputed with 90/5/3/2, never with today's policy.
+ */
+export function splitForStorage(grossCents, splitVersion) {
+  if (isSplitPolicy(splitVersion)) {
+    const shares = splitByPolicy(grossCents, splitVersion);
+    return {
+      creator: shares.creator,
+      fee: shares.network_fund,
+      reserve: shares.founder + shares.shareholders + shares.burn,
+      infra: shares.infra,
+    };
+  }
+  return splitAmount(grossCents, splitVersion);
+}
+
 /** Account names are ids, never identities: no email, handle or wallet address in the ledger (§4.1). */
 export function accountId(kind, ownerId, currency) {
   if (!new Set(["creator", "fee", "reserve", "infra", "funding", "payout_clearing"]).has(kind)) {
@@ -207,7 +232,7 @@ export function createLedger({ now = () => new Date().toISOString(), currency = 
       throw new LedgerError("ALREADY_SETTLED", `intent ${intent.id} already has a settlement`, 409);
     }
     const gross = intent.gross_cents;
-    const shares = splitAmount(gross, intent.split_version);
+    const shares = splitForStorage(gross, intent.split_version);
     const cur = intent.currency || currency;
     const settlementId = nextId("stl");
     const funding = ensureAccount("funding", "platform", cur).id;

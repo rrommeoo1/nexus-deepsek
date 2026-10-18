@@ -103,7 +103,7 @@ test("M12 Creator exposes transparent versioned splits but never pays likes, dem
   try {
     const product = await call(state, "POST", "/api/creator/products", { kind: "tip", title: "Support direct", price_cents: 1000, interval_days: null }, state.creatorCookie);
     assert.equal(product.status, 201, JSON.stringify(product.body));
-    assert.equal(product.body.product.split_version, "CORE_TIP_V1_90_5_3_2");
+    assert.equal(product.body.product.split_version, "SPLIT_V3_70_5_4_4_1");
     const catalog = await call(state, "GET", "/api/creator/catalog?username=creator_m12", {}, state.aliceCookie);
     assert.equal(catalog.body.catalog.products.length, 1);
 
@@ -112,7 +112,7 @@ test("M12 Creator exposes transparent versioned splits but never pays likes, dem
     assert.deepEqual([
       intent.body.intent.gross_cents, intent.body.intent.creator_share_cents, intent.body.intent.nexus_fee_cents,
       intent.body.intent.safety_reserve_cents, intent.body.intent.infra_cents,
-    ], [1000, 900, 50, 30, 20]);
+    ], [1000, 700, 50, 90, 160]);
     assert.equal(intent.body.intent.status, "demo_unpaid");
     assert.equal(intent.body.intent.payout_eligible, 0);
 

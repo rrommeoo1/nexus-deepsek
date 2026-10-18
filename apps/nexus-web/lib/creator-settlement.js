@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { LedgerError, accountId, splitAmount } from "./creator-ledger.js";
+import { LedgerError, accountId, splitForStorage } from "./creator-ledger.js";
 import { json, readJson, sanitizeText } from "./transport.js";
 
 /**
@@ -133,7 +133,7 @@ export function settleIntent({ db, creatorId, intentId, allowDemo = false, curre
     throw new LedgerError("ALREADY_SETTLED", `intent is ${intent.status}`, 409);
   }
   const gross = Number(intent.gross_cents);
-  const expected = splitAmount(gross, intent.split_version);
+  const expected = splitForStorage(gross, intent.split_version);
   if (expected.creator !== Number(intent.creator_share_cents) || expected.fee !== Number(intent.nexus_fee_cents)
     || expected.reserve !== Number(intent.safety_reserve_cents) || expected.infra !== Number(intent.infra_cents)) {
     throw new LedgerError("SPLIT_MISMATCH", "the stored split no longer matches its version", 409);

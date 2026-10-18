@@ -5,8 +5,8 @@ import { createRepo } from '../lib/repo.js';
 import { handleRequest } from '../lib/api.js';
 import { issueSession } from '../lib/security.js';
 import {
-  ACTION_SPLIT_VERSION, PRICE_PRESETS, actionAffordability, costPerActionCents, normalizePricingInput,
-  pricingAction, pricingFloorCents, pricingView,
+  ACTION_SPLIT_VERSION, PRICE_PRESETS, actionAffordability, normalizePricingInput,
+  pricingAction, pricingFloorCents, pricingPolicy, pricingView,
 } from '../lib/creator-pricing.js';
 
 /**
@@ -34,15 +34,23 @@ test('a profile nobody configured is free, with the floor the settlement arithme
   assert.equal(view.available, true);
   assert.equal(view.debit_enabled, false);
   assert.equal(view.real_payment, false);
-  assert.equal(view.floor_cents, 105);
-  assert.equal(view.floor_cents, pricingFloorCents(2.1).floor_cents);
+  assert.equal(view.floor_cents, 3);
+  assert.equal(view.floor_cents, pricingFloorCents().price_cents);
+  assert.equal(view.floor_reason, 'POLICY_V3');
+  assert.equal(view.policy_version, ACTION_SPLIT_VERSION);
+  assert.equal(view.policy.min_creator_bps, 6000);
+  assert.equal(view.policy.creator_bps, 7000);
+  assert.equal(view.floor_basis.gas_cents, 1);
+  assert.match(view.floor_basis.message, /0\.03 JUNGLE/);
   for (const key of ['appreciation', 'comment', 'share']) {
     assert.equal(view.actions[key].chargeable, false);
     assert.equal(view.actions[key].price_cents, 0);
     assert.equal(view.actions[key].product_id, null);
   }
-  assert.equal(costPerActionCents({ NEXUS_COST_PER_ACTION_CENTS: '3' }), 3);
-  assert.equal(costPerActionCents({ NEXUS_COST_PER_ACTION_CENTS: '' }), 2.1);
+  // The policy follows the environment: a higher rate or an unbatched settlement moves the floor.
+  assert.equal(pricingPolicy({ NEXUS_EGLD_EUR: '10' }).settlement.gas_cents_per_action, 1);
+  assert.equal(pricingFloorCents({ egld_eur: 30, batch_size: 1 }).price_cents, 8);
+  assert.equal(pricingFloorCents({ egld_eur: 10, batch_size: 1 }).price_cents, 3);
 });
 
 test('the two presets are 2/3/3 and 3/5/5, and the split is the server\'s', () => {
@@ -55,12 +63,23 @@ test('the two presets are 2/3/3 and 3/5/5, and the split is the server\'s', () =
 
   const two = pricingAction({ action: 'appreciation', product: { id: 7, price_cents: 200, split_version: ACTION_SPLIT_VERSION } });
   assert.equal(two.price_cents, 200);
-  assert.equal(two.creator_cents, 180);
+  // Policy v3 at 2 JUNGLE: creator 140, network 10, company accounts 8 + 8 + 2, infrastructure 32.
+  assert.equal(two.creator_cents, 140);
   assert.equal(two.fee_cents, 10);
-  assert.equal(two.reserve_cents, 6);
-  assert.equal(two.infra_cents, 4);
+  assert.equal(two.reserve_cents, 18);
+  assert.equal(two.infra_cents, 32);
+  assert.equal(two.slices.founder_cents, 8);
+  assert.equal(two.slices.shareholders_cents, 8);
+  assert.equal(two.slices.burn_cents, 2);
   assert.equal(two.creator_cents + two.fee_cents + two.reserve_cents + two.infra_cents, two.price_cents);
   assert.equal(two.product_id, 7);
+  assert.equal(two.split_version, ACTION_SPLIT_VERSION);
+  // A product written before v3 keeps its own arithmetic, mapped onto the same buckets.
+  const legacy = pricingAction({ action: 'appreciation', product: { id: 8, price_cents: 200, split_version: 'CORE_TIP_V1_90_5_3_2' } });
+  assert.equal(legacy.creator_cents, 180);
+  assert.equal(legacy.fee_cents, 10);
+  assert.equal(legacy.reserve_cents, 6);
+  assert.equal(legacy.infra_cents, 4);
 });
 
 test('every invalid write is refused by name, and a free policy carries no prices', () => {
@@ -73,11 +92,12 @@ test('every invalid write is refused by name, and a free policy carries no price
   assert.deepEqual(partial.prices, { appreciation: 200, comment: 300, share: 0 });
   assert.equal(partial.monetized, true);
   assert.equal(normalizePricingInput({ free: false, prices: { ...PRICE_PRESETS.prietenos, tip: 200 } }).code, 'PRICING_INVALID');
-  const belowFloor = normalizePricingInput({ free: false, prices: { appreciation: 100, comment: 300, share: 300 } });
+  const belowFloor = normalizePricingInput({ free: false, prices: { appreciation: 2, comment: 300, share: 300 } });
   assert.equal(belowFloor.ok, false);
   assert.equal(belowFloor.code, 'PRICE_BELOW_SETTLEMENT_COST');
-  const atFloor = normalizePricingInput({ free: false, prices: { appreciation: 105, comment: 300, share: 300 } });
+  const atFloor = normalizePricingInput({ free: false, prices: { appreciation: 3, comment: 300, share: 300 } });
   assert.equal(atFloor.ok, true);
+  assert.equal(atFloor.floor_cents, 3);
   const fractional = normalizePricingInput({ free: false, prices: { appreciation: 200.5, comment: 300, share: 300 } });
   assert.equal(fractional.code, 'PRICE_INVALID');
   const tooBig = normalizePricingInput({ free: false, prices: { appreciation: 100000001, comment: 300, share: 300 } });
@@ -113,7 +133,7 @@ test('a saved price lives in a real tip product, so the catalog and the quote ar
     const view = pricingView(saved);
     assert.equal(view.free, false);
     assert.equal(view.actions.appreciation.price_cents, 200);
-    assert.equal(view.actions.appreciation.creator_cents, 180);
+    assert.equal(view.actions.appreciation.creator_cents, 140);
     assert.equal(view.actions.appreciation.fee_cents, 10);
     assert.equal(view.actions.share.price_cents, 300);
 
@@ -230,7 +250,7 @@ test('the owner reads and writes prices over HTTP, and the fan reads the same nu
     assert.equal(own.status, 200);
     assert.equal(own.body.can_edit, true);
     assert.equal(own.body.free, true);
-    assert.equal(own.body.floor_cents, 105);
+    assert.equal(own.body.floor_cents, 3);
     assert.deepEqual(own.body.presets.prietenos, { appreciation: 200, comment: 300, share: 300 });
     assert.equal(own.body.actions.appreciation.chargeable, false);
 
@@ -243,7 +263,7 @@ test('the owner reads and writes prices over HTTP, and the fan reads the same nu
     assert.equal(saved.status, 200, JSON.stringify(saved.body));
     assert.equal(saved.body.free, false);
     assert.equal(saved.body.actions.appreciation.price_cents, 200);
-    assert.equal(saved.body.actions.appreciation.creator_cents, 180);
+    assert.equal(saved.body.actions.appreciation.creator_cents, 140);
     assert.equal(saved.body.actions.appreciation.fee_cents, 10);
     assert.equal(saved.body.actions.share.price_cents, 300);
 
