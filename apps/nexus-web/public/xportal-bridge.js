@@ -28,6 +28,9 @@ function post(payload) {
 }
 
 function show(text, { error = false } = {}) {
+  // After a relay refusal the attempt is over; a later status would overwrite the one sentence
+  // that says what to fix.
+  if (aborted) return;
   if (stateEl) {
     stateEl.textContent = text;
     stateEl.className = error ? 'error' : '';
@@ -45,8 +48,64 @@ function logEvent(event, fields = {}) {
 }
 
 function phase(name) {
+  if (aborted) return;
   post({ type: 'phase', phase: name });
 }
+
+/**
+ * The relay's own refusal, caught where it happens.
+ *
+ * WalletConnect Cloud answers a socket from a page whose origin is not in the project's Allowed
+ * Origins with a close frame that says `Origin not allowed: <origin>`, and then retries forever. The
+ * provider's `connect()` therefore only ends in its own 15 s timeout, and the screen never named the
+ * origin. The SDK reports that frame through `console`, which the web client listens to
+ * (`explainRelayRefusal`, apps/nexus-web/src/wc-client.js), but a WebView has no console to read.
+ * `WebSocket` is wrapped here, before the bundle is imported: the first frame that carries the
+ * refusal becomes one sentence naming the exact value to allowlist, and the attempt stops instead of
+ * waiting out a timeout it can never pass.
+ */
+const bridgeOrigin = window.location.origin;
+let aborted = false;
+let refusalSeen = false;
+let closeSeen = false;
+
+function relayFrameText(data) {
+  if (typeof data !== 'string' || !data) return '';
+  try {
+    const frame = JSON.parse(data);
+    const message = frame?.message || frame?.error?.message || frame?.payload?.message || '';
+    return String(message || '').slice(0, 180);
+  } catch {
+    return data.slice(0, 180);
+  }
+}
+
+function noteRelayFrame(data) {
+  const text = relayFrameText(data);
+  if (refusalSeen || !/origin not allowed|origin is not allowed/i.test(text)) return;
+  refusalSeen = true;
+  const sentence = `xPortal nu poate porni: WalletConnect refuză originea ${bridgeOrigin}. Adaugă exact ${bridgeOrigin} în WalletConnect Cloud → Settings → Allowed Origins (relay-ul acceptă din oficiu doar localhost și 127.0.0.1).`;
+  logEvent('relay-refused', { relay: text, origin: bridgeOrigin.slice(0, 80) });
+  detail(text);
+  show(sentence, { error: true });
+  aborted = true;
+}
+
+try {
+  const NativeWebSocket = window.WebSocket;
+  window.WebSocket = class RelayWatcher extends NativeWebSocket {
+    constructor(url, protocols) {
+      super(url, protocols);
+      if (!/relay\.walletconnect\.com/i.test(String(url))) return;
+      this.addEventListener('message', (event) => noteRelayFrame(event?.data));
+      this.addEventListener('close', (event) => {
+        if (closeSeen) return;
+        closeSeen = true;
+        logEvent('relay-close', { code: Number(event?.code) || 0 });
+      });
+    }
+  };
+} catch { /* the page still works when the socket cannot be wrapped */ }
 
 let loginState = null;
 let finished = false;
@@ -60,7 +119,7 @@ let startedAt = Date.now();
  */
 let resumeInFlight = false;
 window.__nexusResume = async () => {
-  if (resumeInFlight) return false;
+  if (resumeInFlight || aborted) return false;
   resumeInFlight = true;
   try {
     const mod = await import('/wc-bundle.js');
@@ -181,9 +240,14 @@ async function run() {
 
     await withTimeout(
       loginState.provider.login({ approval, token: loginState.init }),
-      180_000,
-      'xPortal nu a răspuns în 3 minute',
+      // xPortal cold-starts its bundle and only then shows the NativeAuth sheet, so approval and the
+      // fingerprint can be minutes apart. Three minutes cancelled attempts the wallet was still
+      // working on (a sign screen that appeared at 192s was dropped); five minutes leaves room for
+      // the wallet to be reopened without losing the request.
+      300_000,
+      'xPortal nu a răspuns în 5 minute',
     );
+    if (aborted) return;
     logEvent('signature-received', { ms: Date.now() - startedAt });
 
     const address = await loginState.provider.getAddress();
@@ -198,11 +262,14 @@ async function run() {
     if (finished) return;
     finished = true;
     phase('token');
-    show('Semnătură primită. Deschid sesiunea Nexus…');
+    show('Semnătură primită. Deschid sesiunea Jungle Book…');
     post({ type: 'token', token, address });
     detail(address);
     logEvent('token-posted', { ms: Date.now() - startedAt });
   } catch (cause) {
+    // The refusal already printed the one sentence that matters; a timeout on top of it would only
+    // bury it.
+    if (aborted) return;
     const text = String(cause?.message || cause || 'conectarea xPortal a eșuat');
     phase('failed');
     show(text, { error: true });
