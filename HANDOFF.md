@@ -31,10 +31,10 @@ fost exact asta: `unexpected end of stream on http://localhost:8081`). Soluția 
 
 ### Cronologia celor două cicluri
 
-| # | Când | Ce am făcut | Ce a răspuns aplicația | Durata |
+| # | Când (ceasul telefonului) | Ce am făcut | Ce a răspuns aplicația | Durata |
 |---|---|---|---|---|
-| 1 | 17:00:47 | tap pe „Conectează xPortal” (609,1414, citit din `uiautomator dump`) | foaia: „conectez Nexus la WalletConnect Relay…”, apoi „Serverul nu poate deschide conexiunea WalletConnect acum…” | eșec la **46 551 ms** |
-| 2 | 17:26 | după reparația de mai jos, același tap | foaia afișează **propoziția întreagă, cu origine**: „WalletConnect nu a creat sesiunea. … dacă originea **https://nexus-deepsek-production.up.railway.app** este permisă în Allowlist. … crearea pairing-ului WalletConnect a expirat” | eșec la ~60 s |
+| 1 | ~17:00 | tap pe „Conectează xPortal” (609,1414, citit din `uiautomator dump`) | foaia: „conectez Nexus la WalletConnect Relay…”, apoi „Serverul nu poate deschide conexiunea WalletConnect acum…” | eșec la **46 551 ms** |
+| 2 | ~17:26 | după reparația de mai jos, același tap | foaia afișează **propoziția întreagă, cu origine**: „WalletConnect nu a creat sesiunea. … dacă originea **https://nexus-deepsek-production.up.railway.app** este permisă în Allowlist. … crearea pairing-ului WalletConnect a expirat” | eșec la ~60 s |
 
 Jurnalul paginii (Metro, `[xportal]`): `sheet-open`, `bridge-start redirectNative=true`, `storage-cleared`,
 `provider-ready ms=721`, `app-active stage=preparing waitedSeconds=0`, `page-error`, apoi
@@ -81,6 +81,13 @@ rezumatul e răspunsul cinstit). Test: `test-xportal-login.cjs` are două cazuri
 3. **După ce originea e în listă**, ciclurile 1–3 (inclusiv B: revenire manuală din recents, C: `force-stop` în
    timpul așteptării) pot rula fără nicio schimbare de cod. Nu e nevoie de APK nou: tot ce s-a schimbat în
    această rundă e în bundle-ul Metro (`xportalLogin.ts`).
+4. **Bundle-ul de pe Railway încă se semnează „Nexus”** în două propoziții care apar în foaie („conectez Nexus
+   la WalletConnect Relay…”, „Project ID-ul Nexus…”), pentru că producția are versiunea de pe `main`, iar
+   rebrandul e doar pe branch. Dovadă: `GET /wc-bundle.js` are 1 345 912 B și conține „conectez Nexus” (nu
+   „Jungle Book”); bundle-ul local, construit din sursa rebranduită, are textele noi. Se publică pe `main`
+   aditiv, din worktree curat, imediat după ce originea e adăugată (sau înainte, dacă ceri) — altfel propunerea
+   de sesiune din xPortal va arăta în continuare „Nexus”, iar regula „doar dacă scrie Jungle Book” nu poate fi
+   îndeplinită la tap.
 
 ### Corectură la §0.12
 
