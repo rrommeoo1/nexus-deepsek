@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import {
   buildAccessToken,
+  createSingleFlight,
+  explainRelayRefusal,
   finalizeXPortalLogin,
   clearNexusWalletConnectState,
   getSessionAccount,
@@ -35,7 +37,7 @@ test('server wait is bounded and cancelled signing never sends a session request
   try {
     globalThis.setTimeout = (fn, ms) => originalTimer(fn, ms === 25000 ? 1 : ms);
     globalThis.fetch = async (_, { signal }) => new Promise((_, reject) => signal.addEventListener('abort', () => reject(new Error('aborted')), { once: true }));
-    await assert.rejects(finalizeXPortalLogin(state), /finalizarea sesiunii Nexus a expirat/);
+    await assert.rejects(finalizeXPortalLogin(state), /finalizarea sesiunii Jungle Book a expirat/);
     assert.equal(state.phase, 'failed'); assert.equal(state.sessionAbort, undefined);
     state.cancelled = true;
     globalThis.fetch = async () => { assert.fail('cancelled flow must not send'); };
@@ -93,16 +95,16 @@ test('rejected wallet approval cannot create a Nexus session request', async () 
 
 const walletConnectSource = await readFile(new URL("../src/wc-client.js", import.meta.url), "utf8");
 
-test("WalletConnect accepts only the explicitly configured Nexus project ID", () => {
-  const nexusId = "0123456789abcdef0123456789abcdef";
-  assert.equal(selectWalletConnectProjectId(nexusId), nexusId);
+test("WalletConnect accepts only the explicitly configured Jungle Book project ID", () => {
+  const projectId = "0123456789abcdef0123456789abcdef";
+  assert.equal(selectWalletConnectProjectId(projectId), projectId);
   assert.throws(() => selectWalletConnectProjectId(""), /nu este configurat/);
   assert.throws(() => selectWalletConnectProjectId("template-public-id"), /nu este configurat/);
 });
 
 test("WalletConnect pairing fails quickly and explains the external project/origin gate", () => {
   assert.match(walletConnectSource, /CONNECT_TIMEOUT_MS = 15_000/);
-  assert.match(walletConnectSource, /Project ID-ul Nexus este emis de WalletConnect Dashboard/);
+  assert.match(walletConnectSource, /Project ID-ul Jungle Book este emis de WalletConnect Dashboard/);
   assert.match(walletConnectSource, /este permisă în Allowlist/);
   assert.match(walletConnectSource, /numai după generarea URI-ului de pairing/);
 });
@@ -237,4 +239,48 @@ test("fresh login clears only WalletConnect state and preserves Nexus device-wal
   assert.equal(values.has("walletconnect"), false);
   assert.equal(values.get("nexus.device-wallet.active"), "erd1local");
   assert.equal(values.get("unrelated.preference"), "dark");
+});
+
+test("a refused relay origin is named exactly, instead of becoming a generic 15 s timeout", () => {
+  const origin = "https://nexus-deepsek-production.up.railway.app";
+  // The line the WalletConnect SDK logs and then retries forever.
+  const sdk = "Fatal socket error: WebSocket connection closed abnormally with code: 3000 (Unauthorized: origin not allowed)";
+  const sentence = explainRelayRefusal([sdk], origin);
+  assert.match(sentence, new RegExp("refuză originea " + origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(sentence, /Allowed origins/);
+  assert.match(sentence, /localhost/);
+  // The relay's own JSON-RPC frame, as caught inside the WebView, is read the same way.
+  const frame = '{"id":0,"jsonrpc":"2.0","error":{"code":3000,"message":"Unauthorized: origin not allowed"}}';
+  assert.match(explainRelayRefusal(frame, "http://127.0.0.1:5000"), /http:\/\/127\.0\.0\.1:5000/);
+  // Unrelated failures keep the generic path: no invented allowlist advice.
+  assert.equal(explainRelayRefusal(["Socket closed 1006"], origin), "");
+  assert.equal(explainRelayRefusal([], origin), "");
+  assert.equal(explainRelayRefusal(undefined, origin), "");
+  assert.match(explainRelayRefusal(['{"code":-32600,"message":"Project not found"}'], origin), /Project ID/);
+});
+
+test("one page runs one pairing at a time and frees the slot when the attempt ends", async () => {
+  let calls = 0;
+  const start = createSingleFlight(async (value) => {
+    calls += 1;
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    return { value, calls };
+  });
+  const [first, second] = await Promise.all([start("a"), start("b")]);
+  assert.equal(calls, 1, "a second tap must join the running attempt, not init Core twice");
+  assert.equal(first, second);
+  assert.deepEqual(first, { value: "a", calls: 1 });
+  assert.deepEqual(await start("c"), { value: "c", calls: 2 }, "a finished attempt frees the slot");
+
+  const failing = createSingleFlight(async () => { throw new Error("relay offline"); });
+  await assert.rejects(failing(), /relay offline/);
+  await assert.rejects(failing(), /relay offline/, "a failed attempt must not lock the next one");
+});
+
+test("a relay refusal ends the connect wait as soon as it is logged", () => {
+  const source = walletConnectSource;
+  // The refusal has to reject the race around `connect()`, not only decorate the catch block.
+  assert.match(source, /Promise\.race\(\[connectWithDiagnostics\(provider, chainId\), refusal\]\)/);
+  assert.match(source, /rejectRefusal\(new Error\(refusalError\)\)/);
+  assert.match(source, /export const startXPortalLogin = createSingleFlight\(runXPortalLogin\)/);
 });

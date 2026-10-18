@@ -33,8 +33,13 @@ export function loadEnv(file = process.env.NEXUS_ENV_FILE ?? join(dirname(fileUR
  * variables, and the only origin those defaults cover is the deployment's own `NEXUS_ORIGIN` — the one
  * address the owner controls. Production (anything that is not `NEXUS_DEPLOYMENT_MODE=preview`) still
  * refuses to start without the three variables, and an explicit environment value always wins.
+ *
+ * This is the owner's own project ("Jungle Book" in WalletConnect Cloud), the only one whose allowlist
+ * contains `https://nexus-deepsek-production.up.railway.app`. The previous default belonged to a project
+ * nobody here controls and had no public origin at all, so the relay answered every request from the
+ * deployed origin with 3000 "origin not allowed" (HANDOFF §0.15).
  */
-export const PUBLIC_WALLETCONNECT_PROJECT_ID = "16dfabc0ad133a40f7a3acc23e15fc98";
+export const PUBLIC_WALLETCONNECT_PROJECT_ID = "37628068772ce00f33f91f4d51273722";
 
 function splitOrigins(value) {
   return String(value ?? "")

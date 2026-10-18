@@ -36992,6 +36992,31 @@ function errMessage(err) {
   const cause = err?.cause?.message || err?.cause?.reason;
   return cause ? `${base3} (${cause})` : base3;
 }
+function explainRelayRefusal(diagnostics, origin = "") {
+  const text = (Array.isArray(diagnostics) ? diagnostics.join(" ") : String(diagnostics ?? "")).replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  const target = String(origin || "").trim() || "originea aplica\u021Biei";
+  if (/origin not allowed/i.test(text)) {
+    return `xPortal nu poate porni: WalletConnect refuz\u0103 originea ${target}. Adaug\u0103 exact ${target} (f\u0103r\u0103 cale \u0219i f\u0103r\u0103 bar\u0103 la final) \xEEn WalletConnect Cloud \u2192 proiectul Jungle Book \u2192 Settings \u2192 Allowed origins, apoi \xEEncearc\u0103 din nou. Relay-ul accept\u0103 din oficiu doar localhost \u0219i 127.0.0.1.`;
+  }
+  if (/project not found|invalid project|project id is not valid/i.test(text)) {
+    return "xPortal nu poate porni: WalletConnect nu recunoa\u0219te Project ID-ul acestui server. Verific\u0103 WALLETCONNECT_PROJECT_ID \xEEn configura\u021Bia serverului (trebuie s\u0103 fie ID-ul din WalletConnect Cloud).";
+  }
+  return "";
+}
+function createSingleFlight(run) {
+  let active = null;
+  return (options) => {
+    if (active) return active;
+    const attempt = Promise.resolve().then(() => run(options));
+    active = attempt;
+    const release3 = () => {
+      if (active === attempt) active = null;
+    };
+    attempt.then(release3, release3);
+    return attempt;
+  };
+}
 async function connectWithDiagnostics(provider, chainId) {
   void chainId;
   return provider.connect({ methods: ["mvx_signNativeAuthToken"] });
@@ -37041,15 +37066,15 @@ function buildAccessToken(address, init3, signature) {
 }
 function selectWalletConnectProjectId(value) {
   const projectId = String(value ?? "").trim();
-  if (!/^[a-f0-9]{32}$/i.test(projectId)) throw new Error("WalletConnect Nexus nu este configurat");
+  if (!/^[a-f0-9]{32}$/i.test(projectId)) throw new Error("WalletConnect Jungle Book nu este configurat");
   return projectId;
 }
 function walletConnectMetadata({ origin = "", redirectNative = "", redirectUniversal = "" } = {}) {
   const metadata = {
-    name: "Nexus",
-    description: "Nexus \u2014 one wallet, every side of you",
+    name: "Jungle Book",
+    description: "Jungle Book \u2014 un portofel, fiecare latur\u0103 a ta",
     url: origin || "https://localhost",
-    icons: []
+    icons: origin ? [`${origin}/jungle-book-mark-512.png`] : []
   };
   const redirect = {};
   const nativeScheme = String(redirectNative ?? "").trim();
@@ -37059,7 +37084,7 @@ function walletConnectMetadata({ origin = "", redirectNative = "", redirectUnive
   if (redirect.native || redirect.universal) metadata.redirect = redirect;
   return metadata;
 }
-async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirect = {} } = {}) {
+async function runXPortalLogin({ onStatus, onLog, freshPairing = true, redirect = {} } = {}) {
   const report = (msg) => typeof onStatus === "function" && onStatus(msg);
   const log2 = (event, fields = {}) => {
     try {
@@ -37086,14 +37111,28 @@ async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirec
   try {
     selectedProjectId = selectWalletConnectProjectId(wcProjectId);
   } catch {
-    throw new Error("WalletConnect Nexus nu este configurat pentru aceast\u0103 origine");
+    throw new Error("WalletConnect Jungle Book nu este configurat pentru aceast\u0103 origine");
   }
+  const origin = typeof window !== "undefined" ? window.location.origin : "https://localhost";
   const diagnostics = [];
+  let refusalError = "";
+  let rejectRefusal = () => {
+  };
+  const refusal = new Promise((_3, reject) => {
+    rejectRefusal = reject;
+  });
+  refusal.catch(() => {
+  });
   const originalConsole = {};
   for (const level of ["error", "warn", "debug"]) {
     originalConsole[level] = console[level];
     console[level] = (...args) => {
       diagnostics.push(args.map((value) => value?.message || (typeof value === "string" ? value : JSON.stringify(value))).join(" "));
+      if (diagnostics.length > 20) diagnostics.shift();
+      if (!refusalError) {
+        refusalError = explainRelayRefusal(diagnostics.slice(-4), origin);
+        if (refusalError) rejectRefusal(new Error(refusalError));
+      }
       originalConsole[level](...args);
     };
   }
@@ -37118,7 +37157,7 @@ async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirec
       projectId,
       {
         metadata: walletConnectMetadata({
-          origin: typeof window !== "undefined" ? window.location.origin : "https://localhost",
+          origin,
           redirectNative,
           redirectUniversal
         }),
@@ -37145,15 +37184,20 @@ async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirec
   let connect;
   try {
     provider = await createProvider(selectedProjectId);
-    report("conectez Nexus la WalletConnect Relay\u2026");
+    report("conectez Jungle Book la WalletConnect Relay\u2026");
     const persistedSession = selectReusableSession(provider.walletConnector, chainId, { freshPairing });
-    connect = persistedSession ? { uri: null, approval: async () => persistedSession, reusedSession: true } : await withTimeout(connectWithDiagnostics(provider, chainId), "crearea pairing-ului WalletConnect", CONNECT_TIMEOUT_MS);
+    connect = persistedSession ? { uri: null, approval: async () => persistedSession, reusedSession: true } : await withTimeout(
+      Promise.race([connectWithDiagnostics(provider, chainId), refusal]),
+      "crearea pairing-ului WalletConnect",
+      CONNECT_TIMEOUT_MS
+    );
   } catch (err) {
     restoreConsole();
+    const refusalSentence = refusalError || explainRelayRefusal(diagnostics, origin);
+    if (refusalSentence) throw new Error(refusalSentence);
     const detail = diagnostics.filter(Boolean).slice(-3).join(" \xB7 ");
-    const origin = typeof window !== "undefined" ? window.location.origin : "originea Nexus";
     throw new Error(
-      "WalletConnect nu a creat sesiunea. Verific\u0103 dac\u0103 Project ID-ul Nexus este emis de WalletConnect Dashboard \u0219i dac\u0103 originea " + origin + " este permis\u0103 \xEEn Allowlist. xPortal se poate deschide numai dup\u0103 generarea URI-ului de pairing. " + (detail || errMessage(err))
+      "WalletConnect nu a creat sesiunea. Verific\u0103 dac\u0103 Project ID-ul Jungle Book este emis de WalletConnect Dashboard \u0219i dac\u0103 originea " + origin + " este permis\u0103 \xEEn Allowlist. xPortal se poate deschide numai dup\u0103 generarea URI-ului de pairing. " + (detail || errMessage(err))
     );
   }
   restoreConsole();
@@ -37168,6 +37212,7 @@ async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirec
   });
   return { provider, init: init3, chainId, uri, approval, reusedSession, redirectNative };
 }
+var startXPortalLogin = createSingleFlight(runXPortalLogin);
 function pairingTopic(uri) {
   const value = String(uri ?? "");
   const match = /^wc:([^@?]{8,128})@2/.exec(value);
@@ -37206,7 +37251,7 @@ async function finalizeXPortalLogin(loginState, { onStatus, onPhase, endpoint = 
   if (!signature) throw new Error("xPortal nu a returnat semn\u0103tura NativeAuth");
   const accessToken = String(signature).includes(".") && !String(signature).startsWith("0x") ? signature : buildAccessToken(address, init3, signature);
   phase("server");
-  report("Semn\u0103tur\u0103 primit\u0103 \u2713 \xB7 finalizez loginul \xEEn Nexus\u2026");
+  report("Semn\u0103tur\u0103 primit\u0103 \u2713 \xB7 finalizez loginul \xEEn Jungle Book\u2026");
   if (!loginState.mutationKey) {
     const bytes = new Uint8Array(16);
     globalThis.crypto.getRandomValues(bytes);
@@ -37226,7 +37271,7 @@ async function finalizeXPortalLogin(loginState, { onStatus, onPhase, endpoint = 
     data = await res.json();
   } catch (err) {
     phase("failed");
-    if (controller.signal.aborted) throw new Error("finalizarea sesiunii Nexus a expirat");
+    if (controller.signal.aborted) throw new Error("finalizarea sesiunii Jungle Book a expirat");
     throw new Error("nu am putut apela " + endpoint + ": " + errMessage(err));
   } finally {
     clearTimeout(timer);
@@ -37271,6 +37316,8 @@ async function resumeXPortalTransport({ provider, waitMs = 4e3 } = {}) {
 export {
   buildAccessToken,
   clearNexusWalletConnectState,
+  createSingleFlight,
+  explainRelayRefusal,
   finalizeXPortalLogin,
   getSessionAccount,
   pairingTopic,

@@ -447,6 +447,10 @@ test("WalletConnect readiness requires format, Dashboard attestation and exact o
 });
 
 test("a preview deployment attests its own origin with the public WalletConnect id, and only that origin", () => {
+  // The published default is the owner's own Reown project ("Jungle Book"), the only one whose allowlist
+  // contains the deployed origin. HANDOFF §0.15 records why the previous id had to go.
+  assert.equal(PUBLIC_WALLETCONNECT_PROJECT_ID, "37628068772ce00f33f91f4d51273722");
+  assert.match(PUBLIC_WALLETCONNECT_PROJECT_ID, /^[a-f0-9]{32}$/);
   const preview = {
     NEXUS_DEPLOYMENT_MODE: "preview",
     NEXUS_ORIGIN: "https://preview.example",
