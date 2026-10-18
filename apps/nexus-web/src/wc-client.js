@@ -114,8 +114,40 @@ export function selectWalletConnectProjectId(value) {
   return projectId;
 }
 
-export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) {
+/**
+ * The dapp metadata xPortal receives in the pairing proposal.
+ *
+ * `redirect` is the one field that tells the wallet where to send the reader after approval. Without
+ * it xPortal stays in front (or goes to its home), and the reader has to find Jungle Book again by
+ * hand. `native` is the app's own scheme (a deep link, `singleTask`, so the running task is reused and
+ * the WebView keeps its WalletConnect session); `universal` is the page that started the login, which
+ * is what a wallet without the scheme can open instead.
+ */
+export function walletConnectMetadata({ origin = "", redirectNative = "", redirectUniversal = "" } = {}) {
+  const metadata = {
+    name: "Nexus",
+    description: "Nexus — one wallet, every side of you",
+    url: origin || "https://localhost",
+    icons: [],
+  };
+  const redirect = {};
+  const nativeScheme = String(redirectNative ?? "").trim();
+  const universalLink = String(redirectUniversal ?? "").trim();
+  if (nativeScheme) redirect.native = nativeScheme;
+  if (universalLink) redirect.universal = universalLink;
+  if (redirect.native || redirect.universal) metadata.redirect = redirect;
+  return metadata;
+}
+
+export async function startXPortalLogin({ onStatus, onLog, freshPairing = true, redirect = {} } = {}) {
   const report = (msg) => typeof onStatus === "function" && onStatus(msg);
+  // Diagnostics only: events and counts, never a pairing URI (it carries the symmetric key).
+  const log = (event, fields = {}) => {
+    try { if (typeof onLog === "function") onLog({ event, ...fields }); } catch { /* a log never breaks a login */ }
+  };
+  const startedAt = Date.now();
+  const redirectNative = String(redirect?.native ?? "").trim();
+  const redirectUniversal = String(redirect?.universal ?? "").trim();
   report("obțin challenge NativeAuth…");
   let initData;
   try {
@@ -159,24 +191,28 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
       RELAY_URL,
       projectId,
       {
-        metadata: {
-          name: "Nexus",
-          description: "Nexus — one wallet, every side of you",
-          url: typeof window !== "undefined" ? window.location.origin : "https://localhost",
-          icons: [],
-        },
+        metadata: walletConnectMetadata({
+          origin: typeof window !== "undefined" ? window.location.origin : "https://localhost",
+          redirectNative,
+          redirectUniversal,
+        }),
         logger: "error",
       }
     );
     await withTimeout(candidate.init(), "inițializarea WalletConnect", INIT_TIMEOUT_MS);
+    log("provider-ready", { ms: Date.now() - startedAt, chainId, redirectNative: Boolean(redirectNative) });
     return candidate;
   };
 
   if (freshPairing && typeof window !== "undefined") {
     report("resetez conexiunea xPortal anterioară…");
+    let cleared = 0;
     for (const storageName of ["localStorage", "sessionStorage"]) {
-      try { clearNexusWalletConnectState(window[storageName]); } catch { /* storage can be disabled by the browser */ }
+      try { cleared += clearNexusWalletConnectState(window[storageName]); } catch { /* storage can be disabled by the browser */ }
     }
+    // A pairing left in the WebView belongs to a session xPortal may already have forgotten; the next
+    // attempt always starts from zero so a stale topic cannot shadow the fresh one.
+    log("storage-cleared", { keys: cleared, freshPairing: true });
   }
   report("inițializez conexiunea securizată…");
   let provider;
@@ -210,8 +246,19 @@ export async function startXPortalLogin({ onStatus, freshPairing = true } = {}) 
   if (!uri && !reusedSession) {
     throw new Error("WalletConnect nu a returnat un URI de pairing");
   }
+  log("pairing", {
+    topic: pairingTopic(uri),
+    reused: Boolean(reusedSession),
+    ms: Date.now() - startedAt,
+  });
+  return { provider, init, chainId, uri, approval, reusedSession, redirectNative };
+}
 
-  return { provider, init, chainId, uri, approval, reusedSession };
+/** `wc:<topic>@2?…` → `<topic>`; the rest of the URI carries the symmetric key and never leaves. */
+export function pairingTopic(uri) {
+  const value = String(uri ?? "");
+  const match = /^wc:([^@?]{8,128})@2/.exec(value);
+  return match ? match[1] : "";
 }
 
 export async function finalizeXPortalLogin(
@@ -305,15 +352,37 @@ export function xPortalUniversalLink(uri) {
     : "https://xportal.app.link/";
 }
 
-export async function resumeXPortalTransport({ provider } = {}) {
+/**
+ * Brings the relay websocket back after the phone left the page.
+ *
+ * Android suspends a WebView's socket while xPortal is in front, and the WalletConnect relayer can
+ * still report `connected` while it is dead. The page therefore restarts the transport and waits for
+ * the relayer to answer, so a signature that arrived in the background is replayed into the pending
+ * `login()` promise instead of being lost until the next attempt.
+ *
+ * Returns a plain status object; it never throws, because a failed resume is a diagnostic, not a
+ * reason to abandon an approval that may still arrive.
+ */
+export async function resumeXPortalTransport({ provider, waitMs = 4000 } = {}) {
   const relayer = provider?.walletConnector?.core?.relayer;
-  if (!relayer) return false;
-  // Mobile browsers can keep `connected=true` while their websocket has been
-  // suspended in the background. A forced restart also replays messages that
-  // arrived while xPortal was in the foreground (including the NativeAuth
-  // signature response).
-  if (typeof relayer.restartTransport === "function") {
-    await relayer.restartTransport();
+  if (!relayer) return { supported: false, connected: false, restarted: false };
+  const before = Boolean(relayer.connected);
+  let restarted = false;
+  let error = "";
+  try {
+    if (typeof relayer.restartTransport === "function") {
+      await relayer.restartTransport();
+      restarted = true;
+    } else if (!before && typeof relayer.transportOpen === "function") {
+      await relayer.transportOpen();
+      restarted = true;
+    }
+  } catch (cause) {
+    error = errMessage(cause);
   }
-  return Boolean(relayer.connected);
+  const deadline = Date.now() + Math.max(0, Number(waitMs) || 0);
+  while (!relayer.connected && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  return { supported: true, connected: Boolean(relayer.connected), restarted, wasConnected: before, error };
 }

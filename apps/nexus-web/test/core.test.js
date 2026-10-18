@@ -11,7 +11,7 @@ import { hashPassword, verifyPassword, signToken, verifyToken, hashToken, sha256
 import { inspectMedia, mediaDeliveryPolicy, storeMedia, readMedia } from "../lib/media.js";
 import { generateWallet, walletFromMnemonic, encryptWallet, decryptWallet, isValidMnemonic } from "../lib/wallet.js";
 import { mvxAddressToPublicKey, publicKeyToMvxAddress, createChallenge, verifyMvxSignature, resolveHerotag, validateNativeAuthToken, resolveMvxNetwork, buildNativeAuthInit, buildNativeAuthToken, nativeAuthSignableMessage, isLocalDevelopmentOrigin, createNativeAuthServer } from "../lib/mvx.js";
-import { validateRuntimeConfig, walletConnectAttestation } from "../lib/env.js";
+import { PUBLIC_WALLETCONNECT_PROJECT_ID, validateRuntimeConfig, walletConnectAttestation } from "../lib/env.js";
 import {
   inspectLegacyWalletRows,
   purgeLegacyWalletRows,
@@ -439,10 +439,50 @@ test("WalletConnect readiness requires format, Dashboard attestation and exact o
     projectIdConfigured: true,
     dashboardAttested: true,
     originAttested: true,
+    projectId: "b".repeat(32),
   });
   assert.equal(walletConnectAttestation({ ...base, NEXUS_WC_PROJECT_ATTESTED: "false" }, "http://192.168.1.153:3000").ready, false);
   assert.equal(walletConnectAttestation(base, "http://192.168.1.153:3001").ready, false);
   assert.equal(walletConnectAttestation({ ...base, NEXUS_WC_PROJECT_ID: "format-only" }, "http://192.168.1.153:3000").ready, false);
+});
+
+test("a preview deployment attests its own origin with the public WalletConnect id, and only that origin", () => {
+  const preview = {
+    NEXUS_DEPLOYMENT_MODE: "preview",
+    NEXUS_ORIGIN: "https://preview.example",
+  };
+  assert.deepEqual(walletConnectAttestation(preview, "https://preview.example"), {
+    ready: true,
+    projectIdConfigured: true,
+    dashboardAttested: true,
+    originAttested: true,
+    projectId: PUBLIC_WALLETCONNECT_PROJECT_ID,
+  });
+  // Any other host inherits nothing: the default is not a wildcard.
+  const foreign = walletConnectAttestation(preview, "https://other.example");
+  assert.deepEqual(foreign, {
+    ready: false,
+    projectIdConfigured: false,
+    dashboardAttested: false,
+    originAttested: false,
+    projectId: "",
+  });
+  // Without preview mode the old gate stands: nothing is implied for production.
+  assert.equal(walletConnectAttestation({ NEXUS_ORIGIN: "https://preview.example" }, "https://preview.example").ready, false);
+  // An explicit environment value always wins over the default.
+  const explicit = walletConnectAttestation(
+    { ...preview, NEXUS_WC_PROJECT_ID: "c".repeat(32), NEXUS_WC_PROJECT_ATTESTED: "false" },
+    "https://preview.example",
+  );
+  assert.equal(explicit.projectId, "c".repeat(32));
+  assert.equal(explicit.dashboardAttested, false);
+  assert.equal(explicit.ready, false);
+  const listed = walletConnectAttestation(
+    { ...preview, NEXUS_WC_ATTESTED_ORIGINS: "https://listed.example" },
+    "https://preview.example",
+  );
+  assert.equal(listed.originAttested, false);
+  assert.equal(listed.ready, false);
 });
 
 test("legacy wallet purge is permanently retired after the approved six-row deletion", () => {

@@ -10,6 +10,7 @@ import {
   selectReusableSession,
   selectWalletConnectProjectId,
   selectNativeAuthMethod,
+  walletConnectMetadata,
   xPortalUniversalLink,
 } from "../src/wc-client.js";
 import { assertNativeAuthIdempotencyKey } from '../lib/native-auth-session.js';
@@ -146,9 +147,49 @@ test("mobile resume forcibly restarts a stale relay even when marked connected",
   };
   const provider = { walletConnector: { core: { relayer } } };
 
-  assert.equal(await resumeXPortalTransport({ provider }), true);
+  const resumed = await resumeXPortalTransport({ provider, waitMs: 0 });
+  assert.deepEqual(resumed, { supported: true, connected: true, restarted: true, wasConnected: true, error: "" });
   assert.equal(restarts, 1);
-  assert.equal(await resumeXPortalTransport({}), false);
+  // A provider that was never created is reported, not thrown: the page still shows a sentence.
+  assert.deepEqual(await resumeXPortalTransport({}), { supported: false, connected: false, restarted: false });
+  assert.deepEqual(await resumeXPortalTransport(), { supported: false, connected: false, restarted: false });
+});
+
+test("a resume that cannot reopen the transport reports the failure instead of throwing", async () => {
+  const relayer = { connected: false, async restartTransport() { throw new Error("relay down"); } };
+  const resumed = await resumeXPortalTransport({ provider: { walletConnector: { core: { relayer } } }, waitMs: 0 });
+  assert.equal(resumed.supported, true);
+  assert.equal(resumed.connected, false);
+  assert.equal(resumed.restarted, false);
+  assert.equal(resumed.error, "relay down");
+});
+
+test("wallet metadata carries the app redirect so xPortal can hand the reader back", () => {
+  const plain = walletConnectMetadata({ origin: "https://nexus.example" });
+  assert.deepEqual(plain.redirect, undefined);
+  const redirected = walletConnectMetadata({
+    origin: "https://nexus.example",
+    redirectNative: "nexus://",
+    redirectUniversal: "https://nexus.example/xportal-bridge.html",
+  });
+  assert.deepEqual(redirected.redirect, {
+    native: "nexus://",
+    universal: "https://nexus.example/xportal-bridge.html",
+  });
+  assert.equal(walletConnectMetadata({ redirectNative: "  " }).redirect, undefined);
+});
+
+test("the bridge page forwards the app redirect and reports the relay when the app returns", async () => {
+  const page = await readFile(new URL("../public/xportal-bridge.js", import.meta.url), "utf8");
+  // The sheet passes `?redirect=<scheme>`; only a bare scheme reaches the metadata.
+  assert.match(page, /const redirectSafe = \/\^\[a-z\]\[a-z0-9\+\.-\]\{1,30\}:\\\/\\\/\$\//);
+  assert.match(page, /redirect: \{ native: redirectSafe, universal: redirectUniversal \}/);
+  // Android suspends the socket while xPortal is in front; the app asks the page to restart it.
+  assert.match(page, /window\.__nexusResume = async \(\) => \{/);
+  assert.match(page, /post\(\{ type: 'relay', \.\.\.status \}\)/);
+  // Diagnostics name the topic, never the pairing URI (it carries the symmetric key).
+  assert.match(page, /logEvent\('relay-resume'/);
+  assert.doesNotMatch(page, /logEvent\([^)]*\.uri\b/);
 });
 
 test("mobile login rejects one-sided persisted sessions unless reuse is explicitly enabled", () => {

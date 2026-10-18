@@ -1390,7 +1390,7 @@ export async function handleRequest(req, res, ctx) {
         origin,
         init,
         signable_message: "<address>" + init,
-        wcProjectId: process.env.NEXUS_WC_PROJECT_ID || null,
+        wcProjectId: wcAttestation.projectId || null,
       });
     } catch (err) {
       return json(res, 502, { ok: false, error: err?.message || "nu s-a putut obține block hash" });

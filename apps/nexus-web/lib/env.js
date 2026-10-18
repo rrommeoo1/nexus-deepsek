@@ -25,19 +25,49 @@ export function loadEnv(file = process.env.NEXUS_ENV_FILE ?? join(dirname(fileUR
   return true;
 }
 
-export function walletConnectAttestation(env = process.env, origin = "") {
-  const projectIdConfigured = /^[a-f0-9]{32}$/i.test(String(env.NEXUS_WC_PROJECT_ID ?? ""));
-  const dashboardAttested = String(env.NEXUS_WC_PROJECT_ATTESTED ?? "").toLowerCase() === "true";
-  const attestedOrigins = String(env.NEXUS_WC_ATTESTED_ORIGINS ?? "")
+/**
+ * The Reown/WalletConnect project id the login page already publishes.
+ *
+ * It is public by construction: `/auth/mvx/init` hands it to every page that opens the xPortal login, so
+ * it is not a secret. A preview deployment can therefore run the login without anyone pasting runtime
+ * variables, and the only origin those defaults cover is the deployment's own `NEXUS_ORIGIN` — the one
+ * address the owner controls. Production (anything that is not `NEXUS_DEPLOYMENT_MODE=preview`) still
+ * refuses to start without the three variables, and an explicit environment value always wins.
+ */
+export const PUBLIC_WALLETCONNECT_PROJECT_ID = "16dfabc0ad133a40f7a3acc23e15fc98";
+
+function splitOrigins(value) {
+  return String(value ?? "")
     .split(",")
-    .map((value) => value.trim())
+    .map((entry) => entry.trim())
     .filter(Boolean);
-  const originAttested = Boolean(origin) && attestedOrigins.includes(String(origin));
+}
+
+export function walletConnectAttestation(env = process.env, origin = "") {
+  const requestedOrigin = String(origin ?? "");
+  const previewMode = String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() === "preview";
+  const deploymentOrigin = String(env.NEXUS_ORIGIN ?? "").trim();
+  // Preview defaults exist for exactly one origin: the deployment's own address. A request that names
+  // any other origin inherits nothing, so the default can never attest a host nobody configured.
+  const defaultsApply = previewMode && Boolean(deploymentOrigin) && requestedOrigin === deploymentOrigin;
+
+  const configuredProjectId = String(env.NEXUS_WC_PROJECT_ID ?? "").trim();
+  const projectId = configuredProjectId || (defaultsApply ? PUBLIC_WALLETCONNECT_PROJECT_ID : "");
+  const projectIdConfigured = /^[a-f0-9]{32}$/i.test(projectId);
+
+  const configuredAttested = String(env.NEXUS_WC_PROJECT_ATTESTED ?? "").trim().toLowerCase();
+  const dashboardAttested = configuredAttested ? configuredAttested === "true" : defaultsApply;
+
+  const configuredOrigins = splitOrigins(env.NEXUS_WC_ATTESTED_ORIGINS);
+  const attestedOrigins = configuredOrigins.length ? configuredOrigins : (defaultsApply ? [deploymentOrigin] : []);
+  const originAttested = Boolean(requestedOrigin) && attestedOrigins.includes(requestedOrigin);
+
   return {
     ready: projectIdConfigured && dashboardAttested && originAttested,
     projectIdConfigured,
     dashboardAttested,
     originAttested,
+    projectId: projectIdConfigured ? projectId : "",
   };
 }
 
