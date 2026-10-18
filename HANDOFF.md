@@ -281,6 +281,40 @@ După push, verificat pe `https://nexus-deepsek-production.up.railway.app`:
 serverul spune o monedă pe care aplicația o afișează ca `JUNGLE` din `CURRENCY_LABEL`. Schimbarea în
 `"JUNGLE"` cere o a doua urcare pe `main` — nefăcută încă.
 
+### 0.7.1 A doua urcare pe `main` — preț pe fiecare acțiune, `JUNGLE`, `monetized` (18 octombrie 2026)
+
+Commit `41dac1f`, aditiv, doar `apps/nexus-web`, din același worktree curat (șters la final cu
+`git worktree remove`, fără forțare). Suita web: **797/797** (790 + 7 teste noi).
+
+| Ce s-a schimbat | Unde | Efect |
+| --- | --- | --- |
+| `display_currency: "JUNGLE"` (era `"JB"`) | `lib/creator-pricing.js` | serverul și aplicația spun aceeași monedă |
+| fiecare acțiune are prețul ei; cheie lipsă sau `0` = **gratuit** pentru acea acțiune | `normalizePricingInput`, `repo.setCreatorActionPricing` | pragul se aplică doar valorilor > 0; un produs vechi e pus pe `paused`, nu șters |
+| `monetized` pe vizualizarea de preț și pe **fiecare obiect de autor din orice răspuns** | `pricingView`, `lib/creator-monetized.js`, `transport.json`, `repo.monetizedAuthorIds()` | o singură interogare per răspuns, cache 2 s, invalidată la salvare; niciun N+1 |
+| `floor_reason` + `floor_basis` | `pricingView` | ecranul poate spune de ce există pragul |
+
+Verificat pe `https://nexus-deepsek-production.up.railway.app` cu sesiunile din `docs/.test-sessions.local`
+(`tools/probe-pricing-deploy.mjs`) — contul `urailwaytest01`, salvat apoi **restaurat la gratuit**:
+
+| Verificare | Rezultat |
+| --- | --- |
+| `GET /health` | 200 `{"ok":true,"status":"ready"}` |
+| `GET /api/me` | 200 |
+| `GET /api/creator/pricing` (proprietar) | 200, `display_currency:"JUNGLE"`, `floor_cents:105`, `monetized:false` |
+| `PUT` `{free:false, prices:{appreciation:105, comment:0}}` | **200**, `monetized:true`, doar aprecierea `chargeable:true`, comentariul și distribuirea `0` |
+| `GET /api/creator/pricing/urailwaytest01a20d` (cititor) | 200, `creator.monetized:true` — decoratorul e viu pe server |
+| `PUT` `{free:true}` (restaurare) | 200, `monetized:false`; cititorul vede din nou `creator.monetized:false` |
+
+**Revenire**, dacă apare o problemă: `git revert 41dac1f` pe `main` (sau push la `da692f6`), apoi
+`/health` și cele patru verificări de mai sus. Nicio migrare de schemă nu a fost făcută.
+
+**Prețurile de 0,02–0,03 JUNGLE nu sunt încă posibile**, din două motive independente de acest deploy:
+regula „gazul ≤ 2 % din preț” umflă pragul de 50 de ori (→ 1,05), iar
+`creator_support_products.price_cents` are `CHECK(BETWEEN 100 AND …)`, deci nimic sub 1,00 nu poate
+fi stocat. Cifrele, formula și tabelul la EGLD 10/20/30/50 € sunt în `docs/PRICING-CALCULUS.md`;
+schimbarea economiei așteaptă decizia proprietarului (cursul de referință, 60 % sau 50 %, o
+tranzacție per acțiune sau agregare).
+
 **Runda de UI, în cod (neinstalată pe telefon):**
 
 - Sertarul (`FeedDrawer`) a fost **șters**; antetul de Feed nu mai are nici marca, nici butonul lui. Meniul
