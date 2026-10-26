@@ -1,5 +1,6 @@
 import { URL } from "node:url";
 import { normalizePublishing } from './post-publishing.js';
+import { normalizeTextStyle } from './post-text-style.js';
 import { handleCreatorDrafts } from './creator-drafts.js';
 import { handleCreatorSettlement } from './creator-settlement.js';
 import {
@@ -3575,6 +3576,21 @@ export async function handleRequest(req, res, ctx) {
     return json(res, 202, { ok: true, viewer_id: auth.user.id, viewer_persona: auth.persona, ...result, comment_result: commentResult, organic_public_metric: false });
   }
 
+  /**
+   * One post, for the profile grid's door. The reader on the phone opens `/post/:id` and needs the
+   * exact record it tapped, not the first item of a feed: this route answers `socialPostView`, so the
+   * full-screen reader receives the same shape the feed does. Visibility is the store's rule, never a
+   * second one invented here.
+   */
+  const postDetailMatch = path.match(/^\/api\/posts\/(\d+)$/);
+  if (method === "GET" && postDetailMatch) {
+    const post = repo.getPostById(Number(postDetailMatch[1]));
+    if (!post || post.status !== "active" || !repo.canViewPost(auth.user.id, auth.persona, post)) {
+      return json(res, 404, { ok: false, error: "post not found" });
+    }
+    return json(res, 200, { ok: true, post: socialPostView(repo, auth, post) });
+  }
+
   const socialFeedbackMatch = path.match(/^\/api\/social\/posts\/(\d+)\/feedback$/);
   if (method === "POST" && socialFeedbackMatch) {
     if (auth.persona !== "social") return json(res, 409, { ok: false, error: "switch to Social profile first" });
@@ -3638,7 +3654,17 @@ export async function handleRequest(req, res, ctx) {
     if (requestedPersona !== auth.persona) return json(res, 403, { ok: false, error: "active profile does not match post profile" });
     const persona = auth.persona;
     let kind = ["text", "image", "video"].includes(body.kind) ? body.kind : "text";
-    const caption = sanitizeText(body.caption, 2000);
+    /**
+     * A page of words is long-form (round 13): 20 000 characters when the post is a text page or
+     * carries an authored look. Every other caption keeps the 2 000-character ceiling. The limit is
+     * checked before `sanitizeText`, so an oversized article is refused with `CAPTION_TOO_LONG` instead
+     * of being silently cut at the boundary.
+     */
+    const captionLimit = body.text_style != null || kind === "text" ? 20000 : 2000;
+    if (typeof body.caption === "string" && body.caption.length > captionLimit) {
+      return json(res, 413, { ok: false, code: "CAPTION_TOO_LONG", error: `caption exceeds ${captionLimit} characters` });
+    }
+    const caption = sanitizeText(body.caption, captionLimit);
     const visibility = sanitizeText(body.visibility ?? "public", 20).toLowerCase();
     const language = body.language ? sanitizeText(body.language, 20) : null;
     const regionCode = body.region_code ? sanitizeText(body.region_code, 12).toUpperCase() : null;
@@ -3709,9 +3735,17 @@ export async function handleRequest(req, res, ctx) {
     let studioManifest;
     let creatorAudio;
     let publishing;
+    let textStyle;
     try {
       publishing = body.publishing == null ? null : normalizePublishing(body.publishing);
       if (publishing?.taggedUserIds.some(id => !repo.getUserById(id) || repo.isAccountBlockedBetween(auth.user.id, id))) throw new Error('PUBLISHING_TAGS_INVALID');
+      /**
+       * A page of words may choose its own look. A page that also carries a photograph is still a POST
+       * (round 13): the look belongs to the words, so a theme may travel with `media_items`. Only a post
+       * with no words at all has no page to paint.
+       */
+      textStyle = body.text_style == null ? null : normalizeTextStyle(body.text_style);
+      if (textStyle && !caption) throw new Error('TEXT_STYLE_REQUIRES_TEXT');
       studioManifest = normalizeCreatorStudio(body.studio_manifest ?? null, { mediaKind: kind });
       creatorAudio = normalizeCreatorAudio({
         audioMediaId,
@@ -3742,6 +3776,7 @@ export async function handleRequest(req, res, ctx) {
         userId: auth.user.id, persona, kind, caption, mediaId, visibility, language, regionCode, provenance,
         mediaEdit: studioManifest, audioMediaId: creatorAudio.audioMediaId,
         audioRights: creatorAudio.rights, audioAttribution: creatorAudio.attribution, externalAudio, publishing,
+        textStyle,
       });
       // The gallery and the tags belong to the same write as the post: a post can never claim
       // a tag or a media item it does not really have.
@@ -3800,7 +3835,11 @@ export async function handleRequest(req, res, ctx) {
     const hasCaption = Object.prototype.hasOwnProperty.call(body, "caption");
     const hasVisibility = Object.prototype.hasOwnProperty.call(body, "visibility");
     if (!hasCaption && !hasVisibility) return json(res, 400, { ok: false, error: "no editable fields supplied" });
-    const caption = hasCaption ? sanitizeText(body.caption, 2000) : current.caption;
+    const captionLimit = current.text_style_json || current.kind === "text" ? 20000 : 2000;
+    if (hasCaption && typeof body.caption === "string" && body.caption.length > captionLimit) {
+      return json(res, 413, { ok: false, code: "CAPTION_TOO_LONG", error: `caption exceeds ${captionLimit} characters` });
+    }
+    const caption = hasCaption ? sanitizeText(body.caption, captionLimit) : current.caption;
     const visibility = hasVisibility ? sanitizeText(body.visibility, 20).toLowerCase() : current.visibility;
     if (!POST_VISIBILITY.has(visibility)) return json(res, 400, { ok: false, error: "visibility invalid" });
     if (!caption && !current.media_id) return json(res, 400, { ok: false, error: "text post cannot be empty" });

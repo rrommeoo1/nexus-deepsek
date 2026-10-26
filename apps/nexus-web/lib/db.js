@@ -263,6 +263,9 @@ CREATE TABLE IF NOT EXISTS posts (
   audio_rights TEXT,
   audio_attribution TEXT NOT NULL DEFAULT '',
   external_audio_json TEXT,
+  -- The authored look of a text post (lib/post-text-style.js). Absent on every post that never chose
+  -- one, so a page of words written before this column keeps the reader's own composition.
+  text_style_json TEXT,
   content_commitment TEXT,
   version INTEGER NOT NULL DEFAULT 1,
   edited_at INTEGER,
@@ -2353,6 +2356,7 @@ function migrateSocialTables(db) {
     audio_rights: "audio_rights TEXT",
     audio_attribution: "audio_attribution TEXT NOT NULL DEFAULT ''",
     external_audio_json: "external_audio_json TEXT",
+    text_style_json: "text_style_json TEXT",
     publishing_json: "publishing_json TEXT",
     content_commitment: "content_commitment TEXT",
     version: "version INTEGER NOT NULL DEFAULT 1",

@@ -1,5 +1,6 @@
 import { openDb } from "./db.js";
 import { normalizePublishing, publishingFromRow } from './post-publishing.js';
+import { normalizeTextStyle, textStyleFromRow } from './post-text-style.js';
 import { createHash, randomBytes } from "node:crypto";
 import { sha256Hex } from "./security.js";
 import { inspectStoredMedia, purgeStoredMedia } from "./media.js";
@@ -119,6 +120,7 @@ function canonicalPostCommitment(row) {
     audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
   };
   if (row.external_audio_json) payload.externalAudio = row.external_audio_json;
+  if (row.text_style_json) payload.textStyle = row.text_style_json;
   if (row.publishing_json) payload.publishing = row.publishing_json;
   return sha256Hex(JSON.stringify(payload));
 }
@@ -576,7 +578,7 @@ export function createRepo(db) {
     },
 
     // ---- posts ----
-    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null, publishing = null }) {
+    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null, publishing = null, textStyle = null }) {
       persona = normalizePersona(persona);
       const safeVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : "public";
       // A media-less video placeholder is valid feed state, but it must not
@@ -615,16 +617,21 @@ export function createRepo(db) {
         audioAttribution: normalizedAudio.attribution,
       };
       if (externalAudioJson) commitmentPayload.externalAudio = externalAudioJson;
+      // A text post may carry the look its author chose; a post that chose none keeps the payload - and
+      // the commitment - it has always had, so old hashes still verify.
+      const textStyleJson = textStyle ? JSON.stringify(normalizeTextStyle(textStyle)) : null;
+      if (textStyleJson) commitmentPayload.textStyle = textStyleJson;
       const publishingJson = publishing ? JSON.stringify(normalizePublishing(publishing)) : null;
       if (publishingJson) commitmentPayload.publishing = publishingJson;
       const commitment = sha256Hex(JSON.stringify(commitmentPayload));
       const info = this.db.prepare(
         `INSERT INTO posts (user_id, persona, kind, caption, media_id, visibility, language, region_code, provenance,
-                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx, publishing_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx, publishing_json, text_style_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(userId, persona, kind, caption, mediaId, safeVisibility, language, regionCode, provenance,
         normalizedStudio ? JSON.stringify(normalizedStudio) : null, mediaEditHash, normalizedAudio.audioMediaId,
-        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null, publishingJson);
+        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null, publishingJson,
+        textStyleJson);
       this.db.prepare(`INSERT INTO post_versions (post_id, version, caption, visibility, status, content_commitment)
         VALUES (?, 1, ?, ?, 'active', ?)`).run(Number(info.lastInsertRowid), caption, safeVisibility, commitment);
       return this.getPostById(Number(info.lastInsertRowid));
@@ -650,6 +657,7 @@ export function createRepo(db) {
       return {
         ...row,
         publishing: publishingFromRow(row),
+        text_style: textStyleFromRow(row),
         author: author ? {
           id: author.id,
           handle: author.handle,
@@ -876,7 +884,7 @@ export function createRepo(db) {
       const post = this.getPostById(id);
       actorPersona = normalizePersona(actorPersona);
       if (!post || post.user_id !== userId || post.persona !== actorPersona || post.status !== "active") return null;
-      const cleanCaption = String(caption ?? "").trim().slice(0, 5000);
+      const cleanCaption = String(caption ?? "").trim().slice(0, 20000);
       const cleanVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : post.visibility;
       if (!cleanCaption && !post.media_id) return null;
       const version = Number(post.version || 1) + 1;
