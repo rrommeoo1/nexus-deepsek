@@ -18,6 +18,7 @@ import {
 } from "./mvx.js";
 import { MAX_E2EE_DEVICE_ENVELOPES, normalizePersona, NOTIFICATION_TYPES, PERSONAS, PROFILE_TABS, RECOVERY_DEVICE_PENDING_TTL_SECONDS, SOCIAL_REACTIONS, extractPostTags, deriveAge, normaliseBirthDate, normaliseTabsOrder } from "./repo.js";
 import { walletConnectAttestation } from "./env.js";
+import { versionView } from "./build-info.js";
 import {
   assessSocialContent, normalizeProvenance, REPORT_CATEGORIES,
 } from "./moderation.js";
@@ -853,6 +854,18 @@ export async function handleRequest(req, res, ctx) {
   }
   if (method === "GET" && path === "/api/providers") {
     return json(res, 200, { ok: true, providers: oauthStatus() });
+  }
+  /**
+   * Which build is answering, and what it can do, before anyone signs in.
+   *
+   * This is the question the phone must be able to ask *first*: a page published to a deployment that
+   * cannot store it comes back `ok: true` with the layout thrown away (`JUNGLE_BOOK_PROGRESS.md` §15.3),
+   * and no client-side flag can detect that in advance. The answer is a hash and a capability map — no
+   * account data, no secret, no database read — and it is served from the auth-free section on purpose,
+   * because an app checking whether it may sign in at all has no session yet.
+   */
+  if (method === "GET" && path === "/api/version") {
+    return json(res, 200, versionView());
   }
 
   // ---- auth ----
