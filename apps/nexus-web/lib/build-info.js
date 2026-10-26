@@ -49,7 +49,9 @@ export const API_CONTRACT = 1;
  *   (`lib/post-editorial-document.js`), which is what the TEXT composer needs;
  * - `post_tags` — hashtags travel as `tags`, extracted from the words of the post;
  * - `impressions` — `POST /api/social/impressions` records a reading;
- * - `profile_view_stats` — every post view carries `view_stats` (distinct human readers).
+ * - `profile_view_stats` — every post view carries `view_stats` (distinct human readers);
+ * - `profile_order` — `POST /api/posts/order` stores the owner's order of their own grid, and every
+ *   post view carries the `grid_position` that order is written in (`lib/repo.js`).
  */
 export const BACKEND_CAPABILITIES = Object.freeze({
   post_read: 1,
@@ -59,6 +61,7 @@ export const BACKEND_CAPABILITIES = Object.freeze({
   post_tags: 1,
   impressions: 1,
   profile_view_stats: 1,
+  profile_order: 1,
 });
 
 /** `apps/nexus-web` — `lib/build-info.js` sits one level below the server it describes. */

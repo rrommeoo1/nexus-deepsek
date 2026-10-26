@@ -274,6 +274,10 @@ CREATE TABLE IF NOT EXISTS posts (
   -- A post the owner put at the top of their profile, or nothing. Three at most: a pin is a decision
   -- about this profile, not a rank, and everything else in the archive stays chronological.
   pinned_at INTEGER,
+  -- The owner's own arrangement of the profile grid: the place a tile was dragged to, counting from
+  -- zero. It is absent on every post nobody has arranged, so a post written after the last arrangement
+  -- keeps the top of the archive instead of being pushed under a wall of numbers.
+  grid_position INTEGER,
   devnet_tx TEXT,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
@@ -2366,6 +2370,9 @@ function migrateSocialTables(db) {
     // A pin is additive and absent for every post written before it: nothing is pinned until the owner
     // says so, and three pins are the whole allowance.
     pinned_at: "pinned_at INTEGER",
+    // The arrangement of the grid, additive in the same way: a post nobody dragged has no position, so
+    // adding the column never rewrites an archive that was already in an order its owner accepted.
+    grid_position: "grid_position INTEGER",
     moderation_state: "moderation_state TEXT NOT NULL DEFAULT 'ACTIVE'",
     moderation_reason: "moderation_reason TEXT",
     moderation_policy_version: "moderation_policy_version TEXT",

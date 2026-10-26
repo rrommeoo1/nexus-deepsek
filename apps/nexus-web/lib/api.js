@@ -3892,6 +3892,29 @@ export async function handleRequest(req, res, ctx) {
     });
   }
 
+  // The profile grid's arrangement: the owner's own order of their own archive, as one list of post
+  // ids. A drag in the grid sends exactly what the grid shows, and the answer is that same list written
+  // down, so reopening the profile draws the arrangement the owner made instead of the one time made.
+  // Like a pin, an arrangement is a decision about the profile and not an edit of a post: no version,
+  // no commitment, and nothing about the post itself changes. Every id must be an active post of this
+  // account and this persona, and the transaction is all-or-nothing, so a list that names somebody
+  // else's post is refused whole (`repo.setProfileGridOrder`).
+  if (method === "POST" && path === "/api/posts/order") {
+    const body = await readAuthJson(req);
+    if (!exactObject(body, new Set(["order"]))) return json(res, 400, { ok: false, error: "order must be the only field" });
+    const result = repo.setProfileGridOrder(auth.user.id, auth.persona, body.order);
+    if (result.error === "order_invalid") return json(res, 400, { ok: false, error: "order must be a list of post ids" });
+    if (result.error === "order_empty") return json(res, 400, { ok: false, error: "order must not be empty" });
+    if (result.error === "order_duplicate") return json(res, 400, { ok: false, error: "order repeats a post" });
+    if (result.error === "order_too_long") return json(res, 413, { ok: false, code: "ORDER_TOO_LONG", error: "the profile grid names at most 200 posts" });
+    if (result.error === "order_foreign") return json(res, 404, { ok: false, error: "post not found" });
+    sse.broadcast("posts-ordered", { order: result.order }, [channelForUser(auth.user.id)]);
+    return json(res, 200, {
+      ok: true, action: "posts_ordered", owner_id: auth.user.id, owner_persona: auth.persona,
+      order: result.order, count: result.order.length,
+    });
+  }
+
   // A pin is the owner's own arrangement of their archive: it puts a post at the top of the profile, it
   // changes nothing about the post, and three pins are the whole allowance - a profile that pins
   // everything pins nothing. Only the owner of the post may pin it.

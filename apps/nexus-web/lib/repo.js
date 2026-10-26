@@ -84,6 +84,9 @@ export function deriveAge(birthDate, now = Date.now()) {
 const MESSAGE_POLICIES = new Set(["everyone", "requests", "followers", "nobody"]);
 // How many posts a profile may keep at the top of its own archive. Three is a statement; ten is a feed.
 const PINNED_POST_LIMIT = 3;
+// How many places one arrangement may name. The archive itself draws twenty-four, so this is a boundary
+// and not a page size: it refuses a body that would otherwise write a thousand rows in one transaction.
+const PROFILE_ORDER_LIMIT = 200;
 // SEEDED_CATALOG marks locally ingested catalog accounts: real rows, never organic.
 const TRAFFIC_CLASSES = new Set(["HUMAN_ORGANIC", "PAID", "AGENT", "SYSTEM_TEST", "INCENTIVIZED", "SEEDED_CATALOG"]);
 const NOTIFICATION_TYPE_SET = new Set(NOTIFICATION_TYPES);
@@ -925,6 +928,37 @@ export function createRepo(db) {
       const at = pinned ? (alreadyPinned ? Number(post.pinned_at) : Math.floor(Date.now() / 1000)) : null;
       this.db.prepare(`UPDATE posts SET pinned_at = ? WHERE id = ?`).run(at, id);
       return { post: this.getPostById(id) };
+    },
+    // The grid is the owner's arrangement of their own archive: one ordered list of post ids, written
+    // as `grid_position` counting from zero. Like a pin, it is a decision about the profile and not an
+    // edit of what was published, so no version and no commitment change. Every id has to be an active
+    // post of this account and this persona, and the whole list is written in one transaction: an
+    // arrangement that names somebody else's post is refused whole, never applied half-way.
+    setProfileGridOrder(userId, actorPersona, ids) {
+      actorPersona = normalizePersona(actorPersona);
+      if (!Array.isArray(ids)) return { error: "order_invalid" };
+      if (!ids.length) return { error: "order_empty" };
+      if (ids.length > PROFILE_ORDER_LIMIT) return { error: "order_too_long" };
+      const order = ids.map((id) => Number(id));
+      if (order.some((id) => !Number.isSafeInteger(id) || id < 1)) return { error: "order_invalid" };
+      if (new Set(order).size !== order.length) return { error: "order_duplicate" };
+      const owned = this.db.prepare(
+        `SELECT id FROM posts WHERE id = ? AND user_id = ? AND persona = ? AND status = 'active'`,
+      );
+      const foreign = order.filter((id) => !owned.get(id, userId, actorPersona));
+      if (foreign.length) return { error: "order_foreign", foreign };
+      const write = this.db.prepare(
+        `UPDATE posts SET grid_position = ? WHERE id = ? AND user_id = ? AND persona = ?`,
+      );
+      this.db.exec("BEGIN IMMEDIATE");
+      try {
+        order.forEach((id, index) => write.run(index, id, userId, actorPersona));
+        this.db.exec("COMMIT");
+      } catch (error) {
+        this.db.exec("ROLLBACK");
+        throw error;
+      }
+      return { order };
     },
     archivePost(id, userId, actorPersona) {
       const post = this.getPostById(id);
