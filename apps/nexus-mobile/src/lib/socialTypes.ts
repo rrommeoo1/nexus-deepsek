@@ -2,6 +2,7 @@ import { API_ORIGIN } from './apiOrigin';
 import { mediaUrl } from './nexusApi';
 import { mediaHeaders } from './session';
 import type { StudioManifest } from './studioManifest';
+import type { TextStyle } from './textStyle';
 
 /**
  * The shapes the existing endpoints answer with. They are read from apps/nexus-web/lib/api.js
@@ -43,7 +44,25 @@ export type ReactionSummary = {
 
 export type SocialPost = {
   id: number;
-  publishing?: { allowComments?: boolean } | null;
+  /**
+   * `normalizePublishing()` of `lib/post-publishing.js`, stored as `publishing_json` and handed back as
+   * it was written: the four switches a post carries about itself plus the location it was attached to.
+   */
+  publishing?: {
+    allowComments?: boolean;
+    allowRepost?: boolean;
+    allowDownload?: boolean;
+    title?: string;
+    location?: string;
+    locationPrecision?: 'exact' | 'area' | 'city';
+    link?: string;
+  } | null;
+  /**
+   * `text_style_json` of the post, normalized by `lib/post-text-style.js` and handed back as
+   * `text_style`: the theme, face, measure and alignment its author chose for a page of words.
+   * Absent on every post that never chose one, so the reader's own composition still applies.
+   */
+  text_style?: TextStyle | null;
   user_id?: number;
   persona?: string;
   kind?: string;
@@ -53,6 +72,17 @@ export type SocialPost = {
   author?: PostAuthor | null;
   media?: MediaItem | null;
   media_list?: MediaItem[];
+  /**
+   * `withRepost()` of `lib/repo.js:1327-1331`: present **only** when this item reached the feed through
+   * somebody's repost (`post_shares`). The post keeps its own author, counters and time - the stamp says
+   * who put it there, which is the line "X a repostat" the reader prints above the post.
+   */
+  repost?: { id?: number; reposted_at?: number; reposter?: PostAuthor | null } | null;
+  /**
+   * The post this one quotes, as the server renders it (`socialPostView`, nested once per layer). It is
+   * `null`/absent on every ordinary post, so nothing here changes for a post that quotes nothing.
+   */
+  quoted_post?: SocialPost | null;
   comment_count?: number;
   /** `post.reposts` of the web card: the count the rail prints beside the distribute control. */
   reposts?: number;
@@ -194,9 +224,25 @@ export type RepostStamp = {
   reposted_at?: number;
   mine?: boolean;
   reposter?: StoryAuthor | null;
+  /**
+   * The place the reposter dragged this repost to on their own grid, or nothing
+   * (`post_shares.grid_position`). It is the repost's place, not the original post's: the post's own
+   * `grid_position` belongs to its author and a reposter never sees it move.
+   */
+  grid_position?: number | null;
 };
 
-export type RepostEntry = { share_id?: number; reposted_at?: number; repost?: RepostStamp | null; post?: SocialPost | null };
+export type RepostEntry = {
+  share_id?: number;
+  reposted_at?: number;
+  /**
+   * The reposter's own place for this tile (`repo.listUserReposts` reads `post_shares.grid_position`).
+   * Absent until the owner arranges it, and absent from any server that predates repost arranging.
+   */
+  grid_position?: number | null;
+  repost?: RepostStamp | null;
+  post?: SocialPost | null;
+};
 
 /** `shared_replies` of the payload (`api.js:2975-2984`), the second kind of internal share. */
 export type SharedReplyEntry = {
@@ -321,6 +367,33 @@ export const REACTION_TITLES: Record<string, string> = {
   LIKE: 'Like', LOVE: 'Love', HAHA: 'Haha', WOW: 'Wow',
   SAD: 'Trist', ANGRY: 'Furios', FAKE_OPINION: 'Fake?', DISLIKE: 'Dislike',
 };
+
+/**
+ * The faces the panel shows (owner's rule, 19 October 2026).
+ *
+ * `REACTION_GLYPHS` above is the web's own set, and it is right for a *summary*: a thin mark beside a
+ * number, read at a glance. In a panel it read as washed out — `\u2665` and `\u{1F497}` are the palest
+ * two glyphs of the set, and the owner saw the heart "sters" against a dark plate. So the panel — and
+ * the plate that shows the viewer's own reaction — print the emoji the owner pointed at: a red heart
+ * and a thumb, the four faces, and the two geometric marks kept for `FAKE_OPINION` and `DISLIKE`
+ * because the server's `SOCIAL_REACTIONS` has eight kinds and a reader must be able to choose any of
+ * them. The summary keeps the web's set: it is a number with a mark, not a choice.
+ */
+export const REACTION_PICKER_GLYPHS: Record<string, string> = {
+  LIKE: '\u{1F44D}', LOVE: '\u2764\uFE0F', HAHA: '\u{1F602}', WOW: '\u{1F62E}',
+  SAD: '\u{1F622}', ANGRY: '\u{1F621}', FAKE_OPINION: '\u25C6', DISLIKE: '\u25BC',
+};
+
+/**
+ * The plate of a viewer who has chosen nothing (owner's rule, 19 October 2026).
+ *
+ * The plate used to print `REACTION_PICKER_GLYPHS.LOVE` when it was empty, which is exactly the red
+ * heart a `LOVE` reaction prints — so a like that had just been taken back (a second tap on the plate)
+ * still looked like a like. The owner asked for the white heart instead: "trebuie sa ramana inima
+ * alba, nu rosie". Nothing chosen is now unmistakable, and one glyph still covers every state of the
+ * plate, because the ring that used to carry "on" was removed with it.
+ */
+export const REACTION_EMPTY_HEART = '\u{1F90D}';
 
 /**
  * `reactionSummary()` of the web (`app.js:3579-3595`): the counts ranked, the total, and the two or
@@ -460,6 +533,21 @@ export type SearchProfile = {
 };
 
 export type SocialSearchPage = { ok: true; query?: string; profiles?: SearchProfile[]; posts?: SocialPost[]; next_cursor?: string | null };
+
+/**
+ * `GET /api/social/tags/:kind/:tag` — the tag's own page (`api.js:3519-3543`). `stats` is
+ * `repo.tagStats` (the number of posts carrying the tag and the number of distinct people behind them),
+ * `next_before` is the `before` cursor of the next page of posts, and the posts themselves are the same
+ * `socialPostView` rows the feed carries.
+ */
+export type SocialTagPage = {
+  ok: true;
+  kind?: string;
+  tag?: string;
+  stats?: { posts?: number; authors?: number } | null;
+  posts?: SocialPost[];
+  next_before?: number | null;
+};
 
 /** One participant of a conversation (`getConversationDetails().participants`). */
 export type ConversationParticipant = {

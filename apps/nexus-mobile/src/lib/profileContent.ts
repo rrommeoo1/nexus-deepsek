@@ -3,6 +3,8 @@ import {
   type CommentView, type MediaItem, type ProfileResponse, type ProfileView, type RepostEntry, type RepostStamp,
   type SharedReplyEntry, type SocialPost, type StoryHighlight, type StoryView,
 } from './socialTypes';
+import { contentTypeOf, mediaOf } from './postPresentation';
+import { arrangementRank, type Arrangement } from './profileGrid';
 
 /**
  * The content region of a profile, ported from `apps/nexus-web/public/profile-experience.js`.
@@ -77,10 +79,18 @@ export function profileTabOrder(value: unknown): ContentTab[] {
   return wanted;
 }
 
-/** `profilePostKind` of the web: the cover media decides, and words are what is left. */
+/**
+ * `profilePostKind` of the web: the archive's own bucket for a post - Reels, Fotografii or Șoapte.
+ *
+ * The Reel/Post decision is the one shared classifier (`contentTypeOf`), so a clip with a caption is still
+ * read in the Reels tab even when the cover metadata is missing; every other post is bucketed by its cover,
+ * and words are what is left.
+ */
 export function profilePostKind(post?: SocialPost | null): PostKind {
-  if (post?.media?.kind === 'video') return 'video';
-  if (post?.media?.kind === 'image') return 'image';
+  if (contentTypeOf(post) === 'reel') return 'video';
+  const cover = mediaOf(post)[0] ?? post?.media ?? null;
+  if (cover?.kind === 'video') return 'video';
+  if (cover?.kind === 'image') return 'image';
   return 'text';
 }
 
@@ -148,10 +158,21 @@ export function postOrderAttributes(post: ArchivePost, stamp = archiveStamp(post
  * because a timeline that jumps is not a timeline. Equal stamps keep the order the buckets gave them
  * (newest first, then by id), which is the insertion order the web's own stable sort would have kept.
  */
-export function orderArchive(posts: ArchivePost[], reading: ContentReading, options: { hoistPins?: boolean } = {}): ArchivePost[] {
-  type Rated = { post: ArchivePost; index: number; order: OrderAttributes };
-  const decorated: Rated[] = posts.map((post, index) => ({ post, index, order: postOrderAttributes(post) }));
-  const byNewest = (a: Rated, b: Rated) => b.order.stamp - a.order.stamp || a.index - b.index;
+export function orderArchive(posts: ArchivePost[], reading: ContentReading, options: { hoistPins?: boolean; arrangement?: Arrangement | null } = {}): ArchivePost[] {
+  type Rated = { post: ArchivePost; index: number; order: OrderAttributes; place: number | null };
+  const decorated: Rated[] = posts.map((post, index) => ({
+    post, index, order: postOrderAttributes(post), place: arrangementRank(post, options.arrangement),
+  }));
+  /**
+   * The owner's own order, and only for the newest reading: the tiles were dragged into this order
+   * (`POST /api/posts/order`), so "newest" on this phone is "the order I made, with anything I have not
+   * placed above it". A post with no place is not place zero - it keeps where time put it, which is how
+   * a post written after the last drag is still the first thing the owner sees. `popular` and
+   * `relevant` are measurements (answers, signals), and a measurement that obeyed a drag would not be
+   * one, so they ignore the places entirely.
+   */
+  const placed = (entry: Rated) => (reading === 'newest' && entry.place !== null ? entry.place : -1);
+  const byNewest = (a: Rated, b: Rated) => placed(a) - placed(b) || b.order.stamp - a.order.stamp || a.index - b.index;
   const byPopular = (a: Rated, b: Rated) => b.order.score - a.order.score || byNewest(a, b);
   const byRelevant = (a: Rated, b: Rated) => b.order.rank - a.order.rank || byPopular(a, b);
   const sorter = reading === 'popular' ? byPopular : reading === 'relevant' ? byRelevant : byNewest;
@@ -237,18 +258,20 @@ function pinnedFirst<T extends { order: OrderAttributes }>(sorter: (a: T, b: T) 
 export function archiveNodes(
   archive: { posts: ArchivePost[]; sharedReplies: SharedReplyCard[] },
   reading: ContentReading,
-  options: { hoistPins?: boolean } = {},
+  options: { hoistPins?: boolean; arrangement?: Arrangement | null } = {},
 ): ArchiveNode[] {
-  type Rated = { node: ArchiveNode; index: number; order: OrderAttributes };
+  type Rated = { node: ArchiveNode; index: number; order: OrderAttributes; place: number | null };
   const seed = Math.max(1, archive.posts.length);
   const tiles = archive.posts.filter((post) => profilePostKind(post) !== 'text');
   const whispers = archive.posts.filter((post) => profilePostKind(post) === 'text');
+  const place = (post: ArchivePost) => arrangementRank(post, options.arrangement);
   const decorated: Rated[] = [
-    ...tiles.map((post, index): Rated => ({ node: { key: archiveKey(post), kind: 'tile', post }, index, order: postOrderAttributes(post) })),
-    ...whispers.map((post, index): Rated => ({ node: { key: archiveKey(post), kind: 'whisper', post }, index: seed + index, order: postOrderAttributes(post) })),
-    ...archive.sharedReplies.map((reply, index): Rated => ({ node: { key: reply.key, kind: 'reply', reply }, index: seed * 2 + index, order: sharedReplyOrder(reply) })),
+    ...tiles.map((post, index): Rated => ({ node: { key: archiveKey(post), kind: 'tile', post }, index, order: postOrderAttributes(post), place: place(post) })),
+    ...whispers.map((post, index): Rated => ({ node: { key: archiveKey(post), kind: 'whisper', post }, index: seed + index, order: postOrderAttributes(post), place: place(post) })),
+    ...archive.sharedReplies.map((reply, index): Rated => ({ node: { key: reply.key, kind: 'reply', reply }, index: seed * 2 + index, order: sharedReplyOrder(reply), place: null })),
   ];
-  const byNewest = (a: Rated, b: Rated) => b.order.stamp - a.order.stamp || a.index - b.index;
+  const placed = (entry: Rated) => (reading === 'newest' && entry.place !== null ? entry.place : -1);
+  const byNewest = (a: Rated, b: Rated) => placed(a) - placed(b) || b.order.stamp - a.order.stamp || a.index - b.index;
   const byPopular = (a: Rated, b: Rated) => b.order.score - a.order.score || byNewest(a, b);
   const byRelevant = (a: Rated, b: Rated) => b.order.rank - a.order.rank || byPopular(a, b);
   const sorter = reading === 'popular' ? byPopular : reading === 'relevant' ? byRelevant : byNewest;
@@ -292,6 +315,34 @@ export function archiveBands(nodes: ArchiveNode[], options: { columns?: number; 
   }
   flush();
   return bands;
+}
+
+/**
+ * A grid tab's bands when every post of the tab is a tile — which is now every tab that is not the
+ * Flow (`profile-experience.js:459`, `.ownerPostGrid`).
+ *
+ * The web gives a text post the full width of the whisper list because a whisper there is a *card*:
+ * an avatar, a handle, three lines and an action row, which needs the width it takes. In an archive of
+ * thumbnails that same post is not a card but a miniature — the 9:16 typographic tile `PostCanvas`
+ * already draws for it — and letting it take the width of the screen broke the wall of thirds: one
+ * sentence became a band of its own between two rows of pictures.
+ *
+ * The rows are the grid's own `repeat(3,1fr)` with the archive's ceiling of 24 nodes, so a tab reads
+ * the same number of nodes it read before; only their shape changed.
+ */
+export function tileBands(nodes: ArchiveNode[], options: { columns?: number; tileLimit?: number } = {}): ContentRow[] {
+  const columns = Math.max(1, Math.floor(options.columns ?? 3) || 1);
+  const limit = Math.max(0, options.tileLimit ?? PROFILE_ARCHIVE_LIMIT);
+  const posts = nodes
+    .filter((node): node is Extract<ArchiveNode, { kind: 'tile' } | { kind: 'whisper' }> => node.kind !== 'reply')
+    .map((node) => node.post)
+    .slice(0, limit);
+  const rows: ContentRow[] = [];
+  for (let index = 0; index < posts.length; index += columns) {
+    const slice = posts.slice(index, index + columns);
+    rows.push({ key: `row-${index}-${archiveKey(slice[0])}`, kind: 'tiles', posts: slice });
+  }
+  return rows;
 }
 
 /** `profileCompactCount` (`profile-experience.js:106-108`): the ro-RO compact reading of a count. */
@@ -410,7 +461,16 @@ export function profileArchive(payload?: ProfileResponse | null): { posts: Archi
   const posts: ArchivePost[] = Array.isArray(payload?.posts) ? payload.posts : [];
   const reposts: ArchivePost[] = (Array.isArray(payload?.reposts) ? payload.reposts : [])
     .filter((entry): entry is RepostEntry & { post: SocialPost } => Boolean(entry?.post))
-    .map((entry): ArchivePost => ({ ...entry.post, __repost: entry.repost ?? null }));
+    .map((entry): ArchivePost => ({
+      ...entry.post,
+      // The stamp keeps the share's own id — which is what a drag writes — and the place the owner put it
+      // in. Falling back to `share_id` matters because a payload may omit the nested `repost` object.
+      __repost: {
+        ...(entry.repost ?? {}),
+        id: Number(entry.repost?.id ?? entry.share_id) || undefined,
+        grid_position: entry.grid_position ?? null,
+      },
+    }));
   const bucket = profileContentBuckets([...posts, ...reposts], {
     stamp: (post) => Math.max(0, Number(post?.__repost?.reposted_at || post?.created_at || 0)),
   });
