@@ -1944,4 +1944,160 @@ drift []   ok true
    (e74f8ff) rămâne cel publicat. Retragerea lui cere confirmarea explicită a proprietarului, după ce punctele
    1–8 sunt închise pe telefon.
 
+## 19. Runda a cincisprezecea — numai pe PC: imaginile, articolul privat, ordinea după repornire (27 octombrie 2026)
+
+Decizia proprietarului, de la care pornește tot ce urmează: Jungle Book rulează **doar pe PC-ul Windows și
+în rețeaua casei**. Fără Cloudflare, fără Tailscale, fără domeniu public. Migrarea pe un host se face într-o
+fază separată, iar `docs/22-local-to-hosted.md` spune exact ce se schimbă atunci.
+
+### 19.1 Imaginile: 401-ul nu era al serverului, ci al pipeline-ului de imagini
+
+§18.9 punctul 7 spunea „67 din 127 de cereri au primit 401, deci o suprafață a grilei cere media fără
+sesiune". Măsurătoarea, refăcută doar pe cererile telefonului (`192.168.1.184`, nu și scripturile de
+verificare de pe `127.0.0.1`, care umflau numărul de `200`), arată altceva:
+
+```
+jpg  200 x3     401 x64          mp4 200 x22      webm 200 x19 + 206 x16
+```
+
+Adică **fiecare** cerere de imagine a telefonului era refuzată, iar **fiecare** cerere de clip era
+acceptată — cu același `mediaHeaders()` în ambele locuri. `expo-video` trimite `source.headers`;
+pipeline-ul de imagini al React Native 0.86 pe acest dispozitiv nu le trimite, deci
+`<Image source={{uri, headers}}>` nu poate purta sesiunea. Cele trei `200` de imagine veneau din cookie-ul
+pus incidental în borcanul OkHttp de un `fetch` anterior, nu din `headers`.
+
+Reparat în așa fel încât să nu depindă de comportamentul nativ: `lib/mediaCache.ts` descarcă o dată
+octeții, cu exact headerele din `mediaHeaders()`, în cache-ul aplicației, sub numele content-addressed al
+obiectului (`<sha256>.<ext>`), iar cadrul se desenează din fișier. Descărcarea scrie în `<nume>.part` și
+redenumеște doar la succes, deci o cerere întreruptă nu otrăvește cache-ul; cererile simultane pentru
+aceeași poză împart o singură descărcare. Serverul nu s-a atins: anonimul primește tot `401`, iar un obiect
+la care cititorul nu are dreptul primește tot `404`.
+
+- `RemoteImageSource` desenează prin `useMediaFile`; `CommentsSheet` a fost ultima suprafață care dădea o
+  sursă remoteă direct unui `<Image>` (avatarurile din comentarii).
+- Cititorul editorial își măsoară fotografia din fișierul pe care îl desenează, nu prin
+  `getSizeWithHeaders` (aceeași cale nativă, același `401`).
+- Două suite noi: `test-media-cache.cjs` (7 teste, cu un `expo-file-system` fals: sesiunea pleacă pe
+  cerere, `.part` nu rămâne, refuzul nu otravește cache-ul, o singură descărcare pentru trei cereri) și
+  `test-api-origin.cjs` (6 teste).
+
+Pe telefon, după `am force-stop` + repornire, cu jurnalul serverului ca dovadă:
+
+```
+GET /api/profiles/wallet4e8gv6 200
+GET /media/8e307c3e…jpg 200      GET /media/18e003c4…jpg 200
+… 8 poze în total, toate 200, zero 401
+cache-ul aplicației: 8 fișiere sub numele lor content-addressed
+```
+
+Cele 8 poze sunt exact cele 8 postări-cu-imagine din grilă (40, 39, 38, 33, 32, 29, 28, 26); postarea 27
+e clip, iar 15, 30, 31 sunt doar text. Mesajul „Fișierul media nu a putut fi încărcat." nu a mai apărut.
+Înainte: 127 de cereri, 67 de refuzuri. Acum: 8 cereri, 8 fișiere.
+
+### 19.2 `1343406e…jpg` nu e media unei postări, ci avatarul contului de test `test`
+
+§18.9 punctul 8 presupunea un colț de studio în payload-urile postărilor 2 și 16. Nu: o căutare în toate
+cele 145 de tabele arată referința în `users.avatar` și `personas.avatar`, pentru contul `test`
+(`display_name` „Test Nexus"), nu în `posts` (2 și 16 au `media_id` 1 și 9, ambele clipuri). Fișierul nu
+există în `C:\Nexus\data\media` (20 de fișiere, exact cele 20 de rânduri din `media`) și nu a fost
+exportat niciodată, deci **nu poate fi recuperat** fără stocarea Railway.
+
+Impact practic: zero pentru proprietar. Contul `test` este unul dintre conturile de test moștenite (care
+răspund oricum `500 CONTENT_ASSESSMENT_COMMITMENT_MISMATCH` la `/api/profiles/test`), nu are postări în feed
+și nu e contul telefonului. Nu s-a inventat și nu s-a substituit nicio imagine: referința a rămas în bază
+exact cum a venit din export.
+
+### 19.3 Ordinea repostării trece de repornirea aplicației **și** de repornirea backendului
+
+- `am force-stop` + repornire → grila se deschide `41, 15, 40, 33, 38, 39, 32, …`: postarea 41 e cea nouă
+  (sus, fără `grid_position`), restul păstrează aranjarea salvată.
+- `stop-backend.ps1` → `start-backend.ps1` (`restarts 0`, `healthy True`, `commit 42bf57a`) → după derulare,
+  grila arată `33, 38, 39, 32, 31, 30, 29, 28, 27, 26`, adică exact coada aranjării.
+- În bază, după publicarea articolului: `post_shares.id=4 → grid_position 0` neschimbat, `posts.id=15`
+  (postarea originală, alt proprietar) `grid_position NULL, version 1` neschimbat, `posts 40…26 → 1..11`
+  neschimbate. Aranjarea nu atinge niciodată postarea altcuiva.
+
+### 19.4 Articolul privat: publicat o singură dată, dovedit privat, dovedit persistent
+
+Pe telefon, în compozitorul editorial: două paragrafe plus o fotografie (atașată din galerie, 398 444 de
+octeți), apoi „CINE VEDE → Doar eu" (`visibility: private` în starea compozitorului), apoi „Publică".
+
+```
+POST /api/posts 201 (192.168.1.184)
+posts: 36 → 37            media: 20 → 21
+posts.id=41  user_id=12  visibility=private  kind=image  media_id=29  status=active
+```
+
+Dovada că e privat, cerută ca alt cont (sesiune emisă local pentru `devnet_test_01`) și anonim:
+
+```
+owner         GET /api/posts/41 → 200   (feed-ul propriu îl arată)
+alt cont      GET /api/posts/41 → 404 „post not found"   (feed, profil: niciun 41)
+anonim        GET /api/posts/41 → 401 „not signed in"
+```
+
+Pe ecran: apare în grilă ca prima celulă, se deschide din profil și își ține așezarea (paragraf, paragraf,
+fotografie îngustă lipită la stânga, `widthFraction 0.55`), fotografia se descarcă `200` din noul cache, iar
+după `am force-stop` + repornire articolul e tot acolo, cu aceeași așezare. Compozitorul și-a șters draftul
+după publicare (`files/nexus-text-drafts/` rămâne gol), deci nu rămâne un draft orfan.
+
+
+
+### 19.5 Un defect găsit pe drum: un wildcard de port oprea orice autentificare NativeAuth
+
+Încercând să validez un token NativeAuth adevărat pe PC (`lib/mvx.js` → `validateNativeAuthToken`), serverul
+a aruncat `NativeAuthInvalidWildcardOriginError` **din constructorul** `NativeAuthServer`: lista de
+dezvoltare era `["http://localhost:*", "http://127.0.0.1:*"]`, iar SDK-ul citește `*` ca wildcard de
+subdomeniu, nu de port. Orice proces fără `NEXUS_ACCEPTED_ORIGINS` (checkout proaspăt, script, test) nu
+putea valida niciun token, deci fiecare autentificare xPortal ar fi răspuns `401`.
+
+Serviciul de pe PC avea lista bună în `C:\Nexus\env\jungle.env`, deci nu era afectat — dar era la un pas de
+orice configurare nouă. Reparat: lista de dezvoltare numește origini simple, o intrare cu `*` venită din
+environment e eliminată cu avertisment (nu transmisă mai departe), o listă rămasă fără nicio origine validă
+oprește pornirea cu un mesaj clar, iar un test nou construiește serverul în toate cele trei cazuri.
+
+Ce **nu** s-a putut dovedi fără proprietar: un login xPortal complet. Semnătura o dă portofelul din
+aplicația xPortal a proprietarului, iar SDK-ul verifică mesajul împachetat (`MessageComputer`), nu octeții
+bruți pe care îi poate produce un semnatar scris de mână. Endpoint-ul e viu și validează (`token` gunoi →
+`401`, lipsă → `400`, fără `Idempotency-Key` → `400 IDEMPOTENCY_KEY_REQUIRED`), iar sesiunea folosită de
+telefon păstrează identitatea contului (user 12, același `device_id`) și s-a dovedit durabilă la fiecare
+repornire (`GET /api/me 200` după fiecare `force-stop`). Rămâne un pas al proprietarului: confirmarea în
+xPortal, pe telefon.
+
+### 19.6 Ce s-a verificat, cu cifre
+
+| Verificare | Rezultat |
+| --- | --- |
+| Suite backend, checkout curat (`npm ci` + `node --test test/*.test.js`) | **852/852**, commit `42bf57a` |
+| Suite backend, arborele de lucru | 852/852 |
+| Suite mobile (`apps/nexus-mobile`, 40 de suite) | 40/40 |
+| TypeScript (`tsc --noEmit`) | curat |
+| `PRAGMA integrity_check` / `foreign_key_check` | `ok` / 0 violări |
+| `verify-restore.mjs` față de exportul Railway | `ok: true`, `problems: []`, 12 profiluri, 36 postări, 37 comentarii, 2 repostări, 20 de media re-hashuite; `drift: 46` = uzură (vizualizări crescute, aranjare, postarea 41) |
+| `backup-db.mjs` + `restore-backup.mjs --drill` | `sha256_matches_manifest true`, `integrity_check ok`, `drift []`, `ok true` (37 postări, 21 media) |
+| Backend după repornire | `restarts 0`, `healthy True`, `/health` 200, `commit 42bf57a` |
+| Sarcini programate | `Jungle Book Backend` (logon + 00:05) și `Jungle Book Backup` (03:30, ultima rulare 08:26, rezultat 0), ambele `Ready` |
+| Media pe telefon | 8 poze descărcate, 8 cereri `200`, zero `401` |
+
+`verify-restore.mjs` a fost corectat ca să poată fi rulat și după ce telefonul a fost folosit: identitatea
+(postări, texte, commitments, documente editoriale, comentarii, repostări, octeții media) rămâne
+`problems`, iar ce scrie produsul prin folosire (vizualizări, `grid_position`, `pinned_at`, postări noi)
+devine `drift`, cu o excepție păstrată ca eroare: un contor care **scade** e pierdere de date, nu uzură.
+
+### 19.7 Ce rămâne pentru proprietar (nimic din ce urmează nu blochează folosirea)
+
+1. **Firewall-ul e mai larg decât casa.** Wi-Fi-ul „Romeo 5G 2" e clasificat **Public** de Windows, iar
+   `node.exe` are reguli inbound `Allow` pe profilul Public — deci backendul răspunde oricărei rețele la
+   care se conectează PC-ul. Nu există port forwarding pe router (nimic expus în internet), dar restrângerea
+   cere o rulare **elevată**, care nu se poate face din sesiunea asta: `tools/local-backend/restrict-firewall.ps1`
+   (scris, verificat sintactic, refuză frumos fără admin) înlocuiește regulile largi cu una singură, TCP
+   5000, doar `LocalSubnet`.
+2. **Login xPortal complet**, cu confirmarea în aplicația xPortal a proprietarului — vezi 19.5.
+3. **Ștergerea confirmată pe conținut real** nu a fost apăsată (ar distruge o postare a proprietarului);
+   dialogul, „Anulează" și refuzul pe o postare străină sunt verificate.
+4. **Paginarea editorială la margine** (imagine purtată între pagini cu dwell de ~600 ms) nu a fost
+   exercitată fizic în această rundă; mutarea unei poze între pagini fusese deja verificată de proprietar, iar
+   mașina de stări e testată automat.
+5. **Retragerea Railway** cere confirmarea explicită a proprietarului. Railway nu a fost atins: nu s-a șters
+   nimic, nu s-a oprit deploymentul. Volumul de acolo rămâne singura sursă posibilă pentru obiectul din 19.2.
 
