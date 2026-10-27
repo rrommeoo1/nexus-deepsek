@@ -2559,6 +2559,9 @@ singurul loc din aplicație în care se hotărăște culoarea unei pagini de cuv
   spune „Pagina ei este hârtie…”.
 - **`src/components/EditorialPage.tsx`** — picta deja din `pagePaletteOf`, deci articolele cu document au trecut
   pe hârtie odată cu resolverul, fără nicio modificare în componentă.
+- **`scripts/test-profile-door.cjs`** (nou, în lanțul `npm test`) — celula și pagina citită rămân aceeași
+  postare: eticheta spune `post.id`, ruta cere `GET /api/posts/:id`, iar `walkAnchor` alege celula atinsă
+  după cheie, nu după id (două celule pot purta același id: `post-8` și `repost-4`).
 
 
 ### 23.4 Tokenul hârtiei: `#f4efe2`, nu `#f5f0e4`
@@ -2578,8 +2581,8 @@ Nu s-a schimbat nimic aici: un al doilea token ar fi fost o a doua pagină. Ce s
 ### 23.5 Ce a rulat automat (rezultate reale)
 
 - `node node_modules/typescript/bin/tsc --noEmit` — **exit 0**, fără erori.
-- `npm test` în `apps/nexus-mobile` — lanțul complet de **42** de scripturi, **0** eșecuri, `EXIT=0`
-  (39 de suite `node:test` au raportat `fail 0`).
+- `npm test` în `apps/nexus-mobile` — lanțul complet de **43** de scripturi, **0** eșecuri, `EXIT=0`
+  (40 de suite `node:test` au raportat `fail 0`).
 - Cazul nou din `test-text-style.cjs` („fiecare temă se citește pe aceeași hârtie, iar tema rămâne doar
   accentul”): pentru toate cele șase teme, `background`/`text` sunt perechea hârtiei, `mark` este accentul
   hârtiei, `accent` este accentul temei, iar contrastul hârtie/cerneală trece AAA; un rând `jungle` **cu
@@ -2587,6 +2590,12 @@ Nu s-a schimbat nimic aici: un al doilea token ar fi fost o a doua pagină. Ce s
 - `test-nav-band.cjs` citește acum ramura paginii din `PostCanvas` (`pagePalette`, voalul cu
   `opacity={pagePalette ? 0 : …}`), iar `test-profile-text-tile.cjs` refuză `themeOf`/`TEXT_DEFAULT_THEME`
   în celulă.
+- Suita nouă `test-profile-door.cjs` (5 teste, intrată în lanțul `npm test` după `test-profile-grid.cjs`)
+  leagă eticheta celulei de pagina deschisă: pentru fiecare celulă, `Deschide postarea ${post.id}` numește
+  exact `id`-ul pe care ruta îl cere serverului, iar `walkAnchor` întoarce celula atinsă — inclusiv pe un
+  perete care ține **același `post.id` de două ori** (`post-8` al proprietarului și `repost-4`, care îl
+  distribuie): etichetele sunt identice, cheile nu, iar ancora pe id singur ar deschide cealaltă celulă. O
+  celulă pe care arhiva nu o mai ține (`post-99`) dă `-1`, deci ruta deschide postarea apăsată singură.
 
 
 ### 23.6 Ce s-a văzut pe Xiaomi (1220×2656, dev build, Metro)
@@ -2631,8 +2640,6 @@ cheamă mereu cu `-s 192.168.1.184:39097`), aplicația în prim-plan, contul `@w
 1. **Tragerea în grilă după schimbarea `Pressable`/paginii** — de reîncercat pe telefon: rearanjare,
    repornire la rece, poziția păstrată. (Celulele răspund în continuare la atingere: eticheta
    `Deschide postarea N` deschide exact postarea N.)
-2. **Identitatea celulă → pagină pentru o repostare** (`repost-<share_id>`) este acoperită de paritatea de listă
-   din `test-profile-grid.cjs`, dar nu are încă un test propriu care să lege eticheta celulei de pagina deschisă.
-3. `test-ticker-parity.cjs` rămâne singurul eșec din `scripts/` și este dinainte de rundă
+2. `test-ticker-parity.cjs` rămâne singurul eșec din `scripts/` și este dinainte de rundă
    (`apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i); nu este în lanțul `test`.
 
