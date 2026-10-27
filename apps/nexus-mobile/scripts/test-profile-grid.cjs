@@ -192,9 +192,11 @@ test('a press held on a cell opens the arrangement, and the wall keeps scrolling
   assert.match(tileCode, /onLongPress=\{onManage\}/);
   assert.match(screenCode, /onManage=\{isOwner \? beginManaging : undefined\}/);
   assert.match(screenCode, /holdMs=\{HOLD_TO_MANAGE_MS\}/);
-  // Scrolling is never taken away: a mode that forbids it makes a long profile unreachable, and a drag
-  // needs the scroller anyway for its own edge-scrolling.
+  // Scrolling is never taken away for the whole mode: a mode that forbids it makes a long profile
+  // unreachable. It is turned off only while a finger holds a grip, because Android's scroller intercepts
+  // a moving touch natively and would cancel the drag.
   assert.doesNotMatch(screenCode, /scrollEnabled=\{!managing\}/);
+  assert.match(screenCode, /scrollEnabled=\{drag === null\}/);
   assert.match(screenCode, /onScroll=\{onScrollWall\}/);
   // The mode's own bar is a dock outside the scroller, so its exit cannot scroll out of reach.
   assert.match(screenCode, /accessibilityLabel="Gata, păstrează ordinea"/);

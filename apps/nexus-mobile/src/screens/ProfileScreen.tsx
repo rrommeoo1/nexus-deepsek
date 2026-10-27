@@ -682,15 +682,17 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
      */}
     <View style={styles.screen} ref={shellRef} onLayout={onWallLayout}>
     {/**
-     * The wall scrolls in both modes. Turning scrolling off while arranging used to make a long profile
-     * unreachable — the only thing a finger could do was drag a cell it never meant to touch — and it
-     * also forbade the auto-scroll a drag needs at the edges. A drag is safe now because it can only
-     * start on a grip, which claims the gesture before the scroller ever sees it.
+     * The wall scrolls in both modes. Turning scrolling off for the whole mode is what made a long profile
+     * unreachable while arranging; it is turned off only *while a finger holds a grip*, because Android's
+     * scroller intercepts a moving touch at the native level and would cancel the drag it had just been
+     * given. Programmatic `scrollTo` still works with the scroller disabled, which is what lets the edge
+     * band carry a held tile.
      */}
     <ScrollView
       ref={scrollRef}
       style={styles.screen}
       contentContainerStyle={{ paddingBottom: navReserve + 18 + (managing ? 86 : 0) }}
+      scrollEnabled={drag === null}
       refreshControl={managing ? undefined : (
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />
       )}

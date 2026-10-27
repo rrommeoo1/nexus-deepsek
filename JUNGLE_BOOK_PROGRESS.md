@@ -2101,3 +2101,166 @@ devine `drift`, cu o excepție păstrată ca eroare: un contor care **scade** e 
 5. **Retragerea Railway** cere confirmarea explicită a proprietarului. Railway nu a fost atins: nu s-a șters
    nimic, nu s-a oprit deploymentul. Volumul de acolo rămâne singura sursă posibilă pentru obiectul din 19.2.
 
+## 20. Runda a șaisprezecea — grila de profil: un singur gest, mânerul, golul (27 octombrie 2026)
+
+Ownerul a raportat patru lucruri despre grilă, toate despre **interacțiune**, nu despre date: prima fotografie
+„alunecă în jos și rămâne blocată" după o apăsare lungă, pozele sar între poziții în loc să urmeze degetul,
+📌/🗑️ nu pot fi apăsate, iar totul se simte „abrupt și nesigur". Runda asta a început prin a **măsura** pe
+Xiaomi ce se întâmplă, apoi a înlocuit gestul.
+
+### 20.1 Ce se întâmpla de fapt (măsurat pe telefon, nu dedus)
+
+1. **Apăsarea lungă de o secundă pierdea cursa cu ridicarea degetului.** Celula avea
+   `delayLongPress={1000}`, iar o apăsare ținută exact o secundă — `adb shell input swipe 202 851 202 851 1000`
+   — a **deschis postarea 15** în loc să intre în modul de aranjare. Un prag egal cu durata unei apăsări
+   hotărâte este o cursă: cine termină primul câștigă, iar de multe ori câștiga ridicarea degetului.
+2. **Bara de deasupra peretelui dispărea, iar peretele sărea în sus cu înălțimea ei.** În modul de aranjare
+   bara nu se mai desena (`isOwner && !managing`), deci grila urca: celulele au trecut de la `y=1602` la
+   `y=1445` — exact **157 px = 60 dp**, înălțimea barei. Degetul stătea nemișcat, imaginea se mișca. Asta este
+   „imaginea se duce în jos și rămâne blocată" din raport: peretele se muta sub deget, iar degetul rămânea
+   peste altă celulă, cu un responder care aparținea unei celule care nu mai exista.
+3. **Celula rămânea în urma degetului, pentru tot gestul.** `PanResponder` numără `dx`/`dy` de la evenimentul
+   care **acordă** responderul, nu de la `DOWN`: cu `onMoveShouldSetPanResponder` care aștepta 4 puncte de
+   mișcare, acele puncte se pierdeau definitiv. Măsurat: degetul s-a mișcat `+410/+750`, celula s-a mutat
+   `+405/+700`. Și mai rău, obiectele `PanResponder` erau refăcute la fiecare render care schimba arhiva, iar
+   un `PanResponder` nou își începe offsetul de la poziția din pagină — o reîncărcare care ateriza în timpul
+   unei trageri arunca celula ținută departe de deget.
+
+
+4. **O repostare nu putea fi aranjată niciodată, deși serverul o aranja.** Două defecte suprapuse:
+   `optimisticArrangement` arunca identitățile negative (o repostare este `-shareId`), deci previzualizarea o
+   lăsa pe loc; iar payload-ul `GET /api/profiles/:handle` construia intrările de repostare fără
+   `grid_position`, deci nici după reîncărcare peretele nu avea locul ei. Măsurat: după o tragere, baza avea
+   `post_shares.grid_position = 4`, iar grila desena repostarea tot prima — „trag, serverul salvează, grila
+   sare înapoi".
+5. **Modul de aranjare oprea derularea** (`scrollEnabled={!managing}`) și nu exista derulare automată la
+   margini: pe un profil lung, singurul lucru pe care îl putea face degetul era să tragă o celulă — de aici
+   „nu pot selecta altă postare".
+6. **Orice mișcare de 4 puncte peste orice celulă începea o tragere.** Responderul era pe toată celula, iar
+   butoanele 📌/🗑️ stăteau în același responder: o încercare de derulare devenea o mutare, iar un tap pe un
+   buton putea deveni o tragere.
+
+### 20.2 Modelul ales (trei acțiuni care nu se mai calcă pe picioare)
+
+| Mod | Gest | Ce face |
+| --- | --- | --- |
+| Normal | tap pe celulă | deschide exact postarea, cu ordinea din care a fost deschisă; scroll normal; poziția se păstrează la întoarcere |
+| Normal | ține apăsat 500 ms | intră în modul de aranjare (pragul sistemului, nu o secundă întreagă) |
+| Aranjare | tap pe ≡ (mâner 44 pt, colț dreapta-sus) | pornește tragerea **doar** de acolo |
+| Aranjare | tap pe 📌 | fixează / scoate din fixate (buton propriu, nu poate porni o tragere) |
+| Aranjare | tap pe 🗑️ | deschide confirmarea ștergerii (buton propriu; numai pe postările proprietarului) |
+| Aranjare | „Gata" (bară sus sau doc jos) / Back | iese din mod; nimic nu rămâne „în aer" |
+
+Tragerea: celula ținută **stă deja la locul unde ar cădea** (golul), iar fața ei călătorește într-un strat
+deasupra peretelui, la offsetul degetului. Vecinele alunecă în locurile lor (150 ms, `useNativeDriver`), deci
+ordinea se vede în timpul gestului, nu după el. Ținta se schimbă numai după ce degetul a ieșit din celula
+curentă cu 20% dintr-o celulă (histerezis), ca un deget care stă pe cusătură să nu facă peretele să pâlpâie.
+La marginea de sus/jos a ecranului peretele se derulează singur, proporțional cu adâncimea în bandă, iar
+celula ținută călătorește cu conținutul: offsetul de desenare și poziția sub deget se calculează amândouă din
+`scrollDelta`.
+
+### 20.3 Fișiere atinse
+
+- `apps/nexus-mobile/src/lib/profileDrag.ts` **(nou)** — mașina de stări a gestului, pură: `beginDrag`,
+  `moveDrag`, `settleTarget` (histerezis), `releaseDrag`, `dragOrder` (după identitate), `autoScrollStep`,
+  `clampScroll`, `dragCentre`.
+- `apps/nexus-mobile/src/components/ProfileTile.tsx` — celula are acum trei forme: ușa (`Pressable`, ținut =
+  aranjare), celula aranjată (`View` cu mâner propriu + două butoane proprii; mânerul rămâne montat cât timp
+  celula este purtată) și fața purtată (`ghost`, fără touch).
+- `apps/nexus-mobile/src/screens/ProfileScreen.tsx` — un singur perete, așezat absolut pe `gridSlot`, într-o
+  listă cheiată după identitate (`ManageCell` animează fiecare celulă din locul pe care tocmai l-a lăsat);
+  responder brut pe mâner (`onResponderGrant`/`Move`/`Release`/`Terminate`), cu `pageX`/`pageY` citite direct;
+  auto-scroll pe un ceas propriu; doc-ul „Gata" în afara scrollerului; bara de sus desenată în ambele moduri,
+  cu aceeași înălțime; `BackHandler` iese din mod; o singură scriere de ordine în zbor (`orderInFlight`), iar
+  `arranged` rămâne pe ecran până când sosește payload-ul serverului.
+- `apps/nexus-mobile/src/lib/profileGrid.ts` — `optimisticArrangement` păstrează și identitățile negative
+  (repostările), care înainte dispăreau din previzualizare.
+- `apps/nexus-web/lib/api.js` — intrările de repostare din `GET /api/profiles/:handle` poartă acum
+  `grid_position` (locul din `post_shares`), exact câmpul pe care clientul îl citea deja.
+- `apps/nexus-mobile/scripts/test-profile-drag.cjs` **(nou)** — 11 teste pentru gest.
+- `apps/nexus-mobile/scripts/test-profile-grid.cjs` — contractele actualizate (prag, bara care nu se mișcă,
+  doc-ul, mânerul ca singură suprafață de tragere, `Back`).
+- `apps/nexus-web/test/social-profile-read-regressions.test.js` — un test care citește payload-ul real al
+  rutei și cere ca repostarea să vină cu locul ei.
+### 20.4 Ce a rulat automat (rezultate reale)
+
+- `node scripts/test-profile-drag.cjs` — **11/11**. Acoperă: începutul și sfârșitul unui gest (un deget
+  nemișcat nu scrie nimic), coordonatele primei celule față de cele din mijloc și de la capăt, histerezisul de
+  la cusătură, „un cadru care nu schimbă nimic nu redesenează peretele", identitatea stabilă a celulei (o
+  repostare negativă), derularea sub deget, benzile de derulare automată și limitarea offsetului, mânerul ca
+  singură suprafață de tragere, fiecare ieșire din gest, o singură scriere în zbor și rollback-ul, plus forma
+  peretelui aranjat (listă cheiată, overlay fără touch, animație pe driverul nativ).
+- `node scripts/test-profile-grid.cjs` — **16/16** (contractele actualizate).
+- Lanțul complet al aplicației mobile (`package.json` → `test`) — **41/41 scripturi**, **348** de cazuri
+  `node:test`, zero eșecuri.
+- `node node_modules/typescript/bin/tsc --noEmit` — curat.
+- Backend: `node --test test/*.test.js` — **853/853**, inclusiv testul nou care cere ca repostarea din
+  payload-ul profilului să vină cu `grid_position`.
+- Backendul de pe PC a fost repornit ca să încarce ruta corectată: `/api/version` răspunde `healthy: true`,
+  `restarts: 0`, iar payload-ul citit direct de la `127.0.0.1:5000` arată
+  `reposts: [{share: 4, place: 0, post: 15}]` — deci locul repostării ajunge la telefon.
+
+### 20.5 Ce s-a dovedit pe telefon (Xiaomi 25098PN5AC, 1220×2656, density 416)
+
+Fără capturi de ecran (conducta de screenshot a eșuat repetat pe acest telefon): fiecare rând de mai jos este
+arborele de accesibilitate pe care telefonul îl desenează, cu dreptunghiurile lui, plus baza de date a PC-ului.
+
+| # | Ce s-a făcut | Ce s-a citit |
+| --- | --- | --- |
+| 1 | tap pe a doua celulă, apoi `Back` | s-a deschis postarea 15 (`Profilul lui @urailwaytest01a20d`), iar după `Back` celula era exact la `(610, 1602)` — poziția păstrată |
+| 2 | ținut 550 ms pe **prima** celulă | modul de aranjare s-a deschis, iar `Postarea 42 din grilă` stă la `(202, 1602)`: **aceeași poziție** cu `Deschide postarea 42` de dinainte. Peretele nu s-a mișcat (înainte sărea 157 px) |
+| 3 | mânerul, 📌 și 🗑️ pe fiecare celulă | `Mută postarea …` sus-dreapta, `Fixează/Scoate din fixate …` jos-stânga, `Șterge postarea …` jos-dreapta; pe repostare (15) 📌 este `disabled` și 🗑️ **nu există** |
+| 4 | `Back` în modul de aranjare | modul s-a închis, aplicația a rămas pe ecran, celulele s-au întors la etichetele de ușă |
+| 5 | 🗑️ pe postarea de probă 42, apoi `Anulează` | dialogul `Confirmarea ștergerii` s-a închis, celula 42 a rămas în grilă, iar baza avea `status='active'` |
+| 6 | 🗑️ pe 42, apoi `Șterge postarea 42` | celula a dispărut, doc-ul a scris `Postarea a fost ștearsă.`, baza are `status='withdrawn'`, modul a rămas utilizabil |
+| 7 | 📌 pe postarea 33 | a sărit pe primul loc; eticheta a devenit `Scoate din fixate postarea 33` (`selected`), baza: `pinned_at=1793099653`; apoi scoaterea din fixate a readus-o pe locul ei (baza: `pinned_at=null`) |
+| 8 | tragerea repostării 15 (prima celulă) cu un rând în jos | în timpul gestului golul a arătat `Poziția 4 din 13`, iar peretele s-a rearanjat **live** (33 primul, 39 al doilea); la eliberare baza: `post_shares.grid_position = 3` |
+| 9 | imediat, fără să ies din mod, tragerea postării 39 | golul `Poziția 5 din 13`, la eliberare baza: `39 → 4` — deci gestul următor pornește curat |
+| 10 | a treia tragere, pe prima celulă de atunci (33) | `Poziția 4 din 13`, la eliberare `33 → 3`; fără gol rămas, fără celulă „lipită" |
+| 11 | deget ținut în banda de jos a ecranului | golul a alergat până la `Poziția 13 din 13`, adică peretele s-a derulat sub deget |
+| 12 | deget mutat în banda de sus | golul s-a întors la `Poziția 1 din 13` (derulare în sus) |
+| 13 | deget mutat la mijlocul ecranului | golul a rămas `Poziția 1 din 13` la două citiri la 1,4 s distanță: derularea automată **se oprește** |
+| 14 | glisare pe o celulă (nu pe mâner) în modul de aranjare | peretele s-a derulat și **nu** a pornit nicio tragere (mânerul este singura suprafață) |
+| 15 | tragerea ultimei celule (26) spre sus | golul `Poziția 7 din 13` — mecanismul merge; vezi 20.6 pentru ce nu s-a putut încheia |
+| 16 | peretele față de bază, după fiecare eliberare | identice: `33, 15, 32 / 30, 39, 31` ↔ locurile `0…5` din `posts` și `post_shares` |
+
+Ce spune asta despre defectele raportate: prima celulă nu mai sare și nu mai rămâne „blocată" (rândul 2), a
+doua tragere pornește imediat (rândul 9), pozele se mută cu degetul și vecinele își fac loc în timpul gestului
+(rândul 8), 📌 și 🗑️ se apasă (rândurile 6–7), iar o repostare chiar se așază unde o pui (rândul 8), pentru că
+serverul trimite acum și locul ei.
+
+### 20.6 Ce nu s-a putut încheia în această rundă (și de ce)
+
+1. **Telefonul s-a închis singur (doze) în timpul tragerii ultimei celule** și a cerut PIN-ul proprietarului.
+   Nu am încercat codul. Din acest motiv nu au fost apăsate fizic, în această rundă: eliberarea tragerii
+   ultimei celule (golul a fost văzut, commit-ul nu), butoanele „Gata" (ieșirea a fost dovedită doar cu
+   `Back`), deschiderea unei postări după o tragere și repornirea completă a aplicației pentru noua ordine.
+   Sunt ~2 minute de lucru când telefonul este deblocat.
+2. **Persistența a fost dovedită, dar pentru ordinea de dinaintea acestor trageri**: aplicația a fost oprită
+   forțat și repornită în timpul rundei, iar peretele a revenit cu ordinea pe care o avea baza; backendul a
+   fost repornit separat și payload-ul citit direct de la `127.0.0.1:5000` arată locurile cerute.
+3. **O postare de test a fost ștearsă din greșeală.** În timpul uneia dintre secvențele de tragere — nu am putut
+   reconstitui exact care atingere — dialogul de confirmare a fost deschis și confirmat, iar **postarea 28**
+   (imagine fără text, din fixture-ul contului de test `wallet4e8gv6`) a fost ștearsă. Endpoint-ul de ștergere
+   golește conținutul (`caption=''`, `media_id=NULL`), deci nu poate fi recuperată — nu există „undo". Postarea
+   42 a fost ștearsă **intenționat**: a fost creată de mine prin `POST /api/posts` tocmai pentru testul de
+   ștergere confirmată.
+4. **Detalii vizuale neobservabile fără capturi**: umbra și transparența celulei purtate, conturul punctat al
+   golului, culoarea exactă a mânerului. Ce s-a putut măsura este geometria (poziții, dimensiuni, etichete) și
+   starea din bază.
+
+### 20.7 Ce rămâne deschis
+
+1. **Deblocarea telefonului** și terminarea celor patru pași din 20.6 punctul 1 (eliberarea tragerii ultimei
+   celule, „Gata", o postare deschisă după o tragere, repornire completă). Nimic din cod nu mai trebuie
+   schimbat pentru ele: sunt pași de verificare.
+2. **Viteza derulării automate** este singurul număr care poate fi „prea hotărât": `AUTO_SCROLL_MAX = 14`
+   puncte pe cadru înseamnă ~840 dp/s chiar la marginea ecranului; la marginea interioară a benzii viteza
+   pornește de la 0, deci pornirea este lină. Dacă proprietarul simte marginea prea iute, se scade această
+   constantă (`src/lib/profileDrag.ts`), iar testul care o citește rămâne valabil.
+3. **Postarea 28** (imagine fără text, ștearsă din greșeală) nu poate fi adusă înapoi; dacă proprietarul o
+   vrea, se poate publica o imagine nouă prin compozitor.
+4. **Restul listei din 19.7 rămâne neschimbat**: firewall-ul cere o rulare elevată, loginul xPortal complet
+   cere confirmarea din aplicația proprietarului, iar retragerea Railway cere decizia proprietarului.
+
+
