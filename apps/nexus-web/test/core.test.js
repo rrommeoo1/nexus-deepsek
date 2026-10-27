@@ -2400,6 +2400,38 @@ test("NativeAuth local-origin policy accepts the phone LAN origin only in privat
   assert.equal(isLocalDevelopmentOrigin("javascript:alert(1)"), false);
 });
 
+test("a NativeAuth server can always be constructed, so no origin pattern silences every login", async () => {
+  // The SDK reads `*` as a subdomain wildcard and throws on a port wildcard — inside the constructor,
+  // before a token is read. A configuration carrying `http://localhost:*` therefore answered 401 to
+  // every real wallet; the list must stay constructible even with nothing configured.
+  const previousOrigins = process.env.NEXUS_ACCEPTED_ORIGINS;
+  const previousEnv = process.env.NODE_ENV;
+  const warnings = [];
+  const warn = console.warn;
+  console.warn = (message) => { warnings.push(String(message)); };
+  try {
+    delete process.env.NEXUS_ACCEPTED_ORIGINS;
+    process.env.NODE_ENV = "development";
+    const devServer = await createNativeAuthServer({ network: "devnet" });
+    assert.ok(devServer, "a development server without a configured list is constructible");
+    assert.equal(devServer.config.acceptedOrigins.some((origin) => origin.includes("*")), false);
+
+    process.env.NEXUS_ACCEPTED_ORIGINS = "http://localhost:*,http://192.168.1.153:5000";
+    const filtered = await createNativeAuthServer({ network: "devnet" });
+    assert.deepEqual(filtered.config.acceptedOrigins, ["http://192.168.1.153:5000"]);
+    assert.equal(warnings.length, 1, "the dropped wildcard is reported, not ignored");
+
+    process.env.NEXUS_ACCEPTED_ORIGINS = "http://localhost:*";
+    await assert.rejects(createNativeAuthServer({ network: "devnet" }), /no usable origin/);
+  } finally {
+    console.warn = warn;
+    if (previousOrigins === undefined) delete process.env.NEXUS_ACCEPTED_ORIGINS;
+    else process.env.NEXUS_ACCEPTED_ORIGINS = previousOrigins;
+    if (previousEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousEnv;
+  }
+});
+
 test("auth throttling is deterministic and exposes a bounded retry window", async () => {
   const { consumeAuthAttempt, clearAuthAttempts } = await import("../lib/api.js");
   const scope = "system-test-rate-limit";

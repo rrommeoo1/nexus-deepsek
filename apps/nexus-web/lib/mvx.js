@@ -189,15 +189,37 @@ async function nativeAuthServerModule() {
 function acceptedOriginsFor(extra) {
   const fromEnv = process.env.NEXUS_ACCEPTED_ORIGINS;
   if (fromEnv) {
-    return fromEnv.split(",").map((s) => s.trim()).filter(Boolean);
+    return sanitizeOrigins(fromEnv.split(",").map((s) => s.trim()).filter(Boolean), fromEnv);
   }
   if (process.env.NODE_ENV === "production") {
     throw new Error("NEXUS_ACCEPTED_ORIGINS is required in production");
   }
-  // The development callback below admits loopback/RFC1918 addresses. Keep
-  // the SDK's static list narrow as a second layer; never fall back to a public
-  // wildcard because a missing production variable must fail closed.
-  return ["http://localhost:*", "http://127.0.0.1:*"];
+  // The development callback below admits loopback/RFC1918 addresses on any port. Keep the SDK's
+  // static list as a second layer, and keep it *constructible*: the SDK reads `*` as a **subdomain**
+  // wildcard (`https://*.example.com`) and throws `NativeAuthInvalidWildcardOriginError` on a port
+  // wildcard such as `http://localhost:*` — inside the constructor, before a single token is read, so
+  // one such entry makes every login answer 401. That is why the list names plain origins here.
+  return ["http://localhost", "http://127.0.0.1"];
+}
+
+/**
+ * Drop the origin patterns the NativeAuth SDK cannot construct with.
+ *
+ * `*` is a subdomain wildcard there, never a port wildcard. A configuration that carried
+ * `http://localhost:*` made `new NativeAuthServer()` throw for **every** login attempt, so such an
+ * entry is dropped with a warning instead of being passed through: the request that reaches here is
+ * already an authenticated-read boundary, and the development callback in `createNativeAuthServer`
+ * still decides which LAN origins are accepted.
+ */
+function sanitizeOrigins(origins, source) {
+  const usable = origins.filter((origin) => !origin.includes("*"));
+  if (usable.length !== origins.length) {
+    console.warn(`NEXUS_ACCEPTED_ORIGINS: dropped ${origins.length - usable.length} wildcard entr${origins.length - usable.length === 1 ? "y" : "ies"} (the NativeAuth SDK reads * as a subdomain wildcard, not a port); kept: ${usable.join(", ") || "none"} (from ${source})`);
+  }
+  if (!usable.length) {
+    throw new Error("NEXUS_ACCEPTED_ORIGINS has no usable origin: write full origins such as http://192.168.1.153:5000");
+  }
+  return usable;
 }
 
 // The demo is intentionally reachable from a phone on the same Wi-Fi. Keep
