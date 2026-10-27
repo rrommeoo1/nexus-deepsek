@@ -537,9 +537,13 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
    * responder props rather than a `PanResponder`: a `PanResponder` object keeps the gesture's own
    * numbers inside itself, and a re-render that replaced the object mid-drag restarted them. The state
    * lives in refs here, so a re-render costs the gesture nothing.
+   *
+   * `busy` is an order that is already travelling: the grip stays drawn (a control that vanishes for the
+   * length of a request is a control the owner learns not to trust) but claims nothing until the server
+   * has answered.
    */
-  const gripHandlers = useCallback((tile: number) => ({
-    onStartShouldSetResponder: () => true,
+  const gripHandlers = useCallback((tile: number, busy = false) => ({
+    onStartShouldSetResponder: () => !busy,
     onResponderTerminationRequest: () => false,
     onResponderGrant: (event: GestureResponderEvent) => {
       const from = dragIds.indexOf(tile);
@@ -881,11 +885,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
                          * A repost is draggable like the owner's own posts: what moves is the owner's entry
                          * on their own grid (`post_shares.grid_position`), never the post inside it. A cell
                          * this account owns neither is not placeable and therefore has no grip at all.
-                         *
-                         * No grip while an order is being written: the wall is already showing the newest
-                         * order and a second write would be a second truth.
                          */
-                        handle={actions.canPlace && !manageBusy ? gripHandlers(tileId(post)) : undefined}
+                        handle={actions.canPlace ? gripHandlers(tileId(post), Boolean(manageBusy)) : undefined}
                       />
                     </ManageCell>
                   );

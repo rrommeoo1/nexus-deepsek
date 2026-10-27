@@ -193,9 +193,11 @@ test('a drag can only start on the grip, so a pin or a delete can never become o
   assert.match(tileCode, /\{handle \? \(\s*<View/);
   assert.match(tileCode, /dragging \? null : \(/);
   // The screen hands a grip only to a cell this account may place, and never during a write.
-  assert.match(screenCode, /handle=\{actions\.canPlace && !manageBusy \? gripHandlers\(tileId\(post\)\) : undefined\}/);
-  // The grip claims the touch at its start, so the first move carries an exact offset (no slop lag).
-  assert.match(screenCode, /onStartShouldSetResponder: \(\) => true/);
+  assert.match(screenCode, /handle=\{actions\.canPlace \? gripHandlers\(tileId\(post\), Boolean\(manageBusy\)\) : undefined\}/);
+  // The grip claims the touch at its start, so the first move carries an exact offset (no slop lag); it
+  // claims nothing while an order is already travelling.
+  assert.match(screenCode, /onStartShouldSetResponder: \(\) => !busy/);
+  assert.match(screenCode, /const gripHandlers = useCallback\(\(tile: number, busy = false\) => \(\{/);
   assert.match(screenCode, /onResponderTerminationRequest: \(\) => false/);
   // `pageX`/`pageY` are read raw: the gesture never trusts a rebuilt responder's own offset again.
   assert.doesNotMatch(screenCode, /PanResponder/);
