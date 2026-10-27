@@ -71,6 +71,17 @@ function serveStatic(req, res) {
 
 function createApp({ db, repo, sse }) {
   return async (req, res) => {
+    // One line per request, only when asked for: this is what makes "the phone really talks to this PC"
+    // a fact in a log file instead of a claim. The path is stripped of anything but the route shape, and
+    // no header, cookie or body is ever written.
+    if (process.env.NEXUS_REQUEST_LOG === "1") {
+      const startedAt = Date.now();
+      res.on("finish", () => {
+        const route = String(req.url ?? "/").split("?")[0].replace(/[^A-Za-z0-9_./-]/g, "").slice(0, 160) || "/";
+        const agent = String(req.headers["user-agent"] ?? "-").replace(/[^A-Za-z0-9 _./;()_-]/g, "").slice(0, 64);
+        console.log(`[req] ${req.method} ${route} ${res.statusCode} ${Date.now() - startedAt}ms ${req.socket?.remoteAddress ?? "-"} ${agent}`);
+      });
+    }
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "same-origin");
@@ -172,3 +183,15 @@ function shutdown(signal) {
 }
 process.on("SIGINT", () => shutdown("SIGINT"));
 process.on("SIGTERM", () => shutdown("SIGTERM"));
+
+// A service wrapper can ask for a clean stop over stdin. Windows gives a parent no signal that means
+// "close the database first": TerminateProcess (what a plain kill does) stops the process between two
+// writes, which is the one thing a backup must never see. The supervisor in tools/local-backend writes
+// one line here instead, and only falls back to a hard kill if this server does not answer in 15 s.
+if (process.env.NEXUS_SERVICE_CONTROL === "1") {
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk) => {
+    if (String(chunk).toLowerCase().includes("shutdown")) shutdown("service");
+  });
+  process.stdin.resume();
+}

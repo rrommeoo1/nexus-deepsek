@@ -263,6 +263,9 @@ CREATE TABLE IF NOT EXISTS posts (
   audio_rights TEXT,
   audio_attribution TEXT NOT NULL DEFAULT '',
   external_audio_json TEXT,
+  -- The authored look of a text post (lib/post-text-style.js). Absent on every post that never chose
+  -- one, so a page of words written before this column keeps the reader's own composition.
+  text_style_json TEXT,
   content_commitment TEXT,
   version INTEGER NOT NULL DEFAULT 1,
   edited_at INTEGER,
@@ -271,7 +274,17 @@ CREATE TABLE IF NOT EXISTS posts (
   -- A post the owner put at the top of their profile, or nothing. Three at most: a pin is a decision
   -- about this profile, not a rank, and everything else in the archive stays chronological.
   pinned_at INTEGER,
+  -- The owner's own arrangement of the profile grid: the place a tile was dragged to, counting from
+  -- zero. It is absent on every post nobody has arranged, so a post written after the last arrangement
+  -- keeps the top of the archive instead of being pushed under a wall of numbers.
+  grid_position INTEGER,
   devnet_tx TEXT,
+  -- The post this one quotes, or nothing. A quote is a post of its own that keeps a reference to the
+  -- post it answers, so the same original is never copied. It is declared WITHOUT a foreign key on
+  -- purpose: the schema repair can append a plain integer to a table that already holds rows, while
+  -- ALTER TABLE ... ADD COLUMN refuses a REFERENCES clause, and the write path checks that the target
+  -- exists and is readable. A post whose original was removed simply quotes nothing.
+  quoted_post_id INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 CREATE TABLE IF NOT EXISTS follows (
@@ -364,6 +377,10 @@ CREATE TABLE IF NOT EXISTS post_shares (
   actor_persona TEXT NOT NULL,
   post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
   channel TEXT NOT NULL DEFAULT 'copy_link',
+  -- The place the reposter dragged this tile to on their own grid, or nothing. A repost is a tile on a
+  -- profile exactly like one of that profile's own posts, so it carries its own place instead of
+  -- borrowing the original's (which belongs to somebody else and must never be rewritten by a reposter).
+  grid_position INTEGER,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 );
 -- A repost is read twice: on the reposter's profile and as a feed candidate for the people
@@ -2367,6 +2384,7 @@ function migrateSocialTables(db) {
     audio_rights: "audio_rights TEXT",
     audio_attribution: "audio_attribution TEXT NOT NULL DEFAULT ''",
     external_audio_json: "external_audio_json TEXT",
+    text_style_json: "text_style_json TEXT",
     publishing_json: "publishing_json TEXT",
     content_commitment: "content_commitment TEXT",
     version: "version INTEGER NOT NULL DEFAULT 1",
@@ -2376,10 +2394,28 @@ function migrateSocialTables(db) {
     // A pin is additive and absent for every post written before it: nothing is pinned until the owner
     // says so, and three pins are the whole allowance.
     pinned_at: "pinned_at INTEGER",
+    // The arrangement of the grid, additive in the same way: a post nobody dragged has no position, so
+    // adding the column never rewrites an archive that was already in an order its owner accepted.
+    grid_position: "grid_position INTEGER",
     moderation_state: "moderation_state TEXT NOT NULL DEFAULT 'ACTIVE'",
     moderation_reason: "moderation_reason TEXT",
     moderation_policy_version: "moderation_policy_version TEXT",
+    // Totals the hosted deployment reported for a post, carried across a migration. The API exposed the
+    // aggregate (viewers, impressions, completed) but never the per-viewer rows, so an imported post
+    // keeps the numbers its readers already saw instead of silently starting again from zero. They are
+    // additive on top of the live `social_impressions` rows, so anything that happens after the move is
+    // counted exactly as before.
+    imported_viewers: "imported_viewers INTEGER",
+    imported_impressions: "imported_impressions INTEGER",
+    imported_completed: "imported_completed INTEGER",
   });
+  addMissingColumns(db, "post_shares", {
+    // A repost is a tile on the reposter's grid exactly like one of their own posts, so it needs a place
+    // of its own. It is absent on every share made before it, which keeps the existing newest-first
+    // order of every profile untouched until its owner arranges something.
+    grid_position: "grid_position INTEGER",
+  });
+
   addMissingColumns(db, "comments", {
     actor_persona: "actor_persona TEXT NOT NULL DEFAULT 'social'",
     parent_id: "parent_id INTEGER REFERENCES comments(id) ON DELETE SET NULL",

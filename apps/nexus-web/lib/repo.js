@@ -1,5 +1,6 @@
 import { openDb } from "./db.js";
 import { normalizePublishing, publishingFromRow } from './post-publishing.js';
+import { normalizeTextStyle, textStyleFromRow } from './post-text-style.js';
 import { createHash, randomBytes } from "node:crypto";
 import { sha256Hex } from "./security.js";
 import { inspectStoredMedia, purgeStoredMedia } from "./media.js";
@@ -82,6 +83,9 @@ export function deriveAge(birthDate, now = Date.now()) {
 const MESSAGE_POLICIES = new Set(["everyone", "requests", "followers", "nobody"]);
 // How many posts a profile may keep at the top of its own archive. Three is a statement; ten is a feed.
 const PINNED_POST_LIMIT = 3;
+// How many places one arrangement may name. The archive itself draws twenty-four, so this is a boundary
+// and not a page size: it refuses a body that would otherwise write a thousand rows in one transaction.
+const PROFILE_ORDER_LIMIT = 200;
 // SEEDED_CATALOG marks locally ingested catalog accounts: real rows, never organic.
 const TRAFFIC_CLASSES = new Set(["HUMAN_ORGANIC", "PAID", "AGENT", "SYSTEM_TEST", "INCENTIVIZED", "SEEDED_CATALOG"]);
 const NOTIFICATION_TYPE_SET = new Set(NOTIFICATION_TYPES);
@@ -118,7 +122,9 @@ function canonicalPostCommitment(row) {
     audioRights: row.audio_rights, audioAttribution: row.audio_attribution || "",
   };
   if (row.external_audio_json) payload.externalAudio = row.external_audio_json;
+  if (row.text_style_json) payload.textStyle = row.text_style_json;
   if (row.publishing_json) payload.publishing = row.publishing_json;
+  if (row.quoted_post_id) payload.quotedPostId = Number(row.quoted_post_id);
   return sha256Hex(JSON.stringify(payload));
 }
 
@@ -575,7 +581,7 @@ export function createRepo(db) {
     },
 
     // ---- posts ----
-    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null, publishing = null }) {
+    createPost({ userId, persona, kind = "text", caption = "", mediaId = null, visibility = "public", language = null, regionCode = null, provenance = "user", mediaEdit = null, audioMediaId = null, audioRights = null, audioAttribution = "", externalAudio = null, publishing = null, textStyle = null, quotedPostId = null }) {
       persona = normalizePersona(persona);
       const safeVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : "public";
       // A media-less video placeholder is valid feed state, but it must not
@@ -614,16 +620,24 @@ export function createRepo(db) {
         audioAttribution: normalizedAudio.attribution,
       };
       if (externalAudioJson) commitmentPayload.externalAudio = externalAudioJson;
+      // A text post may carry the look its author chose; a post that chose none keeps the payload - and
+      // the commitment - it has always had, so old hashes still verify.
+      const textStyleJson = textStyle ? JSON.stringify(normalizeTextStyle(textStyle)) : null;
+      if (textStyleJson) commitmentPayload.textStyle = textStyleJson;
       const publishingJson = publishing ? JSON.stringify(normalizePublishing(publishing)) : null;
       if (publishingJson) commitmentPayload.publishing = publishingJson;
+      // A quote commits to the post it answers, so the reference is part of what the author signed.
+      // A post that quotes nothing keeps the payload (and the hash) it has always had.
+      if (quotedPostId) commitmentPayload.quotedPostId = Number(quotedPostId);
       const commitment = sha256Hex(JSON.stringify(commitmentPayload));
       const info = this.db.prepare(
         `INSERT INTO posts (user_id, persona, kind, caption, media_id, visibility, language, region_code, provenance,
-                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx, publishing_json)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+                            media_edit_json, media_edit_hash, audio_media_id, audio_rights, audio_attribution, external_audio_json, content_commitment, devnet_tx, publishing_json, text_style_json, quoted_post_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       ).run(userId, persona, kind, caption, mediaId, safeVisibility, language, regionCode, provenance,
         normalizedStudio ? JSON.stringify(normalizedStudio) : null, mediaEditHash, normalizedAudio.audioMediaId,
-        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null, publishingJson);
+        normalizedAudio.rights, normalizedAudio.attribution, externalAudioJson, commitment, null, publishingJson,
+        textStyleJson, quotedPostId ? Number(quotedPostId) : null);
       this.db.prepare(`INSERT INTO post_versions (post_id, version, caption, visibility, status, content_commitment)
         VALUES (?, 1, ?, ?, 'active', ?)`).run(Number(info.lastInsertRowid), caption, safeVisibility, commitment);
       return this.getPostById(Number(info.lastInsertRowid));
@@ -649,6 +663,7 @@ export function createRepo(db) {
       return {
         ...row,
         publishing: publishingFromRow(row),
+        text_style: textStyleFromRow(row),
         author: author ? {
           id: author.id,
           handle: author.handle,
@@ -875,7 +890,7 @@ export function createRepo(db) {
       const post = this.getPostById(id);
       actorPersona = normalizePersona(actorPersona);
       if (!post || post.user_id !== userId || post.persona !== actorPersona || post.status !== "active") return null;
-      const cleanCaption = String(caption ?? "").trim().slice(0, 5000);
+      const cleanCaption = String(caption ?? "").trim().slice(0, 20000);
       const cleanVisibility = PROFILE_VISIBILITY.has(visibility) ? visibility : post.visibility;
       if (!cleanCaption && !post.media_id) return null;
       const version = Number(post.version || 1) + 1;
@@ -916,6 +931,72 @@ export function createRepo(db) {
       const at = pinned ? (alreadyPinned ? Number(post.pinned_at) : Math.floor(Date.now() / 1000)) : null;
       this.db.prepare(`UPDATE posts SET pinned_at = ? WHERE id = ?`).run(at, id);
       return { post: this.getPostById(id) };
+    },
+    // The grid is the owner's arrangement of their own profile: one ordered list of tiles, written as
+    // `grid_position` counting from zero. Like a pin, it is a decision about the profile and not an edit
+    // of what was published, so no version and no commitment change.
+    //
+    // A tile is either one of this account's own active posts (`{ post_id }`, or a bare number — what a
+    // client sends when it only ever arranged posts) or one of this account's own reposts
+    // (`{ share_id }`). Both live in one list, so an original and a repost can be interleaved in any
+    // order. A repost's place is written to `post_shares.grid_position` and never to the original post's
+    // row: arranging a repost cannot move, claim or edit somebody else's post. The whole list is written
+    // in one transaction, so an arrangement that names a tile this account does not own is refused
+    // whole, never applied half-way.
+    setProfileGridOrder(userId, actorPersona, entries) {
+      actorPersona = normalizePersona(actorPersona);
+      if (!Array.isArray(entries)) return { error: "order_invalid" };
+      if (!entries.length) return { error: "order_empty" };
+      if (entries.length > PROFILE_ORDER_LIMIT) return { error: "order_too_long" };
+      const tiles = [];
+      for (const entry of entries) {
+        if (Number.isSafeInteger(entry) || (typeof entry === "string" && /^\d+$/.test(entry))) {
+          tiles.push({ kind: "post", id: Number(entry) });
+          continue;
+        }
+        if (!entry || typeof entry !== "object") return { error: "order_invalid" };
+        const postId = entry.post_id ?? (entry.kind === "post" ? entry.id : null);
+        const shareId = entry.share_id ?? (entry.kind === "share" || entry.kind === "repost" ? entry.id : null);
+        if (postId != null && shareId != null) return { error: "order_invalid" };
+        if (postId != null) tiles.push({ kind: "post", id: Number(postId) });
+        else if (shareId != null) tiles.push({ kind: "share", id: Number(shareId) });
+        else return { error: "order_invalid" };
+      }
+      if (tiles.some((tile) => !Number.isSafeInteger(tile.id) || tile.id < 1)) return { error: "order_invalid" };
+      const keys = tiles.map((tile) => `${tile.kind}:${tile.id}`);
+      if (new Set(keys).size !== keys.length) return { error: "order_duplicate" };
+      const ownedPost = this.db.prepare(
+        `SELECT id FROM posts WHERE id = ? AND user_id = ? AND persona = ? AND status = 'active'`,
+      );
+      const ownedShare = this.db.prepare(
+        `SELECT id FROM post_shares WHERE id = ? AND user_id = ? AND actor_persona = ? AND channel = 'repost'`,
+      );
+      const foreign = tiles.filter((tile) => (tile.kind === "post"
+        ? !ownedPost.get(tile.id, userId, actorPersona)
+        : !ownedShare.get(tile.id, userId, actorPersona)));
+      if (foreign.length) return { error: "order_foreign", foreign };
+      const writePost = this.db.prepare(
+        `UPDATE posts SET grid_position = ? WHERE id = ? AND user_id = ? AND persona = ?`,
+      );
+      const writeShare = this.db.prepare(
+        `UPDATE post_shares SET grid_position = ? WHERE id = ? AND user_id = ? AND actor_persona = ?`,
+      );
+      this.db.exec("BEGIN IMMEDIATE");
+      try {
+        tiles.forEach((tile, index) => {
+          if (tile.kind === "post") writePost.run(index, tile.id, userId, actorPersona);
+          else writeShare.run(index, tile.id, userId, actorPersona);
+        });
+        this.db.exec("COMMIT");
+      } catch (error) {
+        this.db.exec("ROLLBACK");
+        throw error;
+      }
+      return {
+        tiles,
+        // The post ids in the order they were placed, kept for a client that only knows about posts.
+        order: tiles.filter((tile) => tile.kind === "post").map((tile) => tile.id),
+      };
     },
     archivePost(id, userId, actorPersona) {
       const post = this.getPostById(id);
@@ -1450,17 +1531,35 @@ export function createRepo(db) {
       const ids = [...new Set((Array.isArray(postIds) ? postIds : []).map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))];
       const stats = new Map(ids.map((id) => [id, { viewers: 0, impressions: 0, completed: 0 }]));
       if (!ids.length) return stats;
+      const marks = ids.map(() => "?").join(",");
+      // Numbers carried across a migration: the hosted API reported these totals but never the rows
+      // behind them, so a moved post keeps what its readers already saw. They are a floor, not a
+      // substitute — everything counted after the move is added on top below.
+      try {
+        const imported = this.db.prepare(`SELECT id, COALESCE(imported_viewers, 0) viewers,
+          COALESCE(imported_impressions, 0) impressions, COALESCE(imported_completed, 0) completed
+          FROM posts WHERE id IN (${marks})`).all(...ids);
+        for (const row of imported) {
+          const stat = stats.get(Number(row.id));
+          if (!stat) continue;
+          stat.viewers = Number(row.viewers);
+          stat.impressions = Number(row.impressions);
+          stat.completed = Number(row.completed);
+        }
+      } catch { /* a database written before the column existed simply has no imported totals */ }
       const rows = this.db.prepare(`
         SELECT si.post_id, COUNT(*) viewers, COALESCE(SUM(si.impression_count), 0) impressions,
                COALESCE(SUM(si.completed), 0) completed
         FROM social_impressions si JOIN users viewer ON viewer.id = si.viewer_id
-        WHERE si.post_id IN (${ids.map(() => "?").join(",")}) AND viewer.traffic_class = 'HUMAN_ORGANIC'
+        WHERE si.post_id IN (${marks}) AND viewer.traffic_class = 'HUMAN_ORGANIC'
         GROUP BY si.post_id
       `).all(...ids);
       for (const row of rows) {
-        stats.set(Number(row.post_id), {
-          viewers: Number(row.viewers), impressions: Number(row.impressions), completed: Number(row.completed),
-        });
+        const stat = stats.get(Number(row.post_id));
+        if (!stat) continue;
+        stat.viewers += Number(row.viewers);
+        stat.impressions += Number(row.impressions);
+        stat.completed += Number(row.completed);
       }
       return stats;
     },
@@ -2416,7 +2515,7 @@ export function createRepo(db) {
       actorPersona = normalizePersona(actorPersona);
       const bounded = Math.max(1, Math.min(Number(limit) || 30, 100));
       const rows = this.db.prepare(`
-        SELECT ps.id AS share_id, ps.created_at AS reposted_at, p.*
+        SELECT ps.id AS share_id, ps.created_at AS reposted_at, ps.grid_position AS share_grid_position, p.*
         FROM post_shares ps
         JOIN posts p ON p.id = ps.post_id
         JOIN users author ON author.id = p.user_id
@@ -2425,7 +2524,14 @@ export function createRepo(db) {
         ORDER BY ps.created_at DESC, ps.id DESC LIMIT ?
       `).all(Number(userId), actorPersona, actorPersona, bounded);
       return rows
-        .map((row) => ({ share_id: Number(row.share_id), reposted_at: Number(row.reposted_at), post: this.joinPost(row) }))
+        .map((row) => ({
+          share_id: Number(row.share_id),
+          reposted_at: Number(row.reposted_at),
+          // The reposter's own place for this tile. The post's own `grid_position` belongs to its author
+          // and is deliberately left alone here.
+          grid_position: row.share_grid_position == null ? null : Number(row.share_grid_position),
+          post: this.joinPost(row),
+        }))
         .filter((entry) => entry.post && (viewerId == null || this.canViewPost(viewerId, viewerPersona, entry.post)));
     },
     listFollowedReposts(viewerId, { viewerPersona = "social", limit = 40 } = {}) {
