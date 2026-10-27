@@ -87,12 +87,16 @@ export function arrangementMap(posts: readonly GridPost[] | null | undefined): A
  * A gesture is previewed like every other arrangement in this app: the grid draws the order the finger
  * chose, the write travels, and the payload's own `grid_position` takes over again once it lands. A
  * failed write therefore costs the optimistic order and nothing else.
+ *
+ * A repost's identity is negative (`tileId`), and it is placed here like every other tile: leaving it
+ * out used to drop the repost from the preview, so the grid drew the repost where the server had put it
+ * last time while everything around it moved — a drag over a repost looked like a drag that failed.
  */
 export function optimisticArrangement(ids: readonly unknown[] | null | undefined): Arrangement {
   const map = new Map<number, number>();
   (Array.isArray(ids) ? ids : []).forEach((value, index) => {
     const id = Number(value);
-    if (Number.isSafeInteger(id) && id > 0 && !map.has(id)) map.set(id, index);
+    if (Number.isSafeInteger(id) && id !== 0 && !map.has(id)) map.set(id, index);
   });
   return map;
 }

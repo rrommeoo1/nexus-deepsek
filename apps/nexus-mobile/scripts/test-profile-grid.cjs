@@ -183,21 +183,28 @@ test('the grid draws the pins first and the arrangement inside them', () => {
   assert.deepEqual(unplaced.map((post) => post.id), [2, 3, 1], 'unplaced posts keep time order above the arrangement');
 });
 
-test('a press held for a second opens the arrangement, and the grid stops scrolling for it', () => {
-  assert.match(tileCode, /delayLongPress=\{1000\}/);
+test('a press held on a cell opens the arrangement, and the wall keeps scrolling', () => {
+  // A hold, not a tap, and not a whole second: the old full-second threshold raced the finger's own
+  // release, so a deliberate hold regularly opened the post instead of the wall's arrangement.
+  assert.match(screenCode, /const HOLD_TO_MANAGE_MS = 500;/);
+  assert.match(tileCode, /holdMs = 500/);
+  assert.match(tileCode, /delayLongPress=\{holdMs\}/);
   assert.match(tileCode, /onLongPress=\{onManage\}/);
   assert.match(screenCode, /onManage=\{isOwner \? beginManaging : undefined\}/);
-  assert.match(screenCode, /scrollEnabled=\{!managing\}/);
-  assert.match(screenCode, /accessibilityLabel=\{managing \? 'Gata, păstrează ordinea' : 'Aranjează grila'\}/);
+  assert.match(screenCode, /holdMs=\{HOLD_TO_MANAGE_MS\}/);
+  // Scrolling is never taken away: a mode that forbids it makes a long profile unreachable, and a drag
+  // needs the scroller anyway for its own edge-scrolling.
+  assert.doesNotMatch(screenCode, /scrollEnabled=\{!managing\}/);
+  assert.match(screenCode, /onScroll=\{onScrollWall\}/);
+  // The mode's own bar is a dock outside the scroller, so its exit cannot scroll out of reach.
+  assert.match(screenCode, /accessibilityLabel="Gata, păstrează ordinea"/);
+  assert.match(screenCode, /styles\.manageDock/);
+  // The bar above the wall is drawn in both modes, with the same height: hiding it would lift the whole
+  // wall by its own height under the finger that opened the mode.
+  assert.doesNotMatch(screenCode, /isOwner && !managing/);
+  assert.match(screenCode, /minHeight: 60,/);
   assert.match(screenCode, /Grila de aranjat/);
-  // The insertion indicator is the target the arithmetic names, not a decoration of its own.
-  assert.match(screenCode, /left: gridSlot\(gesture\.target, geometry\)\.left \+ geometry\.width - 2/);
-  assert.match(screenCode, /top: gridSlot\(gesture\.target, geometry\)\.top/);
-  assert.match(screenCode, /onPanResponderMove: \(_event, move\) => \{/);
-  assert.match(screenCode, /onMoveShouldSetPanResponder: \(_event, move\) => Math\.abs\(move\.dx\) > 4 \|\| Math\.abs\(move\.dy\) > 4/);
-  assert.match(screenCode, /const reordered = moveWithin\(gridPosts\.map\(tileId\), state\.index, state\.target\)/);
-  assert.match(screenCode, /const target = nearestPlaceable\(gridPosts, nearest, ownerId\);/);
-  assert.match(screenCode, /handlers=\{actions\.canPlace \? responders\[index\]\?\.panHandlers : undefined\}/);
+  assert.match(screenCode, /accessibilityLabel=\{managing \? 'Gata, păstrează ordinea' : 'Aranjează grila'\}/);
 });
 
 test('the arrangement is written to the route that stores it, and the order is read back', () => {
@@ -323,12 +330,21 @@ test('the band stands still when the system asks for less motion', () => {
 });
 
 
-test('opening the arrangement brings the wall into view', () => {
-  // The grid sits under a tall header, and the mode turns scrolling off so a drag cannot become a scroll:
-  // without this the bar and the cells could both be off screen on a phone that was scrolled to the top.
-  assert.match(screenCode, /const scrollRef = useRef<ScrollView>\(null\);/);
-  assert.match(screenCode, /scrollRef\.current\?\.scrollTo\(\{ y: Math\.max\(0, gridTop\.current - 132\), animated: true \}\);/);
-  assert.match(screenCode, /setTimeout\(revealGrid, 0\);/);
-  assert.match(screenCode, /onLayout=\{\(event\) => \{ gridTop\.current = event\.nativeEvent\.layout\.y; setGridWidth\(event\.nativeEvent\.layout\.width\); \}\}/);
+test('opening the arrangement leaves the wall where the finger found it, and Back leaves the mode', () => {
+  /**
+   * Opening the mode used to scroll the wall (`scrollTo gridTop - 132`) so the mode's bar would be in
+   * view. That scroll is what made a held tile slide downwards under a finger that had not moved, and it
+   * is gone: the bar is a dock at the foot of the screen instead.
+   */
+  assert.doesNotMatch(screenCode, /revealGrid/);
+  assert.doesNotMatch(screenCode, /gridTop/);
+  assert.match(screenCode, /const beginManaging = useCallback\(\(\) => \{/);
+  assert.match(screenCode, /const endManaging = useCallback\(\(\) => \{/);
+  // The shell the dock is placed in is the box an edge-scroll is measured against.
+  assert.match(screenCode, /const shellRef = useRef<View>\(null\);/);
+  assert.match(screenCode, /shellRef\.current\?\.measureInWindow/);
+  // Back is the mode's own exit: pressing it once leaves the arrangement, not the profile.
+  assert.match(screenCode, /BackHandler\.addEventListener\('hardwareBackPress'/);
+  assert.match(screenCode, /const subscription = BackHandler\.addEventListener\('hardwareBackPress', \(\) => \{ endManaging\(\); return true; \}\);/);
 });
 

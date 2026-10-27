@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, PanResponder, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
+import type { ReactNode } from 'react';
+
+import {
+  ActivityIndicator, Animated, BackHandler, Easing, Modal, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View,
+} from 'react-native';
+import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import * as Linking from 'expo-linking';
 import { nexusApi } from '../lib/nexusApi';
 import { subscribeImpressionDelivery } from '../lib/impressions';
@@ -21,11 +26,14 @@ import { ProfileMomentsShelf } from '../components/ProfileMomentsShelf';
 import { ProfileSharedReplyCard } from '../components/ProfileWhisperCard';
 import { ProfileTile } from '../components/ProfileTile';
 import {
-  GRID_COLUMNS, GRID_GAP, arrangementMap, arrangementRank, gridSlot, gridTarget, isOwnPost, manageActions,
-  moveWithin, nearestPlaceable, optimisticArrangement, orderEntries, pinnedCount as countPinned, placeableIds,
+  GRID_COLUMNS, GRID_GAP, arrangementMap, arrangementRank, gridSlot, isOwnPost, manageActions,
+  optimisticArrangement, orderEntries, pinnedCount as countPinned, placeableIds,
   tileId, tileSize,
   type Arrangement,
 } from '../lib/profileGrid';
+import {
+  autoScrollStep, beginDrag, clampScroll, dragOrder, moveDrag, releaseDrag, type DragGesture,
+} from '../lib/profileDrag';
 import type { TickerDoor } from '../components/ProfileTicker';
 import { socialTokens } from '../theme/social';
 
@@ -41,6 +49,15 @@ const READINGS = CONTENT_FILTERS.map((id) => ({ id, label: CONTENT_READING_LABEL
 
 type TabId = ContentTab;
 type ReadingId = ContentReading;
+
+/**
+ * How long a finger rests on a cell before the owner's arrangement opens.
+ *
+ * Half a second, which is what Android itself calls a long press. The old value was a full second, and a
+ * full second is exactly as long as a deliberate press lasts: the release and the timer raced, and the
+ * race regularly ended with the post opened instead of the wall arranged.
+ */
+const HOLD_TO_MANAGE_MS = 500;
 
 /**
  * `profilePresenceDot` of the web (`profile-experience.js:61-65`): a presence is a dot and three states. A
@@ -141,16 +158,21 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   /**
    * The owner's arrangement of the grid (`lib/profileGrid.ts`).
    *
-   * `managing` is the second mode of the grid a press held for a second opens; `arranged` is the order a
+   * `managing` is the second mode of the grid a press held on a cell opens; `arranged` is the order a
    * drag has just made, held here only until the server answers (`POST /api/posts/order`), because the
-   * payload's own `grid_position` is what reopens the profile in that order. `gesture` is the finger
-   * while it is moving a cell: which cell, by how much, and which place it is standing over.
+   * payload's own `grid_position` is what reopens the profile in that order.
    */
   const [managing, setManaging] = useState(false);
   const [arranged, setArranged] = useState<number[] | null>(null);
   const [manageBusy, setManageBusy] = useState('');
   const [manageNote, setManageNote] = useState('');
-  const [gesture, setGesture] = useState<{ index: number; dx: number; dy: number; target: number } | null>(null);
+  /**
+   * The drag as the *wall* has to draw it: which cell is held and which hole stands where. The finger's
+   * own offset is deliberately not in here — it changes on every frame, and a re-render of the whole
+   * wall per frame is what made the old drag trail the thumb on the Xiaomi. It lives in `lift`, an
+   * animated value only the carried cell subscribes to.
+   */
+  const [drag, setDrag] = useState<{ tile: number; from: number; target: number } | null>(null);
   /** The post whose deletion is waiting for its confirmation, and the one being pinned or removed. */
   const [confirmDelete, setConfirmDelete] = useState<ArchivePost | null>(null);
   const [gridWidth, setGridWidth] = useState(0);
@@ -202,9 +224,13 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
    * The same read without the pull and without the spinner: `data` is replaced while the scroller stays
    * mounted, so the wall keeps its place, and a silent read that fails leaves the last good surface alone
    * instead of turning it into an error.
+   *
+   * This returns its promise because the arrangement waits for it: an order that has just been accepted
+   * keeps `arranged` on screen until the server's own places have arrived, so the wall never falls back
+   * to the old order for the one frame in between.
    */
   const reloadQuietly = useCallback(() => {
-    nexusApi<ProfileResponse>(address)
+    return nexusApi<ProfileResponse>(address)
       .then((result) => { rememberPayload(result); setData(result); setError(''); })
       .catch(() => { /* a background read is not an error the reader has to meet */ });
   }, [address]);
@@ -295,31 +321,66 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   const ownerId = Number(data?.profile?.user_id) || null;
   const pinnedNow = useMemo(() => countPinned(gridPosts), [gridPosts]);
   const geometry = useMemo(() => tileSize(gridWidth, GRID_COLUMNS, GRID_GAP), [gridWidth]);
+  /** Every cell by its own identity, which is what a gesture names instead of an index. */
+  const postByTile = useMemo(() => {
+    const map = new Map<number, ArchivePost>();
+    for (const post of gridPosts) {
+      const id = tileId(post);
+      if (id) map.set(id, post);
+    }
+    return map;
+  }, [gridPosts]);
+  /** The wall's identities, in the order it draws them: the list a drag really reorders. */
+  const dragIds = useMemo(() => gridPosts.map(tileId), [gridPosts]);
+  /**
+   * The order the wall is drawing *right now*: the owner's, or the one a finger is holding open. The
+   * dragged cell is already standing in the place it would take, so the hole it leaves and the order a
+   * release writes are the same number — nothing jumps at the end of the gesture.
+   */
+  const previewIds = useMemo(() => (drag ? dragOrder(dragIds, drag.tile, drag.target) : dragIds), [drag, dragIds]);
+  const previewPosts = useMemo(() => previewIds
+    .map((id) => postByTile.get(id))
+    .filter((post): post is ArchivePost => Boolean(post)), [postByTile, previewIds]);
+  /** The arranged wall's height: the same rows the archive draws, without a layout pass per cell. */
+  const gridHeight = useMemo(() => {
+    if (!geometry.height) return 0;
+    const rows = Math.max(1, Math.ceil(Math.max(1, previewPosts.length) / GRID_COLUMNS));
+    return rows * geometry.height + (rows - 1) * GRID_GAP;
+  }, [geometry, previewPosts.length]);
 
-  const endManaging = useCallback(() => {
-    setManaging(false);
-    setGesture(null);
-    setManageBusy('');
-    setManageNote('');
-    setArranged(null);
-  }, []);
-
-  /** The scroller and the place the grid starts in it, so opening the arrangement can show it. */
+  /**
+   * The wall's own box on the screen, read when the mode opens and on every layout. The auto-scroll of a
+   * drag is decided against it, so it must be the *visible* box and not the content's.
+   */
   const scrollRef = useRef<ScrollView>(null);
-  const gridTop = useRef(0);
-  const revealGrid = useCallback(() => {
-    /** The bar and the first rows: the mode is about the wall, so the wall is what the phone shows. */
-    scrollRef.current?.scrollTo({ y: Math.max(0, gridTop.current - 132), animated: true });
+  /** The box the wall is seen through, which is what an edge-scroll is measured against. */
+  const shellRef = useRef<View>(null);
+  const viewport = useRef({ top: 0, height: 0 });
+  const scrollAt = useRef(0);
+  const contentAt = useRef(0);
+  const measureViewport = useCallback(() => {
+    shellRef.current?.measureInWindow((_x, y, _width, height) => { viewport.current = { top: y, height }; });
   }, []);
+  const onScrollWall = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
+    scrollAt.current = event.nativeEvent.contentOffset.y;
+  }, []);
+  const onWallLayout = useCallback((_event: LayoutChangeEvent) => { measureViewport(); }, [measureViewport]);
+  const onWallContent = useCallback((_width: number, height: number) => { contentAt.current = height; }, []);
 
-  const beginManaging = useCallback(() => {
-    setManageNote('');
-    setManageBusy('');
-    setArranged(null);
-    setManaging(true);
-    /** A long press on a cell already shows the wall; the bar's own button may be pressed from above it. */
-    setTimeout(revealGrid, 0);
-  }, [revealGrid]);
+  /**
+   * The gesture's own state, in refs.
+   *
+   * `grip` is where the finger touched down (page coordinates) and how far the wall had been scrolled
+   * then; `dragRef` is the state machine of `lib/profileDrag.ts`. Neither is React state: a drag is a
+   * sequence of positions, and only the *hole's place* is worth a render.
+   */
+  const dragRef = useRef<DragGesture | null>(null);
+  const grip = useRef<{ originX: number; originY: number; scroll0: number; x: number; y: number } | null>(null);
+  /** The carried face's offset. Only the overlay subscribes, so moving it costs no render. */
+  const lift = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  const autoScroll = useRef<ReturnType<typeof setInterval> | null>(null);
+  /** A write that is already travelling is the only write: a drag cannot post twice. */
+  const orderInFlight = useRef(false);
 
   /**
    * The order the finger made, written down (`POST /api/posts/order`). The grid already draws it: the
@@ -337,6 +398,9 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       setManageNote('Grila poate fi aranjată doar din postările tale.');
       return;
     }
+    /** One write at a time: a second drag while the first is travelling is dropped, not queued. */
+    if (orderInFlight.current) return;
+    orderInFlight.current = true;
     setManageBusy('Se salvează ordinea…');
     setManageNote('');
     try {
@@ -345,12 +409,16 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         body: JSON.stringify({ order: entries }),
       });
       setManageNote('Ordinea a fost salvată.');
+      // The optimistic order stays until the server's own places have arrived: clearing it first would
+      // draw the old order for the length of one read.
+      await reloadQuietly();
       setArranged(null);
-      reloadQuietly();
     } catch (cause) {
+      // A refused write costs the overlay and nothing else: the wall goes back to what the server says.
       setArranged(null);
       setManageNote(describe(cause));
     } finally {
+      orderInFlight.current = false;
       setManageBusy('');
     }
   }, [describe, reloadQuietly]);
@@ -388,50 +456,142 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
     }
   }, [describe, reloadQuietly]);
 
-  /** The finger while it moves a cell: the tile follows it, and the place it stands over is lit. */
-  const finger = useRef<{ index: number; dx: number; dy: number; target: number } | null>(null);
-  const responders = useMemo(() => gridPosts.map((_, index) => PanResponder.create({
-    /** A tap is a tap: the cell only takes the gesture once the finger has actually moved. */
-    onMoveShouldSetPanResponder: (_event, move) => Math.abs(move.dx) > 4 || Math.abs(move.dy) > 4,
-    onPanResponderTerminationRequest: () => false,
-    onPanResponderMove: (_event, move) => {
-      if (!geometry.width) return;
-      /**
-       * The indicator is shown on the nearest place the server will actually accept: every cell of the
-       * owner's archive is arrangeable (their posts and their reposts alike), so this is normally the cell
-       * under the finger.
-       */
-      const nearest = gridTarget({ index, dx: move.dx, dy: move.dy, count: gridPosts.length, geometry });
-      const target = nearestPlaceable(gridPosts, nearest, ownerId);
-      finger.current = { index, dx: move.dx, dy: move.dy, target };
-      setGesture(finger.current);
-    },
-    onPanResponderRelease: () => {
-      const state = finger.current;
-      finger.current = null;
-      setGesture(null);
-      if (!state || state.target === state.index) return;
-      // The list moves by tile identity, not by post id: a repost and the post it carries are two cells.
-      const reordered = moveWithin(gridPosts.map(tileId), state.index, state.target);
-      setArranged(reordered);
-      /** Only the cells this account owns are named: the route refuses the rest, whole. */
-      void persistOrder(placeableIds(
-        reordered.map((id) => gridPosts.find((post) => tileId(post) === id) ?? { id }),
-        ownerId,
-      ));
-    },
-    onPanResponderTerminate: () => {
-      finger.current = null;
-      setGesture(null);
-    },
-  })), [geometry, gridPosts, ownerId, persistOrder]);
+  /**
+   * The finger's offset and the place it stands over, from the two page positions the responder gives.
+   *
+   * This is the only place a move is read, and it reads the raw `pageX`/`pageY` of the touch. The old
+   * version read `PanResponder`'s `dx`/`dy`, which begin at the event that *grants* the responder — so
+   * the tile was always short by the slop it took to claim the gesture, and a responder rebuilt by any
+   * render that changed the archive restarted its offset at the page position and threw the held tile
+   * away from the thumb.
+   */
+  const applyFinger = useCallback((x: number, y: number) => {
+    const state = dragRef.current;
+    const held = grip.current;
+    if (!state || !held || !geometry.width) return;
+    held.x = x;
+    held.y = y;
+    /** The content moved under the finger: the finger stands further down the wall than its page says. */
+    const scrollDelta = scrollAt.current - held.scroll0;
+    const dx = x - held.originX;
+    const dy = y - held.originY + scrollDelta;
+    lift.setValue({ x: dx, y: dy });
+    const next = moveDrag(state, { dx, dy, geometry, count: dragIds.length, scrollDelta });
+    dragRef.current = next;
+    if (next.target === state.target) return;
+    setDrag({ tile: next.tile, from: next.from, target: next.target });
+  }, [dragIds.length, geometry, lift]);
 
-  /** The rows the arranged grid draws, in threes, exactly as the archive draws them. */
-  const manageRows = useMemo<ArchivePost[][]>(() => {
-    const rows: ArchivePost[][] = [];
-    for (let index = 0; index < gridPosts.length; index += GRID_COLUMNS) rows.push(gridPosts.slice(index, index + GRID_COLUMNS));
-    return rows;
-  }, [gridPosts]);
+  const stopAutoScroll = useCallback(() => {
+    if (autoScroll.current) clearInterval(autoScroll.current);
+    autoScroll.current = null;
+  }, []);
+
+  /**
+   * The wall follows a held finger at its own edges.
+   *
+   * It runs on its own clock because the finger is not moving while it scrolls: the responder sends
+   * nothing, yet the wall has to keep going. Each tick scrolls one step and then re-reads the finger, so
+   * the hole keeps travelling with the thumb and the carried face stays under it.
+   */
+  const startAutoScroll = useCallback(() => {
+    stopAutoScroll();
+    autoScroll.current = setInterval(() => {
+      const held = grip.current;
+      if (!held) { stopAutoScroll(); return; }
+      const step = autoScrollStep(held.y, viewport.current);
+      if (!step) return;
+      const next = clampScroll(scrollAt.current + step, contentAt.current, viewport.current.height);
+      if (next === scrollAt.current) return;
+      scrollAt.current = next;
+      scrollRef.current?.scrollTo({ y: next, animated: false });
+      applyFinger(held.x, held.y);
+    }, 16);
+  }, [applyFinger, stopAutoScroll]);
+
+  /** The gesture's one exit. `commit` says whether the order the finger made is the one to write. */
+  const finishDrag = useCallback((commit: boolean) => {
+    stopAutoScroll();
+    const state = dragRef.current;
+    dragRef.current = null;
+    grip.current = null;
+    lift.setValue({ x: 0, y: 0 });
+    setDrag(null);
+    const released = releaseDrag(state);
+    if (!commit || !released || !released.moved) return;
+    // The list moves by identity, not by index: a repost and the post it carries are two cells.
+    const reordered = dragOrder(dragIds, released.tile, released.target);
+    setArranged(reordered);
+    /** Only the cells this account owns are named: the route refuses the rest, whole. */
+    void persistOrder(placeableIds(
+      reordered.map((id) => postByTile.get(id) ?? { id }),
+      ownerId,
+    ));
+  }, [dragIds, lift, ownerId, persistOrder, postByTile, stopAutoScroll]);
+
+  /**
+   * The grip's responder: the only surface a drag can start from.
+   *
+   * It claims the touch at its *start*, not after four points of movement, so the first move already
+   * carries an exact offset and the tile is under the thumb from the first frame. These are raw
+   * responder props rather than a `PanResponder`: a `PanResponder` object keeps the gesture's own
+   * numbers inside itself, and a re-render that replaced the object mid-drag restarted them. The state
+   * lives in refs here, so a re-render costs the gesture nothing.
+   */
+  const gripHandlers = useCallback((tile: number) => ({
+    onStartShouldSetResponder: () => true,
+    onResponderTerminationRequest: () => false,
+    onResponderGrant: (event: GestureResponderEvent) => {
+      const from = dragIds.indexOf(tile);
+      if (from < 0 || !geometry.width) return;
+      const { pageX, pageY } = event.nativeEvent;
+      grip.current = { originX: pageX, originY: pageY, scroll0: scrollAt.current, x: pageX, y: pageY };
+      const state = beginDrag(tile, from);
+      dragRef.current = state;
+      lift.setValue({ x: 0, y: 0 });
+      setDrag({ tile, from, target: from });
+      measureViewport();
+      startAutoScroll();
+    },
+    onResponderMove: (event: GestureResponderEvent) => {
+      applyFinger(event.nativeEvent.pageX, event.nativeEvent.pageY);
+    },
+    onResponderRelease: () => finishDrag(true),
+    onResponderTerminate: () => finishDrag(false),
+  }), [applyFinger, dragIds, finishDrag, geometry.width, lift, measureViewport, startAutoScroll]);
+
+  const beginManaging = useCallback(() => {
+    setManageNote('');
+    setManageBusy('');
+    setArranged(null);
+    setManaging(true);
+    /**
+     * Nothing scrolls here on purpose. Opening the mode used to scroll the wall so the bar would show,
+     * and that is what made a held tile slide downwards under an unmoved finger. The bar is a dock at
+     * the foot of the screen now, so the wall stays exactly where the finger found it.
+     */
+    measureViewport();
+  }, [measureViewport]);
+
+  /** Leaving the mode takes the gesture with it: no hole, no carried face, no timer, no stale order. */
+  const endManaging = useCallback(() => {
+    stopAutoScroll();
+    dragRef.current = null;
+    grip.current = null;
+    lift.setValue({ x: 0, y: 0 });
+    setDrag(null);
+    setManaging(false);
+    setManageBusy('');
+    setManageNote('');
+    setArranged(null);
+  }, [lift, stopAutoScroll]);
+
+  /** Back leaves the mode before it leaves the profile: a mode with no exit would be a trap. */
+  useEffect(() => {
+    if (!managing) return undefined;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { endManaging(); return true; });
+    return () => subscription.remove();
+  }, [endManaging, managing]);
 
   /**
    * A development-only reading of the grid, so a phone can be asked what it actually drew instead of
@@ -468,9 +628,11 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         viewers: Number(post.view_stats?.viewers || 0),
         slot: geometry.width ? gridSlot(index, geometry) : null,
       })),
-      gesture,
+      /** The order the wall is drawing right now, which is the preview while a finger holds a cell. */
+      order: previewIds,
+      drag,
     };
-  }, [handle, tab, readings, managing, manageBusy, manageNote, isOwner, ownerId, gridWidth, geometry, gridPosts, arrangement, gesture]);
+  }, [handle, tab, readings, managing, manageBusy, manageNote, isOwner, ownerId, gridWidth, geometry, gridPosts, arrangement, previewIds, drag]);
 
   if (attempted !== key && !data) {
     return <View style={styles.screen}><ActivityIndicator color={socialTokens.colors.white} style={styles.loader} /></View>;
@@ -514,12 +676,27 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
 
   return (
     <>
+    {/**
+     * The shell: the box the wall is seen through, and the frame the arrangement's dock is placed in. It
+     * exists so the edge-scroll of a drag can be measured against what is really on screen.
+     */}
+    <View style={styles.screen} ref={shellRef} onLayout={onWallLayout}>
+    {/**
+     * The wall scrolls in both modes. Turning scrolling off while arranging used to make a long profile
+     * unreachable — the only thing a finger could do was drag a cell it never meant to touch — and it
+     * also forbade the auto-scroll a drag needs at the edges. A drag is safe now because it can only
+     * start on a grip, which claims the gesture before the scroller ever sees it.
+     */}
     <ScrollView
       ref={scrollRef}
       style={styles.screen}
-      contentContainerStyle={{ paddingBottom: navReserve + 18 }}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />}
-      scrollEnabled={!managing}
+      contentContainerStyle={{ paddingBottom: navReserve + 18 + (managing ? 86 : 0) }}
+      refreshControl={managing ? undefined : (
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />
+      )}
+      onScroll={onScrollWall}
+      scrollEventThrottle={16}
+      onContentSizeChange={onWallContent}
     >
       {/**
        * The header the owner asked for (`docs/PARITY-MATRIX.md`): no cover band, the identity a block of two
@@ -632,9 +809,9 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         ) : bands && bands.length ? (
           <>
             {/**
-             * The owner's own door into the grid: a press held for a second opens the arrangement, and
-             * this bar is where that mode says so, what it offers and what became of the last action. It
-             * is never drawn on somebody else's profile.
+             * The owner's own door into the grid. In normal mode it is the discoverable way in ("Aranjează
+             * grila"); while the arrangement is open the door is the dock at the foot of the screen, which
+             * is always in reach whatever part of a long wall the reader is looking at.
              */}
             {isOwner ? (
               <View style={styles.manageBar} accessibilityLabel="Aranjarea grilei">
@@ -648,70 +825,96 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
                     {managing ? 'Gata' : 'Aranjează grila'}
                   </Text>
                 </Pressable>
-                <Text style={styles.manageBarHint} accessibilityLiveRegion="polite">
-                  {manageBusy || manageNote || (managing
-                    ? 'Ține apăsată o postare și trage-o. 📌 o fixează în frunte, 🗑️ o șterge.'
-                    : 'Ține apăsată o postare pentru a o muta, a o fixa sau a o șterge.')}
+                <Text style={styles.manageBarHint}>
+                  {managing
+                    ? 'Trage de mânerul ≡ al unei postări. 📌 o fixează, 🗑️ o șterge.'
+                    : 'Ține apăsată o postare pentru a o muta, a o fixa sau a o șterge.'}
                 </Text>
               </View>
             ) : null}
             {managing ? (
+              /**
+               * The arranged wall. Every cell is placed by `gridSlot` in one absolutely positioned list
+               * keyed by the cell's own identity, so a reorder *moves* a view instead of mounting a new
+               * one: the grip the finger holds keeps its native view for the whole gesture, and the cells
+               * that give way animate into the places they just took.
+               *
+               * The held cell stands where it would be dropped (its hole), and its face rides the overlay
+               * below the list. Nothing here takes a touch except the grips and the two chips, so a drag
+               * can neither start nor end on a control.
+               */
               <View
-                style={[styles.grid, styles.manageGrid]}
-                onLayout={(event) => { gridTop.current = event.nativeEvent.layout.y; setGridWidth(event.nativeEvent.layout.width); }}
+                style={[styles.manageGrid, { height: gridHeight }]}
+                onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}
                 accessibilityLabel="Grila de aranjat"
               >
-                {manageRows.map((row, rowIndex) => (
-                  <View key={`manage-row-${rowIndex}`} style={styles.tileRow}>
-                    {row.map((post) => {
-                      const index = placeOf[archiveKey(post)] ?? 0;
-                      const lifted = gesture !== null && gesture.index === index;
-                      const actions = manageActions(post, { isOwner, pinnedCount: pinnedNow, ownerId });
-                      const pinnedHere = Number(post.pinned_at || 0) > 0;
-                      return (
-                        <ProfileTile
-                          key={archiveKey(post)}
-                          post={post}
-                          pinnedFirst={pinnedHere}
-                          manage={{
-                            pinned: pinnedHere,
-                            canPin: actions.canPin,
-                            canDelete: actions.canDelete,
-                            pinWord: actions.pinWord,
-                            busy: Boolean(manageBusy),
-                            onPin: () => { void togglePin(post, !pinnedHere); },
-                            onDelete: () => setConfirmDelete(post),
-                          }}
-                          lift={lifted && gesture ? { dx: gesture.dx, dy: gesture.dy } : null}
-                          /**
-                           * A repost is draggable like the owner's own posts: what moves is the owner's entry
-                           * on their own grid (`post_shares.grid_position`), never the post inside it.
-                           */
-                          handlers={actions.canPlace ? responders[index]?.panHandlers : undefined}
-                        />
-                      );
-                    })}
-                    {Array.from({ length: Math.max(0, GRID_COLUMNS - row.length) }).map((_, spacer) => (
-                      <View key={`manage-spacer-${spacer}`} accessible={false} style={styles.tileSpacer} />
-                    ))}
-                  </View>
-                ))}
+                {geometry.width ? previewPosts.map((post, index) => {
+                  const actions = manageActions(post, { isOwner, pinnedCount: pinnedNow, ownerId });
+                  const pinnedHere = Number(post.pinned_at || 0) > 0;
+                  const held = drag !== null && drag.tile === tileId(post);
+                  const slot = gridSlot(index, geometry);
+                  return (
+                    <ManageCell
+                      key={archiveKey(post)}
+                      left={slot.left}
+                      top={slot.top}
+                      width={geometry.width}
+                      height={geometry.height}
+                    >
+                      <ProfileTile
+                        post={post}
+                        pinnedFirst={pinnedHere}
+                        dragging={held}
+                        dragLabel={held ? `Poziția ${index + 1} din ${previewPosts.length}` : ''}
+                        manage={{
+                          pinned: pinnedHere,
+                          canPin: actions.canPin,
+                          canDelete: actions.canDelete,
+                          pinWord: actions.pinWord,
+                          busy: Boolean(manageBusy),
+                          onPin: () => { void togglePin(post, !pinnedHere); },
+                          onDelete: () => setConfirmDelete(post),
+                        }}
+                        /**
+                         * A repost is draggable like the owner's own posts: what moves is the owner's entry
+                         * on their own grid (`post_shares.grid_position`), never the post inside it. A cell
+                         * this account owns neither is not placeable and therefore has no grip at all.
+                         *
+                         * No grip while an order is being written: the wall is already showing the newest
+                         * order and a second write would be a second truth.
+                         */
+                        handle={actions.canPlace && !manageBusy ? gripHandlers(tileId(post)) : undefined}
+                      />
+                    </ManageCell>
+                  );
+                }) : null}
+
                 {/**
-                 * The place under the finger, lit: two points of accent on the edge the cell would take.
-                 * It never takes a touch and it says its own place to a screen reader, so the drop is
-                 * legible with and without a picture of the screen.
+                 * The carried face: the same picture, drawn above the wall at the finger's own offset. It
+                 * takes no touch, so the grip that owns the gesture stays the touch's target; its position
+                 * is the place the cell started from plus the finger's offset, which is why it sits under
+                 * the thumb from the first frame and never jumps.
                  */}
-                {gesture && geometry.width ? (
-                  <View
-                    pointerEvents="none"
-                    accessibilityLabel={`Poziția ${gesture.target + 1} din ${gridPosts.length}`}
-                    style={[styles.dropLine, {
-                      left: gridSlot(gesture.target, geometry).left + geometry.width - 2,
-                      top: gridSlot(gesture.target, geometry).top,
-                      height: geometry.height,
-                    }]}
-                  />
-                ) : null}
+                {drag && geometry.width ? (() => {
+                  const post = postByTile.get(drag.tile);
+                  if (!post) return null;
+                  const slot = gridSlot(drag.from, geometry);
+                  return (
+                    <Animated.View
+                      pointerEvents="none"
+                      accessible={false}
+                      style={[styles.lifted, {
+                        left: slot.left,
+                        top: slot.top,
+                        width: geometry.width,
+                        height: geometry.height,
+                        transform: lift.getTranslateTransform(),
+                      }]}
+                    >
+                      <ProfileTile post={post} ghost />
+                    </Animated.View>
+                  );
+                })() : null}
               </View>
             ) : (
           /**
@@ -720,14 +923,11 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
            * (`.ownerFlowStream{grid-template-columns:repeat(3,1fr);gap:2px;background:#060b11}`), and every
            * other tab is that grid without the cards (`.ownerPostGrid`), the words included.
            *
-           * The width is measured here because the arrangement's arithmetic needs the cell it really got:
-           * `lib/profileGrid.ts` turns the width into one 9:16 cell and the place a drag is standing over,
-           * so the indicator the finger sees and the index the drop writes are the same number.
+           * Reading a cell is a tap; holding it is the owner's own door into the arrangement. Nothing here
+           * measures the wall any more: the arranged mode measures itself, because only it lays cells out
+           * by arithmetic.
            */
-          <View
-            style={tab === 'flow' ? styles.flowStream : styles.grid}
-            onLayout={(event) => { gridTop.current = event.nativeEvent.layout.y; setGridWidth(event.nativeEvent.layout.width); }}
-          >
+          <View style={tab === 'flow' ? styles.flowStream : styles.grid}>
             {bands.map((band) => (band.kind === 'tiles' ? (
               <View key={band.key} style={styles.tileRow}>
                 {band.posts.map((post) => (
@@ -737,6 +937,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
                     pinnedFirst={hoistPins && Number(post.pinned_at || 0) > 0}
                     door={{ handle: String(profile?.handle || handle), tab, reading: readings[tab], index: placeOf[archiveKey(post)] ?? 0 }}
                     onManage={isOwner ? beginManaging : undefined}
+                    holdMs={HOLD_TO_MANAGE_MS}
                   />
                 ))}
                 {/**
@@ -758,6 +959,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
                   post={band.post}
                   door={{ handle: String(profile?.handle || handle), tab, reading: readings[tab], index: placeOf[archiveKey(band.post)] ?? 0 }}
                   onManage={isOwner ? beginManaging : undefined}
+                  holdMs={HOLD_TO_MANAGE_MS}
                 />
                 {Array.from({ length: Math.max(0, socialTokens.archive.gridColumns - 1) }).map((_, index) => (
                   <View key={`spacer-${index}`} accessible={false} style={styles.tileSpacer} />
@@ -774,6 +976,32 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         )
       ) : null}
     </ScrollView>
+
+    {/**
+     * The arrangement's own bar: a dock at the foot of the screen, drawn above the wall instead of inside
+     * it. It is the mode's exit (`Gata`), its explanation and the answer to the last action, and it stays
+     * in reach however far down a long wall the finger has scrolled — a bar that scrolls away with the
+     * content is how a mode ends up with no visible way out.
+     */}
+    {isOwner && managing ? (
+      <View
+        style={[styles.manageDock, { bottom: navReserve + 10 }]}
+        accessibilityLabel="Aranjarea grilei"
+      >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Gata, păstrează ordinea"
+          onPress={endManaging}
+          style={[styles.manageBarButton, styles.manageBarButtonOn]}
+        >
+          <Text style={[styles.manageBarText, styles.manageBarTextOn]}>Gata</Text>
+        </Pressable>
+        <Text style={styles.manageBarHint} accessibilityLiveRegion="polite">
+          {manageBusy || manageNote || 'Trage de mânerul ≡ al unei postări. 📌 o fixează, 🗑️ o șterge.'}
+        </Text>
+      </View>
+    ) : null}
+    </View>
 
     {/**
      * The editor itself: one card, every field of the header, one save. What it hands back is merged into
@@ -850,6 +1078,52 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       }}
     />
     </>
+  );
+}
+
+/**
+ * One cell of the arranged wall: placed at its own slot, and *animated* from the slot it just left.
+ *
+ * The wall is a list of these, keyed by the cell's identity and absolutely positioned by
+ * `gridSlot`, so a reorder moves a view instead of mounting a new one. That is what keeps the grip the
+ * finger holds alive for the whole gesture — the native view a touch is attached to is never replaced —
+ * and it is also what makes the cells that give way glide into their new places instead of snapping.
+ *
+ * The animation is one transform on the native driver: no re-render, no layout pass, and nothing the
+ * Xiaomi has to composite twice.
+ */
+function ManageCell({ left, top, width, height, children }: {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  children: ReactNode;
+}) {
+  const offset = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
+  /** The slot this cell was drawn in last frame. A move is drawn from it to the new one. */
+  const previous = useRef({ left, top });
+  useEffect(() => {
+    const dx = previous.current.left - left;
+    const dy = previous.current.top - top;
+    previous.current = { left, top };
+    if (!dx && !dy) return;
+    offset.setValue({ x: dx, y: dy });
+    Animated.timing(offset, {
+      toValue: { x: 0, y: 0 },
+      duration: 150,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [left, offset, top]);
+  return (
+    <Animated.View
+      style={[
+        { position: 'absolute', left, top, width, height },
+        { transform: offset.getTranslateTransform() },
+      ]}
+    >
+      {children}
+    </Animated.View>
   );
 }
 
@@ -1006,6 +1280,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8,
     backgroundColor: socialTokens.archive.gridSurface, borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: '#1d2b34',
+    /**
+     * The same height in both modes, because the wall below it must not move when a hold opens the
+     * arrangement: the mode changes what the bar says, never where the cells stand.
+     */
+    minHeight: 60,
   },
   manageBarButton: {
     minHeight: 44, justifyContent: 'center', paddingHorizontal: 14,
@@ -1015,16 +1294,26 @@ const styles = StyleSheet.create({
   manageBarText: { color: socialTokens.colors.white, fontSize: 13, fontWeight: '700' },
   manageBarTextOn: { color: '#dff9f6' },
   manageBarHint: { flexShrink: 1, color: socialTokens.colors.muted, fontSize: 12, lineHeight: 17 },
-  /** The arranged grid: the archive's own three columns, with room under the last row for a lifted cell. */
-  manageGrid: { paddingBottom: socialTokens.archive.gridGap },
+  /** The arranged wall: a canvas whose cells place themselves, so a reorder is a move and not a remount. */
+  manageGrid: { position: 'relative', backgroundColor: socialTokens.archive.gridSurface },
   /**
-   * The place under the finger: a 2dp rule the height of a cell, on the edge the dragged cell would
-   * take. It is the insertion indicator, and it is drawn where `gridSlot` says the target stands, so
-   * what the eye sees and what the drop does are the same number.
+   * The arrangement's dock: a plate at the foot of the screen, above the nav bar. It holds the mode's own
+   * exit and its last word, and it is drawn outside the scroller so it cannot scroll out of reach.
    */
-  dropLine: {
-    position: 'absolute', width: 3, borderRadius: 2,
-    backgroundColor: socialTokens.archive.tilePinnedFirstEdge,
+  manageDock: {
+    position: 'absolute', left: 10, right: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingHorizontal: 10, paddingVertical: 8, borderRadius: 16,
+    backgroundColor: 'rgba(9,18,24,0.96)', borderWidth: 1, borderColor: '#26343d',
+    elevation: 12, shadowColor: '#000000', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
+  },
+  /**
+   * The face a drag carries: the cell's picture, drawn above the wall at the finger's own offset. The
+   * wrapper is itself the cell's box, so the picture keeps its aspect and its cover exactly.
+   */
+  lifted: {
+    position: 'absolute', zIndex: 20, elevation: 20, opacity: 0.95,
+    borderRadius: socialTokens.archive.tilePlayRadius, overflow: 'hidden',
   },
   confirmBackdrop: {
     flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24,

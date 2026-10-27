@@ -3075,6 +3075,11 @@ export async function handleRequest(req, res, ctx) {
         .map((entry) => ({
           share_id: entry.share_id,
           reposted_at: entry.reposted_at,
+          // The place the owner dragged this repost to (`post_shares.grid_position`). It travels with the
+          // entry because the client arranges reposts and originals in one list: without it a repost has
+          // no place it can be drawn in, so it sorted by its own time above every arranged post and a
+          // drag over it was written by the server and never shown by the wall.
+          grid_position: entry.grid_position,
           repost: {
             id: entry.share_id,
             reposter: { id: target.id, handle: target.handle, display_name: profile.name || target.handle, avatar: profile.avatar ?? null },
