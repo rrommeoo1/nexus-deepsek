@@ -186,7 +186,7 @@ test('componenta: driver nativ, pauza pe atingere si foaia pe pictograma', () =>
   assert.ok(!header.includes('styles.about'), 'descrierea a plecat din antet');
   assert.ok(!header.includes('bioOpen'), 'nici controlul ei de extindere');
   assert.ok(!header.includes('styles.meta'), 'nici locul si varsta de sub butoane');
-  // Ecranul aseaza banda imediat sub antet.
+  // Ecranul aseaza banda imediat sub antet, si ii spune cand profilul nu mai este in fata.
   const screen = readFileSync(resolve(ROOT, 'src/screens/ProfileScreen.tsx'), 'utf8');
-  assert.match(screen, /<ProfileHeader[\s\S]*?<ProfileBand profile=\{profile\} \/>/, 'banda sta sub antet');
+  assert.match(screen, /<ProfileHeader[\s\S]*?<ProfileBand profile=\{profile\} active=\{focused\} \/>/, 'banda sta sub antet');
 });

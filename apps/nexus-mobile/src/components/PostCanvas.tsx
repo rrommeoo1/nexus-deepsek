@@ -13,6 +13,7 @@ import {
 } from '../lib/socialTypes';
 import { MAX_MEDIA, locationOf, needsTranslation, quoteChain, stageFor, tagsOf, textPages, textPreview } from '../lib/postPresentation';
 import { pagePaletteOf, pageStyleForPost, textStyleForPost, defaultTextStyle } from '../lib/textStyle';
+import { wordPageGutter, wordPageHead } from '../lib/textPage';
 import { socialTokens } from '../theme/social';
 import { STATEMENT_CHARS, editorial, editorialType } from '../theme/editorial';
 
@@ -252,16 +253,34 @@ export function PostCanvas({
   const tile = variant === 'tile';
   /** A picture read like a post: the author goes up, the words keep the width, the actions go beside them. */
   const stacked = layout === 'post' && !tile;
+  const stage = stageFor(post);
+  /**
+   * A page of **words** — a text post, or an authored article with pictures inside it — as opposed to a
+   * picture, a clip or a cell of a list. It is the one composition the owner asked to be read as a page
+   * of a book, and the one whose head he asked to be set a step larger (27 October 2026).
+   */
+  const wordPage = page && !tile && (stage === 'text' || stage === 'article');
   /**
    * The room the rail keeps on the right of the words. A reel has always kept it; a *page* of words keeps
    * it too, because its five presses are the same rail (`PostRail`) — only a cell of a list has no rail,
    * and there the row under the words takes the full width.
+   *
+   * A page of words keeps exactly the rail's own footprint (`TEXT_PAGE_RAIL_GUTTER`: the 56dp cell 10dp
+   * in from the edge, plus air) instead of the reel's wider 78dp: the article is the page, and every
+   * point given away on the right is a column of paper the words cannot use while the buttons stand on
+   * the same edge either way.
    */
-  const railGutter = stacked && !page ? 0 : metrics.railGutter;
+  const railGutter = stacked && !page ? 0 : wordPageGutter(metrics.railGutter, wordPage);
+  /**
+   * The head of a page of words: the author's face and name one step larger than the same head on a
+   * card, because the page is the whole screen and a 14dp name over an 18dp page margin reads as a
+   * caption. Only the words are set this way — a picture, a clip and a cell keep `metrics` exactly, so
+   * no photograph grew a face it did not ask for (`lib/textPage.ts`).
+   */
+  const head = wordPageHead(metrics, wordPage);
   /** Where the head of a page begins: at the notification band itself, or below the card's own padding. */
   const headTop = (page ? 0 : metrics.padB) + topInset;
 
-  const stage = stageFor(post);
   /**
    * `Vezi traducerea` is offered only for a page the reader cannot already read. A post in the
    * phone's own language - or in English - is not a foreign text, and the owner asked for that door
@@ -346,14 +365,14 @@ export function PostCanvas({
       disabled={!onOpenAuthor}
       style={styles.authorRow}
     >
-      <View style={[styles.disc, { width: metrics.disc, height: metrics.disc, borderRadius: metrics.disc / 2 }]}>
+      <View style={[styles.disc, { width: head.disc, height: head.disc, borderRadius: head.disc / 2 }]}>
         {avatar
           ? <RemoteImageSource source={avatar} fit="cover" style={styles.fill} />
-          : <Text style={[styles.discText, { fontSize: metrics.name * 0.8 }]}>{initialsFor(name, handle)}</Text>}
+          : <Text style={[styles.discText, { fontSize: head.name * 0.8 }]}>{initialsFor(name, handle)}</Text>}
       </View>
       <View style={styles.authorText}>
-        <Text style={[styles.name, { fontSize: metrics.name }, pageInk]} numberOfLines={1}>{name}</Text>
-        <Text style={[styles.handle, { fontSize: metrics.handle }, pageFaintInk]} numberOfLines={1}>
+        <Text style={[styles.name, { fontSize: head.name }, pageInk]} numberOfLines={1}>{name}</Text>
+        <Text style={[styles.handle, { fontSize: head.handle }, pageFaintInk]} numberOfLines={1}>
           {[`@${handle}`, stamp, location].filter(Boolean).join(' · ')}
         </Text>
       </View>

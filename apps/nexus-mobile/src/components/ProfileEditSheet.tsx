@@ -1,6 +1,7 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { draftScope } from '../lib/draftsClient';
 import { nexusApi } from '../lib/nexusApi';
 import { firstAddress } from '../lib/profileBioText';
@@ -40,6 +41,13 @@ const VISIBILITY_WORDS: Record<string, string> = {
 };
 
 /**
+ * The sheet's own bottom padding, before the system's inset is added (`useSafeAreaInsets`). It is the
+ * `18px` of `.coverSheet` in the web's stylesheet, kept here as a number because the sheet adds the
+ * device's navigation bar to it at render time.
+ */
+const SHEET_PADDING_BOTTOM = 18;
+
+/**
  * The editor behind `Editează profilul`, the first of the header's two wide buttons: the portrait, the name,
  * the handle, the description with its own character count, the place, the year, what the profile shows and
  * the address inside the description.
@@ -70,6 +78,15 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
   /** The row the route wrote, so the hero and the band read the new values without a second fetch. */
   onSaved: (patch: Partial<ProfileView>) => void;
 }) {
+  /**
+   * The room the system's own navigation bar owns.
+   *
+   * On the Xiaomi the sheet was drawn to the very bottom of the display, and the save row ended up
+   * *under* the three-button navigation bar: the upper sliver of the button answered, the middle of it
+   * pressed Home and left the app (measured on the device, 27 October 2026). The sheet therefore keeps
+   * that inset as its own bottom padding, and its fields scroll instead of pushing the save row off it.
+   */
+  const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState<ProfileDraft>(() => profileDraft(profile));
   /**
    * The answer the handle route gave, kept together with the name it answers for: a draft typed over it
@@ -232,7 +249,10 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <View accessible={false} style={styles.sheet}>
+        <View
+          accessible={false}
+          style={[styles.sheet, { paddingBottom: SHEET_PADDING_BOTTOM + Math.max(0, insets.bottom) }]}
+        >
           <View style={styles.sheetHead}>
             <Text style={styles.sheetTitle}>Editează profilul</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Închide fără să salvezi" onPress={onClose} style={styles.close}>
@@ -240,7 +260,7 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
             </Pressable>
           </View>
 
-          <ScrollView contentContainerStyle={styles.fields} keyboardShouldPersistTaps="handled">
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.fields} keyboardShouldPersistTaps="handled">
             {/**
              * The portrait comes first, because it is the face of the header this editor edits. The cover field
              * that used to stand above it is gone with the native cover band (`MIGRATION.md` §19.2).
@@ -429,13 +449,19 @@ export function ProfileEditSheet({ visible, profile, persona, onClose, onSaved }
 const styles = StyleSheet.create({
   /** `.coverSheetBackdrop{position:fixed;inset:0;background:rgba(2,6,10,.74)}` */
   backdrop: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(2,6,10,0.74)' },
-  /** `.coverSheet{max-height:92vh;padding:14px 16px 18px;border:1px solid #23414c;border-radius:22px 22px 0 0;background:#08131c}` */
+  /**
+   * `.coverSheet{max-height:92vh;padding:14px 16px 18px;border:1px solid #23414c;border-radius:22px 22px 0 0;background:#08131c}`
+   *
+   * `maxHeight` is the whole display now, not 92% of it: the sheet's own bottom padding carries the
+   * system navigation bar (`ProfileEditSheet` reads the inset), so the sheet may use the screen it has
+   * and the save row never lands under a button of the system.
+   */
   sheet: {
-    maxHeight: '92%',
+    maxHeight: '100%',
     gap: 10,
     paddingTop: 14,
     paddingHorizontal: 16,
-    paddingBottom: 18,
+    paddingBottom: SHEET_PADDING_BOTTOM,
     borderWidth: 1,
     borderColor: '#23414c',
     borderTopLeftRadius: 22,
@@ -443,6 +469,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
     backgroundColor: '#08131c',
   },
+  /** The fields take what is left and scroll inside it, so the save row is always on screen. */
+  scroll: { flexShrink: 1 },
   sheetHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
   sheetTitle: { flex: 1, minWidth: 0, color: '#eef8fb', fontSize: 16, fontWeight: '800' },
   /** `.coverSheetClose{width:44px;height:44px;border:1px solid #23343d;border-radius:13px;background:#0b141c;color:#dff;font-size:22px}` */

@@ -94,7 +94,12 @@ function stylesWith(list, key) {
 
 const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts')).socialTokens;
 const socialTypes = loadModule(resolve(ROOT, 'src/lib/socialTypes.ts'));
-const content = loadModule(resolve(ROOT, 'src/lib/profileContent.ts'), { './socialTypes': socialTypes });
+const postPresentation = loadModule(resolve(ROOT, 'src/lib/postPresentation.ts'));
+const content = loadModule(resolve(ROOT, 'src/lib/profileContent.ts'), {
+  './socialTypes': socialTypes,
+  './postPresentation': postPresentation,
+  './profileGrid': loadModule(resolve(ROOT, 'src/lib/profileGrid.ts'), {}),
+});
 const web = loadModule(EXPERIENCE, {});
 const screenSource = readFileSync(SCREEN, 'utf8');
 
@@ -153,16 +158,25 @@ function rgb(value) {
 }
 
 
-test('cele cinci tab-uri poartă semnele și cuvintele web-ului', () => {
+test('cele cinci tab-uri poartă semnele web-ului, iar al cincilea este al produsului', () => {
   const frozen = /const CONTENT_TAB_GLYPHS = Object\.freeze\(\{([^}]*)\}\)/.exec(readFileSync(EXPERIENCE, 'utf8'))[1];
   const webGlyphs = Object.fromEntries([...frozen.matchAll(/(\w+):\s*'([^']*)'/g)].map(([, key, value]) => [key, value]));
-  assert.deepEqual({ ...content.CONTENT_TAB_GLYPHS }, webGlyphs);
-  for (const [id, word] of Object.entries(content.CONTENT_TAB_LABELS)) {
-    assert.equal(word, romanian(`profile.tab${id[0].toUpperCase()}${id.slice(1)}`), id);
+  /**
+   * Four of the five tabs are the web's own, sign for sign and word for word. The fifth was the web's
+   * `moments` and is now **Redistribuiri** (owner's rule, 27 October 2026): the web has no such tab, so
+   * its sign is the phone's and its word is the product's, not a key of the ro-RO bundle.
+   */
+  const shared = ['flow', 'reels', 'shots', 'whispers'];
+  for (const id of shared) {
+    assert.equal(content.CONTENT_TAB_GLYPHS[id], webGlyphs[id], `${id}: semnul web-ului`);
+    assert.equal(content.CONTENT_TAB_LABELS[id], romanian(`profile.tab${id[0].toUpperCase()}${id.slice(1)}`), id);
   }
+  assert.equal(content.CONTENT_TAB_GLYPHS.redistribuiri, '⟳', 'semnele de redistribuire, ca pe celula din perete');
+  assert.equal(content.CONTENT_TAB_LABELS.redistribuiri, 'Redistribuiri');
+  assert.equal('moments' in content.CONTENT_TAB_GLYPHS, false, 'tab-ul Momente a fost înlocuit, nu dublat');
   // The bar keeps the web's own order and its own labels, read from the one list the web reads.
   assert.match(screenSource, /const TABS = CONTENT_TAB_ORDER\.map\(\(id\) => \(\{ id, label: CONTENT_TAB_LABELS\[id\], glyph: CONTENT_TAB_GLYPHS\[id\] \}\)\)/);
-  assert.deepEqual([...content.CONTENT_TAB_ORDER], ['flow', 'reels', 'shots', 'whispers', 'moments']);
+  assert.deepEqual([...content.CONTENT_TAB_ORDER], ['flow', 'reels', 'shots', 'whispers', 'redistribuiri']);
 });
 
 test('grila pune trei plăci de 155 pe rând, cu 2px între ele, iar rândul incomplet rămâne incomplet', () => {
@@ -178,7 +192,11 @@ test('grila pune trei plăci de 155 pe rând, cu 2px între ele, iar rândul inc
   assert.equal(declaration('.ownerPostGrid', 'grid-template-columns'), 'repeat(3,1fr)');
 
   const tile = stylesWith(loadWithSheets(TILE, { '../theme/social': { socialTokens: tokens } }).sheets, 'tile').tile;
-  assert.equal(tile.aspectRatio, 1);
+  // The feed's own canvas is 9:16 and the archive is drawn from the same canvas: the phone's tile is the
+  // portrait frame the reader already knows, not the web's 1:1 cell (the capture keeps measuring the width
+  // of the row, which the two shapes share).
+  assert.equal(tile.aspectRatio, tokens.archive.tileAspect);
+  assert.equal(tile.aspectRatio, 9 / 16);
   const rows = stylesWith(loadWithSheets(SCREEN, {
     '../lib/profileContent': content, '../theme/social': { socialTokens: tokens },
   }).sheets, 'tileRow');
@@ -186,6 +204,8 @@ test('grila pune trei plăci de 155 pe rând, cu 2px între ele, iar rândul inc
   assert.equal(rows.tileSpacer.flexBasis, 0);
   assert.equal(rows.tileSpacer.aspectRatio, tile.aspectRatio);
   assert.equal(tokens.archive.gridColumns, 3);
+  // A floor for one full row at the reference width: 155 x 16/9 = 275.5.
+  assert.equal(tokens.archive.gridMinHeight, Math.ceil((155 * 16) / 9));
 });
 
 test('cardul de șoaptă are numerele măsurate în captura filei Șoapte', () => {
@@ -239,9 +259,9 @@ test('linia semnalelor și farfuria reacțiilor poartă numerele capturii', () =
   assert.equal(plate.whisperButton.borderRadius, card.action.borderRadius);
   assert.equal(plate.whisperButton.backgroundColor, card.action.backgroundColor);
   assert.equal(plate.whisperButtonOn.borderColor, tokens.archive.actionOnBorder);
-  // The card hands its summary to the plate, and the plate floats its palette above its own button.
+  // The card hands its summary to the plate, and the plate floats its palette 18dp above its own button.
   assert.match(readFileSync(WHISPER, 'utf8'), /<ReactionControl variant="whisper" summary=\{summary\} onReact=\{react\} \/>/);
-  assert.equal(plate.whisperPalette.bottom, card.action.minHeight + 6);
+  assert.equal(plate.whisperPalette.bottom, card.action.minHeight + 18);
 });
 
 
@@ -287,19 +307,21 @@ test('fluxul împletește plăcile cu cardurile, iar filele de colecție ridică
   assert.equal(content.postOrderAttributes(pinned[0]).pin, 500);
   // The tile states the hoisted pin, which is what `applyOrder` toggles on the node itself.
   assert.match(screenSource, /pinnedFirst=\{hoistPins && Number\(post\.pinned_at \|\| 0\) > 0\}/);
-  assert.match(screenSource, /const hoistPins = tab === 'reels' \|\| tab === 'shots';/);
+  /**
+   * A pin is hoisted on every tab as of 26 October 2026 (owner's rule): the archive of a collection tab
+   * hoists it because the web does, and the Flow hoists it too because a control that promises "in
+   * frunte" and then leaves the post third was a control whose promise the next row contradicted.
+   */
+  assert.match(screenSource, /const hoistPins = true;/);
 });
 
-test('tab-ul Momente răspunde cu raftul măsurat, apoi cu propozițiile capturii', () => {
+test('tab-ul Redistribuiri ia locul Momentelor, iar raftul rămâne pe Flux', () => {
+  /**
+   * The shelf that answered the Momente tab is measured exactly as the web's `.ownerMomentsPanel` is;
+   * what changed on 27 October 2026 is *where* it is drawn: the fifth tab is Redistribuiri now, so the
+   * saved stories live above the Flow's wall, and only when there is something to show.
+   */
   const panel = node('tab-4', 'ownerMomentsPanel');
-  const block = node('tab-4', 'ownerEmptyState');
-  const inside = capture('tab-4').nodes.filter((entry) => entry.n > block.n && entry.n < block.n + 8);
-  const title = inside.find((entry) => entry.tag === 'b');
-  const detail = inside.find((entry) => entry.tag === 'span');
-  assert.ok(title && detail, 'the moment empty state holds a title and a detail');
-  assert.equal(content.PROFILE_EMPTY_STATES.moments.title, title.text);
-  assert.equal(content.PROFILE_EMPTY_STATES.moments.detail, detail.text);
-  assert.equal(romanian('profile.moments'), 'Moments');
   assert.equal(panel.r[0], 0);
 
   const shelf = stylesWith(loadWithSheets(SHELF, { '../theme/social': { socialTokens: tokens } }).sheets, 'circle');
@@ -310,9 +332,18 @@ test('tab-ul Momente răspunde cu raftul măsurat, apoi cu propozițiile capturi
   assert.equal(shelf.circle.borderRadius, shelf.circle.width / 2);
   assert.equal(declaration('.ownerMomentsPanel button i', 'border'), `2px solid ${shelf.circle.borderColor}`);
   assert.equal(px(declaration('.ownerMomentsPanel button small', 'font-size')), shelf.label.fontSize);
-  // Both are drawn: the shelf answers the tab, and the empty state follows it when it holds nothing.
-  assert.match(screenSource, /<ProfileMomentsShelf shelf=\{shelf\} \/>/);
-  assert.match(screenSource, /shelf\.tiles\.length \? null : <ProfileEmptyState tab="moments" \/>/);
+  assert.match(screenSource, /\{tab === 'flow' && shelf\.tiles\.length \? <ProfileMomentsShelf shelf=\{shelf\} \/> : null\}/);
+  assert.doesNotMatch(screenSource, /<ProfileEmptyState tab="moments" \/>/);
+
+  /**
+   * The new tab's own words are the phone's: the web has no Redistribuiri to copy a sentence from, so
+   * the empty state says what the list holds and where it comes from.
+   */
+  assert.equal(content.PROFILE_EMPTY_STATES.redistribuiri.title, 'Nicio redistribuire încă.');
+  assert.equal(content.PROFILE_EMPTY_STATES.redistribuiri.detail,
+    'Postările pe care le redistribui din feed apar aici, cu autorul lor.');
+  assert.equal('moments' in content.PROFILE_EMPTY_STATES, false, 'tab-ul vechi nu mai are propoziții proprii');
+  assert.match(screenSource, /<ProfileEmptyState tab=\{tab\} \/>/);
 });
 
 

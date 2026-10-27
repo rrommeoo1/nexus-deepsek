@@ -1,72 +1,304 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SolidViewerIcon } from './SolidViewerIcon';
+import { useEffect, useRef, useState, type ElementRef } from 'react';
+import type { GestureResponderEvent } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ReactionPalette } from './ReactionPalette';
 import { socialTokens } from '../theme/social';
 import {
-  REACTION_GLYPHS, REACTION_TITLES, SOCIAL_REACTIONS, compactCount, reactionSummary, viewerReaction,
+  REACTION_EMPTY_HEART, REACTION_PICKER_GLYPHS, SOCIAL_REACTIONS, compactCount, reactionSummary, viewerReaction,
   type ReactionSummary,
 } from '../lib/socialTypes';
+import { PICKER_HOLD_MS, pickerIndexAt, pickerPositionAt, type PickerAnchor, type PickerBox } from '../lib/reactionPicker';
 
 /**
- * The reaction control of the web, drawn to its own measurements.
+ * The reaction control of the web, drawn to its own measurements — and the panel the owner asked for
+ * (19 October 2026).
+ *
+ * What the web gave it:
  *
  *   app.js:3567,3596-3612   `REACTION_GLYPHS` and the two summary shapes:
  *                           `reactionSummaryMarkup` (up to 3 glyph+count pairs) for a card's action row,
  *                           `viewerReactionSummaryMarkup` (one glyph + the total) for the reader's rail.
  *   app.js:3619-3623        the picker, in `SOCIAL_REACTIONS` order, with the `reaction.*` titles.
- *   profile-experience.css  `.ownerWhisperAction` — the plate a whisper card's row wraps this same summary
- *                           in (`min-height:38px`, `padding:0 10px`, `border-radius:11px`,
- *                           `background:rgba(15,30,49,.5)`), with the glyph at 15px and the count at 12px
- *                           in the plate's own ink, and the palette floating above its own button
- *                           (`.pulsePosts.feedWhispers .whisperCard .reactionBar{bottom:calc(100% + 6px)}`).
- *   feed-surface.css:       `.reactionBar.expanded{grid-template-columns:repeat(4,minmax(0,1fr));gap:7-8px;
- *                           padding:10px;border:1px solid rgba(36,240,210,.3);border-radius:16px;
- *                           background:rgba(5,14,20,.96)}`; on the phone's Reels shell the discs lose their
- *                           plate (`background:transparent`, `border-color:transparent`) and the metric is
- *                           54x42 with rows 35/11; on a card it is 46x46 with the count at 10px/850.
- *   `.phoneScreen:has(.clipsScreen) :is(.clipSolidIcon,.reactionMetric>b)`  transparent discs
- *   `.reactionMetric>b`     52x52 disc, `border 1px rgba(255,255,255,.22)`, `background rgba(9,14,21,.86)`
- *                           (viewer) — kept only where the card is not the phone shell.
+ *   feed-surface.css        `.reactionBar.expanded{grid-template-columns:repeat(4,minmax(0,1fr));
+ *                           gap:7-8px;padding:10px;border:1px solid rgba(36,240,210,.3);
+ *                           border-radius:16px;background:rgba(5,14,20,.96)}`; on the phone's Reels shell
+ *                           the discs lose their plate and the metric is 54x42 with rows 35/11; on a card
+ *                           it is 46x46 with the count at 10px/850.
+ *   profile-experience.css  `.ownerWhisperAction` — the plate a whisper's row wraps this summary in, and
+ *                           `.whisperCard .reactionBar{bottom:calc(100% + 6px)}` for its panel.
  *
- * The untouched primary mark is the crisp white heart of `solidViewerIcon('heart')`; the heart glyph in
- * white is the same mark, without a second icon set. Listed in `docs/parity-report/INDEX.md`.
+ * What the owner changed: the panel is no longer a menu of eight glyphs with their names under them,
+ * opened by tapping the plate. It is held open, and the thumb chooses: a short press is the like the
+ * plate always was, a hold of `PICKER_HOLD_MS` opens `ReactionPalette` over the plate, sliding the thumb
+ * grows the emoji it passes (`lib/reactionPicker.ts` turns the finger into an index — one horizontal
+ * row in both zones, at the owner's second correction, growing left from a clip's rail and, since the
+ * bar's like moved to the right end of the page's line, left from that plate too), and letting go
+ * chooses it — or chooses nothing, if the thumb has left the pill
+ * (his third: lifting the finger off the reaction cancels it, and no release may force an icon).
+ *
+ * One gesture, one responder: the wrapper takes the touch at the start
+ * (`onStartShouldSetResponderCapture`) and keeps it until the finger lifts, so the plate and the panel
+ * it opens are never two different responders and the thumb never has to start again. It hands the
+ * gesture back while the panel is closed (`onResponderTerminationRequest: () => !open`), so a scroll
+ * begun on the plate still scrolls the feed, and a thumb that travels before the hold cancels the hold.
  */
-export function ReactionControl({ summary, onReact, variant = 'card' }: {
+export function ReactionControl({ summary, onReact, variant = 'card', onPanelChange }: {
   summary?: ReactionSummary | null;
   onReact: (kind: string, active: boolean) => void;
-  variant?: 'card' | 'rail' | 'whisper';
+  /**
+   * The page above can stop turning while the panel is open: the row's panel is dragged *along the
+   * page*, and a pager would otherwise steal that drag at the native level, before any JavaScript
+   * could refuse it (seen on the device with the old column, 19 October 2026). A floating bar needs
+   * nothing, but the announcement costs one state change per open.
+   */
+  onPanelChange?: (open: boolean) => void;
+  /**
+   * `rail` is the reader's vertical column of actions beside a picture, a clip or a page of words; `row` is
+   * the compact horizontal line a *card* carries under its words (`PostActionRow` in a 9:16 cell).
+   * `whisper` and `card` are the two plates of the archive and the feed cards. The summary is the same in
+   * all four — only the plate and the edge the panel grows from change (the rail's plate is on the right,
+   * so its row grows left). The `bar` variant a page of words used to pass here is gone with the footer the
+   * owner rejected (20 October 2026): a page's presses are the rail now (`PostRail`).
+   */
+  variant?: 'card' | 'rail' | 'whisper' | 'row';
 }) {
   const [open, setOpen] = useState(false);
+  const [hover, setHover] = useState(0);
+  /** The page above is told only when the state really changes, never on every hover. */
+  useEffect(() => {
+    onPanelChange?.(open);
+  }, [open, onPanelChange]);
   const mine = viewerReaction(summary);
   const compact = reactionSummary(summary?.counts);
   const total = compact.total;
   const rail = variant === 'rail';
   const whisper = variant === 'whisper';
+  const row = variant === 'row';
+  /**
+   * The edge the panel grows from: the plate of a *card* is at the left of its row, the rail's plate is at
+   * the right of the screen, so the rail grows to the left and its first emoji is the one under the thumb
+   * that opened it. Both zones read the same way in `pickerIndexAt`.
+   */
+  const anchor: PickerAnchor = rail ? 'right' : 'left';
 
-  /** `viewerReactionSummaryMarkup`: the reader's own reaction (or the plain heart) plus the total. */
-  const railGlyph = mine && REACTION_GLYPHS[mine] ? REACTION_GLYPHS[mine] : REACTION_GLYPHS.LIKE;
+  /**
+   * The plate's own mark: the viewer's reaction, or the white heart of an untouched plate.
+   *
+   * The web's `viewerReactionHeart` was a white *outline* mark, which the owner read as "sters" on a
+   * dark plate, so the plate prints `REACTION_PICKER_GLYPHS` (the panel's own faces) — but the empty
+   * plate keeps a white heart on purpose (owner, 19 October 2026: after the second tap on a like
+   * "trebuie sa ramana inima alba, nu rosie"). A red heart here was `LOVE`'s own face, so a plate
+   * whose like had just been taken back looked exactly like one that still carried it. The emoji is
+   * the whole state: white heart for nothing chosen, the chosen face for everything else — the green
+   * ring that used to mark "on" is gone (`scoate-l`).
+   */
+  const plateGlyph = mine
+    ? (REACTION_PICKER_GLYPHS[mine] ?? REACTION_PICKER_GLYPHS.LIKE)
+    : REACTION_EMPTY_HEART;
+
+  /** The panel's rectangle in window coordinates — measured every time it opens (`pickerIndexAt`). */
+  const box = useRef<PickerBox>({ x: 0, y: 0, width: 0, height: 0 });
+  /**
+   * The plate's own rectangle, in the same coordinates. Since the row floats *above* the rail's plate
+   * (the owner's fourth correction), the thumb that holds it is below the pill — and still on the
+   * plate. That rectangle is handed to `pickerIndexAt`, which reads the row and the plate as one
+   * corridor for the thumb, so a slide never reads as "off the reaction" just because the row was
+   * lifted clear of the finger.
+   */
+  const plateBox = useRef<PickerBox>({ x: 0, y: 0, width: 0, height: 0 });
+  const plate = useRef<ElementRef<typeof View>>(null);
+  const palette = useRef<ElementRef<typeof View>>(null);
+  const hoverRef = useRef(0);
+  /**
+   * The finger along the row, in cells, as a value the panel interpolates every face's size from.
+   *
+   * It is written on every move (`setValue`) and never through `setState`: a thumb that slides across
+   * the row would otherwise re-render the whole panel sixty times a second. The *cell* under the finger
+   * is still state (`hover`), because the name chip and the chosen reaction may only change when the
+   * cell does — one re-render per emoji, not per pixel.
+   */
+  const motion = useRef(new Animated.Value(0)).current;
+  /** The gesture that is down right now: where it began, and whether it is the one that opened the panel. */
+  const press = useRef<{ timer: ReturnType<typeof setTimeout> | null; x: number; y: number; opened: boolean }>({
+    timer: null, x: 0, y: 0, opened: false,
+  });
+
+  const measurePlate = () => {
+    plate.current?.measureInWindow((x, y, width, height) => {
+      plateBox.current = { x, y, width, height };
+    });
+  };
+
+  const measure = () => {
+    measurePlate();
+    palette.current?.measureInWindow((x, y, width, height) => {
+      box.current = { x, y, width, height };
+      /**
+       * The panel opens on the first emoji — the one under the thumb — and `measure` moves the growth
+       * to the cell the thumb really is on. A thumb still on the plate reports no cell (`-1`), which is
+       * why the opening growth stays where `present` put it instead of vanishing under the finger.
+       */
+      const point = { x: press.current.x, y: press.current.y };
+      const at = pickerPositionAt(
+        box.current, point, anchor, SOCIAL_REACTIONS.length, plateBox.current,
+      );
+      if (at >= 0) {
+        motion.setValue(at);
+        aim(pickerIndexAt(box.current, point, anchor, SOCIAL_REACTIONS.length, plateBox.current));
+      }
+    });
+  };
+
+  /**
+   * The emoji the thumb points at: the only state a move writes, and only when it really changed.
+   * `-1` is a real answer — the thumb has left the pill — so the growth clears and a release from
+   * there chooses nothing.
+   */
+  const aim = (index: number) => {
+    if (index === hoverRef.current) return;
+    hoverRef.current = index;
+    setHover(index);
+  };
+
+  /**
+   * The panel opens on the first emoji — the one drawn under the thumb, at the left of a page's bar and
+   * at the right of a clip's row — and `measure` moves the growth to the cell the thumb really is on.
+   * The thumb owns the choice from the first frame, so a hold and a release never land on a reaction
+   * the owner did not point at. The plate is measured with it: the row is lifted clear of the finger,
+   * and the plate it grew from is what keeps the finger "on" the choice.
+   */
+  const present = () => {
+    measurePlate();
+    hoverRef.current = 0;
+    /**
+     * The row opens with the first emoji grown — the one drawn under the thumb — and `motion` starts on
+     * it, so the first frame after opening is already the magnified face rather than a row at rest.
+     */
+    motion.setValue(0);
+    setHover(0);
+    setOpen(true);
+  };
+
+  const choose = (kind: string) => {
+    setOpen(false);
+    onReact(kind, mine !== kind);
+  };
+
+  const stopTimer = () => {
+    if (press.current.timer) clearTimeout(press.current.timer);
+    press.current.timer = null;
+  };
+
+  /** One gesture from the plate to the panel: the same hand, the same touch, the same decision. */
+  const grip = {
+    onStartShouldSetResponderCapture: () => true,
+    onResponderTerminationRequest: () => !open,
+    onResponderGrant: (event: GestureResponderEvent) => {
+      const { pageX, pageY } = event.nativeEvent;
+      stopTimer();
+      press.current = { timer: null, x: pageX, y: pageY, opened: false };
+      if (open) return;
+      press.current.timer = setTimeout(() => {
+        press.current.timer = null;
+        press.current.opened = true;
+        present();
+      }, PICKER_HOLD_MS);
+    },
+    onResponderMove: (event: GestureResponderEvent) => {
+      const { pageX, pageY } = event.nativeEvent;
+      if (!open) {
+        /** A thumb that travels before the hold is a scroll or a swipe, never a decision. */
+        if (Math.abs(pageX - press.current.x) > 10 || Math.abs(pageY - press.current.y) > 10) stopTimer();
+        return;
+      }
+      /**
+       * Two answers from one finger, and both are needed: the *fraction* (`pickerPositionAt`) feeds the
+       * magnifier on every frame — that is what makes the nearest face grow while the thumb is still
+       * travelling towards it — and the *cell* (`pickerIndexAt`) is the state, written only when the
+       * finger really crosses into another emoji, so the name above the row and the release's choice
+       * change once per emoji and not once per pixel.
+       */
+      const point = { x: pageX, y: pageY };
+      const at = pickerPositionAt(box.current, point, anchor, SOCIAL_REACTIONS.length, plateBox.current);
+      motion.setValue(at);
+      aim(pickerIndexAt(box.current, point, anchor, SOCIAL_REACTIONS.length, plateBox.current));
+    },
+    onResponderRelease: () => {
+      stopTimer();
+      if (!open) {
+        /** A short press is the like the plate always was. */
+        onReact('LIKE', mine !== 'LIKE');
+        return;
+      }
+      /** The emoji the thumb last pointed at — never the finger's raw position, which may be stale. */
+      const kind = hoverRef.current >= 0 ? SOCIAL_REACTIONS[hoverRef.current] : null;
+      /**
+       * The thumb left the pill and let go: the panel closes unanswered. The owner asked for exactly
+       * this — a release off the reactions cancels them, and nothing forces a choice.
+       */
+      if (!kind) {
+        setOpen(false);
+        return;
+      }
+      choose(kind);
+    },
+    onResponderTerminate: () => {
+      stopTimer();
+      /** A scroll took the gesture: the panel closes unanswered, never a reaction nobody chose. */
+      if (press.current.opened) setOpen(false);
+    },
+  };
 
   return (
-    <View style={rail ? styles.railWrap : whisper ? [styles.whisperWrap, open && styles.whisperWrapOpen] : styles.cardWrap}>
+    <View
+      ref={plate}
+      collapsable={false}
+      {...grip}
+      style={rail
+        ? styles.railWrap
+        : row
+          ? [styles.rowWrap, open && styles.rowWrapOpen]
+          : whisper
+            ? [styles.whisperWrap, open && styles.whisperWrapOpen]
+            : styles.cardWrap}
+    >
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Deschide selectorul de reacții"
+        accessibilityHint="Ține apăsat pentru a alege o reacție"
         accessibilityState={{ expanded: open, selected: Boolean(mine) }}
-        onPress={() => setOpen((value) => !value)}
-        style={rail ? styles.railButton : whisper ? [styles.whisperButton, mine && styles.whisperButtonOn] : styles.cardButton}
+        /** Accessibility activation (a screen reader's click) still opens the panel it always did. */
+        onPress={() => (open ? setOpen(false) : present())}
+        style={rail
+          ? styles.railButton
+          : row
+            ? [styles.rowButton, mine && styles.rowButtonOn]
+            : whisper
+              ? [styles.whisperButton, mine && styles.whisperButtonOn]
+              : styles.cardButton}
       >
         {rail ? (
           <View style={styles.railDisc}>
-            {mine && mine !== 'LIKE'
-              ? <Text style={styles.railGlyph}>{railGlyph}</Text>
-              : <SolidViewerIcon kind="heart" size={29} />}
+            <Text style={styles.railGlyph}>{plateGlyph}</Text>
           </View>
         ) : (
           <View style={styles.metrics}>
             {compact.entries.map((entry) => (
               <View key={entry.kind} style={styles.metric}>
-                <Text style={[styles.metricGlyph, whisper && styles.whisperGlyph, whisper && mine && styles.whisperOn]}>{entry.glyph}</Text>
-                <Text style={[styles.metricCount, whisper && styles.whisperCount, whisper && mine && styles.whisperOn]}>{entry.count}</Text>
+                <Text style={[
+                  styles.metricGlyph,
+                  whisper && styles.whisperGlyph,
+                  row && styles.rowGlyph,
+                  whisper && mine && styles.whisperOn,
+                  row && mine && styles.rowOn,
+                ]}>{REACTION_PICKER_GLYPHS[entry.kind] ?? entry.glyph}</Text>
+                <Text style={[
+                  styles.metricCount,
+                  whisper && styles.whisperCount,
+                  row && styles.rowCount,
+                  whisper && mine && styles.whisperOn,
+                  row && mine && styles.rowOn,
+                ]}>{entry.count}</Text>
               </View>
             ))}
           </View>
@@ -75,28 +307,28 @@ export function ReactionControl({ summary, onReact, variant = 'card' }: {
       </Pressable>
 
       {open ? (
-        <View accessibilityLabel="Alege reacția" style={[styles.palette, rail && styles.railPalette, whisper && styles.whisperPalette]}>
-          {SOCIAL_REACTIONS.map((kind) => (
-            <Pressable
-              key={kind}
-              accessibilityRole="button"
-              accessibilityLabel={REACTION_TITLES[kind] ?? kind}
-              accessibilityState={{ selected: mine === kind }}
-              onPress={() => {
-                setOpen(false);
-                onReact(kind, mine !== kind);
-              }}
-              style={[styles.option, mine === kind && styles.optionOn]}
-            >
-              <Text style={styles.optionGlyph}>{REACTION_GLYPHS[kind]}</Text>
-              <Text style={styles.optionTitle} numberOfLines={1}>{REACTION_TITLES[kind] ?? kind}</Text>
-            </Pressable>
-          ))}
+        /**
+         * The panel floats over its own plate and never moves the row it was opened from. The holder is
+         * the view `measureInWindow` reads, so it must not be collapsed by the platform.
+         */
+        <View
+          ref={palette}
+          collapsable={false}
+          onLayout={measure}
+          style={[
+            styles.paletteSlot,
+            rail && styles.railPalette,
+            whisper && styles.whisperPalette,
+            row && styles.rowPalette,
+          ]}
+        >
+          <ReactionPalette anchor={anchor} motion={motion} hover={hover} mine={mine} onPick={choose} />
         </View>
       ) : null}
     </View>
   );
 }
+
 const styles = StyleSheet.create({
   /** `.clipQuickActions` column on the reader's rail; the card keeps its own action row. */
   railWrap: { alignItems: 'center' },
@@ -109,8 +341,8 @@ const styles = StyleSheet.create({
    * `grid-template-rows:39px 14px` floor. The disc holds the mark; the 39px row is its own height.
    */
   railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
-  /** `.clipQuickActions :is(.viewerSolidSvg,.viewerReactionHeart)` 29×29 — drawn at 28px to fill it. */
-  railGlyph: { color: '#ffffff', fontSize: 28, lineHeight: 29 },
+  /** `.viewerReactionHeart` was a 29px white outline mark; the owner asked for the emoji instead. */
+  railGlyph: { color: '#ffffff', fontSize: 26, lineHeight: 32, textAlign: 'center' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
   railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
   /** `.reactionSummaryGlyphs` — up to three glyph+count pairs, in the order the summary ranked them. */
@@ -118,32 +350,22 @@ const styles = StyleSheet.create({
   metric: { flexDirection: 'row', alignItems: 'center' },
   metricGlyph: { fontSize: 17, lineHeight: 20 },
   metricCount: { color: '#f5f8fa', fontSize: 11, fontWeight: '800' },
-  /** `.reactionBar.expanded` — 4 columns, gap 8, padding 10, radius 16, `rgba(5,14,20,.96)`, teal edge. */
-  palette: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 6,
-    padding: 10,
-    gap: 8,
-    width: 280,
-    borderWidth: 1,
-    borderColor: 'rgba(36,240,210,0.3)',
-    borderRadius: 16,
-    backgroundColor: 'rgba(5,14,20,0.96)',
-  },
-  railPalette: { position: 'absolute', right: 64, bottom: 0, marginTop: 0, zIndex: 50 },
-  option: {
-    width: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  /** `button[aria-pressed=true]` keeps the same plate, only brighter (no disc of its own). */
-  optionOn: { backgroundColor: 'rgba(255,255,255,0.08)' },
-  optionGlyph: { fontSize: 20, lineHeight: 24 },
-  optionTitle: { color: '#cfe0e8', fontSize: 10, fontWeight: '800' },
+  /**
+   * The panel's holder. It floats above its own plate — the panel is a gesture, so it must never move
+   * the row it was opened from — and carries no surface of its own: the pill is `ReactionPalette`.
+   */
+  paletteSlot: { marginTop: 6 },
+  /**
+   * Beside the rail, the row floats *above* the plate (the owner's fourth and fifth corrections, 19
+   * October 2026, and his sixth on 27 October 2026). Held at the plate's own height the finger covered
+   * the emoji it was choosing, and he asked for the row "puțin mai sus" — he could not see the reaction
+   * his thumb was pointing at while sliding left. The holder is the plate's own 56dp cell
+   * (`railButton`), so `bottom` is that cell plus 30dp of air: the pill ends 30dp above the plate's top
+   * edge, which clears both a resting thumb and the grown emoji that lifts another 10dp out of the row.
+   * `right: 64` leaves the pill's right edge 8dp left of the plate's own edge, in one column with it.
+   */
+  railPalette: { position: 'absolute', right: 64, bottom: 56 + 30, marginTop: 0, zIndex: 50 },
+
   /**
    * `.ownerWhisperAction` — the plate a whisper's action row gives the summary, and the one its two other
    * presses wear: `display:inline-flex;align-items:center;gap:6px;min-height:38px;padding:0 10px;
@@ -151,16 +373,16 @@ const styles = StyleSheet.create({
    * font-size:12px;font-weight:700`, with `on` reading `border-color:#27dccc;color:#6eecdf`
    * (`docs/web-ref/profile/tab-3.dom.json`: the row at y=751, 38 tall, the three plates 64/43/49 wide).
    *
-   * The wrapper is what the palette needs: the web floats it above its own button, so it must not push the
-   * row it was opened from. It carries the stacking order only while it is open, so a closed plate can
-   * never sit above a neighbour.
+   * The wrapper is what the panel needs: it floats above its own button, so it must not push the row it
+   * was opened from. It carries the stacking order only while it is open, so a closed plate can never
+   * sit above a neighbour.
    */
   whisperWrap: { position: 'relative' },
   whisperWrapOpen: { zIndex: 60 },
   whisperButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: socialTokens.archive.actionGap,
     minHeight: socialTokens.archive.actionMinHeight,
     paddingHorizontal: socialTokens.archive.actionPaddingHorizontal,
     borderWidth: 1,
@@ -174,7 +396,31 @@ const styles = StyleSheet.create({
   whisperCount: { color: socialTokens.archive.actionInk, fontSize: socialTokens.archive.actionMetricCountSize, fontWeight: '800' },
   /** Both parts `color:inherit`, so the plate's `on` ink paints the summary it holds. */
   whisperOn: { color: socialTokens.archive.actionOnInk },
-  /** `.reactionBar.expanded` floats: `bottom:calc(100% + 6px)` over a 38px plate. */
-  whisperPalette: { position: 'absolute', left: 0, bottom: socialTokens.archive.actionMinHeight + 6, marginTop: 0, zIndex: 60 },
-});
+  /** `.reactionBar` floats: `bottom:calc(100% + 6px)` over a 38px plate, raised to 18dp on the phone. */
+  whisperPalette: { position: 'absolute', left: 0, bottom: socialTokens.archive.actionMinHeight + 18, marginTop: 0, zIndex: 60 },
 
+  /**
+   * The post's action row (`variant="row"`). A picture is read with the thumb already on the words, so the
+   * plate lies flat beside its neighbours: one line, a finger's height, the same 11px summary the archive
+   * uses. It keeps `position:relative` for the same reason `whisperWrap` does — the panel must float.
+   */
+  rowWrap: { position: 'relative' },
+  rowWrapOpen: { zIndex: 60 },
+  rowButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: socialTokens.post.action.gap,
+    minHeight: socialTokens.post.action.minHeight,
+    paddingHorizontal: socialTokens.post.action.paddingInline,
+    borderWidth: 1,
+    borderColor: socialTokens.post.action.border,
+    borderRadius: socialTokens.post.action.radius,
+    backgroundColor: socialTokens.post.action.surface,
+  },
+  rowButtonOn: { borderColor: socialTokens.post.action.borderOn, backgroundColor: socialTokens.post.action.surfaceOn },
+  rowGlyph: { color: socialTokens.post.action.ink, fontSize: socialTokens.post.action.glyph, lineHeight: socialTokens.post.action.glyphLine },
+  rowCount: { color: socialTokens.post.action.ink, fontSize: socialTokens.post.action.count, fontWeight: '800' },
+  rowOn: { color: socialTokens.post.action.inkOn },
+  /** Opened above the row's plate (34px) with 18dp of air, so the thumb never hides the grown face. */
+  rowPalette: { position: 'absolute', left: 0, bottom: socialTokens.post.action.minHeight + 18, marginTop: 0, zIndex: 60 },
+});

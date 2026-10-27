@@ -3,7 +3,7 @@ import { Dimensions, StyleSheet, Text, View, type LayoutChangeEvent } from 'reac
 import { RemoteImage } from './PostMedia';
 import { mediaKindOf, type MediaItem } from '../lib/socialTypes';
 import { planTextTile, textTileCopy } from '../lib/profileTextTile';
-import type { ArchivePost } from '../lib/profileContent';
+import { repostAttribution, type ArchivePost } from '../lib/profileContent';
 import { pagePaletteOf, pageStyleForPost } from '../lib/textStyle';
 import { socialTokens } from '../theme/social';
 
@@ -63,6 +63,13 @@ export function ProfileTextTile({ post, media = null }: {
    * page behind it now prints.
    */
   const accent = pagePaletteOf(pageStyleForPost(post.text_style)).accent;
+  /**
+   * A redistributed page says so on its own paper: the copy of the archive's cell is somebody else's
+   * words carrying this profile's share, and a wall that showed only the words would look as if they
+   * were the owner's. One line, above the hairline, in the page's own accent — never a badge over the
+   * type, because the cell is a page and not a thumbnail.
+   */
+  const attribution = repostAttribution(post);
   const onLayout = (event: LayoutChangeEvent) => {
     const next = event.nativeEvent.layout;
     if (!next.width || !next.height) return;
@@ -78,6 +85,11 @@ export function ProfileTextTile({ post, media = null }: {
       style={styles.page}
     >
       <View style={[styles.rule, { backgroundColor: accent }]} />
+      {attribution ? (
+        <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={[styles.attribution, { color: accent }]}>
+          {`⟳ ${attribution}`}
+        </Text>
+      ) : null}
       <View style={plan.centred ? styles.wordsCentred : styles.words}>
         {plan.title ? (
           <Text
@@ -131,6 +143,11 @@ const styles = StyleSheet.create({
   },
   /** The hairline that carries the author's own theme into the page: the one decoration it allows itself. */
   rule: { width: reading.ruleWidth, height: reading.ruleHeight, borderRadius: reading.ruleHeight / 2 },
+  /**
+   * The share's own line (`repostAttribution`), set small above the hairline it explains: the page's
+   * accent, one line, clipped rather than pushed, so a long handle cannot re-type the leaf.
+   */
+  attribution: { fontSize: 9, fontFamily: reading.face, fontWeight: '700', letterSpacing: 0.2, marginBottom: 3 },
   words: { flex: 1, marginTop: 5 },
   /** A title page's words sit in the optical middle of the paper, not against its top edge. */
   wordsCentred: { flex: 1, justifyContent: 'center' },

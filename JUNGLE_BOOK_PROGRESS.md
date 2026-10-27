@@ -2646,3 +2646,127 @@ cheamă mereu cu `-s 192.168.1.184:39097`), aplicația în prim-plan, contul `@w
 2. `test-ticker-parity.cjs` rămâne singurul eșec din `scripts/` și este dinainte de rundă
    (`apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i); nu este în lanțul `test`.
 
+
+## 24. Redistribuiri, paleta, banda și editorul — runda de reparat (27 octombrie 2026)
+
+### 24.1 Punctul de plecare (măsurat, nu presupus)
+
+- `HEAD` = `573a798`, branch `codex/camera-draft-stability`, 47 fișiere modificate + 230 nepublicate,
+  moștenite din rundele anterioare. Nimic nu s-a pierdut: runda lucrează peste ele.
+- Telefonul era pe **Instagram**, apoi pe **Settings/Bluetooth**. A fost readus în aplicație cu
+  `am start -n app.nexus.mobile.dev/.MainActivity` (mecanismul normal de lansare), nu cu alt build.
+- Backend-ul care hrănește telefonul NU este cel din repo: `apiOrigin.ts` ia gazda Metro și portul 5000,
+  iar procesul care ascultă pe 5000 rulează din **`C:\Nexus`** cu baza `C:\Nexus\data\nexus.sqlite`.
+  Contul logat este **user 12** (`wallet4e8gv6`, persona social) — nu user 13 din
+  `apps/nexus-web/data/nexus.sqlite`, pe care prima verificare îl citise degeaba. Toate dovezile de API
+  din runda asta se citesc din baza vie.
+- `animator_duration_scale = 0`, `transition_animation_scale = 0`, `window_animation_scale = 0` pe Xiaomi.
+
+### 24.2 Ce s-a dovedit stricat, cu cauza
+
+1. **Banda profilului stă pe loc.** `ProfileBand` citește `AccessibilityInfo.isReduceMotionEnabled()`,
+   care pe Android este chiar `ANIMATOR_DURATION_SCALE`; telefonul are toate cele trei scale pe 0, deci
+   ramura „reduced motion" oprește linia la zero. Regresia a intrat pe 26 octombrie, când oprirea a fost
+   adăugată ca să poată fi citită ierarhia UI pe telefon — adică exact efectul secundar pe care îl
+   raportează proprietarul. `lib/bandMotion.ts` scrie deja decizia de produs („comutatorul produsului,
+   nu al sistemului"), deci codul contrazicea documentul.
+2. **Editorul de profil nu se poate salva.** Câmpurile, validarea și `PATCH /api/persona/social` merg
+   (dovadă: numele a fost schimbat și scris în bază). Dar foaia are `maxHeight: '92%'` fără `flexShrink`
+   pe `ScrollView`, deci rândul de salvare iese sub bara de navigație a sistemului: atins în mijloc,
+   evenimentul ajunge la butonul Home și aplicația pleacă pe launcher (măsurat: `input tap 600 2545` →
+   launcher; `input tap 600 2500`, în sliverul de deasupra barei → salvare scrisă în bază).
+3. **Paleta de reacții** răspunde (hold 700 ms o deschide, glisarea alege, eliberarea scrie în
+   `post_reactions`), dar creșterea sare din celulă în celulă: `hover` este un indice întreg, iar
+   `Animated.spring` aleargă după el. Proprietarul cere ca emoji-ul să crească *continuu*, cât timp
+   degetul se apropie, iar rândul să stea mai sus.
+
+
+### 24.3 Ce s-a schimbat (fișiere și de ce)
+
+1. **Redistribuiri** — `lib/profileContent.ts`: al cincilea tab este `redistribuiri`
+   (`CONTENT_TAB_LABELS` → „Redistribuiri", glifa `⟳`, `CONTENT_KINDS.redistribuiri = 'repost'`,
+   propozițiile stării goale). `contentOfTab` citește *nodul* (`__repost`), nu un tip de postare, iar
+   `wallBands` păstrează ordinea arhivei pentru acest tab (un tab de colecție pune altfel media înaintea
+   cuvintelor). `repostAttribution` scrie o linie: „Ai redistribuit" / „Redistribuit de @handle" /
+   „Redistribuit"; `ProfileTile` o pune ca chip pe o celulă cu imagine, `ProfileTextTile` o tipărește pe
+   hârtia paginii — o dată, niciodată de două ori. `ProfileScreen` nu mai are ramura `moments`; raftul de
+   story-uri salvate rămâne desenat pe **Flux**, deasupra peretelui și doar când are ce arăta. Tab-ul
+   `moments` a fost *înlocuit*, nu dublat. `ProfileEmptyState` are icoana de distribuire.
+2. **Paleta de reacții** — `lib/reactionPicker.ts` are acum `pickerPositionAt` (poziția *continuă* a
+   degetului, în celule: 0 … count-1, `-1` în afara pastilei) lângă `pickerIndexAt` (celula, care este
+   `floor`-ul aceleiași funcții); `PICKER_GROW = 1.32`, `PICKER_LIFT = -10`. `ReactionControl` scrie
+   fracția într-un `Animated.Value` la fiecare mișcare (`setValue`, fără re-randare) și ține `hover`
+   (numele + alegerea) doar la schimbarea celulei; `ReactionPalette` interpolează fiecare față din
+   fracție, deci emoji-ul crește cât timp degetul se apropie. Pastila stă mai sus: 30dp deasupra plăcii
+   din rail (era 16) și 18dp deasupra plăcilor de card/whisper/row (era 6).
+3. **Pagina de cuvinte** — `lib/textPage.ts` (nou, pur): `TEXT_PAGE_HEAD = { disc: 54, name: 17,
+   handle: 13 }`, `TEXT_PAGE_RAIL_GUTTER = 72`, `RAIL_FOOTPRINT = 66`, `wordPageHead`, `wordPageGutter`.
+   `PostCanvas` le cheamă numai pentru `page && !tile && stage ∈ {text, article}`: hârtia rămâne
+   `absoluteFill`, capul crește, iar textul câștigă 6dp lățime pe care rail-ul le ținea degeaba (56dp
+   celulă + 10dp margine + 6dp aer). O fotografie, un clip și o celulă primesc exact `metrics` de dinainte.
+4. **Banda (ticker)** — `ProfileBand` nu mai citește setarea sistemului; se oprește pe atinsă (regula
+   cititorului) și cât timp ecranul nu este în față (`active`, dat de `ProfileScreen` prin
+   `useFocusEffect`), și pornește din punctul în care stătea când revine. Aritmetica este neschimbată
+   (`lib/bandMotion.ts`).
+5. **Editorul de profil** — `ProfileEditSheet` citește `useSafeAreaInsets()` și își adaugă insetul la
+   padding-ul de jos (`SHEET_PADDING_BOTTOM = 18`), foaia poate folosi tot ecranul (`maxHeight: '100%'`),
+   iar câmpurile se strâng și derulează (`scroll: { flexShrink: 1 }`) în loc să împingă salvarea sub bara
+   de navigație a sistemului.
+
+
+### 24.4 Ce s-a dovedit pe Xiaomi (27 octombrie, build dev de la Metro 192.168.1.153:8081)
+
+Aplicația a fost readusă din dev-launcher (`nexusdev://expo-development-client/?url=…`) după ce
+telefonul fusese în Instagram, apoi în Settings/Bluetooth — nu a fost lăsată într-o altă aplicație.
+
+| Ce | Cum s-a măsurat | Rezultat |
+|---|---|---|
+| Al cincilea tab | `uiautomator dump` al profilului | „Redistribuiri" la `[884,964][1106,1084]`, glifa `⟳`; „Momente" nu mai există |
+| Conținutul tab-ului | dump + `post_shares` din `C:\Nexus\data\nexus.sqlite` | exact două celule: postarea 27 (share 5) și postarea 15 (share 4) — singurele repostări ale userului 12 |
+| Atribuirea | dump | chip „⟳ Ai redistribuit" pe celula video și rând „⟳ Ai redistribuit" pe pagina de hârtie |
+| Identitatea | tap pe celula 1 → „1/2" cu clipul din Veneția (post 27); swipe → „2/2" cu „[test] Tweetul de verificare…" (post 15, @urailwaytest01a20d) | fiecare celulă deschide exact postarea pe care o numește |
+| Starea goală | profilul @urailwaytest01a20d (nici o redistribuire) | „Nicio redistribuire încă. Postările pe care le redistribui din feed apar aici, cu autorul lor." |
+| Banda: mișcare | două capturi la 1,8 s, diff pe regiunea benzii (`y 615…715` din JPG-ul de 900px) | **2963 / 22500** pixeși schimbați; antetul (control, `y 150…300`) **0 / 33750** |
+| Banda: pauză/reluare | atinsă → dump-ul se așază și eticheta devine „(banda oprită)"; atinsă iar → două capturi diferă | banda se oprește și repornește din același loc |
+| Banda: după navigare | cititor → înapoi pe profil → două capturi | diferă (banda a repornit la revenire) |
+| Paleta: urmărirea degetului | `input motionevent` DOWN/MOVE + dump la fiecare pas, pe pagina de cuvinte | chip-ul: 950→„Like", 850→„Love", 750→„Haha", 650→„Wow" — fără salturi |
+| Paleta: alegerea | UP la 650 | `post_reactions` (post 41, user 12) = **WOW**, exact emoji-ul arătat |
+| Paleta: anulare | DOWN, MOVE în afara pastilei (300, 2400), UP | reacția a rămas WOW, pastila s-a închis |
+| Paleta: mai sus | dump în timpul ținerii, înainte/după | chip-ul s-a ridicat cu 36px (≈13dp), exact cât s-a adăugat la `railPalette` |
+| Paleta pe un Reel | gest pe pagina clipului postării 4 | „Love" crescut, chip „Love", iar `POST /api/posts/4/reaction` apare în `server-2026-10-27.log` — postarea afișată, nu alta |
+| Capul paginii de cuvinte | dump | blocul autorului `[36,150][838,290]` (140px) față de `[36,150][838,259]` (109px) pe un clip — creșterea cerută, doar pe text |
+| Lățimea articolului | dump | „Pagina articolului" ajunge la x=996 (era 981), iar placa reacției începe la 1048: textul nu intră sub butoane |
+| Hârtia | capturi `paper-text-head`, `paper-repost-second` | pagina caldă acoperă tot ecranul, fără zone verzi/negre |
+| Fotografie/clip neschimbate | dump pe clipul postării 4 | cap `[36,2041][981,2150]` = 109px, adică exact vechiul cap de 42dp |
+| Editorul: salvare | „Editează profilul" → nume + `X` → tap în *mijlocul* butonului Salvează (600, 2423) | foaia s-a închis, aplicația a rămas în față, `personas.name` = „wallet4e8gv6 (social)X" |
+| Editorul: restaurare | editat înapoi, salvat | `personas.name` = „wallet4e8gv6 (social)" |
+| Editorul: anulare | tastat `Z`, apăsat × | antetul și baza rămân „wallet4e8gv6 (social)" |
+| Editorul: așezarea | dump | „Salvează" la `[44,2361][1176,2486]`, deasupra barei de sistem (înainte `[44,2484][1176,2609]`, sub ea) |
+
+Reacțiile atinse în timpul probei au fost puse la loc: postarea 41 are din nou `HAHA` (starea în care a
+fost găsită), iar rândul creat pe postarea 4 a fost retras. Numele profilului a fost restaurat.
+
+
+### 24.5 Teste automate (rulate, nu promise)
+
+- `npm.cmd test` în `apps/nexus-mobile`: **EXIT=0**, 45 de scripturi, 42 de suite `node:test` cu
+  `fail 0`. Suite noi: `test-profile-reposts.cjs` (5 cazuri) și `test-text-page.cjs` (5 cazuri).
+- `node --test scripts/test-profile-grid.cjs` — 18/18 (testul benzii rescris pe regula nouă).
+- `node --test scripts/test-reaction-palette.cjs` — 15/15, inclusiv cazul nou „lupa urmează degetul
+  continuu".
+- `node --test scripts/test-profile-content-parity.cjs` — 8/8 (al cincilea tab, raftul pe Flux).
+- `node --test scripts/test-profile-edit.cjs` — 10/10 (cazul nou al insetului).
+- `node --test scripts/test-profile-band.cjs` — 12/12; `test-hero-parity.cjs` și `test-band-motion.cjs`
+  actualizate pe `active`.
+- `npx.cmd tsc --noEmit` — curat.
+
+### 24.6 Ce rămâne deschis
+
+1. **Tragerea în grilă** după schimbarea `Pressable`/paginii rămâne neexersată pe telefon (aceeași
+   blocare ca în §23.7: proprietarul trebuie să tragă, să repornească la rece și să vadă ordinea).
+2. **`test-ticker-parity.cjs`** rămâne singurul eșec preexistent din `scripts/` (nu este în lanțul
+   `npm test`, iar `apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i).
+3. Capturile care dovedesc runda sunt în `docs/vision/` (director git-ignorat): `paper-redistribuiri`,
+   `paper-redistribuiri-empty`, `paper-repost-open`, `paper-repost-second`, `paper-text-head`,
+   `picker2-hold`, `picker2-m2`, `picker2-reel`, `band-final-a|b`.
+

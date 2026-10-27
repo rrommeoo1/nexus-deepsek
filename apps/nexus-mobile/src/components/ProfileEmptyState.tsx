@@ -14,7 +14,8 @@ const ICONS: Record<ContentTab, ReactNode> = {
   reels: <><Rect x={4} y={5} width={16} height={14} rx={3} /><Path d="m10 9 5 3-5 3z" /></>,
   shots: <><Rect x={4} y={6} width={16} height={12} rx={3} /><Circle cx={9} cy={11} r={2} /><Path d="m5 17 5-5 4 4 3-2 2 3" /></>,
   whispers: <><Path d="M20 4c-6 1-11 5-13 11l-3 5" /><Path d="M20 4c1 5-2 9-7 10l-4 1" /></>,
-  moments: <><Path d="M12 3v18" /><Path d="M3 12h18" /><Circle cx={12} cy={12} r={8.5} /></>,
+  /** The share mark the wall and the web's own card print (`⟳`), drawn as the same two-arrow stroke. */
+  redistribuiri: <><Path d="M4 9a8 8 0 0 1 13-3" /><Path d="M20 15a8 8 0 0 1-13 3" /><Path d="M17 3v3h-3" /><Path d="M7 21v-3h3" /></>,
 };
 
 /**

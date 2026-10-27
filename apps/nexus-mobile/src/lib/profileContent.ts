@@ -21,37 +21,46 @@ import { arrangementRank, type Arrangement } from './profileGrid';
  * reads (`interface-locale.js`).
  */
 
-/** `CONTENT_TAB_ORDER` (`profile-experience.js:19`) — the order the product reads its five tabs in. */
-export const CONTENT_TAB_ORDER = ['flow', 'reels', 'shots', 'whispers', 'moments'] as const;
+/**
+ * `CONTENT_TAB_ORDER` (`profile-experience.js:19`) — the order the product reads its five tabs in.
+ *
+ * The fifth tab was `moments` (the saved-story shelf of the web). The owner replaced it on
+ * 27 October 2026 with **Redistribuiri**: the posts this profile has actually redistributed, which is a
+ * kind of post the archive already carries (`__repost`) and which had no tab of its own. The shelf did
+ * not disappear with the tab — the Flow draws it above the wall when it holds anything
+ * (`ProfileScreen`), because a saved story is still the owner's.
+ */
+export const CONTENT_TAB_ORDER = ['flow', 'reels', 'shots', 'whispers', 'redistribuiri'] as const;
 
 export type ContentTab = typeof CONTENT_TAB_ORDER[number];
 
 /** `CONTENT_TAB_GLYPHS` (`profile-experience.js:16`) — the bar prints the sign, not the word. */
 export const CONTENT_TAB_GLYPHS: Record<ContentTab, string> = {
-  flow: '≡', reels: '▶', shots: '▦', whispers: '❝', moments: '✦',
+  flow: '≡', reels: '▶', shots: '▦', whispers: '❝', redistribuiri: '⟳',
 };
 
 /** The `profile.tab*` names of the ro-RO bundle: the accessible name of each tab, which is never printed. */
 export const CONTENT_TAB_LABELS: Record<ContentTab, string> = {
-  flow: 'Flux', reels: 'Reels', shots: 'Fotografii', whispers: 'Șoapte', moments: 'Momente',
+  flow: 'Flux', reels: 'Reels', shots: 'Fotografii', whispers: 'Șoapte', redistribuiri: 'Redistribuiri',
 };
 
 /** `profilePostKind` (`profile-experience.js:82-86`): the kind of the post's cover media, or words. */
 export type PostKind = 'video' | 'image' | 'text';
 
 /**
- * The kind a tab reads. `moments` is not a kind of post at all: the web names it `'moment'`
- * (`profile-experience.js:13`), which `profilePostKind` never returns, so the shelf is empty by
- * construction — the saved stories answer in their own panel instead of in a list of posts.
+ * The kind a tab reads. A tab is one of the three kinds of post — or `repost`, which is not a kind of
+ * *post* but a kind of *node*: the same post can stand on the wall twice, once as itself and once as
+ * the share somebody made of it (`archiveKey`), and Redistribuiri reads only the shares.
  */
-export type ContentKind = PostKind | 'moment';
+export type ContentKind = PostKind | 'repost';
 
 /**
  * `CONTENT_KINDS` (`profile-experience.js:13`): which kind of node a tab reads. Flow reads everything
- * (`null`), and Moments reads a kind no post has, which is what makes its own shelf the only answer.
+ * (`null`), the three collection tabs read one kind of post, and Redistribuiri reads the shares —
+ * a filter on `__repost`, which no other tab applies.
  */
 export const CONTENT_KINDS: Record<ContentTab, ContentKind | null> = {
-  flow: null, reels: 'video', shots: 'image', whispers: 'text', moments: 'moment',
+  flow: null, reels: 'video', shots: 'image', whispers: 'text', redistribuiri: 'repost',
 };
 
 /** `CONTENT_FILTERS` (`profile-experience.js:22`) and `profile.filter*` of the ro-RO bundle. */
@@ -112,6 +121,57 @@ export function archiveStamp(post?: ArchivePost | null): number {
 /** The identity of one node in the archive: a repost and the post it carries are two different nodes. */
 export function archiveKey(post: ArchivePost): string {
   return post.__repost ? `repost-${Number(post.__repost.id) || 0}` : `post-${Number(post.id) || 0}`;
+}
+
+/**
+ * Whose share a cell stands for, in one line — the wall's contribution to the owner's rule that a
+ * redistribution names the author it carries.
+ *
+ * A repost cell is somebody else's post wearing this profile's share. Saying only the original author
+ * is not enough (the wall would look as if the profile had written it) and saying only "redistribuit"
+ * is worse (it would hide who wrote it). So the line names the *share* here, and the cell's own words
+ * are still the author's, which the tile prints and the reader repeats. `mine` keeps the first person
+ * the web uses (`x.repost.mine`, `x.repost.by`).
+ */
+export function repostAttribution(post?: ArchivePost | null): string {
+  const stamp = post?.__repost;
+  if (!stamp) return '';
+  if (stamp.mine) return 'Ai redistribuit';
+  const handle = String(stamp.reposter?.handle ?? '').trim();
+  return handle ? `Redistribuit de @${handle}` : 'Redistribuit';
+}
+
+/**
+ * Where the cell a door was opened for really stands in the list a reader walks.
+ *
+ * A wall can hand its reader a *place* (the third cell of nine) or a *cell* (`archiveKey`), and only the
+ * second one is safe. The reader fetches the archive again instead of receiving the wall's array, so
+ * between the two fetches a drag the server has not answered yet, a pin, a deletion or a post written from
+ * another device can move every cell by one — and a place is then a number about a list that no longer
+ * exists. That is how a tap on the second thumbnail opened the third post.
+ *
+ * The key decides first, because it is the one identity that tells a repost from the post it carries
+ * (both share `post.id`, and both are cells of the same wall). The post's own id is the second chance, for
+ * a payload that stamped a share differently from the wall that was pressed. `-1` says the pressed cell is
+ * not in this archive at all, which a caller must read as "open the post that was pressed" — never as
+ * "open whichever post stands where it used to".
+ */
+export function walkAnchor(
+  list: readonly ArchivePost[],
+  wanted: { key?: string | null; id?: number | null },
+): number {
+  const nodes: readonly ArchivePost[] = Array.isArray(list) ? list : [];
+  const key = String(wanted.key ?? '').trim();
+  if (key) {
+    const at = nodes.findIndex((post) => archiveKey(post) === key);
+    if (at >= 0) return at;
+  }
+  const id = Number(wanted.id);
+  if (Number.isSafeInteger(id) && id > 0) {
+    const at = nodes.findIndex((post) => Number(post.id) === id);
+    if (at >= 0) return at;
+  }
+  return -1;
 }
 
 /** `profileContentBuckets` (`profile-experience.js:110-119`): newest first, then by id, split by kind. */
@@ -183,10 +243,26 @@ export function orderArchive(posts: ArchivePost[], reading: ContentReading, opti
 /** `applyOrder`'s own catalogue limit (`profile-experience.js:499`): the archive shows its first 24. */
 export const PROFILE_ARCHIVE_LIMIT = 24;
 
-/** `CONTENT_KINDS` read as one list: the tab's nodes, still in the order `orderArchive` gave them. */
+/** A node of the archive is a share when the payload stamped it with the share it arrived through. */
+export function isRepost(post?: ArchivePost | null): boolean {
+  return Boolean(post?.__repost);
+}
+
+/**
+ * `CONTENT_KINDS` read as one list: the tab's nodes, still in the order `orderArchive` gave them.
+ *
+ * Redistribuiri is the one tab that reads a *node* rather than a kind of post: a share of a reel, a
+ * share of a photograph and a share of a page of words are all redistributions, and the original post
+ * standing on the wall beside them is not — even when the owner wrote it. That is the difference the
+ * owner asked to see, and it is decided by the node's own stamp (`__repost`), never by the post.
+ */
 export function contentOfTab(posts: ArchivePost[], tab: ContentTab): { list: ArchivePost[]; tiles: ArchivePost[]; whispers: ArchivePost[] } {
   const wanted = CONTENT_KINDS[tab];
-  const list = wanted === null ? posts : posts.filter((post) => profilePostKind(post) === wanted);
+  const list = wanted === null
+    ? posts
+    : wanted === 'repost'
+      ? posts.filter((post) => isRepost(post))
+      : posts.filter((post) => profilePostKind(post) === wanted);
   return {
     list,
     tiles: list.filter((post) => profilePostKind(post) !== 'text'),
@@ -345,6 +421,92 @@ export function tileBands(nodes: ArchiveNode[], options: { columns?: number; til
   return rows;
 }
 
+/**
+ * The Flow draws a whisper as a full-width card; a *profile* reads its posts as cells. This gathers the
+ * whispers of a stream into rows of three 9:16 cells and leaves every other band where it was, so the Flow
+ * is the same wall of miniatures the collection tabs draw — text posts included. The band builder itself
+ * (`archiveBands`) is untouched, so the web-parity suite still reads the same buckets.
+ *
+ * A card (a shared reply) used to flush the row it interrupted, which left a row of one or two cells and
+ * two empty thirds beside it - the "unexplained gap" the owner saw on the phone. The cells of the Flow are
+ * therefore gathered by their own order across the cards and cut into full rows of three; the cards keep
+ * their own order and stand after the wall, where they have the width they were drawn for.
+ */
+export function flowBands(bands: ArchiveBand[], columns = 3): ArchiveBand[] {
+  const width = Math.max(1, Math.floor(columns) || 1);
+  const posts: ArchivePost[] = [];
+  const cards: ArchiveBand[] = [];
+  for (const band of bands) {
+    if (band.kind === 'tiles') posts.push(...band.posts);
+    else if (band.kind === 'whisper') posts.push(band.post);
+    else cards.push(band);
+  }
+  const rows: ArchiveBand[] = [];
+  for (let index = 0; index < posts.length; index += width) {
+    const slice = posts.slice(index, index + width);
+    rows.push({ key: `whisper-row-${archiveKey(slice[0])}`, kind: 'tiles', posts: slice });
+  }
+  return [...rows, ...cards];
+}
+
+/**
+ * The bands a profile's wall draws, in the order it draws them: one definition for the screen that draws
+ * them and for the reader a cell of them opens.
+ *
+ * This exists because the two lists drifted once already. The wall drew its cells from the archive *nodes*
+ * (`archive.posts`, reposts included), while the reader rebuilt the same list from the payload's raw
+ * `posts`, so a repost had no place in the reader's arrangement (`arrangementMap` reads `-shareId`) and
+ * sorted above every placed cell — the reader opened on the right post and then offered the wall's last
+ * cell as the second page. One function, called by both, is the only way that stays true.
+ *
+ * The tab's own reading applies: the Flow is every node woven by time with the whispers regathered as
+ * cells (`flowBands`), a collection tab is its own kind of post in rows of three (`tileBands`), and Moments
+ * reads no post at all, which is why its own shelf is the only answer there.
+ */
+export function wallBands(
+  archive: { posts: ArchivePost[]; sharedReplies: SharedReplyCard[] },
+  tab: ContentTab,
+  reading: ContentReading,
+  options: { arrangement?: Arrangement | null; columns?: number } = {},
+): ArchiveBand[] {
+  const columns = Math.max(1, Math.floor(options.columns ?? 3) || 1);
+  if (tab === 'flow') {
+    return flowBands(archiveBands(archiveNodes(archive, reading, { hoistPins: true, arrangement: options.arrangement })), columns);
+  }
+  const content = contentOfTab(orderArchive(archive.posts, reading, { hoistPins: true, arrangement: options.arrangement }), tab);
+  /**
+   * A collection tab draws its media first and its pages of words after that, because a tab of one kind
+   * never holds both. Redistribuiri holds both — a share of a reel and a share of a page of words are the
+   * same kind of node — so it keeps the archive's own order instead of sorting words to the end: the tab
+   * is a list of shares, in the order the profile shares them.
+   */
+  const nodes: ArchiveNode[] = tab === 'redistribuiri'
+    ? content.list.map((post): ArchiveNode => ({
+      key: archiveKey(post),
+      kind: profilePostKind(post) === 'text' ? 'whisper' : 'tile',
+      post,
+    }))
+    : [
+      ...content.tiles.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'tile', post })),
+      ...content.whispers.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'whisper', post })),
+    ];
+  return tileBands(nodes, { columns });
+}
+
+/**
+ * The cells of a wall, in the order it draws them: the rows flattened, one post per cell, and the shared
+ * replies left out because a reply is a comment that was shared — it can be neither placed, pinned nor
+ * opened as a post. This is the list a vertical swipe walks.
+ */
+export function wallPosts(bands: readonly ArchiveBand[] | null | undefined): ArchivePost[] {
+  const list: ArchivePost[] = [];
+  for (const band of Array.isArray(bands) ? bands : []) {
+    if (band.kind === 'tiles') list.push(...band.posts);
+    else if (band.kind === 'whisper') list.push(band.post);
+  }
+  return list;
+}
+
 /** `profileCompactCount` (`profile-experience.js:106-108`): the ro-RO compact reading of a count. */
 export function profileCompactCount(value?: number | null): string {
   const count = Math.max(0, Math.floor(Number(value) || 0));
@@ -366,7 +528,10 @@ export const PROFILE_EMPTY_STATES: Record<ContentTab, { title: string; detail: s
   reels: { title: 'Niciun reel încă.', detail: 'Înregistrează primul.' },
   shots: { title: 'Nicio fotografie încă.', detail: 'Încarcă prima.' },
   whispers: { title: 'Nicio șoaptă încă.', detail: 'Împărtășește prima.' },
-  moments: { title: 'Niciun moment salvat', detail: 'Story-urile salvate apar aici, în ordinea în care le-ai păstrat.' },
+  redistribuiri: {
+    title: 'Nicio redistribuire încă.',
+    detail: 'Postările pe care le redistribui din feed apar aici, cu autorul lor.',
+  },
 };
 
 /**

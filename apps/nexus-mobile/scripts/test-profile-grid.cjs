@@ -225,8 +225,7 @@ test('the arrangement is written to the route that stores it, and the order is r
   assert.match(screenCode, /setArranged\(reordered\)/);
   assert.match(screenCode, /void persistOrder\(placeableIds\(/);
   assert.match(screenCode, /const arrangement = useMemo<Arrangement>\(\s+\(\) => \(arranged \? optimisticArrangement\(arranged\) : arrangementMap\(archive\.posts\)\),/);
-  assert.match(screenCode, /archiveNodes\(archive, reading, \{ hoistPins: true, arrangement \}\)/);
-  assert.match(screenCode, /nodesOfTab\(archive\.posts, tab, reading, arrangement\)/);
+  assert.match(screenCode, /wallBands\(archive, tab, readings\[tab\], \{ arrangement, columns: socialTokens\.archive\.gridColumns \}\)/);
 });
 
 test('a repost is a tile of the same arrangement, written to its own share', () => {
@@ -291,6 +290,53 @@ test('the archive keeps a repost’s place from the payload, not the post’s ow
   assert.equal(places.get(8), undefined, 'the original post’s own place from another profile is never adopted');
 });
 
+test('the wall and the reader draw one list, and a repost stands where the owner dragged it', () => {
+  const payload = {
+    posts: [
+      { id: 12, caption: 'a', created_at: 300, grid_position: 0 },
+      { id: 13, caption: 'b', created_at: 200, grid_position: 1, media: { kind: 'image', hash: 'b1', url: 'b.jpg' } },
+      { id: 14, caption: 'c', created_at: 100, grid_position: 2 },
+    ],
+    reposts: [{
+      share_id: 4,
+      reposted_at: 400,
+      grid_position: 3,
+      post: { id: 8, caption: 'shared', created_at: 50 },
+    }],
+    shared_replies: [{ comment: { id: 9, created_at: 120, handle: 'ana' }, post: { id: 13 }, shared_at: 130 }],
+  };
+  const archive = content.profileArchive(payload);
+  /**
+   * The reported wall: three posts and a repost, every cell placed. Reading the places from the payload's raw
+   * `posts` is the bug — the share lives in `reposts`, so it had no place at all and sorted above every placed
+   * cell. The reader then opened the pressed post and walked to the wall's last cell, whose like is `repost-4`
+   * here standing first.
+   */
+  const drifted = content.wallPosts(content.wallBands(archive, 'flow', 'newest', { arrangement: grid.arrangementMap(payload.posts) }));
+  assert.deepEqual(drifted.map((post) => content.archiveKey(post)), ['repost-4', 'post-12', 'post-13', 'post-14']);
+
+  const arrangement = grid.arrangementMap(archive.posts);
+  const bands = content.wallBands(archive, 'flow', 'newest', { arrangement });
+  const cells = content.wallPosts(bands);
+  // The wall's own order, which is the order the reader walks: the repost stays where the owner dragged it.
+  assert.deepEqual(cells.map((post) => content.archiveKey(post)), ['post-12', 'post-13', 'post-14', 'repost-4']);
+  // A shared reply is a card of the wall and never a page of the walk.
+  assert.ok(bands.some((band) => band.kind === 'reply'), 'the shared reply is drawn');
+  assert.equal(cells.length, archive.posts.length, 'one cell per post, no reply');
+  // A collection tab reads the same archive in one kind, and its texts stay cells there too.
+  const whispers = content.wallPosts(content.wallBands(archive, 'whispers', 'newest', { arrangement }));
+  assert.deepEqual(whispers.map((post) => content.archiveKey(post)), ['post-12', 'post-14', 'repost-4']);
+  // Redistribuiri reads the shares of every kind — the page of words included — and nothing else.
+  const redistributed = content.wallPosts(content.wallBands(archive, 'redistribuiri', 'newest', { arrangement }));
+  assert.deepEqual(redistributed.map((post) => content.archiveKey(post)), ['repost-4']);
+  assert.equal(content.repostAttribution(redistributed[0]), 'Redistribuit');
+  assert.equal(content.repostAttribution({ ...redistributed[0], __repost: { id: 4, mine: true } }), 'Ai redistribuit');
+  assert.equal(
+    content.repostAttribution({ ...redistributed[0], __repost: { id: 5, reposter: { handle: 'ana' } } }),
+    'Redistribuit de @ana',
+  );
+});
+
 test('pin and delete are the two actions of a managed cell, on the routes the server owns', () => {
   assert.match(tileCode, /accessibilityLabel=\{`\$\{manage\.pinWord\} postarea \$\{post\.id\}`\}/);
   assert.match(tileCode, /accessibilityLabel=\{`Șterge postarea \$\{post\.id\}`\}/);
@@ -314,12 +360,21 @@ test('a deletion asks first, and cancelling it changes nothing', () => {
 
 
 test('a cell carries the order it was opened from, and the reader walks that order', () => {
-  assert.match(tileCode, /params: door\s+\? \{ id: String\(post\.id\), profile: door\.handle, tab: door\.tab, reading: door\.reading, index: String\(door\.index\) \}/);
-  assert.match(screenCode, /door=\{\{ handle: String\(profile\?\.handle \|\| handle\), tab, reading: readings\[tab\], index: placeOf\[archiveKey\(post\)\] \?\? 0 \}\}/);
+  assert.match(tileCode, /params: door\s+\? \{ id: String\(post\.id\), key: door\.key, profile: door\.handle, tab: door\.tab, reading: door\.reading \}/);
+  assert.match(screenCode, /door=\{\{ handle: String\(profile\?\.handle \|\| handle\), key: archiveKey\(post\), tab, reading: readings\[tab\] \}\}/);
+  assert.match(screenCode, /door=\{\{ handle: String\(profile\?\.handle \|\| handle\), key: archiveKey\(band\.post\), tab, reading: readings\[tab\] \}\}/);
+  // The wall's place of a cell is not part of the door any more: the reader finds the cell by its identity.
+  assert.doesNotMatch(screenCode, /placeOf/);
+  assert.doesNotMatch(tileCode, /index: String\(door\.index\)/);
   assert.match(routeCode, /const walkMode = handle\.length > 0;/);
-  assert.match(routeCode, /archiveNodes\(archive, reading, \{ hoistPins: true, arrangement \}\)/);
-  assert.match(routeCode, /contentOfTab\(orderArchive\(archive\.posts, reading, \{ hoistPins: true, arrangement \}\), tab\)\.list/);
-  assert.match(routeCode, /arrangementMap\(answer\.posts \?\? \[\]\)/);
+  // The reader walks the list the wall draws — from the one function that draws it, with the archive's own
+  // places. A second definition here is what made a repost lead the reader while standing last on the wall.
+  assert.match(routeCode, /wallBands\(archive, tab, reading, \{ arrangement: arrangementMap\(archive\.posts\) \}\)/);
+  assert.match(routeCode, /const list: ArchivePost\[\] = wallPosts\(/);
+  assert.match(screenCode, /wallBands\(archive, tab, readings\[tab\], \{ arrangement, columns: socialTokens\.archive\.gridColumns \}\)/);
+  assert.match(screenCode, /wallPosts\(bands\)/);
+  assert.doesNotMatch(routeCode, /arrangementMap\(answer\.posts/, 'the reposts are cells of the wall and carry places of their own');
+  assert.doesNotMatch(routeCode, /archiveNodes|archiveBands|contentOfTab|tileBands/, 'the route does not rebuild the wall');
   // Vertical, one page per screen, and the reader's own horizontal swipes stay inside the page.
   assert.match(routeCode, /pagingEnabled/);
   assert.match(routeCode, /getItemLayout=\{\(_, index\) => \(\{ length: height, offset: height \* index, index \}\)\}/);
@@ -330,14 +385,69 @@ test('a cell carries the order it was opened from, and the reader walks that ord
   assert.match(routeCode, /if \(router\.canGoBack\(\)\) router\.back\(\);/);
 });
 
-test('the band stands still when the system asks for less motion', () => {
-  assert.match(band, /AccessibilityInfo\.isReduceMotionEnabled\(\)/);
-  assert.match(band, /AccessibilityInfo\.addEventListener\('reduceMotionChanged'/);
-  assert.match(band, /if \(reduceMotion\) \{/);
-  assert.match(band, /reduceMotion=\{reduceMotion\}/);
-  assert.match(band, /\[paused, reduceMotion, runWidth, signature, resync, shift\]/);
-  // The line now names the setting as one it reads.
-  assert.match(band, /The system's reduced-motion setting is consulted/);
+
+test('the pressed cell is found by its own identity, never by the place the wall drew it in', () => {
+  const own = { id: 11, created_at: 100 };
+  const share = { id: 11, created_at: 100, __repost: { id: 41, reposted_at: 200 } };
+  const archive = [own, { id: 12 }, share, { id: 13 }];
+  // A repost and the post it carries are two cells of one wall and share one `id`: only the key tells them apart.
+  assert.equal(content.archiveKey(own), 'post-11');
+  assert.equal(content.archiveKey(share), 'repost-41');
+  assert.equal(content.walkAnchor(archive, { key: 'post-11', id: 11 }), 0);
+  assert.equal(content.walkAnchor(archive, { key: 'repost-41', id: 11 }), 2, 'the share is the cell, not the post');
+  /**
+   * The reader fetches the archive a second time. A pin, a deletion, a drag the server has not answered yet
+   * or a post written from another device moves every place by one, and the wall's number then names a
+   * different post — which is the reported bug, reproduced: the old place 1 is post 12 while the cell the
+   * finger pressed is the share at 2.
+   */
+  const shifted = [{ id: 9 }, ...archive];
+  // The wall numbered the pressed cell 0; in the archive that came back, place 0 is a post nobody pressed.
+  assert.equal(shifted[0].id, 9);
+  assert.equal(content.walkAnchor(shifted, { key: 'post-11', id: 11 }), 1);
+  assert.equal(content.walkAnchor(shifted, { key: 'repost-41', id: 11 }), 3);
+  // A cell the archive no longer holds is not a place to start a walk from at all.
+  assert.equal(content.walkAnchor(archive, { key: 'post-99', id: 99 }), -1);
+  assert.equal(content.walkAnchor([], { key: 'post-11', id: 11 }), -1);
+  assert.equal(content.walkAnchor(archive, { key: '', id: 0 }), -1);
+  // A payload that stamped the share differently still answers by the post's own id.
+  assert.equal(content.walkAnchor([{ id: 5 }, { id: 7 }], { key: 'repost-41', id: 7 }), 1);
+  assert.equal(content.walkAnchor(null, { key: 'post-11', id: 11 }), -1, 'no list, no place');
+
+  // And the route is the caller that does it: the pressed cell decides the page, and a miss opens it alone.
+  assert.match(routeCode, /const cellKey = pick\(params\.key\)\.trim\(\);/);
+  assert.match(routeCode, /const anchor = walkAnchor\(list, \{ key: cellKey, id \}\);/);
+  assert.match(routeCode, /setWalk\(anchor >= 0 \? list : null\);/);
+  assert.match(routeCode, /if \(list\.length\) void load\(\);/);
+  assert.match(routeCode, /\{walkMode && !walk && current && height > 0 \? page\(current, true\) : null\}/);
+  assert.doesNotMatch(routeCode, /params\.index/, 'the wall\'s number is not a route parameter any more');
+});
+
+
+test('the band travels on the product own switch, and stops while the profile is not in front', () => {
+  /**
+   * The rule changed twice, and both changes are recorded here so neither can come back by accident.
+   *
+   * 26 October 2026: the band stood still whenever the *system* asked for reduced motion. On the Xiaomi
+   * every animator scale is 0 (a developer option), so the band never moved again — the regression the
+   * owner reported on 27 October 2026. `lib/bandMotion.ts` had already written the product's decision:
+   * the line travels on the product's own switch.
+   *
+   * 27 October 2026: the switch is the reader's touch, and the screen's focus (`active`) pauses it while
+   * the profile is not in front — a pushed post leaves the profile mounted underneath.
+   */
+  /**
+   * The code, without its prose: the note above this file names the old setting on purpose (it is the
+   * history of the regression), and a comment is not a control.
+   */
+  const bandCode = band.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.doesNotMatch(bandCode, /isReduceMotionEnabled|reduceMotionChanged|reduceMotion/, 'sistemul nu mai opreste banda');
+  assert.match(band, /if \(paused \|\| !active\) \{/, 'cititorul si ecranul o opresc, nu setarea sistemului');
+  assert.match(band, /\[paused, active, runWidth, signature, resync, shift\]/, 'reluarea se face pe aceeasi aritmetica');
+  assert.match(readFileSync(resolve(ROOT, 'src/screens/ProfileScreen.tsx'), 'utf8'),
+    /useFocusEffect\(useCallback\(\(\) => \{\s*setFocused\(true\);/, 'profilul asculta focusul rutei');
+  assert.match(readFileSync(resolve(ROOT, 'src/screens/ProfileScreen.tsx'), 'utf8'),
+    /<ProfileBand profile=\{profile\} active=\{focused\} \/>/, 'si banda primeste raspunsul');
 });
 
 

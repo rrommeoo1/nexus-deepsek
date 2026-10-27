@@ -98,8 +98,20 @@ test('semnatura se schimba doar cand se schimba ce duce banda', () => {
 
 test('componenta: pauza pe ceas, fara setarea sistemului, cu usa de 44dp pentru foaie', () => {
   const component = readFileSync(resolve(ROOT, 'src/components/ProfileBand.tsx'), 'utf8');
-  assert.ok(!component.includes('AccessibilityInfo'), 'sistemul nu mai decide daca banda se misca');
-  assert.ok(!component.includes('reduceMotion'), 'nici macar ca nume');
+  /**
+   * 26 October 2026: the band was made to stand still whenever the *system* asked for reduced motion.
+   * That was reverted on 27 October 2026, and the reason is a measurement rather than a preference: the
+   * Xiaomi this product is checked on keeps all three animator scales at 0 (`animator_duration_scale`,
+   * `transition_animation_scale`, `window_animation_scale`), and Android reports exactly that as
+   * "reduced motion", so the band stopped for good — the ticker the owner reported as dead.
+   *
+   * The rule of `lib/bandMotion.ts` is the one that stands: the line travels on the product's own switch
+   * (the reader's touch), and the screen that owns it pauses it while it is not in front.
+   */
+  const bare = component.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+  assert.doesNotMatch(bare, /isReduceMotionEnabled|reduceMotion/, 'setarea sistemului nu opreste banda');
+  assert.match(component, /active = true/, 'ecranul ii spune daca este in fata');
+  assert.match(component, /if \(paused \|\| !active\) \{/, 'si amândoua opresc banda in acelasi loc');
   assert.match(component, /useNativeDriver: true/, 'translateX merge pe driverul nativ');
   assert.match(component, /bandPositionAt\(/, 'pauza citeste pozitia din ceas');
   assert.match(component, /bandResumePlan\(/, 'reluarea porneste din acelasi punct');

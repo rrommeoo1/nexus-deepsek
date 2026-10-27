@@ -4,16 +4,19 @@ import { router } from 'expo-router';
 import { RemoteImage } from './PostMedia';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { ProfileTextTile } from './ProfileTextTile';
-import { profileCompactCount, type ArchivePost } from '../lib/profileContent';
+import { profileCompactCount, repostAttribution, type ArchivePost } from '../lib/profileContent';
 import { mediaKindOf, postMediaItems, type MediaItem } from '../lib/socialTypes';
 import { stageFor } from '../lib/postPresentation';
 import { socialTokens } from '../theme/social';
 
 /**
  * The door a cell carries when the grid it belongs to can be walked: the profile whose order the reader
- * is reading, the tab and reading that order came from, and where in it this cell stands.
+ * is reading, the tab and reading that order came from, and *which cell* was pressed — `key`, the
+ * `archiveKey` of the cell, which tells a repost from the post it carries. The place the wall drew the cell
+ * in is deliberately not part of the door: the reader fetches the archive again, and a place is a fact
+ * about a list that the next fetch can already have changed (`walkAnchor` in `lib/profileContent.ts`).
  */
-export type ProfileTileDoor = { handle: string; tab: string; reading: string; index: number };
+export type ProfileTileDoor = { handle: string; key: string; tab: string; reading: string };
 
 /**
  * What the owner may do with one cell while the grid is being arranged (`ProfileScreen`, long press).
@@ -45,8 +48,8 @@ export type ProfileTileManage = {
  * Three shapes, one component
  * ---------------------------
  * * **the door** (normal mode): the whole cell is a `Pressable`. A press opens this exact post through
- *   `/post/[id]` with the order it was opened from, and a press *held* for `holdMs` hands the grid to
- *   the owner (`onManage`).
+ *   `/post/[id]` with the cell's own identity and the order it was opened from, and a press *held* for
+ *   `holdMs` hands the grid to the owner (`onManage`).
  * * **the arranged cell** (`manage`): a plain `View` with a pin chip, a delete chip and a drag handle.
  *   The handle is its own responder (`handle`), so a drag can only start where the grip is drawn — a
  *   pin tap can no longer become a drag, and a drag can no longer be a scroll.
@@ -97,11 +100,16 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
   const plate: MediaItem | null = article ? cover : null;
   const words = !cover || article;
   const arranging = Boolean(manage);
+  /**
+   * Whose share this cell is (`repostAttribution`): printed as a chip over a picture, and set into the
+   * paper by `ProfileTextTile` for a page of words — one line either way, never both.
+   */
+  const attribution = repostAttribution(post);
   const open = () => {
     router.push({
       pathname: '/post/[id]',
       params: door
-        ? { id: String(post.id), profile: door.handle, tab: door.tab, reading: door.reading, index: String(door.index) }
+        ? { id: String(post.id), key: door.key, profile: door.handle, tab: door.tab, reading: door.reading }
         : { id: String(post.id) },
     });
   };
@@ -129,6 +137,19 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
         >
           <SolidViewerIcon kind="views" size={socialTokens.archive.tileViewsGlyph} color={socialTokens.archive.tileChipInk} />
           <Text allowFontScaling={false} style={styles.viewsText}>{viewers}</Text>
+        </View>
+      ) : null}
+
+      {/** A share says whose it is, in the corner the count never uses (`repostAttribution`). */}
+      {attribution && !words ? (
+        <View
+          pointerEvents="none"
+          style={styles.repostChip}
+          accessibilityLabel={attribution}
+        >
+          <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="tail" style={styles.repostChipText}>
+            {`⟳ ${attribution}`}
+          </Text>
         </View>
       ) : null}
 
@@ -268,6 +289,18 @@ const styles = StyleSheet.create({
   /** Above the two 44dp actions of an arranged cell, so the real count is never covered by a control. */
   viewsChipLifted: { bottom: socialTokens.archive.tileChipInset + 46 },
   viewsText: { color: socialTokens.archive.tileChipInk, fontSize: socialTokens.archive.tileViewsSize, fontWeight: '700' },
+  /**
+   * The share's chip: the top-left corner, the one the count and the play disc never use. It is a plate
+   * of the same family as `viewsChip` so a repost cannot be read as a different kind of badge, and it
+   * clips its own line instead of covering the picture's middle.
+   */
+  repostChip: {
+    position: 'absolute', left: socialTokens.archive.tileChipInset, top: socialTokens.archive.tileChipInset,
+    maxWidth: '92%', height: socialTokens.archive.tilePlayHeight,
+    justifyContent: 'center', paddingHorizontal: socialTokens.archive.tileChipInset,
+    borderRadius: socialTokens.archive.tilePlayRadius, backgroundColor: socialTokens.archive.tileChipSurface,
+  },
+  repostChipText: { color: socialTokens.archive.tileChipInk, fontSize: socialTokens.archive.tileViewsSize, fontWeight: '700' },
   pinnedFirst: {
     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
     borderWidth: 1, borderColor: socialTokens.archive.tilePinnedFirstEdge,

@@ -19,10 +19,11 @@ import { socialTokens } from '../theme/social';
  *      app comes back to the foreground (`AppState`), which is when a birthday could have happened;
  *   2. the pace. `bandCycleMs` keeps the 48 seconds of the web's band on a 360-wide column, so a longer
  *      description travels at the same speed instead of finishing sooner;
- *   3. the pause. The line travels from the moment the profile is drawn — there is no switch to turn off
- *      and the system's animation settings are not consulted; a touch stops it exactly where it stands and
- *      the next one sends it on from the same point (owner's rule, 18 October 2026). The position is
- *      arithmetic over a start point and a clock, never a read of the native animated value;
+ *   3. the pause. The line travels from the moment the profile is drawn; a touch stops it exactly where it
+ *      stands and the next one sends it on from the same point (owner's rule, 18 October 2026). The
+ *      position is arithmetic over a start point and a clock, never a read of the native animated value.
+ *      The screen it belongs to also pauses it (`active`): a profile that is not in front is not a
+ *      window that redraws sixty times a second, and coming back resumes exactly where it stood;
  *   4. the reading. The whole line is one control for the screen reader, the travelling copies are hidden
  *      from it, and the sheet opens from its own `ⓘ` — a 44dp target at the right end of the band — so a
  *      tap on the words means "pause", not "open a panel".
@@ -30,7 +31,7 @@ import { socialTokens } from '../theme/social';
 
 const { band } = socialTokens;
 
-export function ProfileBand({ profile }: { profile: ProfileView }) {
+export function ProfileBand({ profile, active = true }: { profile: ProfileView; /** Whether the profile is the screen in front (`ProfileScreen`), see `BandTrack`. */ active?: boolean }) {
   const [clock, setClock] = useState(() => Date.now());
   const [open, setOpen] = useState(false);
   /**
@@ -38,6 +39,21 @@ export function ProfileBand({ profile }: { profile: ProfileView }) {
    * a different line, so it starts unpaused without an effect that would reset it after the fact.
    */
   const [pausedFor, setPausedFor] = useState<string | null>(null);
+  /**
+   * The product's own answer to "should this move?".
+   *
+   * On 26 October 2026 this line was made to stand still whenever the *system* asked for reduced
+   * motion, because a view that redraws sixty times a second is a window that never idles and no UI
+   * hierarchy could be read off it. The cost only showed up on the Xiaomi: its animator scales are all
+   * 0 (`animator_duration_scale`, `transition_animation_scale`, `window_animation_scale`), which
+   * `AccessibilityInfo.isReduceMotionEnabled()` reports as "reduced motion", so the band stopped for
+   * good — the regression the owner reported on 27 October 2026.
+   *
+   * The rule the product wrote down (`lib/bandMotion.ts`) is that this line travels on the product's
+   * own switch, not on the system's: the reader stops it with a touch, and the screen stops it while it
+   * is not in front (`active`). A developer option is not a preference of the person reading, and it
+   * must not be able to switch a feature off.
+   */
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -68,7 +84,7 @@ export function ProfileBand({ profile }: { profile: ProfileView }) {
           onPress={() => setPausedFor(paused ? null : signature)}
           style={styles.touch}
         >
-          <BandTrack items={items} signature={signature} paused={paused} />
+          <BandTrack items={items} signature={signature} paused={paused} active={active} />
         </Pressable>
         <BandFade />
         <Pressable
@@ -119,10 +135,16 @@ function BandFade() {
  * arithmetic of `lib/bandMotion.ts`. A new segment is re-anchored from the clock whenever the app comes
  * back to the foreground, so time spent in the background is not a jump either.
  */
-function BandTrack({ items, signature, paused }: {
+function BandTrack({ items, signature, paused, active }: {
   items: BandItem[];
   signature: string;
   paused: boolean;
+  /**
+   * Whether the profile is the screen in front. A band that is not in front stands exactly where it
+   * was and stops redrawing; coming back re-runs the arithmetic of `lib/bandMotion.ts` from that point,
+   * so a return is a continuation and never a jump to the beginning.
+   */
+  active: boolean;
 }) {
   const shift = useState(() => new Animated.Value(0))[0];
   const [runWidth, setRunWidth] = useState(0);
@@ -152,7 +174,11 @@ function BandTrack({ items, signature, paused }: {
     const cycle = bandCycleMs(runWidth);
     if (!cycle) return;
 
-    if (paused) {
+    /**
+     * The reader stopped it, or the screen is not in front: the line stands exactly where the clock
+     * says it stands. There is no "reduced motion" branch any more — see the note on `ProfileBand`.
+     */
+    if (paused || !active) {
       /** Freeze exactly where the clock says the line stands — no snap back, no snap forward. */
       const position = segment.current
         ? bandPositionAt(segment.current, Date.now(), runWidth, cycle)
@@ -188,7 +214,7 @@ function BandTrack({ items, signature, paused }: {
     };
     roll(from);
     return () => { released = true; shift.stopAnimation(); };
-  }, [paused, runWidth, signature, resync, shift]);
+  }, [paused, active, runWidth, signature, resync, shift]);
 
   return (
     <View style={styles.viewport} onLayout={(event) => setBandWidth(event.nativeEvent.layout.width)}>

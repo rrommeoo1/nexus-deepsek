@@ -6,14 +6,15 @@ import {
 } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import * as Linking from 'expo-linking';
+import { useFocusEffect } from 'expo-router';
 import { nexusApi } from '../lib/nexusApi';
 import { subscribeImpressionDelivery } from '../lib/impressions';
 import { rememberPayload, subscribeRelations, useRelation } from '../lib/relations';
 import type { ProfileResponse, ProfileView } from '../lib/socialTypes';
 import {
   CONTENT_FILTERS, CONTENT_READING_LABELS, CONTENT_TAB_GLYPHS, CONTENT_TAB_LABELS, CONTENT_TAB_ORDER,
-  archiveBands, archiveKey, archiveNodes, contentOfTab, orderArchive, profileArchive, profileMomentShelf, tileBands,
-  type ArchiveBand, type ArchiveNode, type ArchivePost, type ContentReading, type ContentTab,
+  archiveKey, profileArchive, profileMomentShelf, wallBands, wallPosts,
+  type ArchiveBand, type ArchivePost, type ContentReading, type ContentTab,
 } from '../lib/profileContent';
 import { useNavReserve } from '../components/AppNav';
 import { ProfileBand } from '../components/ProfileBand';
@@ -40,7 +41,7 @@ import { socialTokens } from '../theme/social';
 
 /**
  * The five content tabs, as the web prints them: `CONTENT_TAB_GLYPHS` of `profile-experience.js:16`
- * (`{ flow:'≡', reels:'▶', shots:'▦', whispers:'❝', moments:'✦' }`), one sign per tab, and the word for each
+ * (`{ flow:'≡', reels:'▶', shots:'▦', whispers:'❝', redistribuiri:'⟳' }`), one sign per tab, and the word for each
  * one lives only in its label (`CONTENT_TAB_LABELS`, the `profile.tab*` names of the ro-RO bundle).
  */
 const TABS = CONTENT_TAB_ORDER.map((id) => ({ id, label: CONTENT_TAB_LABELS[id], glyph: CONTENT_TAB_GLYPHS[id] }));
@@ -157,7 +158,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   const [data, setData] = useState<ProfileResponse | null>(null);
   const [tab, setTab] = useState<TabId>('flow');
   /** The web keeps one reading per tab (`readings` map of profile-experience.js:169). */
-  const [readings, setReadings] = useState<Record<TabId, ReadingId>>({ flow: 'newest', reels: 'newest', shots: 'newest', whispers: 'newest', moments: 'newest' });
+  const [readings, setReadings] = useState<Record<TabId, ReadingId>>({ flow: 'newest', reels: 'newest', shots: 'newest', whispers: 'newest', redistribuiri: 'newest' });
   const [filtersOpen, setFiltersOpen] = useState(false);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -225,6 +226,21 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
    */
   useEffect(() => subscribeRelations(() => onRelationChanged?.()), [onRelationChanged]);
 
+  /**
+   * Whether this profile is the screen in front.
+   *
+   * The route stack keeps the profile mounted under a post that was opened from it, so the band would
+   * otherwise keep travelling behind a page nobody is looking at. `useFocusEffect` is expo-router's own
+   * answer to that question: the effect runs when the screen gains focus and its cleanup runs when it
+   * loses it, which is exactly the pair of moments the band needs to stop and to carry on from where it
+   * stood (`ProfileBand` reads it as `active`).
+   */
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(useCallback(() => {
+    setFocused(true);
+    return () => setFocused(false);
+  }, []));
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     nexusApi<ProfileResponse>(address)
@@ -273,8 +289,9 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   /**
    * The one region under the tabs (`syncContentTab` + `applyOrder`, `profile-experience.js:516-555`): the
    * Flow weaves every node into one timeline by its reading — the tiles in rows of three, the words as
-   * cards between them — and the collection tabs read one kind in rows of three. `moments` is not a kind
-   * of post at all — its shelf answers in the panel above these bands.
+   * cells — and the collection tabs read one kind in rows of three. Redistribuiri is a collection tab
+   * too, but its kind is the *node* (`__repost`), so it lists the shares this profile made and never the
+   * originals standing beside them (`contentOfTab`).
    *
    * The collection tabs read *every* node of their tab as a tile (`tileBands`), the words included: a
    * text post on the Șoapte tab is the same 9:16 typographic miniature the grid draws for it, because a
@@ -289,13 +306,15 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
     () => (arranged ? optimisticArrangement(arranged) : arrangementMap(archive.posts)),
     [archive.posts, arranged],
   );
-  const bands = useMemo<ArchiveBand[] | null>(() => {
-    if (tab === 'moments') return null;
-    const reading = readings[tab];
-    /** A whisper is a post: on the Flow it is a 9:16 cell like every other one, never a full-width card. */
-    if (tab === 'flow') return whisperTiles(archiveBands(archiveNodes(archive, reading, { hoistPins: true, arrangement })));
-    return tileBands(nodesOfTab(archive.posts, tab, reading, arrangement), { columns: socialTokens.archive.gridColumns });
-  }, [archive, readings, tab, arrangement]);
+  /**
+   * The wall's bands, from the one definition both the wall and the reader use (`wallBands`): a cell that
+   * is drawn here is a page there, in the same place. The list used to be assembled here and again in the
+   * reader, and the two had already drifted (a repost led the reader while standing last on the wall).
+   */
+  const bands = useMemo<ArchiveBand[] | null>(
+    () => wallBands(archive, tab, readings[tab], { arrangement, columns: socialTokens.archive.gridColumns }),
+    [archive, readings, tab, arrangement],
+  );
   /**
    * `const hoistPins = kind === 'reels' || kind === 'shots'` (`profile-experience.js:518`) became "every
    * tab" on the phone (owner's rule, 26 October 2026): a pin shown as a thin ring while the pinned post
@@ -310,20 +329,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
    * The arrangement and the pager both read this one list, so what the owner drags is exactly what a
    * vertical swipe walks.
    */
-  const gridPosts = useMemo<ArchivePost[]>(() => {
-    const list: ArchivePost[] = [];
-    for (const band of bands ?? []) {
-      if (band.kind === 'tiles') list.push(...band.posts);
-      else if (band.kind === 'whisper') list.push(band.post);
-    }
-    return list;
-  }, [bands]);
-  /** Where a cell stands in that list: a repost and the post it carries are two different cells. */
-  const placeOf = useMemo<Record<string, number>>(() => {
-    const map: Record<string, number> = {};
-    gridPosts.forEach((post, index) => { map[archiveKey(post)] = index; });
-    return map;
-  }, [gridPosts]);
+  const gridPosts = useMemo<ArchivePost[]>(() => wallPosts(bands), [bands]);
   /** Only the owner arranges, pins or deletes an archive, and the server refuses anyone else anyway. */
   const isOwner = data?.profile?.is_self === true;
   /**
@@ -877,7 +883,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
        * header no longer prints — on one line that drifts leftwards in a loop, and it opens the sheet with
        * the same five facts when it is touched. With nothing to carry it draws nothing at all.
        */}
-      {profile ? <ProfileBand profile={profile} /> : null}
+      {profile ? <ProfileBand profile={profile} active={focused} /> : null}
 
       {/**
        * `.ownerTabsRegion` + `nav.ownerContentTabs[role=tablist][aria-label="Conținut profil"]`: the bar
@@ -946,19 +952,15 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       ) : null}
 
       {!error && !data?.locked ? (
-        tab === 'moments' ? (
-          /**
-           * The shelf answers the Momente tab, and the web draws it even when it holds nothing: the panel's
-           * header is there, its row is empty, and the tab's own empty state follows it
-           * (`docs/web-ref/profile/tab-4.dom.json`: `.ownerMomentsPanel` at y=315 and the empty block at
-           * y=418, both in view).
-           */
+        bands && bands.length ? (
           <>
-            <ProfileMomentsShelf shelf={shelf} />
-            {shelf.tiles.length ? null : <ProfileEmptyState tab="moments" />}
-          </>
-        ) : bands && bands.length ? (
-          <>
+            {/**
+             * The saved-story shelf used to be the answer to the Momente tab. That tab is now
+             * Redistribuiri (owner's rule, 27 October 2026), so the shelf is drawn where it still
+             * belongs without a tab of its own: above the Flow's wall, and only when it holds
+             * something. A saved story is still the owner's; nothing about it was deleted with the tab.
+             */}
+            {tab === 'flow' && shelf.tiles.length ? <ProfileMomentsShelf shelf={shelf} /> : null}
             {/**
              * There is no instruction banner above the wall any more (owner's rule, 26 October 2026).
              *
@@ -1071,7 +1073,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
                     key={archiveKey(post)}
                     post={post}
                     pinnedFirst={hoistPins && Number(post.pinned_at || 0) > 0}
-                    door={{ handle: String(profile?.handle || handle), tab, reading: readings[tab], index: placeOf[archiveKey(post)] ?? 0 }}
+                    door={{ handle: String(profile?.handle || handle), key: archiveKey(post), tab, reading: readings[tab] }}
                     onManage={isOwner ? beginManaging : undefined}
                     holdMs={HOLD_TO_MANAGE_MS}
                   />
@@ -1093,7 +1095,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
               <View key={band.key} style={styles.tileRow}>
                 <ProfileTile
                   post={band.post}
-                  door={{ handle: String(profile?.handle || handle), tab, reading: readings[tab], index: placeOf[archiveKey(band.post)] ?? 0 }}
+                  door={{ handle: String(profile?.handle || handle), key: archiveKey(band.post), tab, reading: readings[tab] }}
                   onManage={isOwner ? beginManaging : undefined}
                   holdMs={HOLD_TO_MANAGE_MS}
                 />
@@ -1108,7 +1110,10 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
             )}
           </>
         ) : (
-          <ProfileEmptyState tab={tab} />
+          <>
+            {tab === 'flow' && shelf.tiles.length ? <ProfileMomentsShelf shelf={shelf} /> : null}
+            <ProfileEmptyState tab={tab} />
+          </>
         )
       ) : null}
     </ScrollView>
@@ -1263,52 +1268,6 @@ function ManageCell({ left, top, width, height, children }: {
       {children}
     </Animated.View>
   );
-}
-
-/**
- * The nodes a collection tab reads (`syncContentTab` + `applyOrder`, `profile-experience.js:516-555`): its
- * own kind of post, ordered by the reader's reading with the owner's pins hoisted first because a tab that
- * reads as a collection is an arrangement the owner made (`profile-experience.js:503-512`, `:518`). A tab
- * whose kind is `text` reads the whispers, a tab whose kind is `video` or `image` reads the tiles, and both
- * come back as the node list the Flow uses, so the two regions share one vocabulary.
- */
-function nodesOfTab(posts: ArchivePost[], tab: ContentTab, reading: ContentReading, arrangement?: Arrangement | null): ArchiveNode[] {
-  const content = contentOfTab(orderArchive(posts, reading, { hoistPins: true, arrangement }), tab);
-  return [
-    ...content.tiles.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'tile', post })),
-    ...content.whispers.map((post): ArchiveNode => ({ key: archiveKey(post), kind: 'whisper', post })),
-  ];
-}
-
-/**
- * The Flow draws a whisper as a full-width card; a *profile* reads its posts as cells. This gathers the
- * whispers of a stream into rows of three 9:16 cells and leaves every other band where it was, so the Flow
- * is the same wall of miniatures the collection tabs draw — text posts included. The band builder itself
- * (`archiveBands`) is untouched, so the web-parity suite still reads the same buckets.
- */
-function whisperTiles(bands: ArchiveBand[]): ArchiveBand[] {
-  const columns = Math.max(1, socialTokens.archive.gridColumns);
-  /**
-   * The wall is filled first and the cards follow it.
-   *
-   * A card (a shared reply) used to flush the row it interrupted, which left a row of one or two cells
-   * and two empty thirds beside it - the "unexplained gap" the owner saw on the phone. The cells of the
-   * Flow are therefore gathered by their own order across the cards and cut into full rows of three; the
-   * cards keep their own order and stand after the wall, where they have the width they were drawn for.
-   */
-  const posts: ArchivePost[] = [];
-  const cards: ArchiveBand[] = [];
-  for (const band of bands) {
-    if (band.kind === 'tiles') posts.push(...band.posts);
-    else if (band.kind === 'whisper') posts.push(band.post);
-    else cards.push(band);
-  }
-  const rows: ArchiveBand[] = [];
-  for (let index = 0; index < posts.length; index += columns) {
-    const slice = posts.slice(index, index + columns);
-    rows.push({ key: `whisper-row-${archiveKey(slice[0])}`, kind: 'tiles', posts: slice });
-  }
-  return [...rows, ...cards];
 }
 
 const styles = StyleSheet.create({

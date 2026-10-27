@@ -279,3 +279,24 @@ assert.ok(!SHEET.includes("pickPhoto('cover')"), 'coperta nu se mai alege din ac
 
 
 
+test('foaia editorului stă deasupra barei de navigație a sistemului', () => {
+  /**
+   * Măsurat pe Xiaomi, 27 octombrie 2026: foaia se desena până la marginea de jos a ecranului, iar
+   * rândul de salvare ajungea *sub* bara de trei butoane a sistemului. Un deget la mijlocul lui apăsa
+   * Home și pleca din aplicație; doar o fâșie de sus răspundea. De aceea foaia își ia insetul de jos ca
+   * padding al ei, iar câmpurile se strâng și derulează în loc să împingă salvarea în afara ecranului.
+   */
+  assert.ok(SHEET.includes('const insets = useSafeAreaInsets();'), 'foaia citește insetul sistemului');
+  assert.ok(
+    SHEET.includes('style={[styles.sheet, { paddingBottom: SHEET_PADDING_BOTTOM + Math.max(0, insets.bottom) }]}'),
+    'și îl adaugă propriei margini de jos',
+  );
+  assert.ok(SHEET.includes('maxHeight: \'100%\''), 'foaia poate folosi tot ecranul, cu insetul plătit din padding');
+  assert.ok(SHEET.includes('scroll: { flexShrink: 1 }'), 'câmpurile se strâng, nu împing salvarea');
+  assert.ok(SHEET.includes('style={styles.scroll}'), 'și derulează în spațiul rămas');
+  // Ordinea pe care foaia o păstrează: câmpurile, apoi rândul de salvare, care nu poate fi acoperit.
+  assert.ok(SHEET.indexOf('</ScrollView>') < SHEET.indexOf('style={styles.actions}'),
+    'salvarea stă sub câmpuri, în afara lor');
+});
+
+

@@ -95,7 +95,7 @@ test('antetul este blocurile cerute, din tokenurile produsului', () => {
   assert.match(headerSource, /styles\.buttons/, 'rândul de butoane');
   assert.doesNotMatch(headerSource, /styles\.about/, 'descrierea, locul și vârsta au plecat în bandă');
   assert.match(bandSource, /styles\.band/, 'iar banda le duce pe un singur rând');
-  assert.match(screenSource, /<ProfileBand profile=\{profile\} \/>/, 'așezată imediat sub antet');
+  assert.match(screenSource, /<ProfileBand profile=\{profile\} active=\{focused\} \/>/, 'așezată imediat sub antet');
   assert.match(headerSource, /styles\.avatarRing/, 'inelul de story al cercului mare');
   assert.match(headerSource, /hasUnseenStory/);
   // The reader's own row is the bars — which open the profile menu, not the drawer (17 October 2026);
