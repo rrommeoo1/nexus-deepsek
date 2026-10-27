@@ -1911,10 +1911,12 @@ drift []   ok true
 
 ### 18.9 Ce rămâne deschis (nu e „gata")
 
-1. **Aranjarea unei repostări nu a fost încă trasă cu degetul pe telefon.** Backendul, modelul de date,
-   identitățile de celulă și refuzurile sunt testate (13 + 16 teste), iar grila de pe telefon afișează
-   repostarea restaurată în poziția ei; dar gestul fizic (apăsat o secundă, tras, lăsat) rămâne de făcut pe
-   Xiaomi, împreună cu dovada că ordinea se păstrează după repornirea aplicației.
+1. **Aranjarea repostării: făcută pe telefon, dovedită de server și de bază.** Apăsare de 1,2 s pe celula a
+   doua (repostarea) → `managing: true`; tragere cu 409 px spre stânga (o coloană) → `POST /api/posts/order`
+   200, mesajul „Ordinea a fost salvată."; în bază `post_shares.id=4 → grid_position 0` și
+   `posts 40,33,38,39,32,31,30,29,28,27,26 → 1..11`; iar postarea originală a repostării (`posts.id=15`,
+   alt proprietar) a rămas `grid_position NULL, version 1`. Ce rămâne de făcut: dovada că ordinea se vede la
+   fel după o repornire completă a aplicației (ecranul a repornit pe pagina de articol, nu pe grilă).
 2. **Publicarea unui articol privat nu a fost repetată.** Compozitorul se deschide, dar comutatorul „CINE VEDE"
    nu a fost atins în această rundă; regula proprietarului („dacă intimitatea nu poate fi garantată, nu
    publica") rămâne în vigoare, deci nu s-a publicat nimic.
@@ -1927,7 +1929,19 @@ drift []   ok true
    pregătite; lipsește doar autorizarea proprietarului.
 6. **Backup-ul brut al fișierului SQLite de pe host** rămâne imposibil fără credențiale de platformă. Ce s-a
    luat prin API este verificat bucată cu bucată (vezi 18.2), dar nu este identic cu fișierul de pe volum.
-7. **Railway nu a fost atins.** Nu s-a șters nimic, nu s-a oprit deploymentul, iar codul de pe `origin/main`
+7. **Imaginile din grila de profil primesc 401 pe PC, deși obiectele există.** În jurnalul serverului, din
+   127 de cereri de media venite de la telefon (`192.168.1.184`), 44 au primit `200` și **67 `401`**, pe 12
+   hash-uri distincte (inclusiv trei `.png`). Aceleași obiecte răspund `200` cu token (`Invoke-WebRequest` cu
+   `Authorization: Bearer` → 200, 361 760 de octeți), deci fișierele sunt bune și ruta `/media/<hash>.<ext>`
+   cere sesiune — `PostMedia.tsx` o trimite (`mediaHeaders()`), dar cel puțin o suprafață a grilei o cere fără.
+   Simptomul pe ecran este mesajul onest al aplicației: „Fișierul media nu a putut fi încărcat." De reparat
+   în runda următoare; nu blochează datele, dar strică o grilă care altfel arată corect.
+8. **Un obiect media cerut de aplicație nu există în depozitul local** (`1343406e…jpg`): apare în payload-urile
+   exportate ale postărilor 2 și 16, dar nu are rând în `media` și nu e între cele 20 de fișiere copiate.
+   `posts.media_id` și `post_media` nu au orfani (verificat), deci referința vine dintr-un colț al payload-ului
+   pe care importul nu îl tratează ca media (probabil un manifest de studio). De găsit și de adăugat.
+9. **Railway nu a fost atins.** Nu s-a șters nimic, nu s-a oprit deploymentul, iar codul de pe `origin/main`
    (e74f8ff) rămâne cel publicat. Retragerea lui cere confirmarea explicită a proprietarului, după ce punctele
-   1–4 sunt închise pe telefon.
+   1–8 sunt închise pe telefon.
+
 
