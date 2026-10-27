@@ -194,6 +194,14 @@ test("the bridge page forwards the app redirect and reports the relay when the a
   assert.doesNotMatch(page, /logEvent\([^)]*\.uri\b/);
 });
 
+test("the bridge page gives a slow wallet five minutes to sign", async () => {
+  const page = await readFile(new URL("../public/xportal-bridge.js", import.meta.url), "utf8");
+  // xPortal needed 192s to show its sign screen in the field: a three-minute window cancelled the
+  // attempt a couple of seconds before the fingerprint prompt appeared.
+  assert.match(page, /300_000,\s*\n\s*'xPortal nu a răspuns în 5 minute'/);
+  assert.doesNotMatch(page, /180_000/);
+});
+
 test("mobile login rejects one-sided persisted sessions unless reuse is explicitly enabled", () => {
   const session = {
     topic: "stale-browser-only-topic",

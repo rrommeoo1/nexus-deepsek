@@ -7,6 +7,7 @@ import { bindPublishingDetails, readPublishing } from './post-publishing.js?v=20
 import { readTransform, transformCss, applyTransform, bindTransformEditor, creatorFilterCss } from './creator-transform.js?v=20261001-publish1';
 import { downloadPublishedPost } from './creator-export.js?v=20261001-publish1';
 import { publishingCaption, applyPublishedEdits, wireImageSound } from './published-presentation.js?v=20261001-publish1';
+import { quotedPostMarkup as quotePostMarkup, composerQuoteMarkup as quoteComposerMarkup, textStageMarkup as quoteTextStageMarkup, bindPostQuoteSurface as bindQuoteSurface } from './post-quote.js?v=20261018-quote1';
 import { digestHexOf } from "./sha256.js?v=20260923-wave14i";
 import { bindComposerPicker, setInputFile } from "./composer-picker.js?v=20260912-camera3";
 import { bindComposerExit } from "./composer-exit.js?v=20260912-camera3";
@@ -4069,6 +4070,24 @@ function mediaUrlFor(item) {
   return item?.hash && item?.ext ? "/media/" + item.hash + "." + item.ext : null;
 }
 
+// The engine lives in post-quote.js (it is the whole 9:16 quote/text surface); app.js only hands
+// it the local renderers, so the entrypoint stays inside its transfer budget.
+function postQuoteContext() {
+  return { esc, t, captionHtml: captionWithTagsMarkup, mediaList: postMediaList, mediaUrl: mediaUrlFor, stamp: relativeStamp };
+}
+
+function quotedPostMarkup(post, options = {}) {
+  return quotePostMarkup(post, postQuoteContext(), options);
+}
+
+function composerQuoteMarkup(post) {
+  return quoteComposerMarkup(post, postQuoteContext());
+}
+
+function textStageMarkup(post) {
+  return quoteTextStageMarkup(post, postQuoteContext());
+}
+
 // Several media are read as a carousel: one slide each, a counter and dots. Tapping a slide opens
 // the media itself; a single-media post keeps the creator-studio rendering it always had.
 function mediaCarouselMarkup(post) {
@@ -4255,8 +4274,13 @@ function postCard(post) {
   const followLabel = followButtonLabel({ active: post.following_me, pending: post.follow_request_pending });
   const audioAttribution = post.external_audio?.attribution || post.audio_attribution || (t("post.audioOriginal") + " · " + authorName);
   const trustLabel = post.trust?.riskLevel === "CONTEXT" ? "Context automat" : "Trust Lens";
-  const unavailableClip = !m && (post.kind === "video" || socialFormat === "clips");
-  const clipMode = socialFormat === "clips" && (["video", "image"].includes(post.media?.kind) || unavailableClip);
+  // A post is one of three things in the same 9:16 page: media, text, or the fallback preview of
+  // a clip whose file is gone. Text is never treated as a missing clip.
+  const mediaItems = postMediaList(post);
+  const hasMedia = mediaItems.length > 0;
+  const textOnly = !hasMedia && String(post.caption || "").trim().length > 0;
+  const unavailableClip = !hasMedia && !textOnly && (post.kind === "video" || socialFormat === "clips");
+  const clipMode = socialFormat === "clips" && (hasMedia || unavailableClip || textOnly);
   const factualLabel = post.trust?.factualStatus === "NOT_FACT_CHECKED" ? "Neverificat factual" : post.trust?.factualStatus || "Neevaluat";
   const ownerMenu = '<button data-post-manage="' + post.id + '" type="button">' + esc(t("post.manage")) + '</button><button data-post-history="' + post.id + '" type="button">' + esc(t("post.history")) + '</button>';
   const cardMenu = postOptionsMenuMarkup(post, { owner: isOwner, muted: post.muted_by_me === true, blocked: post.blocked_by_me === true });
@@ -4268,6 +4292,9 @@ function postCard(post) {
     : '';
   const mediaBlock = (unavailableClip ? '<div class="demoClipFallback" role="img" aria-label="' + esc(t("post.previewAria")) + '"><div></div><span><small>' + esc(t("post.previewEyebrow")) + '</small><b>' + esc(t("post.previewTitle")) + '</b><em>' + esc(t("post.previewDetail")) + '</em></span></div>' : '') + (m ? renderStudioMedia(post, m) : '');
   const carouselBlock = mediaCarouselMarkup(post);
+  const quoteBlock = quotedPostMarkup(post);
+  // The 9:16 page has room for the commentary and one answer, not for the whole thread.
+  const clipQuoteBlock = quotedPostMarkup(post, { layers: 1 });
   const mediaArea = carouselBlock || mediaBlock;
   const econ = post.economy || {};
   const locked = Boolean(econ.hidden_unlock && !curiosityHas("UNLOCK", post.id));
@@ -4290,9 +4317,10 @@ function postCard(post) {
     '<div class="clipCreator clipIdentityPersistent"><button class="creatorStoryTrigger" data-creator-story="' + esc(authorHandle) + '" type="button" aria-label="' + esc(t("post.openStory") + " " + authorName) + '"><i>' + creatorAvatar + '</i><span>' + usernameSigil(author, post.persona) + '<b><bdi dir="auto">' + esc(authorName) + '</bdi></b></span></button><div class="creatorInlineActions">',
     isOwner ? '' : '<button data-follow="' + post.user_id + '" data-active="' + (post.following_me ? 1 : 0) + '" data-pending="' + (post.follow_request_pending ? 1 : 0) + '" type="button">' + esc(followLabel) + '</button>',
     '</div></div>',
-    post.caption ? expandableCaptionMarkup(captionWithTagsMarkup(post.caption), { t, esc }) : '',
+    textOnly ? '' : (post.caption ? expandableCaptionMarkup(captionWithTagsMarkup(post.caption), { t, esc }) : ''),
     publishingCaption(post,esc),
-    post.caption ? captionTranslationButtonMarkup({ language: post.language, locale: interfaceLocale, esc }) : '',
+    textOnly ? '' : (post.caption ? captionTranslationButtonMarkup({ language: post.language, locale: interfaceLocale, esc }) : ''),
+    clipQuoteBlock,
     '<div class="clipContext">' + trustControl + '</div>',
     noteChip,
     '</div>',
@@ -4306,8 +4334,9 @@ function postCard(post) {
     clipMode ? '' : rankingReason,
     !clipMode && post.caption ? '<p class="caption">' + captionWithTagsMarkup(post.caption) + '</p>' : '',
     !clipMode ? publishingCaption(post,esc) : '',
+    !clipMode ? quoteBlock : '',
     clipMode ? '' : noteChip,
-    clipMode ? '<div class="clipStage ' + (locked ? "curiosityLockedStage" : "") + '">' + mediaBlock + curiosityOverlay + clipOverlay + clipActions + clipSubtitlesMarkup(post, { esc, t }) + '</div>' : mediaArea + curiosityOverlay,
+    clipMode ? '<div class="clipStage ' + (locked ? "curiosityLockedStage" : "") + '">' + (textOnly ? textStageMarkup(post) : mediaBlock) + curiosityOverlay + clipOverlay + clipActions + clipSubtitlesMarkup(post, { esc, t }) + '</div>' : mediaArea + curiosityOverlay,
     reactionPaletteMarkup(post, currentReaction),
     '<div class="actions' + (clipMode ? ' clipMoreActions' : '') + '">',
     clipMode && isOwner ? ownerMenu : '',
@@ -4317,6 +4346,7 @@ function postCard(post) {
     clipMode ? '' : '<button data-comments="' + post.id + '">◌ ' + post.comment_count + '</button>',
     clipMode ? '' : '<button data-repost="' + post.id + '" class="' + (post.reposted_by_me ? "on" : "") + '">⟳ ' + repostLabel + ' ' + repostCount + '</button>',
     clipMode ? '' : '<button data-save="' + post.id + '" class="' + (post.saved_by_me ? "on" : "") + '">' + esc(t(post.saved_by_me ? "post.saved" : "post.save")) + '</button>',
+    '<button data-quote="' + post.id + '">✎ ' + esc(t("post.quote")) + '</button>',
     !clipMode && SOCIAL_SHARING_ENABLED ? '<button data-share="' + post.id + '">' + esc(t("post.share")) + '</button>' : '',
     clipMode ? '' : '<button data-support="' + post.id + '" data-author="' + esc(author.handle || "creator") + '">$ ' + esc(t("post.support")) + '</button>',
     !clipMode && m ? '<button data-open-media="' + post.id + '">⛶ ' + esc(t("post.open")) + '</button>' : '',
@@ -4750,6 +4780,15 @@ function wirePostActions(root, postCollection = currentFeedPosts) {
       if (counter) counter.textContent = (index + 1) + "/" + dots.length;
       dots.forEach((dot, position) => dot.classList.toggle("on", position === index));
     }, { passive: true });
+  });
+  // A quoted layer opens the post it shows; the quote action starts a composer that already knows
+  // what it answers; a text page reports the page the reader stopped on.
+  bindQuoteSurface(root, {
+    openPostDetail,
+    findPost: (id) => postCollection.find((item) => Number(item.id) === id) || null,
+    openComposer: (post) => openComposer("post", { source: "tweet", quote: post }),
+    toast,
+    t,
   });
   root.querySelectorAll("[data-mute]").forEach((button) => button.addEventListener("click", () => { void toggleAuthorMute(button); }));
   root.querySelectorAll("[data-block]").forEach((button) => button.addEventListener("click", () => { void toggleAuthorBlock(button); }));
@@ -7264,23 +7303,28 @@ function openComposer(mode = "post", options = {}) {
   const socialMode = selectedPersona === "social";
   const storyMode = socialMode && mode === "story";
   const selfieFirst = options.facing === "user";
-  const tweetMode = socialMode && !storyMode && options.source === "tweet";
+  // A quote is a text-first post that carries the post it answers: it is neither a plain tweet
+  // (the caption may be long) nor the camera-first flow (nothing has to be shot).
+  const quotePost = options.quote && Number(options.quote.id) > 0 ? options.quote : null;
+  const quoteMode = socialMode && !storyMode && Boolean(quotePost);
+  const tweetMode = socialMode && !storyMode && !quoteMode && options.source === "tweet";
   const liveCamera = Boolean(options.camera);
-  const modernFlow = socialMode && !storyMode && !tweetMode;
+  const modernFlow = socialMode && !storyMode && !tweetMode && !quoteMode;
   // Composerul social este altfel „camera first"; în shell camera este cea nativă.
   if (modernFlow && !isNexusShell()) options = { ...options, camera: true };
   const mediaFirst = Boolean(options.camera || options.pick || storyMode || options.source === "clip");
   const sourceLabel = t(options.source === "camera" ? "composer.sourceCamera" : options.source === "story_camera" ? "composer.sourceStoryCamera" : options.source === "clip_camera" ? "composer.sourceClipCamera" : options.source === "gallery" ? "composer.sourceGallery" : options.source === "clip" ? "composer.sourceClip" : storyMode ? "composer.sourceStory" : "composer.sourceDefault");
-  const composerClass = ["premiumComposer", storyMode ? "storyComposer" : "", tweetMode ? "tweetComposer" : "", mediaFirst ? "mediaFirstComposer" : "textFirstComposer", options.camera ? "cameraComposer" : ""].filter(Boolean).join(" ");
+  const composerClass = ["premiumComposer", storyMode ? "storyComposer" : "", tweetMode ? "tweetComposer" : "", quoteMode ? "quoteComposer" : "", mediaFirst ? "mediaFirstComposer" : "textFirstComposer", options.camera ? "cameraComposer" : ""].filter(Boolean).join(" ");
   const captionMax = tweetMode || storyMode ? 500 : 2000;
-  const captionPlaceholder = tweetMode ? "Scrie un tweet Nexus…" : storyMode ? "Adaugă un text…" : "Ce se întâmplă?";
+  const captionPlaceholder = quoteMode ? t("composer.quotePlaceholder") : tweetMode ? "Scrie un tweet Nexus…" : storyMode ? "Adaugă un text…" : "Ce se întâmplă?";
   let selectedJamendoTrack = null;
   let stopAutoSound = () => {};
   vp.innerHTML = [
     '<div class="screen scrollScreen composerScreen"><div class="composer ' + composerClass + '" data-composer-source="' + esc(options.source || (storyMode ? "story" : "post")) + '"' + (options.camera ? ' data-camera-state="camera-loading"' : '') + '>',
-    '<header class="composerHead"><button id="closeComposer" type="button" aria-label="' + esc(t("composer.close")) + '">‹</button><span><small>' + esc(t("create.eyebrow")) + ' · <bdi dir="ltr">' + esc(state.persona.toUpperCase()) + '</bdi></small><b>' + (storyMode ? "Story" : (options.source === "clip" ? "Clip" : esc(t("composer.mixedTitle")))) + '</b><em>' + esc(sourceLabel) + '</em></span></header>',
+    '<header class="composerHead"><button id="closeComposer" type="button" aria-label="' + esc(t("composer.close")) + '">‹</button><span><small>' + esc(t("create.eyebrow")) + ' · <bdi dir="ltr">' + esc(state.persona.toUpperCase()) + '</bdi></small><b>' + (quoteMode ? esc(t("composer.quoteTitle")) : storyMode ? "Story" : (options.source === "clip" ? "Clip" : esc(t("composer.mixedTitle")))) + '</b><em>' + esc(sourceLabel) + '</em></span></header>',
     socialMode ? '<section class="composerIntent" aria-label="Tip creare"><button type="button" data-source-jump="tweet" class="' + (tweetMode ? "active" : "") + '"><i>𝕏</i><span><b>Tweet</b><small>Text rapid</small></span></button><button type="button" data-source-jump="gallery" class="' + (options.source === "gallery" ? "active" : "") + '"><i>▧</i><span><b>Media</b><small>Poze/video</small></span></button><button type="button" data-source-jump="story" class="' + (storyMode ? "active" : "") + '"><i>◌</i><span><b>Story</b><small>Durată flexibilă</small></span></button></section>' : '',
     '<form id="composerForm" data-publish-key="' + esc(newUploadMutationKey("publish")) + '"' + (options.draft ? ' data-draft-id="' + esc(options.draft.id) + '"' : '') + '>',
+    quoteMode ? composerQuoteMarkup(quotePost) : '',
     options.camera ? reelCameraMarkup({ esc, t, selfieFirst, clipMode: options.source === "clip_camera" }) : '',
     tweetMode ? '<section class="tweetComposerHint"><b>Tweet Nexus</b><span>Text scurt, opinie, întrebare sau update. Poți adăuga media dacă vrei, dar feedul Tweets afișează doar postările text.</span></section>' : '',
     mediaFirst ? '<section class="mediaFirstHint"><b>' + (storyMode ? "Alege media pentru story" : options.source === "clip" ? "Alege clipul" : "Media first") + '</b><span>' + (storyMode ? "Poți seta story temporar sau persistent." : "După alegere primești preview mare, editare și progres de upload.") + '</span></section>' : '',
@@ -7300,9 +7344,12 @@ function openComposer(mode = "post", options = {}) {
   document.querySelectorAll("[data-create-mode]").forEach((button) => button.addEventListener("click", () => openComposer(button.dataset.createMode, { source: button.dataset.sourceJump || button.dataset.createMode })));
   document.querySelectorAll("[data-source-jump]").forEach((button) => button.addEventListener("click", () => {
     const source = button.dataset.sourceJump;
-    if (source === "gallery") return openComposer("post", { pick: "all", source: "gallery" });
-    if (source === "story") return openComposer("story", { pick: "all", source: "story" });
-    return openComposer("post", { source: "tweet" });
+    // Switching between text and media keeps the post being answered: the quote is the context,
+    // not a mode the reader has to remember to re-enter.
+    const keepQuote = quoteMode ? { quote: quotePost } : {};
+    if (source === "gallery") return openComposer("post", { pick: "all", source: "gallery", ...keepQuote });
+    if (source === "story") return openComposer("story", { pick: "all", source: "story", ...keepQuote });
+    return openComposer("post", { source: "tweet", ...keepQuote });
   }));
   document.getElementById("composerForm").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -7405,6 +7452,7 @@ function openComposer(mode = "post", options = {}) {
         audio_attribution: creatorAudio ? fd.get("audio_attribution") : "",
         jamendo_selection_token: !creatorAudio && selectedJamendoTrack?.selection_token || undefined,
         jamendo_preview_offset: !creatorAudio && selectedJamendoTrack ? Number(selectedJamendoTrack.preview_offset || 0) : undefined,
+        quoted_post_id: quotePost ? Number(quotePost.id) : undefined,
       };
       setUploadProgress(88, t("publish.moderating"));
       const storyIntent = storyMode ? await prepareStoryPublishIntent(body, publishKey) : null;

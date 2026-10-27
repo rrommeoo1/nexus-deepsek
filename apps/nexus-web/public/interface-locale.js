@@ -3,6 +3,7 @@ const RTL = new Set(["ar"]);
 
 const MESSAGES = Object.freeze({
   ro: {
+    "post.quote": "Citează", "post.quoteFailed": "Postarea nu poate fi citată acum.", "post.quotedFrom": "Conversație citată", "post.quoteOpen": "Deschide postarea citată", "post.textPages": "Paginile textului", "composer.quoteTitle": "Citează", "composer.quoteHint": "Postarea citată apare sub comentariul tău.", "composer.quotePlaceholder": "Adaugă un comentariu…",
     "chatPrefs.theme": "Tema conversației", "chatPrefs.deviceOnly": "Doar pe acest dispozitiv.", "chatPrefs.notifications": "Notificări", "chatPrefs.muteHint": "Alerte de mesaje pe acest dispozitiv. Apelurile și contoarele rămân active.", "chatPrefs.expiry": "Mesaje temporare", "chatPrefs.expiryHint": "Pentru mesajele tale noi. Nu schimbă mesajele existente sau ale celorlalți.", "chatPrefs.saveFailed": "Nu s-a salvat. Verifică stocarea browserului.", "chatPrefs.saved": "Salvat", "chatPrefs.midnight": "Noapte", "chatPrefs.forest": "Pădure", "chatPrefs.alertsOn": "Activate", "chatPrefs.alertsOff": "Dezactivate", "chatPrefs.security": "Criptare",
     "thread.serverReadable": "Fără E2EE · mesajele pot fi citite de server",
     "messenger.searchLoaded": "Caută în mesajele afișate", "messenger.nextMatch": "Rezultatul următor",
@@ -399,6 +400,7 @@ const MESSAGES = Object.freeze({
   },
 
   en: {
+    "post.quote": "Quote", "post.quoteFailed": "This post cannot be quoted right now.", "post.quotedFrom": "Quoted conversation", "post.quoteOpen": "Open the quoted post", "post.textPages": "Text pages", "composer.quoteTitle": "Quote", "composer.quoteHint": "The quoted post appears under your comment.", "composer.quotePlaceholder": "Add a comment…",
     "chatPrefs.theme": "Chat theme", "chatPrefs.deviceOnly": "On this device only.", "chatPrefs.notifications": "Notifications", "chatPrefs.muteHint": "Message alerts on this device. Calls and unread counts stay active.", "chatPrefs.expiry": "Disappearing messages", "chatPrefs.expiryHint": "For your new messages. Existing messages and other senders are unchanged.", "chatPrefs.saveFailed": "Not saved. Check browser storage.", "chatPrefs.saved": "Saved", "chatPrefs.midnight": "Midnight", "chatPrefs.forest": "Forest", "chatPrefs.alertsOn": "On", "chatPrefs.alertsOff": "Off", "chatPrefs.security": "Encryption",
     "thread.serverReadable": "No E2EE · messages can be read by the server",
     "messenger.searchLoaded": "Search displayed messages", "messenger.nextMatch": "Next result",
@@ -795,6 +797,7 @@ const MESSAGES = Object.freeze({
   },
 
   pl: {
+    "post.quote": "Zacytuj", "post.quoteFailed": "Nie można teraz zacytować tej publikacji.", "post.quotedFrom": "Cytowana rozmowa", "post.quoteOpen": "Otwórz cytowany post", "post.textPages": "Strony tekstu", "composer.quoteTitle": "Zacytuj", "composer.quoteHint": "Cytowany post pojawia się pod twoim komentarzem.", "composer.quotePlaceholder": "Dodaj komentarz…",
     "chatPrefs.theme": "Motyw czatu", "chatPrefs.deviceOnly": "Tylko na tym urządzeniu.", "chatPrefs.notifications": "Powiadomienia", "chatPrefs.muteHint": "Alerty wiadomości na tym urządzeniu. Połączenia i liczniki pozostają aktywne.", "chatPrefs.expiry": "Znikające wiadomości", "chatPrefs.expiryHint": "Dla Twoich nowych wiadomości. Bez zmian starszych wiadomości i innych nadawców.", "chatPrefs.saveFailed": "Nie zapisano. Sprawdź pamięć przeglądarki.", "chatPrefs.saved": "Zapisano", "chatPrefs.midnight": "Noc", "chatPrefs.forest": "Las", "chatPrefs.alertsOn": "Włączone", "chatPrefs.alertsOff": "Wyłączone", "chatPrefs.security": "Szyfrowanie",
     "thread.serverReadable": "Bez E2EE · serwer może odczytać wiadomości",
     "messenger.searchLoaded": "Szukaj w widocznych wiadomościach", "messenger.nextMatch": "Następny wynik",
@@ -1192,6 +1195,7 @@ const MESSAGES = Object.freeze({
   },
 
   ar: {
+    "post.quote": "اقتبس", "post.quoteFailed": "لا يمكن اقتباس هذا المنشور الآن.", "post.quotedFrom": "محادثة مقتبسة", "post.quoteOpen": "افتح المنشور المقتبس", "post.textPages": "صفحات النص", "composer.quoteTitle": "اقتبس", "composer.quoteHint": "يظهر المنشور المقتبس أسفل تعليقك.", "composer.quotePlaceholder": "أضف تعليقاً…",
     "chatPrefs.theme": "مظهر المحادثة", "chatPrefs.deviceOnly": "على هذا الجهاز فقط.", "chatPrefs.notifications": "الإشعارات", "chatPrefs.muteHint": "تنبيهات الرسائل على هذا الجهاز. تبقى المكالمات والعدادات فعالة.", "chatPrefs.expiry": "رسائل مؤقتة", "chatPrefs.expiryHint": "لرسائلك الجديدة فقط. دون تغيير الرسائل السابقة أو رسائل الآخرين.", "chatPrefs.saveFailed": "لم يتم الحفظ. تحقق من تخزين المتصفح.", "chatPrefs.saved": "تم الحفظ", "chatPrefs.midnight": "ليل", "chatPrefs.forest": "غابة", "chatPrefs.alertsOn": "مفعلة", "chatPrefs.alertsOff": "معطلة", "chatPrefs.security": "التشفير",
     "thread.serverReadable": "بدون تشفير تام · يمكن للخادم قراءة الرسائل",
     "messenger.searchLoaded": "ابحث في الرسائل المعروضة", "messenger.nextMatch": "النتيجة التالية",

@@ -127,7 +127,9 @@ test("the server and the client agree on the gallery, the tags and the trends", 
   assert.match(api, /if \(mediaIds\.length\) repo\.setPostMedia\(post\.id, mediaIds, \{ transaction: false \}\);/);
   assert.match(api, /repo\.setPostTags\(post\.id, extractPostTags\(caption\), \{ transaction: false \}\);/);
   assert.match(api, /repo\.setPostTags\(edited\.id, extractPostTags\(caption\)\);/);
-  assert.match(api, /media_list: \(\(\) => \{/);
+  // The gallery is one helper both the post view and the quoted-post preview read.
+  assert.match(api, /media_list: postMediaList\(repo, post\),/);
+  assert.match(api, /function postMediaList\(repo, post\) \{/);
   assert.match(api, /tags: repo\.postTags\(post\.id\),/);
   assert.match(api, /if \(kinds\.includes\("video"\) && mediaIds\.length > 1\) return json\(res, 400, \{ ok: false, error: "a video post carries one media" \}\);/);
   assert.match(api, /if \(method === "GET" && path === "\/api\/social\/tags"\)/);
