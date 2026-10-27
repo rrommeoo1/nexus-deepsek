@@ -2770,3 +2770,108 @@ fost găsită), iar rândul creat pe postarea 4 a fost retras. Numele profilului
    `paper-redistribuiri-empty`, `paper-repost-open`, `paper-repost-second`, `paper-text-head`,
    `picker2-hold`, `picker2-m2`, `picker2-reel`, `band-final-a|b`.
 
+
+## 25. Ce a refuzat ownerul pe telefon: paleta, hârtia și banda (27 octombrie 2026)
+
+Trei lucruri citite pe Xiaomi și refuzate în aceeași ieșire, toate trei de formă și niciunul de funcție:
+emoji-ul crescut din pastilă nu era cel de sub deget („magnificarea nu e pe vârf"), o pagină de cuvinte
+pierdea **o coloană goală pe toată înălțimea** în dreapta, deasupra unor butoane care stau doar jos, iar
+banda de pe profil se mișca de parcă ar fi avut 36 de secunde pe tură, adică de 1,5 ori prea lent.
+
+Niciuna dintre cele trei nu cerea un motor nou. Toate trei cereau ca un număr scris de mână să fie înlocuit
+cu numărul pe care compoziția îl știe deja: centrul feței, dreptunghiul barei, lățimea coloanei.
+
+### 25.1 Paleta: măsura pornea din colțul pastilei, nu din fața emoji-ului
+
+`pickerPositionAt` împărțea poziția degetului la lățimea pastilei, dar pastila are două margini: măsura
+pornea din marginea stângă, nu din centrul primei fețe, iar emoji-ul crescut ajungea decalat cu o jumătate
+de celulă față de deget. Acum fracția se măsoară **din centrul feței** (`(x - edge - cell/2) / cell`), iar
+alegerea ridicării se rotunjește (`Math.round` în `pickerIndexAt`, nu `Math.floor`): la mijlocul dintre două
+fețe câștigă cea mai apropiată, nu cea din stânga. Rândul din dreapta (oglindit) citea aceeași pastilă cu
+semn schimbat și a primit aceeași măsură.
+
+Testul (`test-reaction-palette.cjs`) nu mai spune „un număr crește", ci exact ce trebuie: fracția 0 este
+
+### 25.2 Coloana de hârtie: bara nu e o margine, e un dreptunghi
+
+Defectul, spus pe scurt: pagina de cuvinte ținea liberi 66dp pe toată înălțimea ecranului pentru o bară de
+butoane care stă numai în colțul din dreapta-jos. Deasupra butoanelor nu era nimic de ocolit, dar hârtia era
+tot goală acolo — exact lucrul pe care ownerul l-a numit „o coloană goală pe toată înălțimea".
+
+Ce s-a schimbat: fluxul editorial (`lib/editorialFlow.ts`) știa deja să așeze un rând în **intervalele
+libere** la înălțimea lui — așa se strânge textul lângă o fotografie. Aceluiași mecanism i se dă acum și
+bara: `EditorialReserve` este un dreptunghi pe care cuvintele nu au voie să-l calce, însămânțat în lista de
+obstacole **pe fiecare pagină** (și reînsămânțat la `newPage()`), deci:
+
+- rândurile care ating bara se îngustează doar ele (`freeIntervals` taie doar intervalul ocupat la acea
+  înălțime), iar toate rândurile de deasupra butoanelor păstrează toată măsura paginii;
+- o fotografie lată este împinsă sub dreptunghi, niciodată desenată sub un buton — se folosește exact
+  regula după care o fotografie se așază sub alta;
+- un text scurt (afirmația centrată) nu mai pierde nimic: `bodyGutter` este 0 pentru el.
+
+Dreptunghiul nu este ghicit, este **derivat** din butoane (`wordPageRailReserve` în `lib/textPage.ts`):
+înălțimea este numărul de celule × `RAIL_CELL` (56) + intervalele `RAIL_GAP` (2) + aerul discului sonor
+(`RAIL_SOUND_AIR`, 4, doar când pagina are un clip) + 6dp de aer; lățimea este cât intră din bara de 66dp în
+măsura paginii, adică 52dp pe feed (padding 14) și 50dp pe cititor (padding 16); piciorul stă unde stă ultima
+celulă (`RAIL_FOOT` 26 minus `padB`), iar banda barei de tab-uri se anulează singură, fiind numărată și de
+bară și de pagină. `PostRail` și-a expus cele trei numere, iar un test spune că modulul și componenta sunt de
+acord — nu pot aluneca unul de altul în tăcere.
+
+Măsurat cu motorul, pe o pagină de 365×700dp (telefonul ownerului, minus margini), articol de 40 de
+paragrafe:
+
+| Așezarea | Măsura rândului | Pagini |
+|---|---|---|
+| fără bară (ideal) | 339dp pe fiecare rând | 23 |
+| **camera barei (nou)** | 339dp deasupra butoanelor, 307.7dp lângă ele (bara începe la 313) | **23** |
+| coloana veche (66dp pe toată înălțimea) | 255dp pe fiecare rând | 25 |
+
+Adică două pagini mai puțin pe un articol lung, iar pe ecran diferența nu e de pagini, ci de fel: jumătatea
+de sus a paginii scrie până la marginea hârtiei, nu până la o linie verticală invizibilă. Pe un text scurt
+(9 paragrafe) cele două așezări costă la fel de multe pagini (6), dar numai una arată ca o pagină.
+
+Plumbul, fișier cu fișier: `EditorialReserve` + opțiunea `reserve` în `lib/editorialFlow.ts`; `RailReserve`,
+`RAIL_CELL`, `RAIL_GAP`, `RAIL_SOUND_AIR` și `wordPageRailReserve` în `lib/textPage.ts`; `railReserve` în
+`EditorialPage.tsx` (dreptunghiul se construiește în coordonatele paginii: `x = width - w`,
+`y = height - bottom - h`) și în `EditorialArticle.tsx`; în `PostCanvas.tsx` — `authoredPage`, `railReserve`,
+`bodyGutter`. Editorul (`src/app/text.tsx`) nu pasează nimic: nu are bară, iar pagina aranjată în editor
+trebuie să arate exact ca pagina citită.
+
+**centrul primei fețe**, 7.5 este centrul ultimei, glisarea celor 41 de eșantioane de la un capăt la altul
+este monotonă (fără salt înapoi), `pickerIndexAt` rotunjește, rândul oglindit citește la fel, iar un deget
+ridicat în afara pastilei nu alege nimic (`-1`).
+
+
+### 25.3 Banda: 36 de secunde pe tură erau de 1,5 ori prea lente
+
+`BAND_SECONDS` a trecut de la 36 la 24 în `lib/profileBand.ts`. `bandCycleMs` păstrează regula care era
+bună — turul crește cu lățimea coloanei, cu minimul la `BAND_SECONDS` și plafonul la 2,5× (60s) — și doar
+baza s-a schimbat, deci o coloană îngustă și una lată se mișcă în continuare cu aceeași viteză *liniară*,
+nu cu aceeași durată. Comentariul constantei spune acum și de ce: ownerul a citit 36s pe telefon și i-a
+numit de 1,5 ori prea lenți, iar 36 / 1,5 = 24.
+
+### 25.4 Ce s-a dovedit (rulat, nu promis)
+
+- `npm test` în `apps/nexus-mobile`: **45 de scripturi, toate trec** (`fail 0`), inclusiv cele trei suite
+  atinse de rundă.
+- `scripts/test-text-page.cjs` — 7 cazuri, două noi: „camera unei pagini de cuvinte este bara, nu o
+  coloană" (lățime, înălțime pe celule, picior, cazul fără disc, paddingul cititorului) și „celula barei
+  este cea din care se taie camera" (modulele nu pot divergea). Cazul vechi care cerea
+  `paddingRight: railGutter` a fost rescris pe `bodyGutter`, fiindcă exact acea coloană a fost refuzată.
+- `scripts/test-editorial-document.cjs` — 21 de cazuri, două noi, pe motor: niciun rând și nicio fotografie
+  nu intră în dreptunghi, rândurile de deasupra butoanelor ating aceeași margine ca într-o pagină fără bară,
+  cuvintele sunt aceleași, iar camera se cere pe **fiecare** pagină (un `pagebreak` nu o pierde).
+- `scripts/test-reaction-palette.cjs` — 15/15, cu cazul rescris al măsurii din centrul feței.
+- `scripts/test-profile-band.cjs` — 12/12, cu turul de 24s (24000ms la lățimea nominală, 48000ms la
+  dublu), plafonul de 60000ms și `BAND_SECONDS === 24`.
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json` — curat.
+
+### 25.5 Ce rămâne deschis
+
+1. **Confirmarea fizică.** Toate trei sunt schimbări de formă, deci verdictul este al ownerului, pe telefon:
+   emoji-ul ridicat să stea pe fața de sub deget, pagina de cuvinte să scrie până la margine deasupra
+   butoanelor, banda să pară că merge, nu că se târăște. Sondele `adb input motionevent` rămân aproximative
+   pentru pastilă — un deget adevărat este singura dovadă acceptată acolo.
+2. **Pagina veche (fără document)** păstrează coloana: `PostTextReading` taie textul pe caractere și nu
+   poate reîmpacheta un rând, deci cuvintele ar intra sub butoane. O pagină scrisă în editor are flux și
+   scapă de coloană; una de dinainte de documente nu are cum.

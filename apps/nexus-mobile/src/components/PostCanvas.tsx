@@ -13,7 +13,8 @@ import {
 } from '../lib/socialTypes';
 import { MAX_MEDIA, locationOf, needsTranslation, quoteChain, stageFor, tagsOf, textPages, textPreview } from '../lib/postPresentation';
 import { pagePaletteOf, pageStyleForPost, textStyleForPost, defaultTextStyle } from '../lib/textStyle';
-import { wordPageGutter, wordPageHead } from '../lib/textPage';
+import { wordPageGutter, wordPageHead, wordPageRailReserve } from '../lib/textPage';
+import { RAIL_FOOT } from './PostRail';
 import { socialTokens } from '../theme/social';
 import { STATEMENT_CHARS, editorial, editorialType } from '../theme/editorial';
 
@@ -219,9 +220,9 @@ export function PostCanvas({
   /**
    * This composition *is* the page, not a cell of a list: its head starts at `topInset` itself — under the
    * status clock, in the notification band, which is where the owner asked a page of words to begin
-   * (20 October 2026) — and the right of the page keeps `metrics.railGutter` free for the action rail the
-   * surface draws beside it. A card of a list leaves this off: it keeps the canvas's own padding and its
-   * compact row under the words.
+   * (20 October 2026) — and the right of the page keeps the action rail's footprint free, either as a
+   * gutter (a legacy page) or as the buttons' own rectangle (`railReserve`, a page with a flow). A card of
+   * a list leaves this off: it keeps the canvas's own padding and its compact row under the words.
    */
   page?: boolean;
 }) {
@@ -268,7 +269,8 @@ export function PostCanvas({
    * A page of words keeps exactly the rail's own footprint (`TEXT_PAGE_RAIL_GUTTER`: the 56dp cell 10dp
    * in from the edge, plus air) instead of the reel's wider 78dp: the article is the page, and every
    * point given away on the right is a column of paper the words cannot use while the buttons stand on
-   * the same edge either way.
+   * the same edge either way. A page the composer wrote keeps even less — not a column but the buttons'
+   * own rectangle (`railReserve` below), because its flow can narrow a single line.
    */
   const railGutter = stacked && !page ? 0 : wordPageGutter(metrics.railGutter, wordPage);
   /**
@@ -290,6 +292,27 @@ export function PostCanvas({
   const items = postMediaItems(post).slice(0, MAX_MEDIA);
   const cover = items[0] ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
+  /**
+   * Does this post carry the page it was written on (`text_style.document`)? If it does, its words are
+   * laid out by the editorial flow, and the flow is the only thing on this phone that can narrow *one
+   * line* beside the rail. A post written before documents existed keeps its legacy composition
+   * (`PostTextReading`, a single statement) and the whole-column gutter that composition has always had.
+   */
+  const authoredPage = hasEditorialDocument(post);
+  /**
+   * The room the rail really stands in, in the page's own points: as wide as its cell plus the inset from
+   * the edge, as tall as the presses it carries, its foot where its last press stands. The flow keeps it
+   * line by line — so the paper *above* the buttons is words again, instead of the full-height column of
+   * nothing the owner rejected on 27 October 2026 („o coloană goală pe toată înălțimea").
+   *
+   * Four presses on a page of words (reaction, comments, save, share); a fifth when the page has a
+   * soundtrack's disc to show (`PostRail` draws that one only for a clip).
+   */
+  const railReserve = wordPage
+    ? wordPageRailReserve({
+      padH: metrics.padH, padB: metrics.padB, cells: isVideo ? 5 : 4, foot: RAIL_FOOT, sound: isVideo,
+    })
+    : null;
   const reading = textPages(post.caption);
   const conversation = quoteChain(post);
   const preview = textPreview(post.caption, tile ? 220 : 320);
@@ -349,6 +372,21 @@ export function PostCanvas({
   const pageChip = pagePalette ? { borderColor: pagePalette.accent, backgroundColor: 'transparent' } : null;
   const pageNotice = pagePalette ? [styles.noticePaper, noticeTone === 'info' && styles.noticeInfoPaper] : [styles.notice, noticeTone === 'info' && styles.noticeInfo];
   const statement = !authored && stage === 'text' && statementText.length > 0 && statementText.length <= STATEMENT_CHARS && !longCaption;
+  /**
+   * The room the **words** keep on the right of the reading block.
+   *
+   * A page of words written in the composer needs none: its flow keeps the rail's own rectangle instead
+   * (`railReserve`), line by line, so every line above the buttons uses the full paper. A statement is a
+   * short block centred in the middle of the page — it ends far above the buttons, so a column beside it
+   * was paper given away for nothing. A legacy paged reading keeps the gutter it has always had: it is
+   * split by characters and cannot re-wrap a single line, and words under the buttons would be worse
+   * than a column beside them.
+   */
+  const bodyGutter = !wordPage
+    ? railGutter
+    : authoredPage || statement
+      ? 0
+      : railGutter;
   const avatar = mediaSourceForPath(post.author?.avatar);
   const handle = post.author?.handle || 'nexus';
   const name = post.author?.display_name || handle;
@@ -719,7 +757,7 @@ export function PostCanvas({
            * body face and the paged reading, because a decorative font over a paragraph is a defect.
            */}
           <View style={styles.readingCenter}>
-            <View style={[styles.readingBodyWrap, { paddingRight: railGutter }]}>
+            <View style={[styles.readingBodyWrap, { paddingRight: bodyGutter }]}>
               {stage === 'quote' ? (
                 <>
                   {post.caption ? (
@@ -746,8 +784,8 @@ export function PostCanvas({
                 </>
               ) : (
                 <>
-                  {hasEditorialDocument(post) ? (
-                    <EditorialArticle post={post} style={pageStyle ?? defaultTextStyle()} active={active} />
+                  {authoredPage ? (
+                    <EditorialArticle post={post} style={pageStyle ?? defaultTextStyle()} active={active} railReserve={railReserve} />
                   ) : statement ? (
                     <RichText
                       text={statementText}

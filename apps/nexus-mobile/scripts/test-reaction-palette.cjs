@@ -194,10 +194,26 @@ test('ridicarea in afara pastilei anuleaza: ownerul nu forteaza o icoana', () =>
 });
 
 test('panoul este un rand fin, cu emoji-ul de sub deget crescut', () => {
-  assert.equal(picker.PICKER_GROW, 1.32, 'doar emoji-ul de sub deget creste, si creste vizibil');
-  assert.equal(picker.PICKER_LIFT, -10, 'si iese putin din linie, ca in poza');
+  // Al saptelea val (27 octombrie 2026): ownerul a respins din nou lupa — „emoji-ul de sub deget nu se
+  // mareste". Cresterea era calculata si interpolata, dar lista de transformari ajungea la React Native
+  // ca un element al listei de stiluri, iar `StyleSheet.flatten` o desfacea in trei proprietati
+  // (`scaleX`, `scaleY`, `translateY`) pe care nici o vedere nu le citeste — deci nimic nu se desena.
+  // Lupa este acum o cutie a ei (`Animated.View` + `{ transform }`), si creste ca o lupa.
+  assert.ok(picker.PICKER_GROW >= 1.6 && picker.PICKER_GROW <= 1.85,
+    'doar emoji-ul de sub deget creste, si creste ca o lupa');
+  assert.ok(picker.PICKER_LIFT < 0, 'si iese putin din linie, ca in poza');
   assert.match(palette, /outputRange: \[1, PICKER_GROW, 1\]/, 'cresterea este a emoji-ului de sub deget');
   assert.match(palette, /outputRange: \[0, PICKER_LIFT, 0\]/, 'ridicarea este a aceluiasi emoji');
+  // Forma care a fost defectul: transformarea ca element al listei de stiluri, pe un `<Text>`.
+  assert.match(palette, /\{ transform \}/, 'transformarea este o proprietate de stil, nu un stil intreg');
+  assert.doesNotMatch(palette, /<Animated\.Text/, 'lupa nu se mai deseneaza pe un <Text>');
+  assert.match(palette, /<Animated\.View pointerEvents="none" style=\{\[styles\.glyphBox, \{ transform \}\]\}>/,
+    'lupa este o cutie proprie, cu transformarea ei');
+  assert.match(palette, /glyphBox: \{ width: PICKER_CELL, height: PICKER_CELL, alignItems: 'center', justifyContent: 'center' \}/,
+    'cutia are exact o celula, ca sa aiba un centru din care sa creasca');
+  assert.match(palette, /bottom: PICKER_CELL \+ PICKER_CROWN/,
+    'numele sta deasupra fetei crescute, nu peste ea');
+  assert.ok(picker.PICKER_CROWN > 0, 'fata crescuta iese deasupra celulei ei');
   assert.match(palette, /const order = anchor === 'right' \? \[\.\.\.SOCIAL_REACTIONS\]\.reverse\(\) : \[\.\.\.SOCIAL_REACTIONS\];/,
     'randul se deseneaza de la marginea degetului, ca primul emoji sa fie sub el');
   assert.match(palette, /REACTION_PICKER_GLYPHS\[kind\]/, 'pastila isi ia emoji-urile din setul panoului');
@@ -335,6 +351,12 @@ test('al doilea tap retrage like-ul: platca se intoarce la inima alba, nu la cea
 // `pickerPositionAt`, iar testul de aici o citeste ca pe o functie, nu ca pe o linie de cod: jumatate de
 // celula muta cresterea cu jumatate, aceeasi fractie da aceeasi celula ca `pickerIndexAt`, iar o glisare
 // de la un capat la altul este monotona si se termina pe ultimul emoji.
+//
+// Al optulea val (aceeasi zi): probe pe telefon au aratat ca varful cresterii cadea pe *granita* dintre
+// doua celule — fractia se masura de la marginea pastilei, deci degetul asezat pe mijlocul unei fete
+// citea `k + 0.5` si lupa se impartea egal intre doi vecini. De atunci `0` este mijlocul primei fete, iar
+// celula aleasa este fractia *rotunjita*, nu taiata: degetul trecut de granita numeste deja fata
+// urmatoare, exact cum o citeste ochiul.
 test('lupa urmeaza degetul continuu, iar celula aleasa ramane cea de sub el', () => {
   const count = SOCIAL_REACTIONS.length;
   const box = { x: 100, y: 300, width: PICKER_EDGE * 2 + PICKER_CELL * count, height: PICKER_CELL + PICKER_EDGE * 2 };
@@ -342,14 +364,18 @@ test('lupa urmeaza degetul continuu, iar celula aleasa ramane cea de sub el', ()
   const first = box.x + PICKER_EDGE;
   const at = (x) => pickerPositionAt(box, { x, y }, 'left', count);
 
-  assert.equal(at(first), 0, 'marginea pastilei este emoji-ul intai');
-  assert.equal(at(first + PICKER_CELL / 2), 0.5, 'jumatate de celula, jumatate din crestere');
-  assert.equal(at(first + PICKER_CELL * 1.25), 1.25, 'un sfert dupa granita este un sfert din celula a doua');
+  assert.equal(at(first), 0, 'marginea pastilei este un perete: tot primul emoji');
+  assert.equal(at(first + PICKER_CELL / 2), 0, 'mijlocul primei fete este 0, nu marginea ei');
+  assert.equal(at(first + PICKER_CELL * 1.5), 1, 'mijlocul celei de-a doua fete este 1');
+  assert.equal(at(first + PICKER_CELL * 7.5), 7, 'mijlocul ultimei fete este ultimul emoji');
+  assert.equal(at(first + PICKER_CELL * 1.25), 0.75, 'intre doua fete, fractia spune cat de aproape este');
   assert.equal(pickerIndexAt(box, { x: first + PICKER_CELL * 1.25, y }, 'left', count), 1,
     'celula aleasa este cea in care se afla degetul');
 
-  /** O glisare lenta de la primul la ultimul emoji: 41 de citiri, strict crescatoare, fara salturi. */
-  const samples = Array.from({ length: 41 }, (_, index) => at(first + (PICKER_CELL * (count - 1) * index) / 40));
+  /** O glisare lenta de la mijlocul primei fete la mijlocul ultimei: 41 de citiri, strict crescatoare. */
+  const samples = Array.from({ length: 41 }, (_, index) => at(
+    first + PICKER_CELL / 2 + (PICKER_CELL * (count - 1) * index) / 40,
+  ));
   for (let index = 1; index < samples.length; index += 1) {
     assert.ok(samples[index] > samples[index - 1], 'fiecare milimetru apropie emoji-ul urmator');
     assert.ok(samples[index] - samples[index - 1] < 0.25, 'si nici un salt: cresterea este continua');
@@ -366,6 +392,9 @@ test('lupa urmeaza degetul continuu, iar celula aleasa ramane cea de sub el', ()
   const right = clip.x + clip.width - PICKER_EDGE;
   const mid = clip.y + clip.height / 2;
   assert.equal(pickerIndexAt(clip, { x: right - 1, y: mid }, 'right', count), 0);
-  assert.equal(pickerPositionAt(clip, { x: right, y: mid }, 'right', count), 0);
-  assert.equal(pickerPositionAt(clip, { x: right - PICKER_CELL * 2.5, y: mid }, 'right', count), 2.5);
+  assert.equal(pickerPositionAt(clip, { x: right, y: mid }, 'right', count), 0, 'si aici marginea este un perete');
+  assert.equal(pickerPositionAt(clip, { x: right - PICKER_CELL / 2, y: mid }, 'right', count), 0,
+    'mijlocul primei fete, citit de la capatul din dreapta');
+  assert.equal(pickerPositionAt(clip, { x: right - PICKER_CELL * 3, y: mid }, 'right', count), 2.5,
+    'trei celule spre stanga sunt doua fete si jumatate');
 });

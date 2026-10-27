@@ -49,11 +49,26 @@ export const PICKER_SLACK = PICKER_CELL;
 
 /**
  * How much the emoji under the finger grows, and how far it lifts out of the line. The owner asked for
- * a magnifier, not a menu: the nearest face grows a little and its neighbours are already shrinking,
- * so the eye can follow the finger without reading a name.
+ * a magnifier, not a menu: the nearest face grows and its neighbours are already shrinking, so the eye
+ * can follow the finger without reading a name.
+ *
+ * The size was corrected on 27 October 2026, when the owner rejected the panel a second time: "emoji-ul
+ * de sub deget nu se mărește". The panel *was* interpolating a `1.32` scale, but the transform array
+ * reached React Native as one more entry of the style array (`style={[glyph, mark, transform]}`), where
+ * `StyleSheet.flatten` merges the three transform objects into three unknown top-level props
+ * (`scaleX`, `scaleY`, `translateY`) and drops the `transform` property entirely — so nothing painted.
+ * The face is now a box of its own (`Animated.View` + `{ transform }` in `ReactionPalette`) and the
+ * growth is a real magnifier: a littler over one and a half times, lifted clear of the row.
  */
-export const PICKER_GROW = 1.32;
-export const PICKER_LIFT = -10;
+export const PICKER_GROW = 1.72;
+export const PICKER_LIFT = -14;
+
+/**
+ * How far the magnified face reaches **above its own cell**, in page points: the share of the cell the
+ * scale adds on the way up, plus the lift. The name chip is drawn above this line, so the words never
+ * land on the face they name (`ReactionPalette`).
+ */
+export const PICKER_CROWN = Math.round((PICKER_CELL * (PICKER_GROW - 1)) / 2 - PICKER_LIFT);
 
 /** The panel's rectangle in window coordinates, as `measureInWindow` reports it. */
 export type PickerBox = { x: number; y: number; width: number; height: number };
@@ -101,9 +116,23 @@ export function pickerPositionAt(
       point.y <= Math.max(box.y + box.height, plate.y + plate.height)
     : false;
   if (!nearPill && !inCorridor) return -1;
+  /**
+   * The fraction is measured from the **middle of the first emoji**, not from the pill's inner edge.
+   *
+   * The owner rejected the panel a third time on 27 October 2026 („lupa nu crește unde e degetul"), and
+   * a measurement probe found the reason: with the edge as the origin, the finger resting on the centre
+   * of a face read `k + 0.5`, and `ReactionPalette` interpolates every face from this number — so the
+   * growth split itself evenly between two neighbours and peaked exactly on the boundary *between* two
+   * cells. The face under the thumb was never the biggest one; the seam was. Half a cell is the whole
+   * difference: `0` is now the centre of the first emoji and `k` the centre of the k-th, which is what
+   * this module has documented since the panel was written.
+   *
+   * The cell the finger really stands in stays `pickerIndexAt`, which rounds this fraction — so a finger
+   * past the seam already names the next face, exactly as the eye reads it.
+   */
   const offset = anchor === 'right'
-    ? box.x + box.width - PICKER_EDGE - point.x
-    : point.x - (box.x + PICKER_EDGE);
+    ? box.x + box.width - PICKER_EDGE - PICKER_CELL / 2 - point.x
+    : point.x - (box.x + PICKER_EDGE + PICKER_CELL / 2);
   /**
    * The edges are walls, not holes: past the first cell the first emoji stays the nearest one, and past
    * the last the last one does. Only leaving the pill's slack answers `-1`, and a release from there
@@ -118,7 +147,9 @@ export function pickerPositionAt(
  * pointed at": a move clears the growth, a release closes the panel without a reaction.
  *
  * It is the *cell* the finger is over — the one a release chooses and the one whose name the chip
- * prints — and it is `pickerPositionAt` rounded down, so the growth and the choice can never disagree.
+ * prints — and it is `pickerPositionAt` **rounded**, so the growth and the choice can never disagree:
+ * the fraction counts from the middle of a face, so `floor` would lag half a cell behind the thumb
+ * (the finger would be over the second emoji while the first was still named and chosen).
  */
 export function pickerIndexAt(
   box: PickerBox,
@@ -128,6 +159,6 @@ export function pickerIndexAt(
   plate?: PickerBox | null,
 ): number {
   const at = pickerPositionAt(box, point, anchor, count, plate);
-  return at < 0 ? -1 : Math.floor(at);
+  return at < 0 ? -1 : Math.round(at);
 }
 

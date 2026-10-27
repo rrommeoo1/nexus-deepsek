@@ -2,7 +2,7 @@ import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   REACTION_PICKER_GLYPHS, REACTION_TITLES, SOCIAL_REACTIONS,
 } from '../lib/socialTypes';
-import { PICKER_CELL, PICKER_EDGE, PICKER_GROW, PICKER_LIFT, type PickerAnchor } from '../lib/reactionPicker';
+import { PICKER_CELL, PICKER_CROWN, PICKER_EDGE, PICKER_GROW, PICKER_LIFT, type PickerAnchor } from '../lib/reactionPicker';
 
 /**
  * The reaction panel, drawn the way the owner pointed at (19 October 2026).
@@ -66,6 +66,16 @@ export function ReactionPalette({ anchor = 'left', motion, hover, mine, onPick }
           inputRange: [index - 1, index, index + 1], outputRange: [0, PICKER_LIFT, 0], extrapolate: 'clamp',
         });
         /**
+         * The magnifier is drawn on a **box of its own**, and the transform is a style *property*.
+         *
+         * Two things went wrong here on 27 October 2026 and both are fixed by these two lines: the
+         * transform array itself was handed to React Native as one more entry of the style array
+         * (`style={[styles.glyph, styles.mark, transform]}`), and `StyleSheet.flatten` merged its three
+         * objects into three top-level props (`scaleX`, `scaleY`, `translateY`) that no view reads — so
+         * the growth was computed, interpolated and never painted. It is `{ transform }` now, on an
+         * `Animated.View` that is exactly one cell wide and tall: the box gives the scale a centre to
+         * grow from, which a `<Text>`'s own line box does not.
+         *
          * `scaleX`/`scaleY` rather than the `scale` shorthand: React Native 0.86's native driver
          * flattens a transform into single style props before validating it, and its allowlist names
          * the two axes but not the shorthand — the shorthand animates on the JS driver only (the
@@ -81,9 +91,11 @@ export function ReactionPalette({ anchor = 'left', motion, hover, mine, onPick }
             onPress={() => onPick(kind)}
             style={[styles.cell, mine === kind && styles.cellOn, hover === index && styles.cellHover]}
           >
-            <Animated.Text style={[styles.glyph, styles.mark, transform]}>
-              {REACTION_PICKER_GLYPHS[kind] ?? REACTION_GLYPHS_FALLBACK[kind]}
-            </Animated.Text>
+            <Animated.View pointerEvents="none" style={[styles.glyphBox, { transform }]}>
+              <Text style={[styles.glyph, styles.mark]}>
+                {REACTION_PICKER_GLYPHS[kind] ?? REACTION_GLYPHS_FALLBACK[kind]}
+              </Text>
+            </Animated.View>
             {hover === index ? (
               <View pointerEvents="none" style={styles.chipRow}>
                 <View style={styles.chip}>
@@ -130,11 +142,20 @@ const styles = StyleSheet.create({
   cellOn: { backgroundColor: 'rgba(127,240,230,0.14)' },
   /** The emoji under the finger: one step lighter than its neighbours, never a plate of its own. */
   cellHover: { backgroundColor: 'rgba(255,255,255,0.09)' },
+  /**
+   * The box the magnified face grows from: one cell, so the scale has a centre. The `<Text>` inside it
+   * keeps its own line box (`glyph`), which is what the emoji is measured and centred by.
+   */
+  glyphBox: { width: PICKER_CELL, height: PICKER_CELL, alignItems: 'center', justifyContent: 'center' },
   glyph: { fontSize: 26, lineHeight: 32 },
   /** Only the two geometric kinds carry ink; a coloured emoji ignores it (`FAKE_OPINION`, `DISLIKE`). */
   mark: { color: '#e7f3f7', textAlign: 'center' },
-  /** The name of the emoji under the finger, above the bar (the web's `reaction.*` words). */
-  chipRow: { position: 'absolute', left: 0, right: 0, bottom: PICKER_CELL - 4, alignItems: 'center' },
+  /**
+   * The name of the emoji under the finger, above the bar (the web's `reaction.*` words) — and above
+   * the *face* since the magnifier grew: `PICKER_CROWN` is how far the grown emoji reaches over its own
+   * cell, so the chip starts one thumb-width higher and the words never cover what they name.
+   */
+  chipRow: { position: 'absolute', left: 0, right: 0, bottom: PICKER_CELL + PICKER_CROWN, alignItems: 'center' },
   chip: {
     paddingHorizontal: 7,
     paddingVertical: 3,

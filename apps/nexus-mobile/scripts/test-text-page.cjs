@@ -74,8 +74,56 @@ test('the canvas asks the module, and only a page of words', () => {
   assert.match(canvas, /\{ width: head\.disc, height: head\.disc, borderRadius: head\.disc \/ 2 \}/);
   assert.match(canvas, /styles\.name, \{ fontSize: head\.name \}/);
   assert.match(canvas, /styles\.handle, \{ fontSize: head\.handle \}/);
-  // The words keep clear of the rail: the body reserves the gutter on the right.
-  assert.match(canvas, /styles\.readingBodyWrap, \{ paddingRight: railGutter \}/);
+  // The words keep clear of the rail: the body reserves the room the rail really stands in.
+  assert.match(canvas, /styles\.readingBodyWrap, \{ paddingRight: bodyGutter \}/);
+  assert.match(canvas, /const bodyGutter = !wordPage[\s\S]{0,200}: railGutter;/,
+    'o pagina fara flux pastreaza coloana pe care a avut-o dintotdeauna');
+  assert.match(canvas, /authoredPage \|\| statement\s*\?\s*0/,
+    'un text scurt sau un articol scris nu pierde o coloana goala langa butoane');
+  // What a page with a flow keeps instead: the buttons' own rectangle, handed to the flow.
+  assert.match(canvas, /const railReserve = wordPage\s*\? wordPageRailReserve\(\{/);
+  assert.match(canvas, /cells: isVideo \? 5 : 4, foot: RAIL_FOOT, sound: isVideo/,
+    'bara unui clip are un buton mai mult: discu coloanei sonore');
+  assert.match(canvas, /<EditorialArticle post=\{post\} style=\{pageStyle \?\? defaultTextStyle\(\)\} active=\{active\} railReserve=\{railReserve\} \/>/,
+    'pagina scrisa primeste camera barei, ca fluxul sa o ocoleasca');
+  assert.match(code(read('src/components/EditorialArticle.tsx')), /railReserve=\{railReserve\}/);
+  const editor = code(read('src/components/EditorialPage.tsx'));
+  assert.match(editor, /reserve: reserveWidth > 0 && reserveHeight > 0/);
+  assert.match(editor, /y: height - reserveBottom - reserveHeight,/,
+    'camera sta cu piciorul unde sta bara, pe fiecare pagina');
+});
+
+test('the room of a page of words is the rail, not a column', () => {
+  // Four presses on a page of words, standing 26dp above the frame's foot (PostRail's RAIL_FOOT).
+  const room = page.wordPageRailReserve({ padH: FEED.padH, padB: FEED.padB, cells: 4, foot: 26 });
+  assert.equal(room.width, page.TEXT_PAGE_RAIL_GUTTER - FEED.padH,
+    'cat raza barei intra in masura: 66dp din margine, minus paddingul paginii');
+  assert.ok(room.width < page.TEXT_PAGE_RAIL_GUTTER, 'si nu mai mult: cuvantul scrie pana la padding');
+  assert.equal(room.height, 4 * page.RAIL_CELL + 3 * page.RAIL_GAP + 6, 'patru celule, trei intervale, aer');
+  assert.ok(room.height > 4 * 56 && room.height < 260, 'bara de patru butoane, nu o treime de pagina');
+  assert.equal(room.bottom, 26 - FEED.padB, 'piciorul barei, ridicat peste paddingul de jos al cuvintelor');
+  // A page with a soundtrack shows one more press, and keeps one more cell (plus the disc's own air).
+  const withDisc = page.wordPageRailReserve({ padH: FEED.padH, padB: FEED.padB, cells: 5, foot: 26, sound: true });
+  assert.equal(withDisc.height - room.height, page.RAIL_CELL + page.RAIL_GAP + page.RAIL_SOUND_AIR);
+  assert.equal(page.wordPageRailReserve({ padH: FEED.padH, padB: FEED.padB, cells: 4, foot: 26, sound: true }).height,
+    room.height, 'o pagina de cuvinte fara disc nu plateste pentru el');
+  // Nothing to keep: the composer asks for nothing and gets nothing.
+  assert.deepEqual(page.wordPageRailReserve({ padH: FEED.padH, padB: FEED.padB, cells: 0, foot: 26 }),
+    { width: page.TEXT_PAGE_RAIL_GUTTER - FEED.padH, height: 0, bottom: 26 - FEED.padB });
+  // The reader's wider padding narrows the measure less than the feed's.
+  const reader = page.wordPageRailReserve({ padH: 16, padB: 22, cells: 4, foot: 26 });
+  assert.ok(reader.width < room.width, 'pe cititor textul incepe mai inauntru, deci bara ia mai putin');
+});
+
+test('the rail\'s own cell is the one the room is cut from', () => {
+  const rail = code(read('src/components/PostRail.tsx'));
+  assert.match(rail, /const RAIL_CELL = 56;/);
+  assert.match(rail, /export const RAIL_FOOT = 26;/,
+    'piciorul barei este singura masura care se schimba daca bara se ridica sau coboara');
+  assert.match(rail, new RegExp(`width: RAIL_CELL, height: RAIL_CELL`));
+  // The module keeps its own copy of those two numbers, and a test says they agree.
+  assert.equal(page.RAIL_CELL, 56);
+  assert.equal(page.RAIL_GAP, 2);
 });
 
 test('the paper fills the page, and the article fills what the rail leaves', () => {

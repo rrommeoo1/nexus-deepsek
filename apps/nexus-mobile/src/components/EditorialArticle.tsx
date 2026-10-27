@@ -4,6 +4,7 @@ import { EditorialPage } from './EditorialPage';
 import { editorialDocumentForPost, editorialMediaForPost } from '../lib/editorialPost';
 import type { SocialPost } from '../lib/socialTypes';
 import type { TextStyle } from '../lib/textStyle';
+import type { RailReserve } from '../lib/textPage';
 
 /**
  * The published page of a text-first post.
@@ -17,12 +18,18 @@ import type { TextStyle } from '../lib/textStyle';
  * composition instead of being reinterpreted by a newer engine.
  */
 export function EditorialArticle({
-  post, style, active = true, pageStyle,
+  post, style, active = true, pageStyle, railReserve = null,
 }: {
   post: SocialPost;
   style: TextStyle;
   active?: boolean;
   pageStyle?: StyleProp<ViewStyle>;
+  /**
+   * The room the page's own rail keeps in its lower right corner (`RailReserve`): the words narrow
+   * beside the buttons and keep the whole measure above them, instead of a column of paper running the
+   * full height of the page (owner's rejection, 27 October 2026).
+   */
+  railReserve?: RailReserve | null;
 }) {
   const [box, setBox] = useState({ width: 0, height: 0 });
   const document = editorialDocumentForPost(post);
@@ -43,6 +50,7 @@ export function EditorialArticle({
           width={box.width}
           height={box.height}
           active={active}
+          railReserve={railReserve}
           accessibilityLabel="Pagina articolului"
         />
       ) : null}

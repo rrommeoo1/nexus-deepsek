@@ -23,6 +23,7 @@ import { editorialSizeFor, type EditorialMediaSource } from '../lib/editorialPos
 import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
 import { fontFamilyFor, pagePaletteOf, sizeOf, type TextStyle } from '../lib/textStyle';
+import type { RailReserve } from '../lib/textPage';
 
 /**
  * One editorial page, drawn as the article it will publish.
@@ -51,7 +52,7 @@ const WRAP_WIDTH_LIMIT = 0.62;
 
 export function EditorialPage({
   document, style, media, width, height, editable = false, active = true,
-  selectedMediaId = null, onSelectBlock, onChangeDocument, accessibilityLabel,
+  selectedMediaId = null, railReserve, onSelectBlock, onChangeDocument, accessibilityLabel,
 }: {
   document: EditorialDocument;
   style: TextStyle;
@@ -62,6 +63,13 @@ export function EditorialPage({
   /** Only the page the reader is looking at starts a clip. */
   active?: boolean;
   selectedMediaId?: string | null;
+  /**
+   * The room the reader's rail keeps at the right of the page, in the page's own points (`RailReserve`
+   * of `lib/textPage.ts`). The words keep it only where it stands: the flow narrows the lines that reach
+   * it and leaves every line above the buttons its full measure. The composer passes nothing — it has no
+   * rail, and a page arranged without one must look exactly like the page that is read.
+   */
+  railReserve?: RailReserve | null;
   onSelectBlock?: (selection: EditorialSelection | null) => void;
   /** `remember` asks the composer to keep an undo snapshot for a layout gesture. */
   onChangeDocument?: (document: EditorialDocument, remember?: boolean) => void;
@@ -146,6 +154,16 @@ export function EditorialPage({
     return () => { alive = false; };
   }, [media, aspectRatios]);
 
+  /**
+   * The rail's room, as the flow asks for it: a rectangle of this page the words may not enter, anchored
+   * to the page's right edge and to its foot, so the same numbers hold on every page of the article
+   * (`RailReserve` of `lib/textPage.ts`). Kept as three numbers rather than as a rectangle, because a
+   * rectangle would be rebuilt on every render and re-flow the whole article with it.
+   */
+  const reserveWidth = Math.max(0, railReserve?.width ?? 0);
+  const reserveHeight = Math.max(0, railReserve?.height ?? 0);
+  const reserveBottom = Math.max(0, railReserve?.bottom ?? 0);
+
   const flow = useMemo(() => flowEditorialDocument(document, {
     pageWidth: width,
     pageHeight: height,
@@ -161,8 +179,18 @@ export function EditorialPage({
     paragraphGap: Math.round(measure.lineHeight * 0.52),
     mediaGap: Math.round(measure.lineHeight * 0.55),
     aspectRatios,
+    /** No rail, no room: a page arranged in the composer keeps the whole paper. */
+    reserve: reserveWidth > 0 && reserveHeight > 0
+      ? [{
+        x: width - reserveWidth,
+        y: height - reserveBottom - reserveHeight,
+        width: reserveWidth,
+        height: reserveHeight,
+      }]
+      : [],
     maxPages: 160,
-  }), [document, width, height, measure.fontSize, measure.lineHeight, style.font, style.align, aspectRatios]);
+  }), [document, width, height, measure.fontSize, measure.lineHeight, style.font, style.align, aspectRatios,
+    reserveWidth, reserveHeight, reserveBottom]);
 
   const total = Math.max(1, flow.pageCount);
   const current = Math.min(page, total - 1);

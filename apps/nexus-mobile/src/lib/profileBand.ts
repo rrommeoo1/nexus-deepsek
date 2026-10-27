@@ -41,9 +41,13 @@ export type BandRow = {
 /** One reading of the band: what a reader sees travelling, and what a screen reader hears. */
 export type BandItem = { kind: BandKind; text: string; icon?: string };
 
-/** The owner asked for a quicker line on 18 October 2026: one run in about 36 seconds, not 48. */
-export const BAND_SECONDS = 36;
-/** The width the 48 seconds are measured on: one phone's column, so a longer run travels longer. */
+/**
+ * The owner asked for a quicker line on 18 October 2026 (one run in about 36 seconds, not 48), and on
+ * 27 October 2026 he rejected the result as **~1.5× too slow**: the same run now crosses the column in
+ * 24 seconds. One number, read by `bandCycleMs` below, so the band and every test move together.
+ */
+export const BAND_SECONDS = 24;
+/** The width the run's pace is measured on: one phone's column, so a longer run travels longer. */
 export const BAND_NOMINAL_WIDTH = 360;
 /** No cycle is quicker than the nominal one, and none is slower than two and a half of them. */
 export const BAND_MIN_MS = BAND_SECONDS * 1000;
@@ -172,9 +176,9 @@ export function bandLabel(items: BandItem[]): string {
 }
 
 /**
- * How long one run takes to travel: the 36 seconds the owner asked for, measured on a 360-wide column,
- * so a longer run moves at the same speed instead of finishing sooner. Zero means "do not animate at
- * all", which is what a run that has not been measured yet gets.
+ * How long one run takes to travel: the 24 seconds the owner asked for on 27 October 2026, measured on a
+ * 360-wide column, so a longer run moves at the same speed instead of finishing sooner. Zero means "do
+ * not animate at all", which is what a run that has not been measured yet gets.
  */
 export function bandCycleMs(runWidth: number): number {
   if (!(runWidth > 0)) return 0;
