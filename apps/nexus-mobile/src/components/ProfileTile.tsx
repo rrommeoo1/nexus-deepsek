@@ -2,11 +2,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { GestureResponderHandlers } from 'react-native';
 import { router } from 'expo-router';
 import { RemoteImage } from './PostMedia';
-import { LeafMotif } from './LeafMotif';
 import { SolidViewerIcon } from './SolidViewerIcon';
+import { ProfileTextTile } from './ProfileTextTile';
 import { profileCompactCount, type ArchivePost } from '../lib/profileContent';
-import { mediaKindOf, postMediaItems } from '../lib/socialTypes';
-import { themeOf } from '../lib/textStyle';
+import { mediaKindOf, postMediaItems, type MediaItem } from '../lib/socialTypes';
+import { stageFor } from '../lib/postPresentation';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -80,11 +80,22 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
   /** The face alone, for the overlay that follows the finger. */
   ghost?: boolean;
 }) {
-  const cover = postMediaItems(post)[0] ?? post.media ?? null;
+  const cover = postMediaItems(post).find((item) => mediaKindOf(item) !== 'audio') ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
   const viewers = profileCompactCount(post.view_stats?.viewers);
-  const isText = !cover;
-  const palette = themeOf(post.text_style?.theme ?? 'jungle');
+  /**
+   * What a cell shows is the post's own kind, not the guess "no picture, so nothing".
+   *
+   * `stageFor` is the classifier the feed and the reader already use: a page of words (`text`), an
+   * authored article that happens to carry photographs (`article`), a clip (`reel`) or a picture
+   * (`media`). A cell is a *page* when it has no picture at all — and also when it is an article, whose
+   * identity is the page rather than the picture inside it (owner's rule, 26 October 2026: a text post
+   * with inline pictures must not become a photo thumbnail with the article reduced to a caption).
+   * A soundtrack alone is not a picture either, so a post whose only attachment is audio reads as words.
+   */
+  const article = Boolean(cover) && stageFor(post) === 'article';
+  const plate: MediaItem | null = article ? cover : null;
+  const words = !cover || article;
   const arranging = Boolean(manage);
   const open = () => {
     router.push({
@@ -95,26 +106,20 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
     });
   };
 
-  /** The face of the cell: its frame, the words' cover, the real count and the ring of a hoisted pin. */
+  /** The face of the cell: its page or frame, the real count and the ring of a hoisted pin. */
   const face = (
     <>
-      {cover && !isVideo ? (
+      {words ? (
+        <ProfileTextTile post={post} media={plate} />
+      ) : cover && !isVideo ? (
         <RemoteImage item={cover} fit="cover" style={styles.fill} />
-      ) : cover && isVideo ? (
+      ) : (
         <View style={[styles.fill, styles.videoPlate]}>
           <View style={styles.playDisc}>
             <View style={styles.playGlyph} />
           </View>
         </View>
-      ) : (
-        <View style={[styles.fill, { backgroundColor: palette.background }]}>
-          <View style={[styles.accent, { backgroundColor: palette.accent }]} />
-          <LeafMotif size={96} opacity={0.18} rotate={12} style={styles.leaf} />
-          <View style={[styles.coverRule, { backgroundColor: `${palette.text}33` }]} />
-        </View>
       )}
-
-      {isText ? <View pointerEvents="none" style={styles.veil} /> : null}
 
       {cover && viewers ? (
         <View
@@ -248,10 +253,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 6, borderBottomWidth: 6, borderLeftWidth: 9,
     borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#ffffff',
   },
-  accent: { position: 'absolute', left: 10, top: 12, width: 18, height: 2, borderRadius: 1 },
-  leaf: { position: 'absolute', right: -20, bottom: -12 },
-  coverRule: { position: 'absolute', left: 10, right: 10, bottom: 12, height: StyleSheet.hairlineWidth },
-  veil: { ...StyleSheet.absoluteFill },
   /**
    * `profile-experience.css` `.profileTileViews{left:37px;bottom:7px;gap:4px;height:24px;padding:0 7px;
    * border-radius:9px;font-size:11.5px}` — the corner a thumb already looks in, moved from the right where it

@@ -44,7 +44,11 @@ export type DragGesture = {
   tile: number;
   from: number;
   target: number;
-  /** The finger's offset from its touch down, in points, with the scroll of the wall already subtracted. */
+  /**
+   * The finger's offset from its touch down, in points, and **only** the finger's: the wall's own scroll
+   * arrives separately (`scrollDelta` of `moveDrag`), so that a drag that scrolls the wall and a finger
+   * that moves are never counted twice. `dragCentre` adds the two once, in the content's coordinates.
+   */
   dx: number;
   dy: number;
 };
@@ -62,8 +66,34 @@ export const DRAG_TARGET_MARGIN = 0.2;
 /** The band at the top and the bottom of the wall inside which a drag scrolls it, in points. */
 export const AUTO_SCROLL_BAND = 88;
 
-/** The fastest a drag scrolls the wall, in points per frame at the very edge of the band. */
-export const AUTO_SCROLL_MAX = 14;
+/**
+ * How fast the wall moves under a held finger, in points **per second**.
+ *
+ * The first version of this was a number of points per *frame* (`14`, about 840 points a second at
+ * 60 frames), which is a speed only if every frame is 16.7 ms — and a JS thread that stutters turns the
+ * same constant into a crawl, then a jump. Speed is stated here in seconds, and the screen multiplies it
+ * by the time the frame really took (`autoScrollStep`).
+ *
+ * `MIN` is the speed at the band's inner edge: not zero, because a wall that does not move until the
+ * finger is very close reads as a broken gesture, and not fast either, because the first movement of an
+ * auto-scroll must not look like the wall was yanked. `MAX` is the speed at the screen's edge and beyond
+ * it: 460 points a second is about two rows of cells, which is the fastest a page should travel while a
+ * reader is still choosing a place.
+ */
+export const AUTO_SCROLL_MIN_SPEED = 120;
+export const AUTO_SCROLL_MAX_SPEED = 460;
+
+/**
+ * How long the speed takes to reach full value after the finger enters a band.
+ *
+ * Without this the first frame of an auto-scroll is a step change, and a step change under a thumb is
+ * felt as the gesture being taken away. 200 ms is one blink: long enough to be smooth, short enough that
+ * the wall answers the finger immediately.
+ */
+export const AUTO_SCROLL_RAMP_MS = 200;
+
+/** The longest frame a single step may pay for: a stalled loop must not teleport the wall. */
+export const AUTO_SCROLL_MAX_FRAME_MS = 64;
 
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 const whole = (value: unknown, fallback = 0) => (Number.isFinite(Number(value)) ? Math.trunc(Number(value)) : fallback);
@@ -199,31 +229,67 @@ export function dragOrder(ids: readonly number[], tile: number, target: number):
 }
 
 /**
- * How far a drag should scroll the wall this frame, in points; negative scrolls towards the top.
+ * How fast a drag should scroll the wall right now, in points per second; negative scrolls towards the top.
  *
- * `fingerY` is the finger's page position and `viewport` the wall's own box on the screen. Inside the
- * top or bottom band the answer grows linearly from nothing at the band's inner edge to
- * `AUTO_SCROLL_MAX` at the screen's edge, so the wall creeps at first and then moves — a constant jump
- * to full speed is what makes an auto-scroll feel like it grabbed the gesture away. A finger outside
- * the viewport (a drag that started low and moved past the wall) scrolls at full speed.
+ * `fingerY` is the finger's page position and `viewport` the wall's own visible box on the screen. Inside
+ * the top or bottom band the answer grows from `AUTO_SCROLL_MIN_SPEED` at the band's inner edge to
+ * `AUTO_SCROLL_MAX_SPEED` at the screen's edge, so the wall starts moving gently and then travels — a
+ * constant jump to full speed is what makes an auto-scroll feel like it grabbed the gesture away. A
+ * finger outside the viewport (a drag that started low and moved past the wall) scrolls at full speed,
+ * because the reader has clearly asked to go that way.
+ *
+ * The growth is quadratic rather than linear on purpose: most of the band is the slow, careful half, and
+ * the speed only piles on in the last few points nearest the edge.
  */
-export function autoScrollStep(fingerY: number, viewport: { top: number; height: number }, options: {
+export function autoScrollSpeed(fingerY: number, viewport: { top: number; height: number }, options: {
   band?: number;
+  min?: number;
   max?: number;
 } = {}): number {
   const height = Number(viewport?.height) || 0;
   if (height <= 0) return 0;
   const band = Math.min(Math.max(1, Number(options.band ?? AUTO_SCROLL_BAND) || AUTO_SCROLL_BAND), height / 2);
-  const max = Math.max(0, Number(options.max ?? AUTO_SCROLL_MAX) || 0);
-  if (!max) return 0;
+  const ceiling = Math.max(0, Number(options.max ?? AUTO_SCROLL_MAX_SPEED) || 0);
+  const floor = Math.max(0, Math.min(ceiling, Number(options.min ?? AUTO_SCROLL_MIN_SPEED) || 0));
+  if (!ceiling) return 0;
+  const speed = (depth: number) => {
+    const share = Math.min(1, Math.max(0, depth));
+    return floor + (ceiling - floor) * share * share;
+  };
   const y = (Number(fingerY) || 0) - (Number(viewport?.top) || 0);
-  if (y < band) return -max * Math.min(1, Math.max(0, (band - y) / band));
-  if (y > height - band) return max * Math.min(1, Math.max(0, (y - (height - band)) / band));
+  if (y < band) return -speed((band - y) / band);
+  if (y > height - band) return speed((y - (height - band)) / band);
   return 0;
 }
 
-/** A scroll offset the wall can really take: never above its top, never past its last point. */
+/**
+ * How far one frame of that speed moves the wall, in points.
+ *
+ * `dtMs` is the time the frame really took, which is what makes the scroll independent of how many frames
+ * a phone manages under a loaded JS thread. A frame longer than `AUTO_SCROLL_MAX_FRAME_MS` (a garbage
+ * collection, a slow reload) is paid for at most that long, so a stalled loop resumes instead of jumping.
+ */
+export function autoScrollStep(ratePerSecond: number, dtMs: number): number {
+  const rate = Number(ratePerSecond) || 0;
+  if (!rate) return 0;
+  const dt = Math.min(AUTO_SCROLL_MAX_FRAME_MS, Math.max(0, Number(dtMs) || 0));
+  if (!dt) return 0;
+  return (rate * dt) / 1000;
+}
+
+/**
+ * A scroll offset the wall can really take: never above its top, never past its last point.
+ *
+ * A content height of `0` means "not measured yet", not "an empty wall" — the scroller reports its
+ * content size a frame or two after it mounts, and a drag may start before that. Answering `0` there
+ * would silently disable the edge-scroll for the whole gesture (which is exactly how a maximum-speed
+ * auto-scroll can measure as working and still not move a pixel), so nothing is clamped until the
+ * scroller has said how tall it is.
+ */
 export function clampScroll(offset: number, contentHeight: number, viewportHeight: number): number {
-  const limit = Math.max(0, (Number(contentHeight) || 0) - (Number(viewportHeight) || 0));
-  return clamp(Number(offset) || 0, 0, limit);
+  const content = Number(contentHeight) || 0;
+  const value = Number(offset) || 0;
+  if (content <= 0) return Math.max(0, value);
+  const limit = Math.max(0, content - (Number(viewportHeight) || 0));
+  return clamp(value, 0, limit);
 }

@@ -2264,3 +2264,152 @@ serverul trimite acum și locul ei.
    cere confirmarea din aplicația proprietarului, iar retragerea Railway cere decizia proprietarului.
 
 
+## 21. Runda a șaptesprezecea — grila care se derulează singură, fără instrucțiuni, și pagina de citit (27 octombrie 2026)
+
+Proprietarul a testat runda a șaisprezecea pe Xiaomi și a raportat trei lucruri: o fotografie se poate trage
+doar în ecranul care se vede (grila nu se derulează sub deget), textul „Aranjează grila" de deasupra peretelui
+este de prisos, iar postările de text arată ca niște dreptunghiuri verzi goale în loc să semene a pagină de
+citit. Toate trei sunt reparate aici, iar fiecare are dovadă numerică de pe telefon, nu doar test automat.
+
+### 21.1 Ce era de fapt stricat la derularea automată
+
+Runda trecută *credea* că derularea de margine merge, pentru că testele ei treceau și pentru că „golul" alerga
+la `Poziția 13 din 13`. Ce nu măsura nimeni atunci era peretele: un gol poate ajunge la ultimul loc și fără ca
+grila să se fi mișcat, pentru că locul se calculează din deget + derulare. Patru defecte, toate găsite aici:
+
+1. **Ceasul era `setInterval(16)`.** Un timer nu are cadru: când JS-ul se încarcă, tick-urile se adună sau se
+   pierd, iar viteza „14 puncte pe cadru" devine altă viteză decât cea gândită. Acum bucla este
+   `requestAnimationFrame`, iar viteza este în **puncte pe secundă** înmulțită cu durata reală a cadrului
+   (`autoScrollStep`).
+2. **Cutia măsurată era un `View`-wrapper** (`shellRef.measureInWindow`). Un `View` fără alt rol poate fi
+   aplatizat din arborele nativ, iar un `View` aplatizat se măsoară ca zero — cu înălțime 0, nicio bandă de
+   margine nu există, deci derularea nu pornește niciodată. Acum se măsoară **scrollerul** însuși
+   (`scrollRef.measureInWindow`), cu rezervă pe `Dimensions.get('window')`, iar telemetria de pe telefon
+   raportează `measured: "scroll"`.
+3. **`clampScroll(…, contentAt.current, …)` cu `contentAt = 0`** răspundea „nu se poate derula", pentru că
+   înălțimea conținutului sosește cu câteva cadre după montare. Zero însemna „nemăsurat", nu „perete gol".
+4. **Dubla numărare a derulării** — defectul cel mai scump. `applyFinger` trimitea lui `moveDrag` deplasarea
+   degetului **plus** derularea, iar `dragCentre` adăuga derularea încă o dată: în timpul derulării automate
+   golul alerga de două ori mai repede decât peretele, deci o tragere lungă elibera celula la câteva rânduri
+   de deget. Acum `moveDrag` primește deplasarea degetului și derularea separat (le adună o singură dată, în
+   coordonatele conținutului), iar fața purtată primește suma lor.
+
+Al cincilea lucru s-a văzut abia pe telefon, în telemetrie: **banda de jos era prea sus cu 177 de puncte**.
+Insetul fusese ghicit (`navReserve + 76`), dar docul de aranjare stă în spațiul *de sub* scroller, nu peste
+el, deci peretele începea să alunece la o treime de ecran. Acum marginea docului este **măsurată**
+(`dockRef.measureInWindow`), iar banda este ultima parte a cutiei scrollerului care nu e acoperită.
+
+### 21.2 Modelul de derulare, ca numere
+
+| Mărime | Valoare | De ce |
+| --- | --- | --- |
+| banda de margine | 88 pt | cât un deget lung la capătul de jos al ecranului |
+| viteză la marginea interioară | 120 pt/s | pornește lin, nu sare |
+| viteză la marginea ecranului și dincolo | 460 pt/s | ~1,7 rânduri pe secundă; fosta 840 era prea iute |
+| rampă la intrarea în bandă | 200 ms | o schimbare bruscă de viteză se simte ca un gest furat |
+| cadru maxim plătit | 64 ms | o oprire a JS-ului nu teleportează peretele |
+| histerezis de țintă | 20% dintr-o celulă | un deget nemișcat nu clipește între două locuri |
+
+Bucla rulează pe cadre proprii, deci merge și când degetul stă nemișcat (nu depinde de evenimente de
+mișcare), se oprește imediat ce degetul iese din bandă și nu termină niciodată gestul: doar eliberarea, anularea
+sau ieșirea din mod o fac.
+
+### 21.3 Fără „Aranjează grila"
+
+Bara de deasupra peretelui a fost scoasă cu totul, în ambele moduri (`styles.manageBar` nu mai există). Modul
+se deschide prin apăsare lungă pe o celulă (prag 500 ms, deja existent), iar ieșirea este docul de jos
+(`Gata`), desenat în afara scrollerului. Pentru cititorul de ecran: fiecare celulă are în continuare
+`accessibilityHint` („… Ține apăsat pentru a aranja grila."), docul se numește „Aranjarea grilei", iar
+butonul lui „Gata, păstrează ordinea". Peretele pornește acum imediat sub taburi, la fel în ambele moduri,
+deci intrarea în mod nu mai poate mișca nimic: nu există o bară care să apară sau să dispară.
+
+### 21.4 Celula de text: o pagină, nu un dreptunghi verde
+
+`src/lib/profileTextTile.ts` (nou, pur) răspunde la patru întrebări pentru fiecare postare — ce cuvinte, ce
+mărime, câte rânduri, dacă pagina continuă — iar `src/components/ProfileTextTile.tsx` (nou) desenează răspunsul.
+
+- **Titlul** este cel stocat: `publishing.title`, sau primul *heading* al documentului editorial. O postare
+  fără titlu **nu** primește unul inventat din prima frază (multe dintre postările de aici nu au titlu).
+- **Textul** este `caption` (paragrafele documentului când există), tăiat la 760 de caractere pe graniță de
+  cuvânt; un titlu repetat ca primă linie nu se tipărește de două ori.
+- **Mărimea** vine dintr-o scară (17, 16, 15, 14, 13, 12.5, 12, 11.5, 11, 10.5, 10, 9.5) filtrată pe formă
+  (o notă scurtă până la 17, un articol lung până la 11) și aleasă de numărul real de rânduri care încap în
+  cutia măsurată a celulei. Sub 9.5 nu se coboară: acolo textul devine textură, nu frază.
+- **Cele patru cazuri** din cerință: titlu + extras; notă scurtă fără titlu (mare, centrată optic, ca o pagină
+  de titlu); articol lung fără titlu (începutul lui, 13+ rânduri, estompat la picioare); articol cu fotografii
+  (`stageFor(post) === 'article'`) — pagina rămâne pagina, cu o bandă de imagine de 40% din măsură sub titlu,
+  niciodată o fotografie care înghite textul.
+- **Hârtia** este un token nou (`socialTokens.reading`): `#f5f0e4` cald, cerneală `#1b1a17`, serif, margine
+  9 pt, filet subțire colorat cu accentele temei postării — tema autorului rămâne vizibilă fără să întoarcă
+  celula în capac colorat.
+- Celula se măsoară o dată (`onLayout`) și își recalculează pagina doar când cutia sau postarea se schimbă;
+  articolul întreg nu se randează niciodată în grilă, iar atingerea deschide exact postarea, în readerul
+  editorial de dinainte.
+
+### 21.5 Ce a rulat automat (rezultate reale)
+
+- `node scripts/test-profile-drag.cjs` — **15/15**. Noile teste: viteza pe secundă și independența de durata
+  cadrului, cadrul blocat plătit o singură dată, „un perete nemăsurat nu este un perete care nu se poate
+  derula", o simulare cadru cu cadru a unei trageri pe 30 de rânduri (peretele parcurge peste 600 pt, celula
+  ajunge la al 5-lea rând sau mai jos, rămâne lipită de deget, ordinea scrisă are fiecare celulă o singură
+  dată), direcția inversă până la primul rând, oprirea imediată la mijlocul ecranului, limitarea la capătul
+  peretelui, plus contractele de sursă: buclă pe `requestAnimationFrame` (niciun `setInterval`), măsurare pe
+  scroller cu rezervă pe fereastră, deplasarea degetului și derularea adunate o singură dată, docul măsurat.
+- `node scripts/test-profile-grid.cjs` — **16/16**, cu contractele schimbate: „Aranjează grila" nu mai există
+  în sursă, bara nu mai are nici stil, nici înălțime de 60, iar etichetele de accesibilitate rămân.
+- `node scripts/test-profile-text-tile.cjs` **(nou)** — **10/10**: cele patru cazuri, diacritice/hashtag-uri/
+  cuvinte lungi, text gol sau JSON stricat, mărimea urmând măsura paginii, pagina fiind hârtie caldă fără
+  mușchi și fără frunză, plus contractul „atingerea deschide postarea întreagă".
+- `node scripts/test-profile-thumbnails.cjs` — **6/6** (contractul vechi al capacului de temă a fost inversat).
+- Lanțul complet al aplicației mobile: **42/42** scripturi, **365** de cazuri `node:test`, zero eșecuri.
+- `node node_modules/typescript/bin/tsc --noEmit` — curat.
+- Backend: `node --test test/*.test.js` — **853/853** (nimic din backend nu a fost atins în această rundă).
+- Rămâne un singur eșec în `scripts/`, și este **dinainte de rundă**: `test-ticker-parity.cjs` nu este în
+  lanțul `test` și pică pentru că `apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i.
+
+### 21.6 Ce s-a dovedit pe telefon (Xiaomi 25098PN5AC, 1220×2656, density 416)
+
+Fără capturi de ecran (conducta de screenshot eșuează pe acest telefon): arborele de accesibilitate, telemetria
+`__PROFILE_GRID.auto` din `logcat -s ReactNativeJS` și baza de date din `C:\Nexus\data\nexus.sqlite`.
+
+| # | Ce s-a făcut | Ce s-a citit |
+| --- | --- | --- |
+| 1 | apăsare lungă pe prima celulă | modul s-a deschis, iar `Postarea 33 din grilă` stă la `[0,1087][403,1803]` — **exact** dreptunghiul lui `Deschide postarea 33` de dinainte; peretele nu se mișcă |
+| 2 | arborele în modul de aranjare | `Aranjează grila` **nu există** în arbore; docul are `Aranjarea grilei`, `Gata, păstrează ordinea` și linia „Trage de mânerul ≡ …" |
+| 3 | deget ținut 1,8 s la mijlocul ecranului (y=1500) | nicio derulare: celulele 32/39/40 rămân la `[408,1087]`, `[817,1087]`, `[0,1809]`, golul rămâne `Poziția 1 din 12` |
+| 4 | deget mutat în banda de jos (y=2100) și ținut 2 s | peretele a urcat: celula 41 de la `y=1809` la `y=150`, golul a trecut `1 → 7`; telemetrie: `rate 219,5 pt/s`, `scroll 710,4 pt`, `content 1674,2`, `measured "scroll"`, `finger 807,7`, 422 de cadre |
+| 5 | deget mutat înapoi la mijloc | golul a rămas `Poziția 7 din 12` la două citiri la 1,6 s distanță, iar celula 41 a rămas la `[0,150]`: derularea **se oprește** |
+| 6 | deget ținut în banda de sus (y=120) | `rate −460 pt/s`, `scroll 710,4 → 0`, golul `7 → 1`: derularea în sus merge |
+| 7 | deget coborât din nou la marginea de jos, apoi eliberat | golul a ajuns `Poziția 12 din 12`; baza: `posts.grid_position` pentru 33 a trecut `0 → 11`, restul s-au strâns cu un loc; docul: „Ordinea a fost salvată." |
+| 8 | imediat, fără ieșire din mod, tragerea aceleiași celule înapoi în frunte | peretele s-a derulat în sus până la `scroll 0`, golul `Poziția 1 din 12`, iar baza a revenit exact la ordinea de dinainte: `33(0), 32(1), 39(2), 40(3), 41(4), 38(5), 31(6), 30(7), 29(8), 27(9), 26(10)`, repostarea 15 la `11` |
+| 9 | 📌 pe postarea 33, apoi din nou | eticheta a devenit `Scoate din fixate postarea 33`, baza: `pinned_at=1793126168`; scoaterea din fixate a adus `pinned_at=null` și aceeași ordine |
+| 10 | 🗑️ pe postarea 33, apoi `Anulează` | dialogul `Confirmarea ștergerii` s-a închis, postarea 33 este `active`, ordinea neatinsă |
+| 11 | `Gata` | modul s-a închis, celula 33 stă tot la `[0,1087][403,1803]`: ieșirea nu mișcă peretele |
+| 12 | glisare pe corpul unei celule în modul de aranjare | peretele s-a derulat și **nu** a pornit nicio tragere (niciun nod `Poziția …` în arbore) |
+| 13 | tap pe pagina de text a postării 39 | readerul editorial s-a deschis cu „Postarea 3 din 12" și „Înapoi la profil"; `Back` a adus grila exact la poziția de dinainte |
+| 14 | oprire forțată + pornire la rece | grila a revenit cu aceeași ordine (`33, 32, 39 / 40, 41, 38 …`) |
+| 15 | paginile de text, măsurate în arbore | postarea 31 („Corect 🌿 🌿 🌿", 12 caractere): un rând de 68 px (26 pt, adică 17 pt cu lineHeight 1,5), așezat centrat la `y=1011` în celula `[0,684][403,1400]`, cu marginea de 24 px (9 pt); paginile lungi (575 și 757 de caractere) se desenează în blocuri de 481 px (13 rânduri) și se taie acolo, nu ies din celulă |
+
+Ce spune asta despre cele trei raportări: o fotografie **poate** fi dusă dincolo de ecran și înapoi (rândurile
+4, 6, 7, 8), „Aranjează grila" nu mai există (rândul 2), iar celulele de text conțin cuvintele reale, tipărite
+ca pagină (rândul 15), cu aceeași identitate de articol când postarea are și fotografii (rândurile 13 și 15).
+
+### 21.7 Ce rămâne deschis
+
+1. **Fără capturi de ecran**, deci nimic despre *aspect* nu poate fi afirmat cu dovadă: umbra celulei purtate,
+   nuanța exactă a hârtiei, contrastul perceput al filetului de temă. Ce este dovedit este geometria
+   (dreptunghiuri, înălțimi de rând, margini) și textul care ajunge pe ecran.
+2. **Un artefact de dezvoltare, nu al produsului**: un Fast Refresh care aterizează în mijlocul unei trageri
+   lasă gestul fără țintă nativă, deci `UP`-ul nu mai ajunge la aplicație și bucla continuă până la repornire.
+   Nu s-a scris nimic în bază (verificat), iar în release reîncărcarea nu există; dacă se dorește, se poate
+   adăuga un `AppState`/reload guard în runda următoare.
+3. **Viteza** este acum 120–460 pt/s, măsurată pe telefon ca 219 pt/s la mijlocul benzii și 460 la margine.
+   Este singurul număr pe care proprietarul poate vrea să îl simtă altfel: se schimbă în
+   `src/lib/profileDrag.ts` (`AUTO_SCROLL_MIN_SPEED`, `AUTO_SCROLL_MAX_SPEED`), iar testele citesc constantele.
+4. **Rândul de jos al peretelui trece pe sub banda de navigare**, deci butoanele 📌/🗑️ ale unei celule din
+   ultimul rând parțial vizibil pot fi acoperite până când peretele este derulat. Este dinainte de rundă și
+   ține de geometria ecranului, nu de gest.
+5. **Postarea 28** (imagine ștearsă din greșeală în runda trecută) rămâne pierdută; restul listei din 19.7
+   (firewall elevat, login xPortal, decizia despre Railway) este neschimbat.
+
+

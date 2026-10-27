@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 import {
-  ActivityIndicator, Animated, BackHandler, Easing, Modal, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View,
+  ActivityIndicator, Animated, BackHandler, Dimensions, Easing, Modal, Pressable, RefreshControl, ScrollView, Share, StyleSheet, Text, View,
 } from 'react-native';
 import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native';
 import * as Linking from 'expo-linking';
@@ -32,7 +32,8 @@ import {
   type Arrangement,
 } from '../lib/profileGrid';
 import {
-  autoScrollStep, beginDrag, clampScroll, dragOrder, moveDrag, releaseDrag, type DragGesture,
+  autoScrollSpeed, autoScrollStep, beginDrag, clampScroll, dragOrder, moveDrag, releaseDrag,
+  AUTO_SCROLL_MAX_FRAME_MS, AUTO_SCROLL_RAMP_MS, type DragGesture,
 } from '../lib/profileDrag';
 import type { TickerDoor } from '../components/ProfileTicker';
 import { socialTokens } from '../theme/social';
@@ -49,6 +50,18 @@ const READINGS = CONTENT_FILTERS.map((id) => ({ id, label: CONTENT_READING_LABEL
 
 type TabId = ContentTab;
 type ReadingId = ContentReading;
+
+/**
+ * A scroller that can be measured.
+ *
+ * `ScrollView` is a native scroll container, and the box it occupies on the screen is the one thing the
+ * edge-scroll has to know. React Native's types do not declare `measureInWindow` on `ScrollView` (it is
+ * a method of every native component, not of that class), so it is declared here rather than casting at
+ * the call site: the narrow type says exactly what this screen uses it for.
+ */
+type MeasurableScroller = ScrollView & {
+  measureInWindow?: (callback: (x: number, y: number, width: number, height: number) => void) => void;
+};
 
 /**
  * How long a finger rests on a cell before the owner's arrangement opens.
@@ -349,17 +362,39 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   }, [geometry, previewPosts.length]);
 
   /**
-   * The wall's own box on the screen, read when the mode opens and on every layout. The auto-scroll of a
+   * The wall's own box on the screen, read when a drag starts and on every layout. The auto-scroll of a
    * drag is decided against it, so it must be the *visible* box and not the content's.
+   *
+   * It is measured on the **scroller itself**, not on a wrapper around it: a plain `View` whose only job
+   * is to hold a ref can be flattened out of the native tree by the renderer, and `measureInWindow` on a
+   * flattened view can answer zeros — a viewport of height 0 makes every edge band infinite and the
+   * auto-scroll silently does nothing. A `ScrollView` is always a real native view.
    */
-  const scrollRef = useRef<ScrollView>(null);
-  /** The box the wall is seen through, which is what an edge-scroll is measured against. */
-  const shellRef = useRef<View>(null);
-  const viewport = useRef({ top: 0, height: 0 });
+  const scrollRef = useRef<MeasurableScroller>(null);
+  const viewport = useRef({ top: 0, height: 0, source: 'window' as 'scroll' | 'window' });
   const scrollAt = useRef(0);
   const contentAt = useRef(0);
+  /**
+   * Where the arrangement's dock really starts, in page coordinates.
+   *
+   * The dock is drawn *over* the wall's foot in some layouts and *below* the scroller in others, so the
+   * band that scrolls the wall is decided from the dock's measured top edge rather than from an arithmetic
+   * guess. The guess was measured on the Xiaomi and was 177 points too large: the dock in fact sits below
+   * the scroller, so the "bottom band" started a third of the way up the screen and the wall began to
+   * travel under a thumb that was still choosing a row.
+   */
+  const dockTop = useRef(0);
+  const dockRef = useRef<View>(null);
+  const onDockLayout = useCallback(() => {
+    dockRef.current?.measureInWindow((_x, y) => { dockTop.current = y; });
+  }, []);
   const measureViewport = useCallback(() => {
-    shellRef.current?.measureInWindow((_x, y, _width, height) => { viewport.current = { top: y, height }; });
+    const windowHeight = Dimensions.get('window').height;
+    // A real answer before the asynchronous measure lands, so no frame of a drag is decided on a zero.
+    if (!viewport.current.height) viewport.current = { top: 0, height: windowHeight, source: 'window' };
+    scrollRef.current?.measureInWindow?.((_x: number, y: number, _width: number, height: number) => {
+      if (height > 0) viewport.current = { top: y, height, source: 'scroll' };
+    });
   }, []);
   const onScrollWall = useCallback((event: { nativeEvent: { contentOffset: { y: number } } }) => {
     scrollAt.current = event.nativeEvent.contentOffset.y;
@@ -378,7 +413,11 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   const grip = useRef<{ originX: number; originY: number; scroll0: number; x: number; y: number } | null>(null);
   /** The carried face's offset. Only the overlay subscribes, so moving it costs no render. */
   const lift = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const autoScroll = useRef<ReturnType<typeof setInterval> | null>(null);
+  /**
+   * The gesture's own reader, declared before it: the frame loop of the edge scroll calls it every frame,
+   * and a callback that closed over a render's copy of it would keep reading that render's `dragIds`.
+   */
+  const applyFingerRef = useRef<(x: number, y: number) => void>(() => undefined);
   /** A write that is already travelling is the only write: a drag cannot post twice. */
   const orderInFlight = useRef(false);
 
@@ -464,6 +503,16 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
    * the tile was always short by the slop it took to claim the gesture, and a responder rebuilt by any
    * render that changed the archive restarted its offset at the page position and threw the held tile
    * away from the thumb.
+   *
+   * Two movements, not one
+   * ----------------------
+   * While the wall auto-scrolls, two different things have moved: the finger (by its own delta) and the
+   * content (by the scrolled distance). They must not be mixed up, and mixing them up was a real defect:
+   * the target was handed the finger's delta *plus* the scrolled distance and then `dragCentre` added the
+   * scrolled distance again, so during an edge-scroll the hole travelled twice as fast as the wall and a
+   * long drag dropped its cell rows away from the thumb. `moveDrag` therefore receives the finger's own
+   * delta and the scroll separately (it adds them once, in the content's coordinates), while the carried
+   * face receives their **sum**, because it is drawn inside the content, which has already scrolled.
    */
   const applyFinger = useCallback((x: number, y: number) => {
     const state = dragRef.current;
@@ -474,40 +523,125 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
     /** The content moved under the finger: the finger stands further down the wall than its page says. */
     const scrollDelta = scrollAt.current - held.scroll0;
     const dx = x - held.originX;
-    const dy = y - held.originY + scrollDelta;
-    lift.setValue({ x: dx, y: dy });
-    const next = moveDrag(state, { dx, dy, geometry, count: dragIds.length, scrollDelta });
+    const dyFinger = y - held.originY;
+    lift.setValue({ x: dx, y: dyFinger + scrollDelta });
+    const next = moveDrag(state, { dx, dy: dyFinger, geometry, count: dragIds.length, scrollDelta });
     dragRef.current = next;
     if (next.target === state.target) return;
     setDrag({ tile: next.tile, from: next.from, target: next.target });
   }, [dragIds.length, geometry, lift]);
-
-  const stopAutoScroll = useCallback(() => {
-    if (autoScroll.current) clearInterval(autoScroll.current);
-    autoScroll.current = null;
-  }, []);
+  /** The frame loop calls this reader every 16 ms; a re-render replaces it, a gesture never notices. */
+  applyFingerRef.current = applyFinger;
 
   /**
    * The wall follows a held finger at its own edges.
    *
-   * It runs on its own clock because the finger is not moving while it scrolls: the responder sends
-   * nothing, yet the wall has to keep going. Each tick scrolls one step and then re-reads the finger, so
-   * the hole keeps travelling with the thumb and the carried face stays under it.
+   * The loop is driven by frames, not by the finger: while the thumb rests near an edge it stops sending
+   * move events, yet the wall has to keep travelling. It was a `setInterval(16)` before, which is a
+   * promise the JS thread does not have to keep — a tick late is a tick with no frame to draw on, and a
+   * timer that drifts turns the intended speed into a stutter. `requestAnimationFrame` runs on the frame
+   * the screen is about to draw, and the speed is multiplied by the time the *previous* frame really took
+   * (`autoScrollStep`), so the wall travels the same distance per second whatever the phone manages.
+   *
+   * What the loop is allowed to use, and what it may never do
+   * -------------------------------------------------------
+   * * the finger's last page position (`grip`), updated by every move the responder sees;
+   * * the wall's visible box (`viewport`), measured on the scroller;
+   * * how tall the content really is (`contentAt`), and where the wall stands now (`scrollAt`).
+   *
+   * Every frame it asks `autoScrollSpeed` what the finger is asking for, scrolls the wall itself, and
+   * re-reads the gesture with the scrolled distance included — which is what keeps the hole and the
+   * carried face under the thumb while the wall moves beneath them. Nothing in it renders unless the
+   * insertion place changes, and nothing in it ends the gesture: only a release, a cancel or leaving the
+   * mode stops the loop.
    */
-  const startAutoScroll = useCallback(() => {
-    stopAutoScroll();
-    autoScroll.current = setInterval(() => {
-      const held = grip.current;
-      if (!held) { stopAutoScroll(); return; }
-      const step = autoScrollStep(held.y, viewport.current);
-      if (!step) return;
-      const next = clampScroll(scrollAt.current + step, contentAt.current, viewport.current.height);
-      if (next === scrollAt.current) return;
+  const autoLoop = useRef<{ frame: number | null; last: number; bandSince: number }>({ frame: null, last: 0, bandSince: 0 });
+  /**
+   * What the last frames did, as numbers: the device probe (`__PROFILE_GRID.auto`) and a development log
+   * read it. It answers the only questions that matter when an auto-scroll "does not work" — did the loop
+   * run, how fast did it decide to go, and did the scroller really move?
+   */
+  const autoTrace = useRef({
+    ticks: 0, rate: 0, step: 0, asked: 0, scroll: 0, content: 0,
+    top: 0, height: 0, finger: 0, measured: 'window' as 'scroll' | 'window', blocked: 0,
+  });
+  /** The last logged frame, so a development session is one line every half second, not sixty. */
+  const autoLogged = useRef(0);
+  const frameRef = useRef<(stamp: number) => void>(() => undefined);
+
+  const tick = useCallback((stamp: number) => {
+    const loop = autoLoop.current;
+    loop.frame = null;
+    const held = grip.current;
+    if (!held) { loop.bandSince = 0; return; }
+    const dt = loop.last ? Math.min(AUTO_SCROLL_MAX_FRAME_MS, Math.max(1, stamp - loop.last)) : 16;
+    loop.last = stamp;
+    /**
+     * The footprint of the wall the reader can actually see: the scroller's own box, minus whatever part
+     * of its foot the arrangement's dock is drawn over (nothing at all on the reference phone, where the
+     * dock stands in the space below the scroller).
+     */
+    const bottom = viewport.current.top + viewport.current.height;
+    const dockFoot = dockTop.current > 0 ? Math.max(0, bottom - dockTop.current) : 0;
+    const visible = {
+      top: viewport.current.top,
+      height: Math.max(80, viewport.current.height - dockFoot),
+    };
+    const rate = autoScrollSpeed(held.y, visible);
+    if (!rate) {
+      // The finger left the band: the wall stops where it is, and the ramp is forgotten.
+      loop.bandSince = 0;
+      loop.frame = requestAnimationFrame((next) => frameRef.current(next));
+      return;
+    }
+    if (!loop.bandSince) loop.bandSince = stamp;
+    const ramp = Math.min(1, (stamp - loop.bandSince) / AUTO_SCROLL_RAMP_MS);
+    const step = autoScrollStep(rate, dt) * ramp;
+    const asked = scrollAt.current + step;
+    const next = clampScroll(asked, contentAt.current, viewport.current.height);
+    let blocked = 0;
+    if (next !== scrollAt.current) {
       scrollAt.current = next;
       scrollRef.current?.scrollTo({ y: next, animated: false });
-      applyFinger(held.x, held.y);
-    }, 16);
-  }, [applyFinger, stopAutoScroll]);
+    } else if (Math.abs(asked - next) < 0.001) {
+      /**
+       * The wall did not move this frame. That is normal at the last (or first) row, where there is
+       * nothing left to scroll; it is only interesting if it happens while `scroll` is far from the limit,
+       * because then the scroller refused a scroll it was asked for. Recording it means the phone can be
+       * asked which of the two happened instead of someone guessing.
+       */
+      blocked = 1;
+    }
+    Object.assign(autoTrace.current, {
+      ticks: autoTrace.current.ticks + 1, rate, step, asked, scroll: next, content: contentAt.current,
+      top: visible.top, height: visible.height, finger: held.y,
+      measured: viewport.current.source, blocked,
+    });
+    if (__DEV__ && stamp - autoLogged.current > 500) {
+      autoLogged.current = stamp;
+      console.log('[profile-drag] auto', JSON.stringify(autoTrace.current));
+    }
+    applyFingerRef.current(held.x, held.y);
+    loop.frame = requestAnimationFrame((value) => frameRef.current(value));
+  }, []);
+  frameRef.current = tick;
+
+  const stopAutoScroll = useCallback(() => {
+    const loop = autoLoop.current;
+    if (loop.frame !== null) cancelAnimationFrame(loop.frame);
+    loop.frame = null;
+    loop.last = 0;
+    loop.bandSince = 0;
+  }, []);
+
+  const startAutoScroll = useCallback(() => {
+    const loop = autoLoop.current;
+    if (loop.frame !== null) return;
+    loop.last = 0;
+    loop.bandSince = 0;
+    measureViewport();
+    loop.frame = requestAnimationFrame((stamp) => frameRef.current(stamp));
+  }, [measureViewport]);
 
   /** The gesture's one exit. `commit` says whether the order the finger made is the one to write. */
   const finishDrag = useCallback((commit: boolean) => {
@@ -553,6 +687,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       const state = beginDrag(tile, from);
       dragRef.current = state;
       lift.setValue({ x: 0, y: 0 });
+      /** A drag's own numbers start here, so the probe can never show the previous gesture's ticks. */
+      Object.assign(autoTrace.current, { ticks: 0, rate: 0, step: 0, asked: scrollAt.current, scroll: scrollAt.current, blocked: 0 });
       setDrag({ tile, from, target: from });
       measureViewport();
       startAutoScroll();
@@ -635,6 +771,13 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       /** The order the wall is drawing right now, which is the preview while a finger holds a cell. */
       order: previewIds,
       drag,
+      /**
+       * The edge-scroll of a drag as live numbers: how many frames ran, the speed they decided on, the
+       * scroll offset they asked for and the one the scroller confirmed, the content height, the visible
+       * box and the finger's own page position. A gesture that "does not scroll" is a question about
+       * which of these is zero, and guessing is not a diagnosis.
+       */
+      auto: autoTrace.current,
     };
   }, [handle, tab, readings, managing, manageBusy, manageNote, isOwner, ownerId, gridWidth, geometry, gridPosts, arrangement, previewIds, drag]);
 
@@ -681,10 +824,11 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
   return (
     <>
     {/**
-     * The shell: the box the wall is seen through, and the frame the arrangement's dock is placed in. It
-     * exists so the edge-scroll of a drag can be measured against what is really on screen.
+     * The shell: the box the wall is seen through, and the frame the arrangement's dock is placed in.
+     * It takes no measurement of its own any more: the scroller measures itself (a wrapper can be
+     * flattened out of the native tree, and a flattened wrapper cannot be measured).
      */}
-    <View style={styles.screen} ref={shellRef} onLayout={onWallLayout}>
+    <View style={styles.screen}>
     {/**
      * The wall scrolls in both modes. Turning scrolling off for the whole mode is what made a long profile
      * unreachable while arranging; it is turned off only *while a finger holds a grip*, because Android's
@@ -697,6 +841,7 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
       style={styles.screen}
       contentContainerStyle={{ paddingBottom: navReserve + 18 + (managing ? 86 : 0) }}
       scrollEnabled={drag === null}
+      onLayout={onWallLayout}
       refreshControl={managing ? undefined : (
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />
       )}
@@ -815,29 +960,17 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
         ) : bands && bands.length ? (
           <>
             {/**
-             * The owner's own door into the grid. In normal mode it is the discoverable way in ("Aranjează
-             * grila"); while the arrangement is open the door is the dock at the foot of the screen, which
-             * is always in reach whatever part of a long wall the reader is looking at.
+             * There is no instruction banner above the wall any more (owner's rule, 26 October 2026).
+             *
+             * A bar reading "Aranjează grila" was the discoverable door when the arrangement was new, but
+             * on a phone it was a permanent line of copy telling a reader how to organise their own
+             * profile — and the door it held had a second way in that is better: a hold on any cell. The
+             * wall therefore starts where the tabs end, in both modes, which is also why nothing moves
+             * under the finger that opened the mode: there is no bar to appear or disappear.
+             *
+             * The mode is still announced — `ProfileTile`'s own hint says a hold arranges the grid, and
+             * the dock at the foot of the screen carries its accessible name and its exit.
              */}
-            {isOwner ? (
-              <View style={styles.manageBar} accessibilityLabel="Aranjarea grilei">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={managing ? 'Gata, păstrează ordinea' : 'Aranjează grila'}
-                  onPress={managing ? endManaging : beginManaging}
-                  style={[styles.manageBarButton, managing && styles.manageBarButtonOn]}
-                >
-                  <Text style={[styles.manageBarText, managing && styles.manageBarTextOn]}>
-                    {managing ? 'Gata' : 'Aranjează grila'}
-                  </Text>
-                </Pressable>
-                <Text style={styles.manageBarHint}>
-                  {managing
-                    ? 'Trage de mânerul ≡ al unei postări. 📌 o fixează, 🗑️ o șterge.'
-                    : 'Ține apăsată o postare pentru a o muta, a o fixa sau a o șterge.'}
-                </Text>
-              </View>
-            ) : null}
             {managing ? (
               /**
                * The arranged wall. Every cell is placed by `gridSlot` in one absolutely positioned list
@@ -988,6 +1121,8 @@ export function ProfileScreen({ handle, reloadKey = 0, onDoor, onBack, onShare, 
      */}
     {isOwner && managing ? (
       <View
+        ref={dockRef}
+        onLayout={onDockLayout}
         style={[styles.manageDock, { bottom: navReserve + 10 }]}
         accessibilityLabel="Aranjarea grilei"
       >
@@ -1275,20 +1410,11 @@ const styles = StyleSheet.create({
   tileRow: { flexDirection: 'row', gap: socialTokens.archive.gridGap },
   tileSpacer: { flexGrow: 1, flexBasis: 0, aspectRatio: socialTokens.archive.tileAspect },
   /**
-   * The owner's bar above the grid: one button and one line that says what the mode offers, what it is
-   * doing and what became of the last action. It sits on the archive's own surface, so the grid still
-   * starts where it started.
+   * The arrangement's own dock: one exit button and one line that says what the mode is doing and what
+   * became of the last action. Both were originally the bar above the wall; the bar is gone (it was an
+   * instruction where the owner wanted none), the dock kept its parts, and the names stayed because this
+   * is the same component drawn in the one place a long wall cannot scroll it away from.
    */
-  manageBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, paddingVertical: 8,
-    backgroundColor: socialTokens.archive.gridSurface, borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1d2b34',
-    /**
-     * The same height in both modes, because the wall below it must not move when a hold opens the
-     * arrangement: the mode changes what the bar says, never where the cells stand.
-     */
-    minHeight: 60,
-  },
   manageBarButton: {
     minHeight: 44, justifyContent: 'center', paddingHorizontal: 14,
     borderWidth: 1, borderColor: socialTokens.colors.markBorder, borderRadius: 14,

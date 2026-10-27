@@ -198,15 +198,24 @@ test('a press held on a cell opens the arrangement, and the wall keeps scrolling
   assert.doesNotMatch(screenCode, /scrollEnabled=\{!managing\}/);
   assert.match(screenCode, /scrollEnabled=\{drag === null\}/);
   assert.match(screenCode, /onScroll=\{onScrollWall\}/);
-  // The mode's own bar is a dock outside the scroller, so its exit cannot scroll out of reach.
+  // The mode's own control is a dock outside the scroller, so its exit cannot scroll out of reach.
   assert.match(screenCode, /accessibilityLabel="Gata, păstrează ordinea"/);
   assert.match(screenCode, /styles\.manageDock/);
-  // The bar above the wall is drawn in both modes, with the same height: hiding it would lift the whole
-  // wall by its own height under the finger that opened the mode.
-  assert.doesNotMatch(screenCode, /isOwner && !managing/);
-  assert.match(screenCode, /minHeight: 60,/);
+  /**
+   * There is no instruction banner above the wall, in either mode (owner's rule, 26 October 2026): the
+   * words "Aranjează grila" are gone from the screen, and so is the 60-point bar that held them. The wall
+   * starts at the same place in both modes because there is nothing to appear or disappear when the mode
+   * opens — which is the layout jump the bar used to cause.
+   */
+  assert.doesNotMatch(screenCode, /Aranjează grila/);
+  assert.doesNotMatch(screenCode, /styles\.manageBar\b/);
+  assert.doesNotMatch(screenCode, /manageBar: \{/);
+  assert.doesNotMatch(screenCode, /minHeight: 60/);
+  // A screen reader still learns the mode: the dock has a name of its own, and every cell says that a
+  // hold arranges the grid (a long press is exactly what TalkBack calls a double-tap-and-hold).
+  assert.match(screenCode, /accessibilityLabel="Aranjarea grilei"/);
+  assert.match(tileCode, /accessibilityHint="Se deschide pe tot ecranul\. Ține apăsat pentru a aranja grila\."/);
   assert.match(screenCode, /Grila de aranjat/);
-  assert.match(screenCode, /accessibilityLabel=\{managing \? 'Gata, păstrează ordinea' : 'Aranjează grila'\}/);
 });
 
 test('the arrangement is written to the route that stores it, and the order is read back', () => {
@@ -342,9 +351,12 @@ test('opening the arrangement leaves the wall where the finger found it, and Bac
   assert.doesNotMatch(screenCode, /gridTop/);
   assert.match(screenCode, /const beginManaging = useCallback\(\(\) => \{/);
   assert.match(screenCode, /const endManaging = useCallback\(\(\) => \{/);
-  // The shell the dock is placed in is the box an edge-scroll is measured against.
-  assert.match(screenCode, /const shellRef = useRef<View>\(null\);/);
-  assert.match(screenCode, /shellRef\.current\?\.measureInWindow/);
+  // The wall is measured on the scroller itself. A wrapper whose only job is to hold a ref can be
+  // flattened out of the native tree, and a flattened view measures as zero — which is a viewport no
+  // edge band can ever be inside.
+  assert.match(screenCode, /const scrollRef = useRef<MeasurableScroller>\(null\);/);
+  assert.match(screenCode, /scrollRef\.current\?\.measureInWindow\?\.\(/);
+  assert.match(screenCode, /Dimensions\.get\('window'\)\.height/);
   // Back is the mode's own exit: pressing it once leaves the arrangement, not the profile.
   assert.match(screenCode, /BackHandler\.addEventListener\('hardwareBackPress'/);
   assert.match(screenCode, /const subscription = BackHandler\.addEventListener\('hardwareBackPress', \(\) => \{ endManaging\(\); return true; \}\);/);

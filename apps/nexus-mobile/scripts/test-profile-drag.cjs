@@ -154,32 +154,164 @@ test('scrolling under a held finger carries the cell and the place it stands ove
   assert.equal(up.target, 0);
 });
 
-test('the wall scrolls only near its edges, and faster the closer the finger is', () => {
+test('the wall scrolls only near its edges, faster the closer the finger is, and by the second', () => {
   const viewport = { top: 100, height: 2000 };
   const band = drag.AUTO_SCROLL_BAND;
-  const max = drag.AUTO_SCROLL_MAX;
-  assert.equal(drag.autoScrollStep(1100, viewport), 0, 'the middle of the wall does not move');
-  assert.equal(drag.autoScrollStep(viewport.top + band, viewport), 0, 'the inner edge of the band is still');
-  assert.ok(drag.autoScrollStep(viewport.top + band / 2, viewport) < 0, 'the top band scrolls up');
-  assert.equal(drag.autoScrollStep(viewport.top, viewport), -max, 'the very edge scrolls as hard as it can');
-  assert.equal(drag.autoScrollStep(viewport.top - 400, viewport), -max, 'a finger above the wall keeps scrolling up');
-  assert.ok(drag.autoScrollStep(viewport.top + viewport.height - band / 2, viewport) > 0, 'the bottom band scrolls down');
-  assert.equal(drag.autoScrollStep(viewport.top + viewport.height, viewport), max);
-  assert.equal(drag.autoScrollStep(viewport.top + viewport.height + 400, viewport), max);
+  const ceiling = drag.AUTO_SCROLL_MAX_SPEED;
+  const floor = drag.AUTO_SCROLL_MIN_SPEED;
+  assert.equal(drag.autoScrollSpeed(1100, viewport), 0, 'the middle of the wall does not move');
+  assert.equal(drag.autoScrollSpeed(viewport.top + band, viewport), 0, 'the inner edge of the band is still');
+  const topHalf = drag.autoScrollSpeed(viewport.top + band / 2, viewport);
+  assert.ok(topHalf < 0, 'the top band scrolls up');
+  assert.ok(Math.abs(topHalf) >= floor, 'and it starts at the gentle speed, not at nothing');
+  assert.equal(drag.autoScrollSpeed(viewport.top, viewport), -ceiling, 'the very edge scrolls as fast as it may');
+  assert.equal(drag.autoScrollSpeed(viewport.top - 400, viewport), -ceiling, 'a finger above the wall keeps scrolling up');
+  assert.ok(drag.autoScrollSpeed(viewport.top + viewport.height - band / 2, viewport) > 0, 'the bottom band scrolls down');
+  assert.equal(drag.autoScrollSpeed(viewport.top + viewport.height, viewport), ceiling);
+  assert.equal(drag.autoScrollSpeed(viewport.top + viewport.height + 400, viewport), ceiling);
   // The speed grows from the band's inner edge to its outer one, so it never grabs the wall.
   let previous = 0;
   for (let depth = 0; depth <= band; depth += 4) {
-    const step = Math.abs(drag.autoScrollStep(viewport.top + band - depth, viewport));
-    assert.ok(step >= previous, 'the closer to the edge, the faster');
-    previous = step;
+    const speed = Math.abs(drag.autoScrollSpeed(viewport.top + band - depth, viewport));
+    assert.ok(speed >= previous, 'the closer to the edge, the faster');
+    previous = speed;
   }
-  assert.equal(drag.autoScrollStep(0, { top: 0, height: 0 }), 0, 'a wall that has not been measured does not scroll');
+  // The first half of the band is the careful half: half-way in, less than half the top speed.
+  assert.ok(Math.abs(topHalf) < (floor + ceiling) / 2);
+  assert.equal(drag.autoScrollSpeed(0, { top: 0, height: 0 }), 0, 'a wall that has not been measured does not scroll');
 
-  // A scroll asked for past either end of the wall is clamped, so the timer cannot run away.
+  /**
+   * Speed is points per second now, and the frame's own length is what turns it into a distance: the same
+   * wall travels the same distance whether a phone draws 60 frames a second or 40. The old constant was
+   * points *per frame*, which is a speed only on a phone that never stutters.
+   */
+  assert.equal(drag.autoScrollStep(0, 16), 0);
+  assert.equal(drag.autoScrollStep(ceiling, 0), 0);
+  assert.equal(
+    drag.autoScrollStep(ceiling, 64),
+    (ceiling * 64) / 1000,
+    'a 64 ms frame at the top speed travels 64 ms worth of wall',
+  );
+  assert.equal(
+    drag.autoScrollStep(ceiling, 33.4),
+    drag.autoScrollStep(ceiling, 16.7) * 2,
+    'two long frames travel twice as far as one short one',
+  );
+  assert.equal(
+    drag.autoScrollStep(ceiling, 5000),
+    drag.autoScrollStep(ceiling, drag.AUTO_SCROLL_MAX_FRAME_MS),
+    'a stalled frame is paid for at most once, so the wall resumes instead of jumping',
+  );
+
+  // A scroll asked for past either end of the wall is clamped, so the loop cannot run away.
   assert.equal(drag.clampScroll(-50, 4000, 2000), 0);
   assert.equal(drag.clampScroll(9000, 4000, 2000), 2000);
   assert.equal(drag.clampScroll(500, 4000, 2000), 500);
   assert.equal(drag.clampScroll(500, 1000, 2000), 0, 'content shorter than the window has nowhere to scroll');
+  /**
+   * But a content height of 0 is "not measured yet", not "an empty wall": a drag may start before the
+   * scroller has reported its size, and clamping to 0 there would forbid every scroll of the gesture —
+   * an auto-scroll that measures as working and still does not move a pixel.
+   */
+  assert.equal(drag.clampScroll(120, 0, 800), 120, 'an unmeasured wall is not a wall that cannot scroll');
+});
+
+/**
+ * One long drag, frame by frame, exactly as `ProfileScreen` runs it: the finger is held at one spot, the
+ * loop asks `autoScrollSpeed` for a rate, turns it into a distance with `autoScrollStep` (paying for the
+ * ramp), clamps it against the content, and re-reads the gesture with the scrolled distance added once.
+ *
+ * This is the gesture the owner could not perform on the phone — moving a photo more than one screenful —
+ * so it is simulated here over a wall of thirty rows, and then confirmed on the device.
+ */
+function holdAtEdge({ from, count, fingerY, viewport, contentHeight, cell, ms = 2000, startScroll = 0 }) {
+  let state = drag.beginDrag(101, from);
+  let scroll = startScroll;
+  let bandSince = 0;
+  let frames = 0;
+  const frame = 1000 / 60;
+  for (let stamp = 0; stamp < ms; stamp += frame) {
+    const rate = drag.autoScrollSpeed(fingerY, viewport);
+    if (!rate) { bandSince = 0; continue; }
+    if (!bandSince) bandSince = stamp;
+    const ramp = Math.min(1, (stamp - bandSince) / drag.AUTO_SCROLL_RAMP_MS);
+    const step = drag.autoScrollStep(rate, frame) * ramp;
+    const next = drag.clampScroll(scroll + step, contentHeight, viewport.height);
+    if (next !== scroll) { scroll = next; frames += 1; }
+    // The gesture is told how far the wall moved *since the finger touched down*, which is the offset it
+    // began at subtracted from where the wall stands now.
+    state = drag.moveDrag(state, { dx: 0, dy: 0, geometry: cell, count, scrollDelta: scroll - startScroll });
+  }
+  return { state, scroll, moved: scroll - startScroll, frames };
+}
+
+/**
+ * The reference phone's own cell, in *points*: the Xiaomi is 469 points wide at 416 dpi, so a third of it
+ * is ~155 wide and ~275 tall. The geometry above is the same arithmetic fed the pixel count, which is
+ * fine for coordinate questions and useless for "how many rows did one second of scrolling buy".
+ */
+const phone = grid.tileSize(469, 3, 2);
+const phoneStrideY = phone.height + phone.gap;
+
+test('a cell can be carried past every screenful: the edge scroll keeps running while the finger rests', () => {
+  const viewport = { top: 0, height: 873 };
+  const rows = 30;
+  const count = rows * 3;
+  const contentHeight = rows * phoneStrideY;
+  const fingerY = viewport.height - 2;
+
+  const down = holdAtEdge({ from: 0, count, fingerY, viewport, contentHeight, cell: phone, ms: 4000 });
+  assert.ok(down.frames > 30, `the loop really scrolled: ${down.frames} frames moved the wall`);
+  assert.ok(down.scroll > 600, `more than one screenful of wall travelled: ${Math.round(down.scroll)}`);
+  const rowsDown = Math.floor(down.state.target / 3);
+  assert.ok(rowsDown >= 5, `the first cell reached row ${rowsDown + 1}, at least five rows down`);
+  assert.equal(drag.releaseDrag(down.state).moved, true, 'a long drag is an arrangement, not a hold');
+  /**
+   * And the cell is still under the finger: as the wall scrolls, the carried cell's own content position
+   * grows by exactly the scrolled distance, so on screen it has not moved at all.
+   */
+  const startY = drag.dragCentre(drag.beginDrag(101, 0), phone, 0).y;
+  const endY = drag.dragCentre(down.state, phone, down.moved).y;
+  assert.equal(Math.round(endY - startY), Math.round(down.moved), 'the cell stays pinned to the thumb');
+  // The order a release writes puts the carried cell exactly where the hole stopped, once.
+  const ids = Array.from({ length: count }, (_, index) => 101 + index);
+  const order = drag.dragOrder(ids, 101, down.state.target);
+  assert.equal(order.indexOf(101), down.state.target);
+  assert.equal(new Set(order).size, count, 'every cell is still in the order exactly once');
+
+  // The same wall read from its last row, carried back up under a finger held near the top. It takes as
+  // long as the wall is tall — that is what the edge scroll is for — so the loop is given the time.
+  const up = holdAtEdge({
+    from: count - 1, count, fingerY: 2, viewport, contentHeight, cell: phone, ms: 20000,
+    startScroll: contentHeight - viewport.height,
+  });
+  assert.equal(Math.round(up.scroll), 0, 'the wall reached its own top');
+  assert.ok(up.state.target <= 8, `the last cell came back to the first rows (place ${up.state.target + 1})`);
+});
+
+test('the scroll stops the moment the finger leaves the band, and the wall stays where it is', () => {
+  const viewport = { top: 0, height: 873 };
+  const count = 90;
+  const contentHeight = 30 * phoneStrideY;
+  const edge = holdAtEdge({ from: 0, count, fingerY: viewport.height - 2, viewport, contentHeight, cell: phone, ms: 1200 });
+  const still = holdAtEdge({ from: 0, count, fingerY: viewport.height / 2, viewport, contentHeight, cell: phone, ms: 1200 });
+  assert.equal(still.scroll, 0, 'the middle of the wall is not scrolled by a still finger');
+  assert.equal(still.frames, 0);
+  assert.equal(still.state.target, 0, 'and the insertion place does not move either');
+  assert.ok(edge.scroll > 200, 'while the same finger at the edge had scrolled by then');
+  // One frame is never more than a few points, so the wall can never lurch when a thumb drifts into a band.
+  const first = Math.abs(drag.autoScrollStep(drag.autoScrollSpeed(viewport.height - 2, viewport), 1000 / 60));
+  assert.ok(first < drag.AUTO_SCROLL_MAX_SPEED / 30, `one frame moved ${first} points`);
+});
+
+test('at the end of the wall the scroll is clamped, and no frame past it moves anything', () => {
+  const viewport = { top: 0, height: 873 };
+  const count = 9;
+  const contentHeight = 3 * phoneStrideY;   // a short profile: three rows, barely taller than one screen
+  const end = holdAtEdge({ from: 0, count, fingerY: viewport.height - 2, viewport, contentHeight, cell: phone, ms: 4000 });
+  const limit = Math.max(0, contentHeight - viewport.height);
+  assert.equal(Math.round(end.scroll), Math.round(limit), 'the wall stops at its last point, not past it');
+  assert.equal(drag.clampScroll(limit + 500, contentHeight, viewport.height), limit);
 });
 
 
@@ -223,6 +355,41 @@ test('every way out of a drag resets it', () => {
   assert.match(leaving, /stopAutoScroll\(\);/);
   assert.match(leaving, /dragRef\.current = null;/);
   assert.match(leaving, /setDrag\(null\);/);
+});
+
+test('the edge scroll runs on the screen\u2019s own frames, and adds finger and scroll exactly once', () => {
+  // A frame loop, not a timer: `setInterval` is a promise the JS thread does not have to keep, and a tick
+  // with no frame to draw on is a stutter instead of a scroll.
+  assert.doesNotMatch(screenCode, /setInterval/);
+  assert.match(screenCode, /loop\.frame = requestAnimationFrame\(\(stamp\) => frameRef\.current\(stamp\)\);/);
+  assert.match(screenCode, /loop\.frame = requestAnimationFrame\(\(value\) => frameRef\.current\(value\)\);/);
+  assert.match(screenCode, /cancelAnimationFrame\(loop\.frame\)/);
+  // The time the frame really took is what the speed is multiplied by.
+  assert.match(screenCode, /const dt = loop\.last \? Math\.min\(AUTO_SCROLL_MAX_FRAME_MS, Math\.max\(1, stamp - loop\.last\)\) : 16;/);
+  assert.match(screenCode, /const rate = autoScrollSpeed\(held\.y, visible\);/);
+  assert.match(screenCode, /const step = autoScrollStep\(rate, dt\) \* ramp;/);
+  // The wall is measured on the scroller itself, and a failed measurement falls back to the window
+  // instead of to a height of 0 (which would forbid every scroll of the gesture).
+  assert.match(screenCode, /scrollRef\.current\?\.measureInWindow\?\.\(/);
+  assert.match(screenCode, /viewport\.current = \{ top: 0, height: windowHeight, source: 'window' \};/);
+  assert.doesNotMatch(screenCode, /shellRef/);
+  // The finger's own movement and the wall's scroll are two numbers: the gesture gets the first and the
+  // scrolled distance separately, the carried face gets their sum.
+  assert.match(screenCode, /const dyFinger = y - held\.originY;/);
+  assert.match(screenCode, /lift\.setValue\(\{ x: dx, y: dyFinger \+ scrollDelta \}\);/);
+  assert.match(screenCode, /moveDrag\(state, \{ dx, dy: dyFinger, geometry, count: dragIds\.length, scrollDelta \}\)/);
+  // The loop's own clock and handle live in refs, so a re-render costs the gesture nothing.
+  assert.match(screenCode, /const autoLoop = useRef<\{ frame: number \| null; last: number; bandSince: number \}>/);
+  assert.match(screenCode, /if \(loop\.frame !== null\) return;/);
+  // The dock covers the wall's foot only if it is drawn over it, so its top edge is measured instead of
+  // guessed: a band lifted by a wrong inset starts scrolling a third of the way up the screen.
+  assert.match(screenCode, /const dockTop = useRef\(0\);/);
+  assert.match(screenCode, /dockRef\.current\?\.measureInWindow\(\(_x, y\) => \{ dockTop\.current = y; \}\);/);
+  assert.match(screenCode, /const dockFoot = dockTop\.current > 0 \? Math\.max\(0, bottom - dockTop\.current\) : 0;/);
+  assert.match(screenCode, /ref=\{dockRef\}/);
+  // The numbers a device can be asked for are live, not a snapshot of one render.
+  assert.match(screenCode, /auto: autoTrace\.current,/);
+  assert.match(screenCode, /Object\.assign\(autoTrace\.current, \{/);
 });
 
 test('one order travels at a time, and a refused one rolls back', () => {

@@ -103,8 +103,34 @@ export const socialTokens = {
     disc: { size: 32, radius: 16, borderWidth: 0, glyphSize: 20 },
     /** `.appNav button i svg` */
     icon: { size: 25, strokeWidth: 1.7 },
-    /** `.appNav.social .createNav i` — 52px, lifted 8px, the circle the bar was built around. */
-    create: { size: 52, radius: 26, borderWidth: 4, glyphSize: 27, glyphWeight: '300' as const, lift: 8 },
+    /**
+   * `.appNav.social .createNav i` — 52px, lifted 8px, the one mark on the bar that is metal instead of
+   * ink. `polish` transcribes the web's own platinum
+   * (`radial-gradient(circle at 35% 28%, #fff 0, #d8dce1 38%, #343941 72%, #050608 100%)`,
+   * feed-surface.css:850-855): white where the light strikes, silver across the body, graphite at the
+   * foot — so the circle reads as a polished disc, never as a grey dot.
+   */
+    create: {
+      size: 52,
+      radius: 26,
+      borderWidth: 4,
+      glyphSize: 26,
+      glyphWeight: '300' as const,
+      lift: 8,
+      polish: [
+        { offset: 0, color: '#ffffff' },
+        { offset: 0.38, color: '#d8dce1' },
+        { offset: 0.72, color: '#343941' },
+        { offset: 1, color: '#050608' },
+      ],
+      /** Where the light strikes the disc: the gradient's own centre, as a share of its box. */
+      polishCenter: { x: '35%', y: '28%' },
+      /** The bezel's specular — the hairline of light that makes silver read as polished metal. */
+      specular: 'rgba(255,255,255,0.62)',
+      glowRadius: 14,
+      /** The plus on metal is drawn heavier than a mark on glass, or the silver eats it. */
+      glyphStroke: 2.2,
+    },
     /**
      * `.navBadge` (styles.css:21) — the red pill the web prints over the disc of a mark that owns unread
      * work, moved to the top-right corner of that disc by `.appNav .navBadge{right:-5px;top:0}`.
@@ -204,6 +230,26 @@ export const socialTokens = {
     borderWidth: 1,
     radius: 14,
     narrowMarginBottom: 8,
+    /**
+     * One press of a post's action row (`PostActionRow`, and the `row` variant of `ReactionControl` inside
+     * it): one line, a finger's height, one ink for every press so five gestures read as one family instead
+     * of five shapes. The five presses are the ones the web wires into every card (`wirePostActions()`).
+     */
+    action: {
+      minHeight: 34,
+      paddingInline: 9,
+      gap: 5,
+      radius: 11,
+      border: 'rgba(255,255,255,0.16)',
+      surface: 'rgba(8,10,13,0.55)',
+      ink: '#f2f6f9',
+      inkOn: '#7ff0e6',
+      borderOn: 'rgba(47,189,179,0.75)',
+      surfaceOn: 'rgba(47,189,179,0.2)',
+      glyph: 15,
+      glyphLine: 18,
+      count: 12,
+    },
   },
   /** Final Reels cascade: feed-surface.css .clipStage:before and the immersive rail. */
   reels: {
@@ -264,7 +310,8 @@ export const socialTokens = {
   },
   /** FEED_MODES → API contract, copied from feed-surface.js; titles are the keys the web prints. */
   feedModes: [
-    { id: 'reels', glyph: '▶', title: 'Reels', format: 'clips', lens: null },
+    /** The first reading is the universal one (`format=all`): every post type in the same 9:16 canvas. */
+    { id: 'reels', glyph: '▶', title: 'Feed', format: 'all', lens: null },
     { id: 'whispers', glyph: '❝', title: 'Șoapte', format: 'tweets', lens: 'for-you' },
     { id: 'news', glyph: '▤', title: 'Știri', format: 'posts', lens: 'breaking' },
   ],
@@ -470,9 +517,21 @@ export const socialTokens = {
     /** `.ownerPostGrid{grid-template-columns:repeat(3,1fr);gap:2px;background:#060b11;min-height:210px}` */
     gridColumns: 3,
     gridGap: 2,
-    gridMinHeight: 210,
+    /**
+     * A row of the grid at the reference width: `155 x 16/9 = 275.5`, rounded up. The web's capture set the
+     * floor at 210px for its 1:1 tile; the universal feed draws the same cell at 9:16, so the floor follows
+     * the cell it has to hold.
+     */
+    gridMinHeight: 276,
     gridSurface: '#060b11',
-    /** `.ownerTile{position:relative;aspect-ratio:1;background:#101923;color:#dce8ec}` */
+    /**
+     * The cell of the archive: 9:16, not the web's 1:1. The universal feed gives every post one portrait
+     * canvas, and the grid of a profile is a wall of those same canvases (`ProfileTile`), so a post does not
+     * change shape between the feed and the place it is collected. `profile-experience.css` still measures
+     * the web's square; this token is the phone's own answer to the same question.
+     */
+    tileAspect: 9 / 16,
+    /** `.ownerTile{position:relative;aspect-ratio:1;background:#101923;color:#dce8ec}` — the cell's surface. */
     tileSurface: '#101923',
     tileInk: '#dce8ec',
     /** `.ownerTileChip{background:rgba(6,11,17,.74);color:#eafeff}` */
@@ -484,10 +543,21 @@ export const socialTokens = {
     tilePlayRadius: 9,
     tilePlaySize: 10,
     tileChipInset: 7,
-    /** `.ownerTileViews{left:37px;bottom:7px;gap:4px;height:24px;padding:0 7px;border-radius:9px;font-size:11.5px}` */
-    tileViewsStart: 37,
+    /**
+     * `.ownerTileViews{left:37px;bottom:7px;gap:4px;height:24px;padding:0 7px;border-radius:9px;font-size:11.5px}`
+     * — every measure but `left`: the web stops at 37px because it prints its play badge in the same corner
+     * (`left:7px`), while the phone's play sign is the centred disc of `ProfileTile`, so the count itself
+     * takes the archive's 7px inset (`tileChipInset`).
+     */
     tileViewsGap: 4,
     tileViewsSize: 11.5,
+    /**
+     * The mark beside the count. The web prints the emoji eye here (`profile-experience.js` `corner`), which
+     * Android renders in full colour next to 11.5px ink; the phone draws the product's own `views` mark
+     * (`SolidViewerIcon`, the bars of `reels-reference.js`) so the sign takes the chip's colour and the same
+     * shape on every build.
+     */
+    tileViewsGlyph: 12,
     /** `.profileTile.isPinnedFirst{outline:1px solid #2fbdb3;outline-offset:-1px}` */
     tilePinnedFirstEdge: '#2fbdb3',
     /** `.ownerTilePinned{top:7px;left:7px;font-size:12px}` */
@@ -630,6 +700,32 @@ export const socialTokens = {
     /** `.ownerEmpty svg{width:34px;height:34px;color:#4fd9d0}` */
     emptyIconSize: 34,
     emptyIconInk: '#4fd9d0',
+  },
+  /**
+   * A text post's cell reads as a page, not as a coloured tile (owner's rule, 26 October 2026): warm
+   * e-paper, dark ink, serif words. These are this product's own numbers — there is no web stylesheet
+   * for a Kindle-like miniature, and the web draws no cell at all for a post without media.
+   *
+   * The ink is deliberately *not* the post's theme pair: a moss-green cell was the thing the owner
+   * called unreadable, so the page keeps one calm surface for every theme and lets the theme show only
+   * in the hairline above the title (`accent` of `themeOf`). The reader itself still honours the theme.
+   */
+  reading: {
+    page: '#f5f0e4',
+    pageEdge: 'rgba(27,26,23,0.12)',
+    ink: '#1b1a17',
+    inkSoft: '#4c4840',
+    /** The page's inner margin, in points: one thumb at 1220/3 wide leaves ~106 points of measure. */
+    margin: 9,
+    /** `.ownerTile` corner: a page has the cell's own radius so the wall stays one surface. */
+    radius: 9,
+    ruleWidth: 16,
+    ruleHeight: 2,
+    /** Title and body faces: the phone's serif, the same one the editorial reader sets its pages in. */
+    face: 'serif',
+    /** The three strips of the fade that says "the page continues", top (lightest) to bottom. */
+    fadeSteps: ['rgba(245,240,228,0.28)', 'rgba(245,240,228,0.62)', 'rgba(245,240,228,0.92)'] as readonly string[],
+    fadeHeight: 22,
   },
   /**
    * The profile band — the native-first reading line under the header's buttons (`MIGRATION.md` §20.1).
