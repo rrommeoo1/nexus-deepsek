@@ -25,8 +25,13 @@ const read = (file) => readFileSync(resolve(ROOT, file), 'utf8');
 const component = read('src/components/ProfileTextTile.tsx');
 const tile = read('src/components/ProfileTile.tsx');
 const tokens = read('src/theme/social.ts');
+/** The page's own definition: the cell's paper must be `TEXT_THEMES.paper`, not a second palette. */
+const pageStyle = read('src/lib/textStyle.ts');
 /** Source without comments: a phrase inside a note is not a control, and not a colour either. */
 const code = (text) => text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
+/** The two halves of the promise a cell makes: the frame it is drawn in, and the reader it opens. */
+const canvas = code(read('src/components/PostCanvas.tsx'));
+const readingSource = read('src/components/PostReading.tsx');
 
 /**
  * The reference phone's cell in points: the Xiaomi is 469 points wide at 416 dpi, three columns and a
@@ -158,16 +163,30 @@ test('măsura paginii decide mărimea literei, nu un număr fix', () => {
 test('pagina e hârtie caldă cu cerneală închisă, nu capacul verde de mușchi', () => {
   /** The e-paper surface is one token set, so the page cannot drift into a theme colour by accident. */
   assert.match(tokens, /reading: \{/);
-  assert.match(tokens, /page: '#f5f0e4'/);
-  assert.match(tokens, /ink: '#1b1a17'/);
+  assert.match(tokens, /page: '#f4efe2'/);
+  assert.match(tokens, /ink: '#1a221b'/);
+  /**
+   * ...and it is *the* page, not a cell-shaped near-miss: the pair is `TEXT_THEMES.paper`'s, which is what
+   * the composer, the feed and the full reader paint and what the server stores. Two papers a hair apart
+   * was the drift this assertion now catches.
+   */
+  assert.match(pageStyle, /id: 'paper'[^}]*background: '#f4efe2'[^}]*text: '#1a221b'/);
   assert.match(tokens, /face: 'serif'/);
   assert.match(code(component), /backgroundColor: reading\.page/);
   assert.match(code(component), /color: reading\.ink/);
   assert.match(code(component), /fontFamily: reading\.face/);
   // No moss green anywhere on the page, and no leaf motif: the owner's complaint was exactly that tile.
   assert.doesNotMatch(component, /#16301f|LeafMotif|palette\.background|themeOf\([^)]*\)\.background/);
-  // The author's own theme survives as one hairline, not as the paper.
-  assert.match(component, /themeOf\(post\.text_style\?\.theme \?\? 'jungle'\)\.accent/);
+  /**
+   * The author's own theme survives as one hairline, not as the paper — and it is read through the same
+   * resolver the page behind the cell paints with (`pagePaletteOf` over `pageStyleForPost`), so a post
+   * with no authored look takes the paper's accent and a `jungle` row shows its gold over the very paper
+   * it will open on. A cell that painted one accent while the page it opens painted another was the
+   * drift this guard exists for.
+   */
+  assert.match(component, /const accent = pagePaletteOf\(pageStyleForPost\(post\.text_style\)\)\.accent/);
+  assert.doesNotMatch(code(component), /themeOf\(|TEXT_DEFAULT_THEME/);
+  assert.doesNotMatch(component, /'jungle'|"jungle"/);
 });
 
 test('pagina se desenează din plan: titlu, imagine opțională, text, fade, nimic altceva', () => {
@@ -201,4 +220,34 @@ test('atingerea celulei deschide postarea întreagă, nu o previzualizare', () =
   assert.match(tile, /router\.push\(\{/);
   assert.match(tile, /pathname: '\/post\/\[id\]'/);
   assert.match(tile, /accessibilityLabel=\{`Deschide postarea \$\{post\.id\}`\}/);
+});
+
+/**
+ * Prioritatea A a rundei (27 octombrie 2026): o singură hârtie, pe ambele laturi ale atingerii.
+ *
+ * Celula era `#f5f0e4` în timp ce pagina era `#f4efe2` și — mai rău — o postare de cuvinte *fără*
+ * `text_style` desena o celulă de hârtie, iar la atingere se deschidea compoziția de mangal a cititorului,
+ * fiindcă pagina exista doar pentru un rând care căra un stil. O miniatură este o promisiune despre pagina
+ * din spatele ei; aserțiunile de mai jos sunt acea promisiune, în ordinea în care o parcurge degetul.
+ */
+test('celula și pagina pe care o deschide sunt aceeași hârtie', () => {
+  // 1. Hârtia celulei este hârtia paginii: un singur set de tokeni, nu două palete aproape egale.
+  assert.match(code(tokens), /page: '#f4efe2'/);
+  assert.match(code(tokens), /ink: '#1a221b'/);
+  assert.match(pageStyle, /id: 'paper'[^}]*background: '#f4efe2'[^}]*text: '#1a221b'/);
+  // 2. Cadrul unei postări de cuvinte este *întotdeauna* o pagină: stilul autorului, sau hârtia implicită.
+  assert.match(canvas, /const pageStyle = stage === 'text' \|\| stage === 'article' \? pageStyleForPost\(post\.text_style\) : null/);
+  assert.match(canvas, /const pagePalette = pageStyle \? pagePaletteOf\(pageStyle\) : null/);
+  assert.match(canvas, /backgroundColor: pagePalette\.background/);
+  // Firul celulei este accentul paginii pe care o deschide, citit prin același resolver (nu din coloana brută).
+  assert.match(component, /const accent = pagePaletteOf\(pageStyleForPost\(post\.text_style\)\)\.accent/);
+  assert.doesNotMatch(code(component), /themeOf|TEXT_DEFAULT_THEME/, 'celula nu-și mai compune singură tema');
+  // 3. Cuvintele unui text lung sunt desenate de cititor *cu același stil*, deci paginile lui nu pot cădea
+  //    înapoi pe mangalul cititorului doar fiindcă rândul nu are stil stocat.
+  assert.match(canvas, /textStyle=\{pageStyle\}/);
+  assert.match(canvas, /style=\{pageStyle \?\? defaultTextStyle\(\)\}/);
+  assert.match(readingSource, /palette \? \{ backgroundColor: palette\.background \} : null/);
+  // 4. Hârtia nu este pictată de două ori: o pagină nu primește nici pădure, nici voal peste culoarea ei.
+  assert.match(canvas, /opacity=\{pagePalette \? 0 : hasMedia \? 1 : 0\.4\}/);
+  assert.ok(canvas.indexOf('pagePalette ? (') < canvas.indexOf('<JungleGrove'), 'pădurea nu mai stă sub o pagină de hârtie');
 });

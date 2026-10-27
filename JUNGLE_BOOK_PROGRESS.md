@@ -2412,4 +2412,227 @@ ca pagină (rândul 15), cu aceeași identitate de articol când postarea are ș
 5. **Postarea 28** (imagine ștearsă din greșeală în runda trecută) rămâne pierdută; restul listei din 19.7
    (firewall elevat, login xPortal, decizia despre Railway) este neschimbat.
 
+## 22. Continuarea rundei a șaptesprezecea — peretele și readerul citesc o singură listă (27 octombrie 2026)
+
+### 22.1 Ce era de fapt stricat: două liste, nu una
+
+Peretele și readerul pe care îl deschide o celulă compuneau ordinea de două ori, din două surse:
+`ProfileScreen` aduna benzile din `archiveNodes` plus două funcții locale (`nodesOfTab`, `whisperTiles`),
+iar `app/post/[id].tsx` își reconstruia lista din `answer.posts` — răspunsul lui `GET /api/posts/:id`.
+
+Diferența nu era cosmetică. **O repostare nu este în `posts`**: ea stă în `archive.posts` cu cheia
+`repost-<share_id>`, iar locul ei vine din `post_shares`, nu din postarea dusă. Citită cu
+`arrangementMap(answer.posts)`, repostarea nu avea **niciun** loc, deci cădea înaintea fiecărei celule
+aranjate, iar readerul, după ce deschidea postarea atinsă, mergea în ordinea greșită a peretelui (înapoi).
+Măsurat pe fixture: `['repost-4', 'post-12', 'post-13', 'post-14']` în loc de
+`['post-12', 'post-13', 'post-14', 'repost-4']`.
+
+### 22.2 O singură definiție, două consumatoare
+
+`src/lib/profileContent.ts` ține acum peretele într-un singur loc:
+
+- `flowBands(bands, columns = 3)` — adună celulele Flow (postări și whispers) în rânduri pline de trei, iar
+  cardurile de răspuns partajat sunt puse **după** perete;
+- `wallBands(archive, tab, reading, { arrangement?, columns? })` — `flow` → `flowBands(archiveBands(archiveNodes(...)))`;
+  taburile de colecție → `tileBands` peste `contentOfTab(orderArchive(archive.posts, ...))`; `moments` → nicio postare;
+- `wallPosts(bands)` — aplatizează benzile în lista pe care o parcurge degetul (celule și whisper, **fără**
+  cardurile de răspuns).
+
+`ProfileScreen` cheamă `wallBands(archive, tab, readings[tab], { arrangement, columns: socialTokens.archive.gridColumns })`
+și `wallPosts(bands)`; `app/post/[id].tsx` cheamă
+`wallPosts(wallBands(archive, tab, reading, { arrangement: arrangementMap(archive.posts) }))`.
+Cele două funcții locale din ecran (`nodesOfTab`, `whisperTiles`) și importurile `archiveBands`, `archiveNodes`,
+`contentOfTab`, `tileBands`, `orderArchive`, `PROFILE_ARCHIVE_LIMIT` au fost șterse, din ecran și din rută.
+
+`arrangementMap(archive.posts)` este argumentul care poartă adevărul: `archive.posts` conține și repostările
+(cu cheia lor `repost-<share_id>`), deci fiecare celulă are locul pe care proprietarul l-a tras. Locul celulei
+nu mai călătorește prin `door.index`: celula își spune **identitatea** (`archiveKey`), iar ruta o caută cu
+`walkAnchor(list, { key, id })` — o repostare și postarea dusă au același `id`, deci un index nu le putea deosebi.
+
+### 22.3 Golul dintre celule: rândurile scurte
+
+Un card de răspuns partajat rupea rândul de celule, lăsând un rând de unul sau două și două treimi goale —
+„golul neexplicat" din raportare. `flowBands` adună celulele în ordinea lor peste carduri și le taie în rânduri
+pline de trei; `archiveBands` rămâne neatins, deci paritatea cu web-ul (`test-profile-content-parity.cjs`)
+citește aceleași găleți ca înainte.
+
+### 22.4 Un card nu este o pagină
+
+`wallPosts` sare peste `band.kind === 'reply'`: un răspuns partajat se vede pe perete, dar nu poate fi nici
+parcurs cu degetul, nici deschis ca postare. Testul numără exact asta (`cells.length === archive.posts.length`).
+
+### 22.5 Tema implicită a paginii de cuvinte: hârtia, până la celulă
+
+- `ProfileTextTile` avea ultimul „jungle" scris de mână: filetul celulei lua accentul lui `'jungle'` când
+  postarea nu are `text_style`, deși readerul aceleiași postări se deschidea pe hârtie (`TEXT_DEFAULT_THEME`).
+  Acum ia accentul temei implicite, iar `test-profile-text-tile.cjs` refuză literalul `'jungle'` în componentă.
+- Compozitorul (`app/text.tsx` → `loadTextDraft` → `readTextStyle(null)`) și feed-ul (`PostCanvas` →
+  `defaultTextStyle()`, ca și `EditorialArticle`) se deschideau deja pe `#f4efe2`/`#1a221b`. O pagină scrisă
+  de autor își pictează tema peste tot cadrul (fără grove și fără voal), iar o postare **fără** stil rămâne pe
+  compoziția ei veche — contractul „absent înseamnă «fără stil», nu «implicit»" din `test-text-style.cjs`.
+
+### 22.6 Ce a rulat automat (rezultate reale)
+
+- `npm test` în `apps/nexus-mobile` — **42/42** scripturi, **365** de cazuri `node:test`, zero eșecuri.
+- `node --test scripts/test-profile-grid.cjs` — **18/18**, cu testul nou „the wall and the reader draw one
+  list, and a repost stands where the owner dragged it": fixture de trei postări + o repostare + un răspuns
+  partajat, ambele ordini dovedite (cea stricată și cea corectă), cardul rămâne în benzi dar
+  `cells.length === archive.posts.length`, `whispers` → `['post-12', 'post-14', 'repost-4']`, `moments` → `[]`.
+  Contractele de sursă cer `wallBands(archive, tab, reading, { arrangement: arrangementMap(archive.posts) })`
+  și `wallPosts(` în rută, `wallBands(... readings[tab] ...)` și `wallPosts(bands)` în ecran, și **interzic**
+  `arrangementMap(answer.posts`, `archiveNodes`, `archiveBands`, `contentOfTab`, `tileBands` și `placeOf`.
+- `tsc --noEmit` — curat.
+- Backend: `node --test test/*.test.js` — **853/853** (backendul nu a fost atins).
+
+### 22.7 Ce s-a dovedit pe telefon
+
+Nimic în această rundă: conducta ADB a rămas fără ieșire (`adb` și `uiautomator dump` întorc gol), deci nu s-a
+putut atinge un perete mixt, nu s-a putut rearanja o repostare și nu s-a putut verifica restaurarea poziției
+după `Back`. Ce este dovedit este lista: cele două ecrane cheamă aceeași funcție, iar testul de mai sus citește
+ordinea pe care o vor desena amândouă.
+
+### 22.8 Ce rămâne deschis
+
+1. **Verificarea pe telefon** a peretelui mixt (10+ celule, cu repostări), a rearanjării unei repostări, a
+   repornirii la rece și a `Back`-ului care trebuie să aducă peretele la celula atinsă — blocată pe ieșirea ADB.
+2. **Postările vechi fără `text_style`** rămân pe compoziția jungle (voal stins, `JungleGrove`): este contractul
+   scris, nu o scăpare. Dacă proprietarul vrea hârtie și pentru ele, se schimbă o singură linie în `PostCanvas`
+   (`authored ?? defaultTextStyle()`) și, odată cu ea, contractele din `test-nav-band.cjs`.
+3. **`test-ticker-parity.cjs`** rămâne singurul eșec din `scripts/` și este dinainte de rundă
+   (`apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i); nu este în lanțul `test`.
+4. Restul listei din 21.7 (capturile de ecran, guard-ul de reload, viteza de auto-derulare, rândul de sub banda
+   de navigare, postarea 28 pierdută) este neschimbat.
+
+
+
+
+
+
+## 23. Hârtia peste tot — tema nu mai este pagina (27 octombrie 2026)
+
+### 23.1 Decizia
+
+Proprietarul a ales **opțiunea 3 — paper everywhere**: orice pagină de cuvinte și orice articol se citește pe
+**aceeași** hârtie caldă (`#f4efe2`), cu cerneala întunecată a hârtiei (`#1a221b`), în compozitor, în feed, pe
+celula peretelui, în reader și în previzualizare. Tema nu mai este pagina: din ea rămân **fața, măsura,
+alinierea și accentul** — un filet deasupra titlului, linia din capul articolului, rama unui chip. Nicio pagină
+întunecată nu se mai poate desena, nici pentru un rând scris acum, nici pentru unul scris în august.
+
+Normalizarea se face **numai la pictare**, în `pagePaletteOf` (`src/lib/textStyle.ts`): rândul stocat nu este
+rescris, iar conținutul utilizatorului nu este atins. Dovada e în baza de date, nu în intenție: postările
+38–41 au în `text_style_json` exact ce au avut dintotdeauna.
+
+```
+id | has_document | theme  | font  | background | caption chars
+38 | 1            | jungle | serif | #0b1f16    | 741
+39 | 1            | jungle | serif | #0b1f16    | 458
+40 | 1            | jungle | serif | #0b1f16    | 539
+41 | 1            | jungle | serif | #0b1f16    |  96
+```
+
+### 23.2 Două accente, nu unul
+
+O pagină are nevoie de două feluri de „accent”, iar înainte erau amestecate:
+
+- `accent` — accentul **autorului** (`TEXT_THEMES[theme].accent`): numai **decor**. Filetul de sub nume, linia
+  din capul articolului, rama chipului de traducere, conturul unei fotografii selectate.
+- `mark` — accentul **hârtiei** (`TEXT_THEMES.paper.accent`, adică `#2f5d45`): numai cuvinte care trebuie
+  **citite** — un tag, o mențiune, un link, cursorul, eticheta `Vezi traducerea`. Aurul pe crem (`#c9a227`) este
+  un filet frumos și o pată ilizibilă, deci nu are voie să ajungă în text.
+
+`pagePaletteOf(style)` întoarce exact aceste patru chei — `background`, `text`, `mark`, `accent` — și este
+singurul loc din aplicație în care se hotărăște culoarea unei pagini de cuvinte.
+
+### 23.3 Ce s-a schimbat, fișier cu fișier
+
+- **`src/components/PostCanvas.tsx`** — pagina se recunoaște o dată
+  (`pageStyle = stage === 'text' || stage === 'article' ? pageStyleForPost(post.text_style) : null`) și de acolo
+  derivă tot: `pagePalette`, `pageInk`, `pageFaintInk`, `pageAccent`, `pageMark`, `pageChip`, `pageNotice`.
+  Umplerea fundalului este `pagePalette.background`; voalul (`nxCanvasVeil`) are `opacity={pagePalette ? 0 : …}`,
+  deci pagina nu mai primește nici grove, nici voal. Fotografiile, clipurile și Reels rămân neatinse:
+  `pageStyle`/`pagePalette` sunt `null` acolo.
+- **`src/components/ProfileTextTile.tsx`** — celula ia `pagePaletteOf(pageStyleForPost(post.text_style)).accent`,
+  adică același resolver ca readerul; importurile `themeOf`/`TEXT_DEFAULT_THEME` au dispărut.
+- **`src/app/text.tsx`** — mostrele de temă din compozitor pictează **hârtia** și doar un punct în accentul temei
+  (`pagePaletteOf({ theme: item.id })`); comentariile din capul ecranului și din `applyStyle` spun acum că tema
+  este accent, iar perechea de culori stocată rămâne doar pentru validarea serverului; confirmarea de publicare
+  spune „Pagina ei este hârtie…”.
+- **`src/components/EditorialPage.tsx`** — picta deja din `pagePaletteOf`, deci articolele cu document au trecut
+  pe hârtie odată cu resolverul, fără nicio modificare în componentă.
+
+
+### 23.4 Tokenul hârtiei: `#f4efe2`, nu `#f5f0e4`
+
+Jurnalul mai pomenise `#f5f0e4` (secțiunea despre celulă). Acela a fost **vechea** pereche a celulei de profil
+și a fost scoasă atunci când celula a fost adusă pe pagina readerului. Hârtia canonică este `#f4efe2`/`#1a221b`
+și este aceeași în toate cele patru locuri care trebuie să fie de acord:
+
+- `apps/nexus-mobile/src/lib/textStyle.ts` → `TEXT_THEMES.paper`;
+- `apps/nexus-mobile/src/theme/social.ts` → `socialTokens.reading.page` (cu comentariul care spune de ce);
+- `apps/nexus-web/lib/post-text-style.js` → `paper` (perechea pe care serverul o validează la publicare);
+- `scripts/test-text-style.cjs` și `scripts/test-profile-text-tile.cjs` (aserturi pe hex).
+
+Nu s-a schimbat nimic aici: un al doilea token ar fi fost o a doua pagină. Ce s-a măsurat pe telefon este
+`#f3efe3`, adică `#f4efe2` după conducta de afișare a panoului (o unitate pe R și una pe B) — nu o altă hârtie.
+
+### 23.5 Ce a rulat automat (rezultate reale)
+
+- `node node_modules/typescript/bin/tsc --noEmit` — **exit 0**, fără erori.
+- `npm test` în `apps/nexus-mobile` — lanțul complet de **42** de scripturi, **0** eșecuri, `EXIT=0`
+  (39 de suite `node:test` au raportat `fail 0`).
+- Cazul nou din `test-text-style.cjs` („fiecare temă se citește pe aceeași hârtie, iar tema rămâne doar
+  accentul”): pentru toate cele șase teme, `background`/`text` sunt perechea hârtiei, `mark` este accentul
+  hârtiei, `accent` este accentul temei, iar contrastul hârtie/cerneală trece AAA; un rând `jungle` **cu
+  document** se citește pe hârtie fără să fie rescris; `pageStyleForPost(null)` este `defaultTextStyle()`.
+- `test-nav-band.cjs` citește acum ramura paginii din `PostCanvas` (`pagePalette`, voalul cu
+  `opacity={pagePalette ? 0 : …}`), iar `test-profile-text-tile.cjs` refuză `themeOf`/`TEXT_DEFAULT_THEME`
+  în celulă.
+
+
+### 23.6 Ce s-a văzut pe Xiaomi (1220×2656, dev build, Metro)
+
+Telefonul era conectat (`adb devices -l` îl arată de două ori — aceeași serie pe două transporturi, deci se
+cheamă mereu cu `-s 192.168.1.184:39097`), aplicația în prim-plan, contul `@wallet4e8gv6`.
+
+1. **Celula peretelui** (`docs/vision/paper-profile-grid.jpg`) — grila contului `@wallet4e8gv6`, unsprezece
+   celule. Toate postările de cuvinte `jungle` (39 „Riscul real…”, 40 „Railway Trial Plan”, 41 „Test privat
+   local…”, 38 „La 30 septembrie…”, plus „Revolut idei”) se văd ca **pagini de hârtie**: cerneală serif
+   întunecată pe crem, cu filetul auriu al temei deasupra cuvintelor. Celulele cu fotografie (echipamentul,
+   becul) rămân fotografii. Etichetele celulelor sunt stabile (`Deschide postarea 41`).
+2. **Pagina deschisă din celulă** — ruta scrie „Postarea 5 din 12” și „Înapoi la profil”, deci celula atinsă
+   își spune identitatea, iar pagina deschisă este a ei (postarea 41, cu fotografia ei).
+3. **Articolul 40** („Railway Trial Plan”, `jungle` + document) — pagina caldă, cerneală serif întunecată,
+   fotografia în blocul ei, filet auriu sub nume, chip `Vezi traducerea` cu rama accentului, contor „1/2”.
+   Captură: `docs/vision/paper-article-40-jungle-on-paper.jpg`.
+4. **Articolul 41** („Test privat local…”, `jungle` + document, cu fotografie) — aceeași pagină, în walk:
+   „Postarea 5 din 12”. Captură: `docs/vision/paper-article-41-jungle-on-paper.jpg`.
+5. **Articolul 41, citit singur** (`nexusdev://post/41`, fără banda de jos) —
+   `docs/vision/paper-reader-post-41.jpg`: aceeași pagină, cu chip `Vezi traducerea` în rama aurie a temei și
+   eticheta în verdele hârtiei.
+6. **Articolul 41 în feed** (`docs/vision/paper-feed-first.jpg`) — aceeași pagină, dar cu banda de navigare jos
+   („Acasă / Mesaje / Găsește oameni și conținut / Creează / Prieteni / Live / Profil” în ierarhia de
+   accesibilitate, fără „Postarea X din 12”): feed-ul pictează aceeași hârtie ca readerul, iar pagina se
+   prezintă ca „Pagina articolului”.
+7. **Compozitorul** (`docs/vision/paper-composer.jpg`) — fila nouă este hârtie, cu invitația în serif și filetul
+   verde al hârtiei (`#2f5d45`) deasupra: tema nu mai pictează pagina nici aici.
+8. **Postarea cu fotografie din feed** — neschimbată: fotografia umple cadrul, numele și meta stau pe voal.
+   Captură: `docs/vision/paper-feed-photo-unchanged.jpg`. `pagePalette` este `null` acolo, exact cum trebuie.
+9. **Proba de culoare**, nu de impresie: PNG-urile păstrate (`-KeepPng`) au fost eșantionate, iar hârtia este
+   aceeași în toate suprafețele — `#f3efe3` în walk (patru puncte), în compozitor (trei), în celula 41 (două) și
+   în readerul singur (trei). Aceeași măsurătoare arată și că tokenii sunt cei din cod, nu alții: hârtia
+   `#f4efe2` → `#f3efe3`, aurul temei `#c9a227` → `#c3a342`, verdele hârtiei `#2f5d45` → `#3a5c47` (bufferul
+   ecranului mută o culoare saturată mai mult decât un crem aproape neutru). Înainte de schimbare, același ecran
+   se deschidea pe `#0b1f16`.
+10. Toate capturile au fost făcute **numai** cu `tools/images/safe-screencap.ps1` (wrapperul peste
+   `scripts/capture-android-screen.ps1`), niciodată cu `adb exec-out screencap`.
+
+### 23.7 Ce rămâne deschis
+
+1. **Tragerea în grilă după schimbarea `Pressable`/paginii** — de reîncercat pe telefon: rearanjare,
+   repornire la rece, poziția păstrată. (Celulele răspund în continuare la atingere: eticheta
+   `Deschide postarea N` deschide exact postarea N.)
+2. **Identitatea celulă → pagină pentru o repostare** (`repost-<share_id>`) este acoperită de paritatea de listă
+   din `test-profile-grid.cjs`, dar nu are încă un test propriu care să lege eticheta celulei de pagina deschisă.
+3. `test-ticker-parity.cjs` rămâne singurul eșec din `scripts/` și este dinainte de rundă
+   (`apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i); nu este în lanțul `test`.
 

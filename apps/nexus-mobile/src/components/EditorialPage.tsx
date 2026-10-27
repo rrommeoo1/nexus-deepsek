@@ -22,7 +22,7 @@ import {
 import { editorialSizeFor, type EditorialMediaSource } from '../lib/editorialPost';
 import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
-import { fontFamilyFor, sizeOf, themeOf, type TextStyle } from '../lib/textStyle';
+import { fontFamilyFor, pagePaletteOf, sizeOf, type TextStyle } from '../lib/textStyle';
 
 /**
  * One editorial page, drawn as the article it will publish.
@@ -67,7 +67,14 @@ export function EditorialPage({
   onChangeDocument?: (document: EditorialDocument, remember?: boolean) => void;
   accessibilityLabel?: string;
 }) {
-  const palette = themeOf(style.theme);
+  /**
+   * The page is painted from `pagePaletteOf`, not from the theme of the stored style: warm paper under
+   * the words, dark ink for them, and the author's theme kept as the one accent the page decorates
+   * itself with (the rule at its head, the frame of a selected picture). The composer, the feed and the
+   * reader all mount this component, so a stored `jungle` page and a page typed this evening open on
+   * the same paper — the theme never paints the background here.
+   */
+  const palette = pagePaletteOf(style);
   const measure = sizeOf(editorialSizeFor(document, style));
   const bodyFont = fontFamilyFor(style.font, Platform.OS) ?? 'serif';
   const [aspectRatios, setAspectRatios] = useState<Record<number, number>>({});
@@ -391,6 +398,10 @@ export function EditorialPage({
           if (!entry) return null;
           return (
             <View style={{ width, height, backgroundColor: palette.background }}>
+              {/**
+               * The one place the author's theme still colours the page: a two-point rule at its head,
+               * the same accent the wall's cell draws above its title. It decorates, it never spells.
+               */}
               <View style={[styles.accent, { backgroundColor: palette.accent }]} />
               {editable && !hasText ? (
                 <Pressable
@@ -430,9 +441,9 @@ export function EditorialPage({
                         numberOfLines={1}
                         ellipsizeMode="clip"
                         style={type}
-                        hashtagStyle={[styles.mark, { color: palette.accent }]}
-                        mentionStyle={[styles.mark, { color: palette.accent }]}
-                        linkStyle={[styles.mark, { color: palette.accent, textDecorationLine: 'underline' }]}
+                        hashtagStyle={[styles.mark, { color: palette.mark }]}
+                        mentionStyle={[styles.mark, { color: palette.mark }]}
+                        linkStyle={[styles.mark, { color: palette.mark, textDecorationLine: 'underline' }]}
                       />
                     </View>
                   );
@@ -488,7 +499,8 @@ export function EditorialPage({
                     left: caretLine.x,
                     top: caretLine.y,
                     height: caretLine.height,
-                    backgroundColor: palette.accent,
+                    // A caret is read, not decorated: it takes the paper's mark, never the theme accent.
+                    backgroundColor: palette.mark,
                   }]}
                 />
               ) : null}

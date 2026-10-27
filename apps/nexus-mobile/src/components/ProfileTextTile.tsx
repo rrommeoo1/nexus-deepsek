@@ -4,7 +4,7 @@ import { RemoteImage } from './PostMedia';
 import { mediaKindOf, type MediaItem } from '../lib/socialTypes';
 import { planTextTile, textTileCopy } from '../lib/profileTextTile';
 import type { ArchivePost } from '../lib/profileContent';
-import { themeOf } from '../lib/textStyle';
+import { pagePaletteOf, pageStyleForPost } from '../lib/textStyle';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -54,7 +54,15 @@ export function ProfileTextTile({ post, media = null }: {
     () => planTextTile(copy, { width, height }, { margin: socialTokens.reading.margin, hasMedia: Boolean(plate) }),
     [copy, width, height, plate],
   );
-  const accent = themeOf(post.text_style?.theme ?? 'jungle').accent;
+  /**
+   * The hairline above the title is the accent of the page this post actually opens on, read through the
+   * same resolver the reader paints with (`pagePaletteOf` over `pageStyleForPost`): the author's theme
+   * accent, or the paper's own for a post with no authored look. The paper under the words is the same
+   * one (`TEXT_THEMES.paper`, see `socialTokens.reading`), so the cell and the page it opens cannot be
+   * two different papers — and a stored `jungle` row shows its gold hairline over paper, exactly as the
+   * page behind it now prints.
+   */
+  const accent = pagePaletteOf(pageStyleForPost(post.text_style)).accent;
   const onLayout = (event: LayoutChangeEvent) => {
     const next = event.nativeEvent.layout;
     if (!next.width || !next.height) return;

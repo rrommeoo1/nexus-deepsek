@@ -709,11 +709,20 @@ export const socialTokens = {
    * The ink is deliberately *not* the post's theme pair: a moss-green cell was the thing the owner
    * called unreadable, so the page keeps one calm surface for every theme and lets the theme show only
    * in the hairline above the title (`accent` of `themeOf`). The reader itself still honours the theme.
+   *
+   * One paper, not two
+   * ------------------
+   * These four numbers are the **page's own** pair, not a second, tile-shaped palette: `page` and `ink`
+   * are `TEXT_THEMES.paper` in `lib/textStyle.ts`, which is what a text post's page is painted with in
+   * the composer, in the feed and in the full reader, and what the server stores (`#f4efe2` on
+   * `#1a221b`). The cell used to carry a slightly different warm pair (`#f5f0e4`), so a thumbnail and
+   * the page it opened were two papers a hair apart; `test-text-style.cjs` now reads this object and
+   * asserts the two are the same values, so the drift cannot come back.
    */
   reading: {
-    page: '#f5f0e4',
-    pageEdge: 'rgba(27,26,23,0.12)',
-    ink: '#1b1a17',
+    page: '#f4efe2',
+    pageEdge: 'rgba(26,34,27,0.14)',
+    ink: '#1a221b',
     inkSoft: '#4c4840',
     /** The page's inner margin, in points: one thumb at 1220/3 wide leaves ~106 points of measure. */
     margin: 9,
@@ -724,7 +733,7 @@ export const socialTokens = {
     /** Title and body faces: the phone's serif, the same one the editorial reader sets its pages in. */
     face: 'serif',
     /** The three strips of the fade that says "the page continues", top (lightest) to bottom. */
-    fadeSteps: ['rgba(245,240,228,0.28)', 'rgba(245,240,228,0.62)', 'rgba(245,240,228,0.92)'] as readonly string[],
+    fadeSteps: ['rgba(244,239,226,0.28)', 'rgba(244,239,226,0.62)', 'rgba(244,239,226,0.92)'] as readonly string[],
     fadeHeight: 22,
   },
   /**
