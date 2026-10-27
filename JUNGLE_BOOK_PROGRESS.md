@@ -2639,7 +2639,10 @@ cheamă mereu cu `-s 192.168.1.184:39097`), aplicația în prim-plan, contul `@w
 
 1. **Tragerea în grilă după schimbarea `Pressable`/paginii** — de reîncercat pe telefon: rearanjare,
    repornire la rece, poziția păstrată. (Celulele răspund în continuare la atingere: eticheta
-   `Deschide postarea N` deschide exact postarea N.)
+   `Deschide postarea N` deschide exact postarea N, iar `test-profile-door.cjs` ține această legătură.)
+   La închiderea rundei telefonul era luat în mână (`mCurrentFocus=com.instagram.android/.InstagramMainActivity`,
+   citit cu `dumpsys window`), deci gestul rămâne de făcut de proprietar — `safe-screencap.ps1` refuză corect
+   o captură când fereastra activă nu este a noastră.
 2. `test-ticker-parity.cjs` rămâne singurul eșec din `scripts/` și este dinainte de rundă
    (`apps/nexus-web/public/profile-ticker.js` nu mai are forma valului 14i); nu este în lanțul `test`.
 
