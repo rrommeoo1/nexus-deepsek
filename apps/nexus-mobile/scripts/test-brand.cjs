@@ -29,6 +29,8 @@ const EXCEPTIONS = [
   { pattern: /nexus_session/i, reason: 'session cookie and its header form' },
   { pattern: /^nexus-prefs$/, reason: 'local storage key; renaming it would lose saved preferences' },
   { pattern: /^nexus-session$/, reason: 'on-device session directory' },
+  { pattern: /^nexus-media$/, reason: 'on-device cache directory of downloaded pictures; never drawn' },
+  { pattern: /^nexus-text-drafts$/, reason: 'on-device directory of unsent text drafts; never drawn' },
   { pattern: /^nexus-(mobile|upload|camera)/, reason: 'request id, upload/scratch directory or cache key' },
   { pattern: /^nexus-upload-v1:/, reason: 'upload deduplication key' },
   { pattern: /^application\/vnd\.nexus\.e2ee$/, reason: 'upload MIME type understood by the server' },

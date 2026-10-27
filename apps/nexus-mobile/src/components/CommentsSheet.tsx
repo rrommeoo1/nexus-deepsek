@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Dimensions, FlatList, Image, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
+  Alert, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
+import { RemoteImageSource } from './PostMedia';
 import { newMutationKey } from '../lib/idempotency';
 import { paymentRequired, quoteFromFailure, type ActionQuote } from '../lib/actionPayments';
 import { ActionPaymentSheet } from './ActionPaymentSheet';
@@ -597,7 +598,7 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
     <View style={styles.rowWrap}>
       <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, { paddingLeft: C.rowPaddingHorizontal + Math.min(depth, C.maxIndent) * C.indentStep }, prominent && styles.prominentRow]}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} disabled={Boolean(pending) || !(comment.handle || comment.author?.handle)} onPress={(event) => { event.stopPropagation(); onProfile(comment.handle || comment.author?.handle || ''); }} style={[styles.avatar, prominent && styles.prominentAvatar]}>
-        {avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
+        {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
           : <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text>}
       </Pressable>
       <View style={styles.body}>
@@ -665,7 +666,7 @@ function EngagementRow({ item, kind, now, onProfile }: { item: CommentEngagement
   const avatar = mediaSourceForPath(item.avatar);
   const name = item.display_name || item.handle;
   return <View style={styles.engagementRow}>
-    <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.avatar}>{avatar ? <Image source={avatar} style={styles.avatarImage} accessibilityIgnoresInvertColors />
+    <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.avatar}>{avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
       : <Text style={styles.avatarInitials}>{initialsFor(name, item.handle)}</Text>}</Pressable>
     <View style={styles.body}>
       <View style={styles.rowHead}><Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.identityLink}><Text style={styles.rowName} numberOfLines={1}>{name}</Text>

@@ -4,6 +4,7 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAudioPlayer } from 'expo-audio';
 import { pauseIfAlive } from '../lib/audioLifecycle';
 import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource, type SocialPost } from '../lib/socialTypes';
+import { cachedMediaUri, downloadMedia, immediateMediaUri, isRemoteMediaSource } from '../lib/mediaCache';
 
 /**
  * How a frame is filled, read from the web stylesheets - not chosen here:
@@ -40,13 +41,14 @@ export function RemoteImageSource({ source, fit = 'contain', style, onError }: {
   style?: StyleProp<ImageStyle>;
   onError?: () => void;
 }) {
-  if (!source) return null;
+  const uri = useMediaFile(source, onError);
+  if (!uri) return null;
   // `onError` lets a surface answer honestly when `/media/…` refuses the object (`423 media
   // quarantined` for an unvalidated record, `410 media missing` for a purged one): the frame is
   // then replaced by a real sentence instead of staying silently black.
   return (
     <Image
-      source={source}
+      source={{ uri }}
       resizeMode={fit}
       style={style}
       accessibilityIgnoresInvertColors
@@ -56,11 +58,47 @@ export function RemoteImageSource({ source, fit = 'contain', style, onError }: {
 }
 
 /**
+ * The file a picture is drawn from: the download cache for a remote source, the source itself for
+ * a photo the reader picked on this device.
+ *
+ * `null` means "not yet": the surface underneath keeps its own ground (a tile's plate, the reader's
+ * dark stage) instead of painting a broken frame. A download that the server refuses calls
+ * `onError`, so a surface that owns a sentence still gets to say it.
+ *
+ * Why the bytes are downloaded rather than drawn from the URL: `lib/mediaCache.ts` tells the whole
+ * of it — React Native 0.86's Android image pipeline drops `source.headers`, so `/media/…` answers
+ * `401` to every picture while `expo-video` plays every clip with the same headers attached.
+ */
+export function useMediaFile(source: MediaSource | null | undefined, onError?: () => void): string | null {
+  const [resolved, setResolved] = useState<{ target: string; file: string } | null>(null);
+  const failure = useRef(onError);
+  useEffect(() => { failure.current = onError; }, [onError]);
+  const latest = useRef(source);
+  useEffect(() => { latest.current = source; }, [source]);
+  const target = source && isRemoteMediaSource(source) ? source.uri : '';
+  useEffect(() => {
+    if (!target) return;
+    const known = cachedMediaUri(latest.current);
+    if (known) { setResolved({ target, file: known }); return; }
+    let alive = true;
+    downloadMedia(latest.current as MediaSource)
+      .then((file) => { if (alive) setResolved({ target, file }); })
+      .catch(() => { if (alive) failure.current?.(); });
+    return () => { alive = false; };
+  }, [target]);
+
+  if (!source) return null;
+  if (!target) return source.uri;
+  return immediateMediaUri(source) ?? (resolved && resolved.target === target ? resolved.file : null);
+}
+
+
+/**
  * A clip with the session attached and playback driven from outside (`active`), which is what lets a
  * list play only the reel the reader is looking at. The player is created from the same
  * `{uri, headers}` source so `/media/…` resolves exactly like it does on the web.
  */
-export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false, soundtrack, onError, onAudioError }: {
+export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, loop = true, nativeControls = false, soundtrack, onProgress, seekRef, onError, onAudioError }: {
   item?: MediaItem | null;
   fit?: VideoFit;
   style?: StyleProp<ViewStyle>;
@@ -69,6 +107,15 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
   loop?: boolean;
   nativeControls?: boolean;
   soundtrack?: SocialPost['external_audio'];
+  /**
+   * Where the clip stands: the fraction (0-1), the position and the duration in seconds, sampled four
+   * times a second. The surface that draws the clip owns the bar (`PostCanvas`), because the bar has to
+   * sit *above* the frame's veil and clear of the action row: a clip here is drawn without native
+   * controls (a tap is the play switch, `tapVideo`, app.js:3216).
+   */
+  onProgress?: (fraction: number, position: number, duration: number) => void;
+  /** The surface's hand on the player: it fills `current` with a seek so a tap on the bar can move the clip. */
+  seekRef?: { current: ((fraction: number) => void) | null };
   onError?: () => void;
   onAudioError?: (message: string) => void;
 }) {
@@ -78,6 +125,8 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
   const player = useVideoPlayer(source, (instance) => {
     instance.loop = loop;
     instance.muted = muted || Boolean(jamendo);
+    // Four samples a second draw a 3px strip smoothly; the default (once a second) would step.
+    instance.timeUpdateEventInterval = 0.25;
   });
   const [portraitVideo, setPortraitVideo] = useState(() => item?.hash ? displayedPortraitByHash.get(item.hash) ?? false : false);
 
@@ -197,6 +246,39 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
     if (active) player.play();
     else player.pause();
   }, [active, player]);
+
+  /**
+   * The clip reports its position; the surface that composes the frame draws it. `onProgress` is kept
+   * in a ref so a caller's inline arrow does not re-subscribe the listener on every render - the same
+   * pattern the failure handlers above use.
+   */
+  const progress = useRef(onProgress);
+  useEffect(() => { progress.current = onProgress; }, [onProgress]);
+  /**
+   * The player is the only thing that can move the clip, so the surface that draws the bar hands down one
+   * setter here: the strip in `PostCanvas` stays a picture, and this is the hand that turns a tap into a
+   * seek. It is re-pointed on every render so it always carries the current player.
+   */
+  const seeker = useRef(seekRef);
+  useEffect(() => { seeker.current = seekRef; }, [seekRef]);
+  useEffect(() => {
+    if (!seeker.current) return;
+    seeker.current.current = (fraction: number) => {
+      const total = player.duration || 0;
+      if (total <= 0) return;
+      /** expo-video assigns the position directly; there is no `seekTo` on this player version. */
+      player.currentTime = Math.max(0, Math.min(1, fraction)) * total;
+    };
+    return () => { if (seeker.current) seeker.current.current = null; };
+  }, [player, seekRef]);
+  useEffect(() => {
+    const subscription = player.addListener('timeUpdate', ({ currentTime }) => {
+      const total = player.duration || 0;
+      const fraction = total > 0 ? Math.max(0, Math.min(1, currentTime / total)) : 0;
+      progress.current?.(fraction, Math.max(0, currentTime), total);
+    });
+    return () => subscription.remove();
+  }, [player]);
 
   if (!source) return null;
   const resolvedFit = fit === 'portrait-cover' ? (portraitVideo ? 'cover' : 'contain') : fit;

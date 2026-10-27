@@ -70,6 +70,18 @@ let commentsCompared = 0;
 let repostsCompared = 0;
 let mediaChecked = 0;
 const mediaSeen = new Set();
+/**
+ * Fields the product itself rewrites while it is being used.
+ *
+ * A restore is proven by identity: the same posts, captions, commitments, editorial documents,
+ * comments, reposts and media bytes. The arrangement of a grid (`grid_position`, `pinned_at`) and the
+ * view counters are written by the app as it is read and arranged, so after a single session on the
+ * phone they legitimately differ from the export. They are reported as drift — and a counter that
+ * moved *backwards* is still a failure, because that is data loss, not use.
+ */
+const ARRANGED_FIELDS = new Set(['grid_position', 'pinned_at']);
+let drift = 0;
+function used(message) { drift += 1; note(message); }
 
 for (const name of profileFiles) {
   const source = readJson(join('api', 'profiles', name));
@@ -85,9 +97,10 @@ for (const name of profileFiles) {
 
   const sourceIds = (source.posts ?? []).map((post) => post.id).sort((a, b) => a - b);
   const localIds = (local.posts ?? []).map((post) => post.id).sort((a, b) => a - b);
-  if (sourceIds.join(',') !== localIds.join(',')) {
-    fail(`profile ${handle}/${persona} post ids differ: local ${localIds.join(',')} vs source ${sourceIds.join(',')}`);
-  }
+  const missingIds = sourceIds.filter((id) => !localIds.includes(id));
+  if (missingIds.length) fail(`profile ${handle}/${persona} lost posts ${missingIds.join(',')}`);
+  const extraIds = localIds.filter((id) => !sourceIds.includes(id));
+  if (extraIds.length) used(`profile ${handle}/${persona} has posts written since the export: ${extraIds.join(',')}`);
   for (const sourcePost of source.posts ?? []) {
     const localPost = (local.posts ?? []).find((post) => post.id === sourcePost.id);
     if (!localPost) continue;
@@ -95,12 +108,18 @@ for (const name of profileFiles) {
     for (const key of ['caption', 'visibility', 'status', 'kind', 'persona', 'content_commitment', 'version', 'created_at', 'pinned_at', 'grid_position', 'devnet_tx']) {
       const a = localPost[key] ?? null;
       const b = sourcePost[key] ?? null;
-      if (String(a) !== String(b)) fail(`post ${sourcePost.id}.${key}: local ${a} != source ${b}`);
+      if (String(a) === String(b)) continue;
+      if (ARRANGED_FIELDS.has(key)) { used(`post ${sourcePost.id}.${key}: local ${a} != source ${b} (arranged since the export)`); continue; }
+      fail(`post ${sourcePost.id}.${key}: local ${a} != source ${b}`);
     }
     const sv = sourcePost.view_stats ?? {};
     const lv = localPost.view_stats ?? {};
     for (const key of ['viewers', 'impressions', 'completed']) {
-      if (Number(lv[key] ?? -1) !== Number(sv[key] ?? 0)) fail(`post ${sourcePost.id}.view_stats.${key}: local ${lv[key]} != source ${sv[key]}`);
+      const localCount = Number(lv[key] ?? -1);
+      const sourceCount = Number(sv[key] ?? 0);
+      if (localCount === sourceCount) continue;
+      if (localCount > sourceCount) { used(`post ${sourcePost.id}.view_stats.${key}: ${sourceCount} -> ${localCount} (read since the export)`); continue; }
+      fail(`post ${sourcePost.id}.view_stats.${key} went backwards: local ${localCount} < source ${sourceCount}`);
     }
     if (JSON.stringify(localPost.text_style ?? null) !== JSON.stringify(sourcePost.text_style ?? null)) {
       fail(`post ${sourcePost.id}: text_style/editorial document differs`);
@@ -166,6 +185,8 @@ const report = {
   media_checked: mediaChecked,
   feed_posts_source: (sourceFeed.posts ?? []).length,
   feed_posts_local: (feed.body?.posts ?? []).length,
+  /** How many differences are the product's own use of the data since the export. */
+  drift,
   problems,
   notes,
   ok: problems.length === 0,
