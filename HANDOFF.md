@@ -1,3 +1,135 @@
+## 0.36 Login, cont nou, parolă uitată și xPortal: două butoane care nu chemau serverul, plus o configurație care se anula singură (29 octombrie 2026)
+
+**Starea depozitului.** `codex/camera-draft-stability`, peste `57c566c` (checkpoint rundele 20–34) și
+`efaf2d5` (runda 35), cu commitul acestei runde — *feat(auth): local signup, working password recovery and a
+visible password* — 18 fișiere, +1 692 / −47, **fără push**.
+Staging-ul a fost golit înainte de
+fiecare verificare; cele 18 sonde/dump-uri de sesiune rămân necomise intenționat. `.gitignore` acoperă
+`/_*`, iar niciun `env`, `.sqlite`, log, imagine sau APK nu intră în commit.
+
+**Ce s-a găsit, într-o frază:** două dintre cele trei fluxuri de autentificare nu erau stricate în server,
+ci **nu existau deloc în aplicație** (butoanele scriau o propoziție), al treilea (xPortal) era oprit de o
+**variabilă goală care anula o configurație completă** aflată în alt fișier, iar loginul pe email rămâne
+oprit de datele migrate, exact ca în §0.35.
+
+### Ce era stricat, pe fiecare flux, înainte de orice modificare
+
+| flux | ce se întâmpla pe telefon | cauza reală (cod, nu impresie) |
+| --- | --- | --- |
+| login email + parolă | `401 invalid credentials` pentru orice combinație | baza vie are **9 conturi, 0 cu email, 0 cu `password_hash`** (§0.35); nu s-a schimbat în runda 36 |
+| „Creează cont" | apărea o propoziție: „se face momentan în versiunea web" | `app/index.tsx`: `onSignUp={() => setError(...)}` — **niciun request**. Serverul chiar are `/auth/email/signup`, dar acela cere o **dovadă de wallet Ed25519** generat în browser peste un nonce legat de email (`verifyWalletSignupProof`), imposibil de produs de pe telefon |
+| „Ai uitat parola?" | propoziția „recuperarea se face prin xPortal" | serverul răspundea **503** mereu pe `/auth/email/reset-request` și **410** pe `reset-confirm`; nu exista niciun flux de recuperare |
+| ochiul de parolă | nu exista | `AuthField` avea `secureTextEntry={secure}` fix |
+| xPortal | `503 WALLETCONNECT_PROJECT_NOT_ATTESTED` | `NEXUS_WC_PROJECT_ID=` **gol** în `C:\Nexus\env\jungle.env` anula valoarea reală din `apps/nexus-web/.env` (mai jos) |
+
+### Configurația: două fișiere, iar cel gol câștiga
+
+Serviciul citește `C:\Nexus\env\jungle.env` (prin `jungle-backend-service.mjs`), iar `server.js` mai cheamă
+`loadEnv()`, care citește `apps/nexus-web/.env` (gitignored, al owner-ului). Al doilea fișier **avea deja**
+tot ce trebuie pentru xPortal:
+
+| variabilă | `C:\Nexus\env\jungle.env` | `apps/nexus-web/.env` |
+| --- | --- | --- |
+| `NEXUS_WC_PROJECT_ID` | **gol** (placeholder din `tools/local-backend/env.example`) | 32 hex |
+| `NEXUS_WC_PROJECT_ATTESTED` | absent | `true` |
+| `NEXUS_WC_ATTESTED_ORIGINS` | absent | `http://localhost:5000,http://127.0.0.1:5000,http://192.168.1.153:5000,…` |
+
+`loadEnv` sărea peste orice cheie **deja definită**, iar „gol" nu e „nedefinit": placeholder-ul anula
+valoarea reală. Regula s-a schimbat într-un singur loc (`lib/env.js`): **o valoare goală înseamnă
+„neconfigurat"**, deci un fișier ulterior o poate completa; o valoare **nemenoartă** câștigă întotdeauna.
+Măsurat pe serviciul viu, după repornire: `GET /auth/mvx/init` → **200** pentru `http://127.0.0.1:5000`
+**și** pentru `http://192.168.1.153:5000`, `attestation=configured`, `wcProjectId` de 32 de caractere,
+`chainId=1`. Efect secundar documentat: în dezvoltare, `GOOGLE_CLIENT_ID`/`SECRET` din același fișier
+devin active (serverul le raportează configurate); ecranul telefonului ține în continuare `googleReady={false}`.
+
+**Ownere, un lucru de confirmat:** id-ul din `apps/nexus-web/.env` **diferă** de
+`PUBLIC_WALLETCONNECT_PROJECT_ID` din `lib/env.js` (cel publicat, folosit doar de deployment-urile preview).
+Dacă `http://localhost:5000` a fost adăugat în allowlist-ul celuilalt proiect, relay-ul va răspunde
+`3000 origin not allowed` și va trebui aliniat. Detaliul e în `JUNGLE_BOOK_PROGRESS.md` §36.4.
+
+
+### Cont nou local, fără email și fără wallet
+
+Noul contract e în `apps/nexus-web/lib/local-account.js`, cu poarta într-o singură funcție:
+`NODE_ENV` ≠ production **și** `NEXUS_DEPLOYMENT_MODE=local` explicit **și** cererea vine de la loopback sau
+RFC1918 **și** `NEXUS_LOCAL_ACCOUNTS` ≠ `0`; altfel rutele răspund **404** (nu se anunță nici măcar că există).
+
+| rută | ce face |
+| --- | --- |
+| `POST /auth/local/register` | handle (2–30, `[a-z0-9_]`) + parolă (8–256, **netrimată**) + email opțional: scrypt, 5 personae, sesiune imediată (**201**). Duplicat → **409**; handle-ul existent **nu** e adoptat niciodată; refuză un handle care aparține altcuiva |
+| `POST /auth/local/password-reset` | identificator email **sau** `@handle`: rescrie hash-ul, **revocă toate sesiunile**, șterge tokenii de reset. Cont inexistent → **404**; cont **fără** parolă (identitate migrată / wallet-only) → **409 `ACCOUNT_WITHOUT_PASSWORD`**, ca să nu fie preluare de cont |
+| `GET /api/auth-capabilities` | ce poate serverul, fără niciun secret: `registration`, `password_recovery`, `local_accounts`, plus pentru xPortal `missing`/`source`/`ready` |
+
+`/auth/email/login` acceptă acum **și** handle-ul (contul local poate să nu aibă email), cu aceleași limite
+de rată și același `401` pentru cont inexistent și parolă greșită. `dev-test-account.mjs --adopt-handle`
+rămâne separat și tot opt-in: **nu** e fluxul public de înscriere.
+
+### Cum îmi fac cont și cum îmi recuperez parola (fără niciun serviciu de email)
+
+1. **Cont nou, pe telefon:** deschide Jungle Book → secțiunea „Creează cont" → handle (ex. `romeo`) + parolă
+   (minim 8) + confirmare → „Creează cont". Emailul e opțional și **nu** e verificat. Contul se creează cu
+   parola stocată ca hash `scrypt` și intri direct în profil. Dacă handle-ul e luat: `409`, alege altul.
+2. **Login normal:** „Email sau @handle" + parolă. Un cont creat doar cu handle intră cu `@handle`.
+3. **Parolă uitată:** „Ai uitat parola?" → scrie `@handle`-ul (sau emailul) + parola nouă de două ori →
+   „Setează parola nouă". Serverul rescrie hash-ul și **deconectează toate sesiunile**; apoi intri cu parola
+   nouă. Dacă răspunsul e „acest cont nu are parolă", contul e o identitate migrată/wallet-only: acela se
+   recuperează prin xPortal, nu prin formular.
+4. **De ce e sigur că e doar local:** cele două rute există numai cu `NODE_ENV` ≠ production +
+   `NEXUS_DEPLOYMENT_MODE=local` + cerere de pe loopback/LAN. În orice altă configurație răspund `404`, iar
+   `NEXUS_LOCAL_ACCOUNTS=0` le închide și pe PC.
+
+
+### Telefonul: ce s-a schimbat efectiv
+
+- `lib/loginFields.ts` (pur, testabil): ochiul schimbă **doar** vizibilitatea, parola trece neatinsă
+  (`passwordSubmissionValue` e identitatea), doar identificatorul se curăță.
+- `NexusLogin`: câmp de handle la înscriere, „Email (opțional)", notă de cont local, iar toate cele trei
+  câmpuri de parolă au același ochi (`AuthField`, etichetă vorbită „Arată/Ascunde parola", țintă 44×50).
+- `PasswordRecoverySheet` (nou): email sau handle + parolă nouă + confirmare; succesul spune **ce handle** a
+  fost schimbat, iar refuzul serverului se tipărește verbatim. Nu există mesaj de succes fals.
+- `app/index.tsx`: `onSignUp` → `registerWithLocalAccount`, `onForgotPassword` → foaia, plus
+  `readAuthCapabilities()` la boot. Propozițiile din runda 34 au dispărut.
+- `lib/bridgeOrigin.ts` (nou): pagina podului xPortal se încarcă de pe **`http://localhost:5000`** când
+  API-ul e pe LAN în `http:` (singurul `http:` care e context sigur pentru WebCrypto și singura origine din
+  allowlist pe care owner-ul a confirmat-o). Restul aplicației rămâne pe LAN; tokenul NativeAuth emis la
+  localhost e acceptat la `/auth/mvx/native` fiindcă callback-ul de dezvoltare acceptă loopback. Dacă pagina
+  nu se încarcă, mesajul spune exact `adb reverse tcp:5000 tcp:5000`.
+
+### Dovezi
+
+| dovadă | unde |
+| --- | --- |
+| backup **înainte** de orice atingere | `C:\Nexus\backups\db\2026-10-28-230046-round36-pre-auth` (`integrity ok`, 9 conturi / 48 postări / 4 sesiuni) |
+| teste web | **879/879** (`node --test test/*.test.js`), din care **11** noi în `test/local-account-auth.test.js` |
+| teste mobil | **57 de grupuri, 0 eșecuri**, două scripturi noi: `test-login-fields.cjs`, `test-bridge-origin.cjs` |
+| TypeScript | `tsc --noEmit` → **0** |
+| flux complet, pe HTTP real | instanță disponsabilă (port 5099, date temporare, **șterse**): **18/18 PASS** — înscriere 201, `/api/me` 200, logout 200→401, login cu handle și cu email, parola cu spații *fără* spații → 401, duplicat 409, reset 200, tokenul vechi 401, parola veche 401, parola nouă 200, cont necunoscut 404 |
+| persistență după repornire | proces oprit și repornit pe aceleași date: `/api/me` **200** cu tokenul de dinainte, login **200** |
+| xPortal | `GET /auth/mvx/init` → **200** (`configured`, `chainId=1`) pentru `http://127.0.0.1:5000` **și** `http://192.168.1.153:5000`; 503-ul a dispărut |
+| baza vie neatinsă | recitită la final: **9** conturi, **0** email, **0** hash, **48** postări, **4** sesiuni, aceleași handle-uri |
+
+### Ce NU e dovedit (și de ce)
+
+1. **Nimic pe telefon în runda 36.** Telefonul a ieșit din adb înainte de test (`adb devices` gol,
+   `adb mdns services` gol, portul wireless vechi închis), iar reconectarea cere codul de pairing afișat pe
+   telefon — adică o setare a telefonului, pe care regulile o interzic. Deci: **nicio captură în runda 36**,
+   iar fluxurile de mai sus sunt dovedite pe HTTP, cu exact headerele clientului, nu pe ecran.
+2. **Allowlist-ul Reown** rămâne neverificat de aici (fără dashboard autentificat). Serverul atestă acum
+   `http://localhost:5000`, dar dacă relay-ul îl refuză, mesajul lui apare în pod (`relay-refused`).
+3. **xPortal cap-coadă** (aprobare în xPortal, semnătură, sesiune) nu s-a testat: cere telefonul de la
+   punctul 1. Nu se raportează ca reușit.
+
+### Ce urmează, în ordine
+
+1. **Owner, pe telefon:** `adb reverse tcp:5000 tcp:5000`, apoi deschide aplicația → „Creează cont" (handle
+   + parolă) → intram automat. „Ai uitat parola?" schimbă parola oricărui cont **care are deja** una.
+2. **Owner:** confirmă în Reown că `http://localhost:5000` e în allowlist-ul **proiectului al cărui id e în
+   `apps/nexus-web/.env`** (nu cel din `lib/env.js`).
+3. **Owner:** pentru `@test`/`test@nexus.ro` rămâne valabilă aprobarea din §0.35 (adoptare opt-in); runda 36
+   **nu** a atins acel rând.
+4. **Push:** cele trei commituri locale așteaptă aprobarea explicită.
+
+
 ## 0.35 Checkpoint git, loginul local și xPortal: două configurații, nu două bug-uri (28 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, commit **`57c566c`** —

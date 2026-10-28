@@ -4528,3 +4528,122 @@ Nu s-a dovedit pe telefon (ar cere Project ID real); este scris aici ca pas urm�
 | reparația funcționează | 6 teste noi (`preview-test-account.test.js`) + rularea pe copie (§35.6) |
 | suita nu a fost atinsă | web **868/0**, mobil **58 de fișiere/0**, `tsc --noEmit` **0** |
 
+## 36. Autentificarea completă: înscriere, recuperare de parolă, vizibilitatea parolei și xPortal (29 octombrie 2026)
+
+Runda 36 a luat cele trei fluxuri de autentificare cap-coadă — UI → request → server → bază → sesiune — și
+le-a reparat pe cele care se puteau repara fără date de la owner. Concluzia scurtă: **două butoane nu chemau
+serverul deloc**, iar al treilea era oprit de o **variabilă goală** care anula o configurație completă.
+
+### 36.1 Ce s-a reprodus înainte de orice modificare
+
+| flux | comportament | dovada |
+| --- | --- | --- |
+| login email + parolă | `401 invalid credentials` | 9 conturi, 0 email, 0 hash (§35.3, recitit în §36.6) |
+| „Creează cont" | doar text: „se face momentan în versiunea web" | `app/index.tsx`, `onSignUp={() => setError(...)}` — zero request-uri |
+| „Ai uitat parola?" | doar text: „recuperarea se face prin xPortal" | `index.tsx`; serverul: `503` pe `reset-request`, `410` pe `reset-confirm` |
+| ochi de parolă | inexistent | `secureTextEntry={secure}` |
+| xPortal | `503 WALLETCONNECT_PROJECT_NOT_ATTESTED` | `GET /auth/mvx/init`, §35.7 |
+
+Deci nu era o regresie de UI: erau **două fluxuri neimplementate** și unul **neconfigurat**.
+
+### 36.2 Contractul de cont local (`lib/local-account.js`)
+
+Poarta e o singură funcție, ca să poată fi citită și testată într-un loc:
+`NODE_ENV !== "production"` **și** `NEXUS_DEPLOYMENT_MODE === "local"` explicit **și** peer loopback/RFC1918
+**și** `NEXUS_LOCAL_ACCOUNTS !== "0"`. Când poarta zice nu, rutele răspund **404**: un deployment public nu
+află nici măcar că ele există. `/api/auth-capabilities` spune ce poate serverul, fără niciun secret.
+
+`POST /auth/local/register`: handle `[a-z0-9_]{2,30}`, parolă 8–256 **netrimată**, email opțional; scrypt
+(`hashPassword`), 5 personae, sesiune imediată (201, `nexus_session` + `nexus_device_id`). Duplicat de handle
+sau de email → **409**. Handle-ul existent **nu** se adoptă: rândul rămâne neatins, iar testul verifică exact
+asta pe un rând de tip `@test`. Verificările sunt repetate **în tranzacție**, ca două cereri simultane să nu
+poată trece amândouă.
+
+`POST /auth/local/password-reset`: identificator email **sau** `@handle`; rescrie hash-ul, șterge tokenii de
+reset, **revocă toate sesiunile** (`deleteSessionsForUser`) și notifică `security`. Cont inexistent → 404.
+Cont fără parolă → **409 `ACCOUNT_WITHOUT_PASSWORD`**: o identitate migrată sau un cont wallet-only nu poate
+primi parolă dintr-un formular neautentificat, altfel ar fi preluare de cont.
+
+`POST /auth/email/login` acceptă acum și handle-ul (`@test` nu are email), cu aceleași limite de rată și
+același `401` pentru „cont inexistent" și „parolă greșită".
+
+### 36.3 Configurația xPortal: placeholder-ul gol anula fișierul complet
+
+`jungle-backend-service.mjs` pasează fișierul de serviciu în `process.env`, iar `server.js` cheamă apoi
+`loadEnv()`, care citește `apps/nexus-web/.env`. `loadEnv` sărea peste cheile deja definite — iar
+`NEXUS_WC_PROJECT_ID=` (gol, din `tools/local-backend/env.example` prin installer) **era** definită, deci
+anula id-ul de 32 de hex din `.env`, împreună cu `NEXUS_WC_PROJECT_ATTESTED=true` și lista de origini.
+
+Regula nouă, într-un singur loc: **o valoare goală înseamnă „neconfigurat"**, deci un fișier ulterior o poate
+completa; o valoare nenulă câștigă mereu. Măsurat după repornire:
+
+| origine | înainte | după |
+| --- | --- | --- |
+| `http://127.0.0.1:5000` | 503 | **200**, `attestation=configured`, `wcProjectId` 32, `chainId=1` |
+| `http://192.168.1.153:5000` | 503 | **200**, idem |
+| origine neatestată (`:5001`) | 503 | **503**, cu `missing` exact |
+
+Efect secundar, documentat: în dezvoltare, `GOOGLE_CLIENT_ID`/`SECRET` din același `.env` devin active pe
+server (`/api/providers` le raportează configurate). Ecranul telefonului ține `googleReady={false}`.
+
+### 36.4 Reown: două Project ID-uri pe același PC
+
+`lib/env.js` publică `PUBLIC_WALLETCONNECT_PROJECT_ID` (folosit **doar** de deployment-urile preview), iar
+`apps/nexus-web/.env` are un **alt** id, de 32 de hex. Serverul viu folosește acum al doilea. Dacă
+`http://localhost:5000` a fost adăugat în allowlist-ul **celuilalt** proiect, relay-ul va răspunde
+`3000 origin not allowed`, iar podul va afișa exact asta (`relay-refused` în `xportal-bridge.js`).
+Verificarea allowlist-ului **nu s-a făcut** de aici (fără dashboard autentificat) — rămâne a owner-ului.
+
+### 36.5 Contextul sigur: de ce podul se încarcă de pe localhost
+
+`http://192.168.1.153:5000` **nu** e context sigur, deci `crypto.subtle` lipsește și WalletConnect nu poate
+deriva chei. `lib/bridgeOrigin.ts` schimbă **doar** adresa paginii podului: când API-ul e pe LAN în `http:`,
+pagina se încarcă de la `http://localhost:5000` (loopback-ul telefonului → `adb reverse tcp:5000`), care e și
+context sigur, și originea confirmată de owner. Restul aplicației rămâne pe LAN; tokenul NativeAuth emis la
+localhost e acceptat la `/auth/mvx/native` pentru că `isLocalDevelopmentOrigin` acceptă loopback în dezvoltare.
+În producție originea e deja `https:`, deci funcția întoarce intrarea neschimbată. Dacă pagina nu se încarcă,
+mesajul din foaie spune `adb reverse tcp:5000 tcp:5000`.
+
+### 36.6 Baza vie, verificată înainte și după
+
+Backup înainte de orice: `C:\Nexus\backups\db\2026-10-28-230046-round36-pre-auth` (`VACUUM INTO`,
+`integrity_check ok`, 9 conturi / 48 postări / 4 sesiuni, hash SHA-256 în manifest). La final, baza vie
+recitită: **9** conturi, **0** email, **0** `password_hash`, **48** postări, **4** sesiuni, aceleași handle-uri
+(`test`, `urailwaytest01…06`, `devnet_test_01`, `devnet_test_04`, `wallet4e8gv6`). Runda 36 **nu** a scris în
+baza vie: fluxurile s-au dovedit pe o instanță disponsabilă (port 5099, `NEXUS_DATA_DIR` temporar, șters).
+### 36.7 Matricea de teste
+
+| cerință | test |
+| --- | --- |
+| login valid / parolă greșită / cont necunoscut, răspuns identic | `local-account-auth.test.js`: 200 / 401 / 401 + `deepEqual` pe body |
+| parola cu spații nu e trimată nicăieri | `loginFields` + login cu parola *fără* spații → 401 |
+| ochiul nu atinge textul | `test-login-fields.cjs` (`passwordSubmissionValue` = identitate) |
+| înscriere nouă, sesiune, `/api/me` | HTTP E2E **18/18 PASS** |
+| duplicat handle / email, confirmare greșită, lungime, handle invalid | 400/409 + `validateLocalAccountDraft` |
+| hash real, fără secrete în răspuns | `^[a-f0-9]{32}:[a-f0-9]{128}$`; JSON fără `password`/`hash`/`salt` |
+| recuperare: parola nouă merge, cea veche nu, sesiunile vechi mor | 200 / 401 / 401 |
+| recuperarea nu există în producție sau de la peer public | 404 + **0** rânduri scrise |
+| cont fără parolă nu poate fi preluat | 409 `ACCOUNT_WITHOUT_PASSWORD` |
+| xPortal: config lipsă → eroare acționabilă | 503 cu `missing` exact, **0** apeluri de rețea |
+| xPortal: origine corectă → init real | 200, `init` cu originea base64url așteptată și block hash injectat |
+| xPortal: origine străină | 503 |
+| podul cere context sigur | `test-bridge-origin.cjs`: LAN `http:` → localhost, `https:` neschimbat |
+| valoarea goală nu mai anulează configurația | test `loadEnv` cu `KEY=""` apoi fișier cu valoare |
+
+Suita: web **879/879**, mobil **57 de grupuri / 0 eșecuri**, `tsc --noEmit` **0**.
+
+### 36.8 Ce rămâne deschis
+
+1. **Telefonul.** `adb devices` gol, `adb mdns services` gol, portul wireless vechi închis → reconectarea cere
+   codul de pairing afișat pe telefon (setare a telefonului, interzisă regulilor). **Nicio captură în runda
+   36**; fluxurile sunt dovedite pe HTTP, cu headerele clientului, nu pe ecran.
+2. **Owner:** allowlist Reown pentru proiectul al cărui id e în `apps/nexus-web/.env` (§36.4).
+3. **Owner:** `@test` / `test@nexus.ro` rămâne neatins; aprobarea din §35.5 e încă valabilă.
+4. **Push:** commiturile rămân locale până la aprobare.
+5. **Rămâne din runda 34:** pagina „Mașină", eticheta „Asistat de AI", scrierile sociale pe instanța vie,
+   cititorul web fără etichetă de origine (§31.5.6), rândul de sesiune `audit`.
+
+
+
+
+

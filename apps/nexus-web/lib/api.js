@@ -17,7 +17,11 @@ import {
   validateNativeAuthToken, resolveHerotag, resolveMvxNetwork, buildNativeAuthInit,
 } from "./mvx.js";
 import { MAX_E2EE_DEVICE_ENVELOPES, normalizePersona, NOTIFICATION_TYPES, PERSONAS, PROFILE_TABS, RECOVERY_DEVICE_PENDING_TTL_SECONDS, SOCIAL_REACTIONS, extractPostTags, deriveAge, normaliseBirthDate, normaliseTabsOrder } from "./repo.js";
-import { walletConnectAttestation } from "./env.js";
+import { walletConnectAttestationReport } from "./env.js";
+import {
+  LOCAL_ACCOUNT_FLOW, isValidLocalEmail, localAccountGate, normalizeLocalHandle,
+  readLocalIdentifier, validateLocalPassword,
+} from "./local-account.js";
 import { versionView } from "./build-info.js";
 import {
   assessSocialContent, normalizeProvenance, REPORT_CATEGORIES,
@@ -918,6 +922,43 @@ export async function handleRequest(req, res, ctx) {
     return json(res, 200, versionView());
   }
 
+  /**
+   * What this exact server can do for a login, answered before anyone has a session.
+   *
+   * The phone cannot guess: `/auth/email/signup` needs a browser-held wallet, and password recovery is
+   * only honest on a local deployment (`lib/local-account.js`). Without this probe the login screen has
+   * to either hide a working feature or offer a dead button, and both were true in round 36. The answer
+   * carries no account data, no secret and no hash — only which flows exist here and, for xPortal, which
+   * configuration piece is still missing, so the UI can print something actionable instead of a spinner.
+   */
+  if (method === "GET" && path === "/api/auth-capabilities") {
+    const gate = localAccountGate(process.env, req.socket?.remoteAddress);
+    let origin = "";
+    let wallet = null;
+    try { origin = externalOrigin(req); } catch { origin = ""; }
+    if (origin) {
+      const report = walletConnectAttestationReport(process.env, origin);
+      wallet = {
+        ready: report.ready,
+        origin: report.origin,
+        source: report.source,
+        missing: report.missing,
+        project_id_configured: report.projectIdConfigured,
+        project_attested: report.dashboardAttested,
+        origin_attested: report.originAttested,
+      };
+    }
+    return json(res, 200, {
+      ok: true,
+      deployment: String(process.env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() || "unset",
+      login: { email_password: true, handle_password: true, xportal: Boolean(wallet?.ready) },
+      registration: gate.enabled ? LOCAL_ACCOUNT_FLOW : "wallet_proof_required",
+      password_recovery: gate.enabled ? LOCAL_ACCOUNT_FLOW : "unavailable",
+      local_accounts: { enabled: gate.enabled, reason: gate.reason },
+      wallet,
+    });
+  }
+
   // ---- auth ----
   if (method === "POST" && new Set(["/auth/signup", "/auth/login"]).has(path)) {
     return json(res, 410, { ok: false, error: "flux retras; folosește autentificarea securizată cu email sau xPortal" });
@@ -1160,16 +1201,21 @@ export async function handleRequest(req, res, ctx) {
 
   if (method === "POST" && path === "/auth/email/login") {
     const body = await readAuthJson(req);
-    const email = sanitizeText(body.email, 120).toLowerCase();
+    // The form is "email", but a local-development account may have been created with a handle only
+    // (`/auth/local/register` makes email optional). One field, two identifiers, one answer: the same
+    // 401 whether the account is unknown or the password is wrong, so nothing leaks about the handle.
+    const presented = sanitizeText(body.email, 120).toLowerCase();
+    const email = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(presented) ? presented : "";
+    const handle = email ? "" : normalizeLocalHandle(presented);
     const password = String(body.password ?? "");
-    const requestData = { email, password };
+    const requestData = { email: presented, password };
     const globalRate = enforceAuthRate(req, res, "email-login-ip", "", { limit: 40, windowMs: 15 * 60 * 1000 });
     if (!globalRate.allowed) return;
-    const rate = enforceAuthRate(req, res, "email-login", email, { limit: 8, windowMs: 15 * 60 * 1000 });
+    const rate = enforceAuthRate(req, res, "email-login", presented, { limit: 8, windowMs: 15 * 60 * 1000 });
     if (!rate.allowed) return;
     let replay;
     try {
-      replay = replayEmailAuthCommand({ db, repo, purpose: "login", idempotencyKey: req.headers["idempotency-key"], requestData, subject: email });
+      replay = replayEmailAuthCommand({ db, repo, purpose: "login", idempotencyKey: req.headers["idempotency-key"], requestData, subject: presented });
     } catch (error) {
       if (error instanceof EmailAuthCommandError) return json(res, error.status, { ok: false, code: error.code, error: error.message });
       throw error;
@@ -1178,7 +1224,7 @@ export async function handleRequest(req, res, ctx) {
       setSessionCookie(req, res, replay.token, repo);
       return json(res, 200, { ...replay.response, replay: true });
     }
-    const user = repo.getUserByEmail(email);
+    const user = (email && repo.getUserByEmail(email)) || (handle && repo.getUserByHandle(handle)) || null;
     if (!user || !user.password_hash || !verifyPassword(password, user.password_hash)) {
       return json(res, 401, { ok: false, error: "invalid credentials" });
     }
@@ -1186,7 +1232,7 @@ export async function handleRequest(req, res, ctx) {
     let command;
     try {
       command = consumeEmailAuthCommand({
-        db, repo, purpose: "login", idempotencyKey: req.headers["idempotency-key"], requestData, subject: email,
+        db, repo, purpose: "login", idempotencyKey: req.headers["idempotency-key"], requestData, subject: presented,
         operation: () => ({ userId: user.id, response: { ok: true, user: publicUser(user), email_verified: Boolean(user.email_verified) } }),
       });
     } catch (error) {
@@ -1198,7 +1244,106 @@ export async function handleRequest(req, res, ctx) {
     return json(res, 200, { ...command.response, replay: command.replay });
   }
 
+  // ---- local-development accounts: registration and password recovery without mail ----
+  //
+  // The gate (`lib/local-account.js`) refuses in production, refuses an unset deployment mode and
+  // refuses a request that did not come from loopback or a private address, and answers 404 so an
+  // unreachable deployment does not even advertise the routes. These two flows are additive: they
+  // create a brand-new row or rewrite the password of a row that already had one. They never adopt,
+  // rename or claim an existing handle, and they never attach an email to somebody else's account.
+  if (method === "POST" && path === "/auth/local/register") {
+    if (!localAccountGate(process.env, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    const rate = enforceAuthRate(req, res, "local-register-ip", "", { limit: 10, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const handle = normalizeLocalHandle(body.handle);
+    const password = typeof body.password === "string" ? body.password : "";
+    const email = sanitizeText(body.email, 120).toLowerCase();
+    const displayName = sanitizeText(body.display_name, 50);
+    if (!handle) return json(res, 400, { ok: false, code: "HANDLE_INVALID", error: "handle invalid: 2-30 caractere, litere mici, cifre sau _" });
+    const verdict = validateLocalPassword(password);
+    if (!verdict.ok) return json(res, 400, { ok: false, code: "PASSWORD_INVALID", error: verdict.error });
+    if (email && !isValidLocalEmail(email)) return json(res, 400, { ok: false, code: "EMAIL_INVALID", error: "adresă de email invalidă" });
+    if (repo.getUserByHandle(handle)) return json(res, 409, { ok: false, code: "HANDLE_TAKEN", error: "handle deja folosit" });
+    if (email && repo.getUserByEmail(email)) return json(res, 409, { ok: false, code: "EMAIL_TAKEN", error: "email deja folosit" });
+
+    let created;
+    try {
+      created = transact(db, () => {
+        // Re-read inside the transaction: the checks above answer fast and kindly, this answers last.
+        if (repo.getUserByHandle(handle)) throw Object.assign(new Error("handle deja folosit"), { code: "HANDLE_TAKEN", status: 409 });
+        if (email && repo.getUserByEmail(email)) throw Object.assign(new Error("email deja folosit"), { code: "EMAIL_TAKEN", status: 409 });
+        const user = repo.createUser({
+          handle,
+          displayName: displayName || handle,
+          passwordHash: hashPassword(password),
+        });
+        for (const persona of PERSONAS) repo.ensurePersona(user.id, persona, {});
+        if (email) repo.linkProvider(user.id, { email });
+        return repo.getUserById(user.id);
+      });
+    } catch (error) {
+      if (error?.code === "HANDLE_TAKEN" || error?.code === "EMAIL_TAKEN") {
+        return json(res, error.status, { ok: false, code: error.code, error: error.message });
+      }
+      if (/UNIQUE constraint failed: users\.(handle|email)/i.test(String(error?.message ?? ""))) {
+        return json(res, 409, { ok: false, code: "IDENTITY_TAKEN", error: "handle sau email deja folosit" });
+      }
+      throw error;
+    }
+
+    const session = issueSession(created.id, "social");
+    repo.insertSession({ tokenHash: session.tokenHash, userId: created.id, persona: "social", expiresAt: session.expiresAt });
+    setSessionCookie(req, res, session.token, repo);
+    return json(res, 201, {
+      ok: true,
+      user: publicUser(created),
+      flow: LOCAL_ACCOUNT_FLOW,
+      session_ready: true,
+      email_status: email ? "local_demo_unverified" : "not_provided",
+      email_verified: false,
+      note: "Cont local: fără verificare de email și fără wallet. Leagă xPortal mai târziu, pentru recuperare pe alt dispozitiv.",
+    });
+  }
+
+  if (method === "POST" && path === "/auth/local/password-reset") {
+    if (!localAccountGate(process.env, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    const rate = enforceAuthRate(req, res, "local-password-reset-ip", "", { limit: 10, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const identifier = readLocalIdentifier(body.identifier);
+    const password = typeof body.password === "string" ? body.password : "";
+    if (!identifier) return json(res, 400, { ok: false, code: "IDENTIFIER_INVALID", error: "scrie emailul sau @handle-ul contului" });
+    const verdict = validateLocalPassword(password);
+    if (!verdict.ok) return json(res, 400, { ok: false, code: "PASSWORD_INVALID", error: verdict.error });
+    const user = identifier.kind === "email" ? repo.getUserByEmail(identifier.value) : repo.getUserByHandle(identifier.value);
+    if (!user) return json(res, 404, { ok: false, code: "ACCOUNT_NOT_FOUND", error: "nu există niciun cont cu acest identificator" });
+    // A row without a password is a migrated social identity or a wallet-native account. Giving it a
+    // password from an unauthenticated form would be an account takeover, so the honest answer is "no":
+    // that identity is recovered through xPortal, which is what the wallet is for.
+    if (!user.password_hash) {
+      return json(res, 409, { ok: false, code: "ACCOUNT_WITHOUT_PASSWORD", error: "acest cont nu are parolă; intră prin xPortal" });
+    }
+    const updated = transact(db, () => {
+      db.prepare(`UPDATE users SET password_hash = ?, password_reset_token = NULL, password_reset_expires_at = NULL WHERE id = ?`)
+        .run(hashPassword(password), user.id);
+      repo.deleteSessionsForUser(user.id);
+      return repo.getUserById(user.id);
+    });
+    notifyWithInvalidation(repo, sse, user.id, "security", "Parola contului Nexus a fost schimbată; sesiunile vechi au fost deconectate", { persona: "social", sensitive: true });
+    clearCookie(res, "nexus_session", { secure: requestIsSecure(req) });
+    return json(res, 200, {
+      ok: true,
+      flow: LOCAL_ACCOUNT_FLOW,
+      handle: updated.handle,
+      sessions_revoked: true,
+      login_required: true,
+      note: "Parola a fost schimbată. Intră din nou cu parola nouă.",
+    });
+  }
+
   if (method === "POST" && path === "/auth/email/reset-request") {
+
     const rate = enforceAuthRate(req, res, "email-reset-request-ip", "", { limit: 10, windowMs: 15 * 60 * 1000 });
     if (!rate.allowed) return;
     return json(res, 503, {
@@ -1437,12 +1582,16 @@ export async function handleRequest(req, res, ctx) {
     if (!rate.allowed) return;
     try {
       const origin = externalOrigin(req);
-      const wcAttestation = walletConnectAttestation(process.env, origin);
-      if (!wcAttestation.ready) {
+      const report = walletConnectAttestationReport(process.env, origin);
+      if (!report.ready) {
         return json(res, 503, {
           ok: false,
           error: `xPortal nu este încă activat pentru ${origin}. Este necesar un Project ID emis de WalletConnect Dashboard și această origine în Allowlist.`,
           code: "WALLETCONNECT_PROJECT_NOT_ATTESTED",
+          origin,
+          missing: report.missing,
+          source: report.source,
+          hint: "Pe acest PC: pune NEXUS_WC_PROJECT_ID în C:\\Nexus\\env\\jungle.env, pornește serverul pe http://localhost:5000 (adb reverse tcp:5000 tcp:5000 pentru telefon) și adaugă exact acea origine în allowlist-ul proiectului Reown.",
         });
       }
       const network = resolveMvxNetwork();
@@ -1454,7 +1603,8 @@ export async function handleRequest(req, res, ctx) {
         origin,
         init,
         signable_message: "<address>" + init,
-        wcProjectId: wcAttestation.projectId || null,
+        wcProjectId: report.projectId || null,
+        attestation: report.source,
       });
     } catch (err) {
       return json(res, 502, { ok: false, error: err?.message || "nu s-a putut obține block hash" });

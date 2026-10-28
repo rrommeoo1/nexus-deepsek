@@ -18,7 +18,13 @@ export function loadEnv(file = process.env.NEXUS_ENV_FILE ?? join(dirname(fileUR
     if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
-    if (key && process.env[key] === undefined) {
+    // An empty value is "not configured", not "configured as empty": the service file
+    // (C:\Nexus\env\jungle.env) carries template placeholders such as `NEXUS_WC_PROJECT_ID=`, and a
+    // placeholder must not shadow a real value written in a later file (`apps/nexus-web/.env`). Round 36
+    // measured exactly that: the xPortal Project ID was present all along and the empty template line made
+    // every `/auth/mvx/init` answer 503. A non-empty value still wins, so an explicit setting is never
+    // overridden.
+    if (key && (process.env[key] === undefined || process.env[key] === "")) {
       process.env[key] = value;
     }
   }
@@ -48,13 +54,50 @@ function splitOrigins(value) {
     .filter(Boolean);
 }
 
+/**
+ * The two hosts that are the machine itself. `http://localhost:5000` is also the only `http:` origin
+ * a browser treats as a **secure context**, which is what the WalletConnect relay needs for WebCrypto,
+ * so it is the one local origin that can carry a real wallet login (see HANDOFF §0.36).
+ */
+function isLoopbackOrigin(value) {
+  try {
+    const parsed = new URL(String(value ?? ""));
+    if (!new Set(["http:", "https:"]).has(parsed.protocol)) return false;
+    if (parsed.username || parsed.password) return false;
+    return new Set(["localhost", "127.0.0.1", "[::1]"]).has(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/** Which of the three WalletConnect pieces this environment is still missing, for a 503 body. */
+function attestationSource(env, { previewMode, localMode }) {
+  // Values written down by an operator are always reported as such, even on a local deployment: the
+  // label answers "where did this come from", not "which mode is this".
+  const configured = Boolean(String(env.NEXUS_WC_PROJECT_ID ?? "").trim())
+    || Boolean(String(env.NEXUS_WC_PROJECT_ATTESTED ?? "").trim())
+    || splitOrigins(env.NEXUS_WC_ATTESTED_ORIGINS).length > 0;
+  if (configured) return "configured";
+  if (previewMode) return "preview-default";
+  if (localMode) return "local-development-default";
+  return "configured";
+}
+
 export function walletConnectAttestation(env = process.env, origin = "") {
   const requestedOrigin = String(origin ?? "");
-  const previewMode = String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() === "preview";
+  const deploymentMode = String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase();
+  const previewMode = deploymentMode === "preview";
   const deploymentOrigin = String(env.NEXUS_ORIGIN ?? "").trim();
   // Preview defaults exist for exactly one origin: the deployment's own address. A request that names
   // any other origin inherits nothing, so the default can never attest a host nobody configured.
-  const defaultsApply = previewMode && Boolean(deploymentOrigin) && requestedOrigin === deploymentOrigin;
+  const previewDefaults = previewMode && Boolean(deploymentOrigin) && requestedOrigin === deploymentOrigin;
+  // Local development is the mirror image of that rule and no wider: an explicitly local deployment
+  // (`NEXUS_DEPLOYMENT_MODE=local`, never `NODE_ENV=production`) reaches the owner's own public Reown
+  // project from **loopback only**. A LAN address keeps the strict path below, because `http://` on a
+  // LAN IP is not a secure context and the relay would refuse it anyway.
+  const localMode = env.NODE_ENV !== "production" && deploymentMode === "local";
+  const localDefaults = localMode && isLoopbackOrigin(requestedOrigin);
+  const defaultsApply = previewDefaults || localDefaults;
 
   const configuredProjectId = String(env.NEXUS_WC_PROJECT_ID ?? "").trim();
   const projectId = configuredProjectId || (defaultsApply ? PUBLIC_WALLETCONNECT_PROJECT_ID : "");
@@ -64,7 +107,10 @@ export function walletConnectAttestation(env = process.env, origin = "") {
   const dashboardAttested = configuredAttested ? configuredAttested === "true" : defaultsApply;
 
   const configuredOrigins = splitOrigins(env.NEXUS_WC_ATTESTED_ORIGINS);
-  const attestedOrigins = configuredOrigins.length ? configuredOrigins : (defaultsApply ? [deploymentOrigin] : []);
+  // A default only ever attests the origin it was derived from: the deployment's own address in preview,
+  // the validated loopback address in local development. Nothing else is inherited.
+  const defaultAttestedOrigins = previewDefaults ? [deploymentOrigin] : (localDefaults ? [requestedOrigin] : []);
+  const attestedOrigins = configuredOrigins.length ? configuredOrigins : defaultAttestedOrigins;
   const originAttested = Boolean(requestedOrigin) && attestedOrigins.includes(requestedOrigin);
 
   return {
@@ -74,6 +120,28 @@ export function walletConnectAttestation(env = process.env, origin = "") {
     originAttested,
     projectId: projectIdConfigured ? projectId : "",
   };
+}
+
+/**
+ * The same three booleans plus the two things an operator needs in order to act: where the values came
+ * from, and exactly which names are still missing. Kept apart from `walletConnectAttestation` so that
+ * function keeps the five-key shape every caller and test already relies on.
+ *
+ * Nothing here is a secret: the Project ID is public by construction (it is handed to every login page),
+ * and the missing names are variable names, never values.
+ */
+export function walletConnectAttestationReport(env = process.env, origin = "") {
+  const requestedOrigin = String(origin ?? "");
+  const base = walletConnectAttestation(env, requestedOrigin);
+  const deploymentMode = String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase();
+  const previewMode = deploymentMode === "preview";
+  const localMode = env.NODE_ENV !== "production" && deploymentMode === "local";
+  const source = attestationSource(env, { previewMode, localMode });
+  const missing = [];
+  if (!base.projectIdConfigured) missing.push("NEXUS_WC_PROJECT_ID");
+  if (!base.dashboardAttested) missing.push("NEXUS_WC_PROJECT_ATTESTED");
+  if (!base.originAttested) missing.push(`NEXUS_WC_ATTESTED_ORIGINS (${requestedOrigin || "origine lipsă"})`);
+  return { ...base, origin: requestedOrigin, source, missing };
 }
 
 export function validateRuntimeConfig(env = process.env) {

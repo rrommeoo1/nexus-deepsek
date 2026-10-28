@@ -1,4 +1,4 @@
-/* global __dirname */
+﻿/* global __dirname */
 // Logarea cu xPortal, așa cum o citește telefonul (`src/lib/xportalLogin.ts`) și cum o duce la
 // sesiune (`signInWithXPortalToken`, `src/lib/session.ts`). Ce se verifică aici e granița: un mesaj
 // străin sau un token care nu are forma NativeAuth nu are voie să devină sesiune, iar linkul care
@@ -124,7 +124,7 @@ test('ecranul de login deschide foaia xPortal, nu mai anunţă că nu e portată
   const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
   assert.match(sheet, /signInWithXPortalToken\(parsed\.token\)/);
   assert.match(sheet, /parseXPortalBridgeMessage\(event\.nativeEvent\.data\)/);
-  assert.match(sheet, /xPortalBridgeUrl\(API_ORIGIN, \{ native: redirectNative \}\)/);
+  assert.match(sheet, /xPortalBridgeUrl\(secureBridgeOrigin\(API_ORIGIN\), \{ native: redirectNative \}\)/);
 });
 
 test('redirectul dat lui xPortal e schemă goală sau nimic', () => {
@@ -215,7 +215,7 @@ test('foaia cere reluarea relay-ului când aplicația revine în față', () => 
   assert.match(sheet, /\{waitLabel \? \(/);
   assert.match(sheet, /xPortalRedirectScheme\(Constants\.expoConfig\?\.scheme\)/);
   // Fără `redirect`, xPortal nu are unde să întoarcă cititorul: parametrul trebuie să plece în URL.
-  assert.match(sheet, /xPortalBridgeUrl\(API_ORIGIN, \{ native: redirectNative \}\)/);
+  assert.match(sheet, /xPortalBridgeUrl\(secureBridgeOrigin\(API_ORIGIN\), \{ native: redirectNative \}\)/);
 });
 
 test('foaia redeschide xPortal o singură dată, imediat după aprobare', () => {

@@ -87,6 +87,16 @@ export const nexusTokens = {
     field: { gap: 6, marginBottom: 12, labelFontSize: 12,
       inputHeight: 50, inputFontSize: 16, inputPaddingVertical: 11,
       inputPaddingHorizontal: 12, inputBorderWidth: 1, inputRadius: 14 },
+    // The eye lives inside the field's own 50 px row, so the touch target is at least 44x50 already;
+    // `eyeHitSlop` widens it for a thumb arriving from the side of the card.
+    eye: { width: 44, height: 50, hitSlop: 6 },
+    // The recovery sheet reuses the card's own geometry and colours, so the two screens read as one
+    // product: same field, same button, same panel edges.
+    recovery: { radius: 24, paddingHorizontal: 18, paddingTop: 22, paddingBottom: 26,
+      backdrop: 'rgba(0,0,0,0.6)',
+      titleFontSize: 16, titleFontWeight: '700', titleMarginBottom: 8,
+      bodyFontSize: 13, bodyLineHeight: 19.5, bodyMarginBottom: 14,
+      actionMarginTop: 6 },
     forgot: { minHeight: 44, padding: 12, marginTop: 7, marginBottom: -6,
       fontSize: 13, fontWeight: '650', lineHeight: 17.55 },
     signupNote: { fontSize: 11, lineHeight: 15.95, marginTop: 2, gap: 7 },

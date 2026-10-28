@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { blackSilver } from '../theme/blackSilver';
 import { AppState, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { API_ORIGIN } from '../lib/apiOrigin';
+import { bridgeUnreachableSentence, secureBridgeOrigin } from '../lib/bridgeOrigin';
 import { signInWithXPortalToken, type LoginResult } from '../lib/session';
 import { clearXPortalAttempt, readXPortalAttempt, writeXPortalAttempt } from '../lib/xportalAttemptFile';
 import {
@@ -102,7 +103,9 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
 
   const bridgeUrl = useMemo(() => {
     try {
-      return xPortalBridgeUrl(API_ORIGIN, { native: redirectNative });
+      // The wallet page runs from the secure origin (`lib/bridgeOrigin.ts`); every other request keeps
+      // using API_ORIGIN, so the LAN address still serves the app.
+      return xPortalBridgeUrl(secureBridgeOrigin(API_ORIGIN), { native: redirectNative });
     } catch {
       return '';
     }
@@ -414,7 +417,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
                 mixedContentMode="always"
                 setSupportMultipleWindows={false}
                 onMessage={onMessage}
-                onError={(event) => setError(`Pagina de conectare nu s-a putut încărca (${event.nativeEvent.description}).`)}
+                onError={(event) => setError(`${bridgeUnreachableSentence(API_ORIGIN)} (${event.nativeEvent.description})`)}
                 onHttpError={(event) => setError(`Serverul a refuzat pagina de conectare (${event.nativeEvent.statusCode}).`)}
                 // The page never navigates; a wallet link that escapes the page is opened by the
                 // system, and every other scheme stays inside the sheet instead of leaving the app.

@@ -1,6 +1,9 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { API_ORIGIN } from './apiOrigin';
 import { newMutationKey } from './idempotency';
+import {
+  identifierSubmissionValue, passwordSubmissionValue, type LocalAccountDraft,
+} from './loginFields';
 
 /**
  * Durable native session.
@@ -235,4 +238,121 @@ export async function signOut(): Promise<void> {
       headers: { Accept: 'application/json', 'Idempotency-Key': newMutationKey('email-logout'), ...headers },
     });
   } catch { /* the local session is already gone; the remote one expires on its own */ }
+}
+
+/**
+ * What this backend can actually do for a login, asked before anyone signs in.
+ *
+ * The two flows below only exist on a local development server (`apps/nexus-web/lib/local-account.js`),
+ * and the phone must not offer a button that the server will refuse: `/api/auth-capabilities` is the
+ * one honest answer, and a null here means "could not ask", never "yes".
+ */
+export type AuthCapabilities = {
+  registration: string;
+  passwordRecovery: string;
+  localAccounts: boolean;
+  wallet: { ready: boolean; origin: string; missing: string[] } | null;
+};
+
+export async function readAuthCapabilities(): Promise<AuthCapabilities | null> {
+  try {
+    const response = await fetch(`${API_ORIGIN}/api/auth-capabilities`, {
+      headers: { Accept: 'application/json', Origin: API_ORIGIN },
+    });
+    if (!response.ok) return null;
+    const body = await response.json() as {
+      ok?: boolean;
+      registration?: string;
+      password_recovery?: string;
+      local_accounts?: { enabled?: boolean };
+      wallet?: { ready?: boolean; origin?: string; missing?: string[] } | null;
+    };
+    if (!body || body.ok !== true) return null;
+    return {
+      registration: String(body.registration ?? ''),
+      passwordRecovery: String(body.password_recovery ?? ''),
+      localAccounts: Boolean(body.local_accounts?.enabled),
+      wallet: body.wallet
+        ? { ready: Boolean(body.wallet.ready), origin: String(body.wallet.origin ?? ''), missing: [...(body.wallet.missing ?? [])] }
+        : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** A readable sentence for any failed auth call, never a raw body and never a stack trace. */
+async function authError(response: Response, fallback: string): Promise<Error> {
+  const body: unknown = await response.json().catch(() => null);
+  const message = body && typeof body === 'object' ? String((body as { error?: string }).error ?? '') : '';
+  if (message) return new Error(message);
+  if (response.status === 404) return new Error(`${fallback} Serverul de la ${API_ORIGIN} nu are fluxul de cont local.`);
+  return new Error(`${fallback} (${response.status})`);
+}
+
+/**
+ * Creates a Nexus account on a local development server: handle + password, email optional, no mail
+ * verification and no browser wallet. The password reaches the server exactly as typed
+ * (`lib/loginFields.ts`), is hashed there with scrypt, and never comes back. A 201 hands back the same
+ * session cookie the login form gets, so the app is signed in without a second round trip.
+ */
+export async function registerWithLocalAccount(draft: LocalAccountDraft): Promise<LoginResult> {
+  const response = await fetch(`${API_ORIGIN}/auth/local/register`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: API_ORIGIN,
+      'Idempotency-Key': newMutationKey('local-register'),
+    },
+    body: JSON.stringify({
+      handle: identifierSubmissionValue(draft.handle).replace(/^@/, '').toLowerCase(),
+      email: identifierSubmissionValue(draft.email),
+      password: passwordSubmissionValue(draft.password),
+    }),
+  });
+  if (!response.ok) throw await authError(response, 'Contul nu a putut fi creat.');
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object' || (body as { ok?: boolean }).ok !== true) {
+    throw new Error('Contul nu a putut fi creat.');
+  }
+  const cookies = readSetCookie(response.headers);
+  const token = cookieValue(cookies, 'nexus_session');
+  const deviceId = cookieValue(cookies, 'nexus_device_id');
+  writeSession({ token, deviceId, cookieSession: !token });
+  const payload = body as LoginBody;
+  return { user: payload.user, emailVerified: Boolean(payload.email_verified) };
+}
+
+/**
+ * Local development recovery: identifies the account by email or handle and sets a new password.
+ *
+ * The server answers 404 for an unknown identifier and 409 for an account that never had a password
+ * (a migrated social identity or a wallet-only account: those are recovered through xPortal, not from
+ * an unauthenticated form). Every session of the account is revoked server-side, so the phone's stored
+ * session is dropped here as well instead of being kept in the hope it still works.
+ */
+export async function resetLocalPassword(identifier: string, password: string): Promise<{ handle: string }> {
+  const response = await fetch(`${API_ORIGIN}/auth/local/password-reset`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: API_ORIGIN,
+      'Idempotency-Key': newMutationKey('local-reset'),
+    },
+    body: JSON.stringify({
+      identifier: identifierSubmissionValue(identifier),
+      password: passwordSubmissionValue(password),
+    }),
+  });
+  if (!response.ok) throw await authError(response, 'Parola nu a putut fi schimbată.');
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object' || (body as { ok?: boolean }).ok !== true) {
+    throw new Error('Parola nu a putut fi schimbată.');
+  }
+  clearSession();
+  return { handle: String((body as { handle?: string }).handle ?? '') };
 }

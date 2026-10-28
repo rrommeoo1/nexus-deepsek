@@ -15,7 +15,12 @@ import type { InboxBox } from '../lib/messageSearch';
 import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
-import { clearSession, readSession, signInWithEmail, signOut, type LoginResult } from '../lib/session';
+import {
+  clearSession, readAuthCapabilities, readSession, registerWithLocalAccount, resetLocalPassword,
+  signInWithEmail, signOut, type AuthCapabilities, type LoginResult,
+} from '../lib/session';
+import { validateLocalAccountDraft, type LocalAccountDraft } from '../lib/loginFields';
+import { PasswordRecoverySheet } from '../components/PasswordRecoverySheet';
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
 import { readUnreadTotal } from '../lib/unread';
@@ -91,6 +96,16 @@ export default function NativeHomeScreen() {
   const [inboxBox, setInboxBox] = useState<InboxBox>('inbox');
   /** The count the bottom bar prints over the inbox mark; the two reads behind it live in lib/unread.ts. */
   const [unreadCount, setUnreadCount] = useState(0);
+  /**
+   * What this backend can do for a login (`lib/session.ts` `readAuthCapabilities`): `null` until the
+   * question is answered, so the screen never offers a flow the server would refuse.
+   */
+  const [authCapabilities, setAuthCapabilities] = useState<AuthCapabilities | null>(null);
+  const [recoveryOpen, setRecoveryOpen] = useState(false);
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoveryDone, setRecoveryDone] = useState('');
+  const [signupError, setSignupError] = useState('');
   const booted = useRef(false);
 
   const loadMe = useCallback(async (): Promise<MeResponse | null> => {
@@ -130,6 +145,9 @@ export default function NativeHomeScreen() {
       if (readSession()) await ensureSocialPersona(await loadMe());
       setBooting(false);
       void fetchBackendVersion().then(setBackendVersion);
+      // Asked on every boot, session or not: the answer is what decides whether the login screen offers
+      // "Creează cont" and "Ai uitat parola?" as working flows or says plainly that it cannot.
+      void readAuthCapabilities().then(setAuthCapabilities);
     })();
   }, [ensureSocialPersona, loadMe]);
 
@@ -156,6 +174,45 @@ export default function NativeHomeScreen() {
       setError(cause instanceof Error ? cause.message : 'Autentificarea a eșuat.');
     } finally { setBusy(false); }
   }, [ensureSocialPersona, loadMe]);
+
+  /**
+   * "Creează cont" — the local-development flow (`/auth/local/register`). The client checks the same
+   * rules the server enforces (handle shape, 8–256 characters, the two passwords matching) so the first
+   * answer is immediate, and then the server's own refusal is what the person sees if it differs.
+   */
+  const onSignUp = useCallback(async (draft: LocalAccountDraft) => {
+    setSignupError(''); setError('');
+    const complaint = validateLocalAccountDraft('ro', draft);
+    if (complaint) { setSignupError(complaint); return; }
+    setBusy(true);
+    try {
+      const result = await registerWithLocalAccount(draft);
+      const current = await loadMe();
+      if (!current) throw new Error(`Contul @${result.user.handle} a fost creat, dar sesiunea nu a putut fi confirmată.`);
+      await ensureSocialPersona(current);
+    } catch (cause) {
+      clearSession();
+      setSignupError(cause instanceof Error ? cause.message : 'Contul nu a putut fi creat.');
+    } finally { setBusy(false); }
+  }, [ensureSocialPersona, loadMe]);
+
+  /**
+   * The recovery sheet's submit. The server is the only authority: it names the handle it changed, or
+   * says why it refused (unknown account, account without a password). Its sentence is printed verbatim.
+   */
+  const onSubmitRecovery = useCallback(async (identifier: string, password: string) => {
+    setRecoveryBusy(true); setRecoveryError(''); setRecoveryDone('');
+    try {
+      const changed = await resetLocalPassword(identifier, password);
+      setMe(null);
+      setError('');
+      setRecoveryDone(changed.handle
+        ? `Parola pentru @${changed.handle} a fost schimbată. Intră cu parola nouă.`
+        : 'Parola a fost schimbată. Intră cu parola nouă.');
+    } catch (cause) {
+      setRecoveryError(cause instanceof Error ? cause.message : 'Parola nu a putut fi schimbată.');
+    } finally { setRecoveryBusy(false); }
+  }, []);
 
   /**
    * A finished xPortal signature: the token is already a session by the time this runs, so all that
@@ -278,9 +335,12 @@ export default function NativeHomeScreen() {
           walletNetwork="mainnet"
           busy={busy}
           error={error}
+          signupError={signupError}
+          registrationMode={authCapabilities?.registration}
+          recoveryMode={authCapabilities?.passwordRecovery}
           onSignIn={(email, password) => void onSignIn(email, password)}
-          onSignUp={() => setError('Crearea contului se face momentan în versiunea web; serverul închide înscrierea directă.')}
-          onForgotPassword={() => setError('Recuperarea se face prin xPortal, conform serverului.')}
+          onSignUp={(draft) => void onSignUp(draft)}
+          onForgotPassword={() => { setRecoveryError(''); setRecoveryDone(''); setRecoveryOpen(true); }}
           onXPortal={() => { setError(''); setXportalOpen(true); }}
           onProvider={() => setError('Google și Facebook nu sunt configurate pe server.')}
         />
@@ -288,6 +348,15 @@ export default function NativeHomeScreen() {
           visible={xportalOpen}
           onClose={() => setXportalOpen(false)}
           onAuthenticated={(result) => onXPortalSession(result)}
+        />
+        <PasswordRecoverySheet
+          visible={recoveryOpen}
+          locale="ro"
+          busy={recoveryBusy}
+          error={recoveryError}
+          done={recoveryDone}
+          onClose={() => setRecoveryOpen(false)}
+          onSubmit={(identifier, password) => void onSubmitRecovery(identifier, password)}
         />
       </SafeAreaView>
     );
