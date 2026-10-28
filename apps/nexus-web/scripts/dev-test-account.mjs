@@ -17,19 +17,30 @@ if (!password) {
   process.exit(2);
 }
 
+// O bază adusă din exportul Railway are `@test` fără email și fără parolă (exportul nu cară
+// credențiale). Fără `--adopt-handle` seed-ul refuză, ca să nu se atingă de un cont pe care nu
+// l-a creat; cu flagul, leagă emailul de aceeași înregistrare — niciun cont nou, nicio postare
+// mutată — și spune în clar ce a făcut.
+const adoptHandle = new Set(process.argv.slice(2)).has("--adopt-handle");
+
 const db = openDb();
 let failed = false;
 try {
   const repo = createRepo(db);
   const existed = Boolean(repo.getUserByEmail(PREVIEW_TEST_ACCOUNT.email));
-  const user = ensurePreviewTestAccount(repo, process.env, { force: true });
+  const handleOwner = existed ? null : repo.getUserByHandle(PREVIEW_TEST_ACCOUNT.handle);
+  const adopted = Boolean(handleOwner) && adoptHandle;
+  const user = ensurePreviewTestAccount(repo, process.env, { force: true, adoptHandle });
   if (!user) {
     console.error("[test-account] seed-ul a fost sărit (garda de preview a refuzat)");
     failed = true;
   } else {
     const stored = repo.getUserById(user.id);
     const passwordOk = verifyPassword(password, stored.password_hash);
-    console.log(`[test-account] ${existed ? "actualizat" : "creat"}: @${stored.handle} (id ${stored.id}) <${stored.email}>`);
+    if (adopted) {
+      console.log(`[test-account] email legat de contul existent @${stored.handle} (id ${stored.id}): același cont, nicio înregistrare nouă`);
+    }
+    console.log(`[test-account] ${existed ? "actualizat" : adopted ? "adoptat" : "creat"}: @${stored.handle} (id ${stored.id}) <${stored.email}>`);
     console.log(`[test-account] parolă din ${TEST_ACCOUNT_PASSWORD_ENV} validă: ${passwordOk ? "da" : "NU"}`);
     console.log(`[test-account] email verificat: ${stored.email_verified ? "da" : "nu"} | onboarded: ${stored.onboarded_at ? "da" : "nu"} | persona social: ${repo.getPersona(stored.id, "social") ? "da" : "nu"}`);
     console.log(`[test-account] bază de date: ${DB_PATH}`);

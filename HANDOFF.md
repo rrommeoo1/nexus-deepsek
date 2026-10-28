@@ -1,3 +1,62 @@
+## 0.35 Checkpoint git, loginul local și xPortal: două configurații, nu două bug-uri (28 octombrie 2026)
+
+**Starea depozitului.** `codex/camera-draft-stability`, commit **`57c566c`** —
+`checkpoint: preserve Jungle Book rounds 20-34` — 174 de fișiere, +20 860 / −2 947, `ahead 24`, **fără push**
+(nu a fost aprobat). Staging-ul e gol, iar cele 18 fișiere rămase necomise sunt sonde/dump-uri de sesiune,
+lăsate afară intenționat. Runda 35 are commitul ei separat, peste checkpoint (reparația de adoptare, testele
+ei și textele de față).
+
+**Ce s-a găsit, într-o frază:** ambele loginuri eșua în **datele și configurația locală**, nu în cod —
+baza adusă din exportul Railway nu are niciun cont cu email și parolă, iar serverul local nu are Project ID
+WalletConnect, deci refuză xPortal înainte de orice relay.
+
+### Email + parolă
+
+| întrebare | răspuns verificat |
+| --- | --- |
+| `test@nexus.ro` există în baza vie? | **nu**. `user_id 1` e `@test`, cu `email = NULL`, `password_hash = NULL`, 7 postări, persona `social` |
+| alte conturi? | 9 în total, **0** cu `email`, **0** cu `password_hash` — deci „eșuează și celelalte" e același singur fapt |
+| parola reținută se verifică? | **nu se poate verifica**: nu există hash. Nu se afirmă că e corectă. Niciun test nu a scris-o, tipărit-o sau comis-o |
+| de ce lipsește? | exportul `C:\Users\Romeo\NexusBackups\railway-export-20261027` **nu conține niciun email**, iar `tools/migration/import-local.mjs` nu importă `password_hash` (API-ul public nu expune hash-uri) |
+| ce răspunde serverul? | `POST /auth/email/login` → **401 `invalid credentials`** (ruta veche `/auth/login` e `410`); scrypt `N=16384,r=8,p=1`, sare 16 octeți, `salt:hash`, `timingSafeEqual`, minim 8 caractere |
+| aplicația arată eroarea reală? | **da**, o tipărește verbatim (`invalid credentials`, în engleză) — nu e o eroare generică mascată |
+| telefonul ajunge la PC? | **da**: 8× `POST /auth/email/login 401` în `C:\Nexus\logs\server-2026-10-28.log`, de la `192.168.1.184 okhttp/4.12.0` |
+
+**Reparația minimă, gata dar ne rulată pe datele owner-ului:** `dev-test-account.mjs --adopt-handle`
+(`lib/preview-test-account.js` capătă opțiunea `adoptHandle`, implicit `false`; `server.js` nu o folosește).
+Leagă emailul de **rândul care există** (`users.id = 1`), îi pune parolă și verifică adresa; refuză dacă
+handle-ul poartă alt email. Dovada, pe un **snapshot** al bazei (port 5099, director temporar, șters la
+final): login **200** + `nexus_session`/`nexus_device_id`, `/api/me` **200** (`@test`, `persona=social`,
+5 profile), parolă greșită **401**, logout **200** apoi **401**, fără cookie **401**, iar după repornirea
+procesului același cookie dă **200**. Baza vie a fost recitită după teste: **neschimbată**. Detalii în
+`JUNGLE_BOOK_PROGRESS.md` §35.6.
+
+### xPortal / WalletConnect / Reown
+
+`GET /auth/mvx/init` → **503 `WALLETCONNECT_PROJECT_NOT_ATTESTED`**. În `C:\Nexus\env\jungle.env`:
+`NEXUS_WC_PROJECT_ID` e **gol**, iar `NEXUS_WC_PROJECT_ATTESTED`, `NEXUS_WC_ATTESTED_ORIGINS` și
+`NEXUS_ORIGIN` lipsesc (`NEXUS_DEPLOYMENT_MODE=local`, deci nici implicitul de preview nu se aplică).
+`walletConnectAttestation()` cere toate trei, deci serverul refuză **înainte** de relay: allowlist-ul Reown
+**nu a fost atins** și nu poate fi cauza de azi. Pe instanța de probă, cu variabilele puse, același endpoint
+dă **200** cu `init` real (`mainnet`, `chainId=1`), iar cu un `Host` neatestat dă **503** — regula de origine
+funcționează și cere **exact** originea pe care o încarcă WebView-ul (`http://192.168.1.153:5000` azi).
+**Allowlist-ul Reown rămâne neverificat de aici** (fără CLI/token/sesiune de dashboard) — îl verifică owner-ul.
+
+De reținut pentru pasul următor: `http://192.168.1.153:5000` **nu** e context sigur (WebCrypto), deci chiar
+cu Project ID corect podul poate eșua; `adb reverse tcp:5000` + `http://localhost:5000` este varianta care
+închide și problema asta, iar atunci originea de atestat este `http://localhost:5000`.
+
+### Ce urmează
+
+1. **Owner:** aprobă `dev-test-account.mjs --adopt-handle` pe `C:\Nexus\data`, cu o parolă aleasă de el
+   (§35.5 are impactul exact: un singur rând, reversibil din backup).
+2. **Owner:** Project ID-ul Reown (proiectul „Jungle Book") + confirmarea allowlist-ului pentru originea
+   aleasă; apoi cele patru variabile în `C:\Nexus\env\jungle.env` și repornirea serviciului.
+3. **Agent, după 1–2:** login pe telefon (email și xPortal) + captură — azi **NEVERIFICATE** ca reușită.
+4. **Neatinse în runda 35:** nicio postare, niciun cont, nicio parolă, nicio variabilă din `C:\Nexus\env`,
+   niciun deployment. Railway rămâne „READY to stop, NOT READY to delete" (§34.9).
+
+
 ## 0.34 Totul local: implicitul remote scos, cele șase fețe pe backend-ul PC-ului, emoji la cursor (28 octombrie 2026)
 
 **Decizia owner-ului:** Jungle Book rulează în întregime pe PC. Railway nu este backendul dorit și nu se

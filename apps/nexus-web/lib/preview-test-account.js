@@ -25,7 +25,16 @@ export function previewTestAccountPassword(env = process.env) {
 // (scripts/dev-test-account.mjs): același cont trebuie să existe și pe
 // mașina de dezvoltare, unde NODE_ENV nu este "production", deci garda de
 // preview de mai jos l-ar sări.
-export function ensurePreviewTestAccount(repo, env = process.env, { force = false } = {}) {
+//
+// `adoptHandle` este tot pentru seeder-ul local, și tot fără efect implicit.
+// O bază adusă din exportul Railway păstrează handle-ul dar nu și credențialele:
+// exportul nu conține nici `email`, nici `password_hash` (vezi
+// tools/migration/import-local.mjs), deci `@test` există ca nume, fără email și
+// fără parolă, iar loginul pe email nu poate reuși pentru nimeni. Adoptarea leagă
+// emailul de înregistrarea care există deja — același id, aceleași postări, niciun
+// cont duplicat — și refuză dacă handle-ul poartă alt email ori dacă emailul
+// aparține deja altcuiva. Fără flag, un handle ocupat rămâne eroare.
+export function ensurePreviewTestAccount(repo, env = process.env, { force = false, adoptHandle = false } = {}) {
   const preview = env.NODE_ENV === "production"
     && String(env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() === "preview";
   if (!preview && !force) return null;
@@ -37,18 +46,28 @@ export function ensurePreviewTestAccount(repo, env = process.env, { force = fals
   }
 
   let user = repo.getUserByEmail(PREVIEW_TEST_ACCOUNT.email);
-  if (!user) {
-    const handleOwner = repo.getUserByHandle(PREVIEW_TEST_ACCOUNT.handle);
-    if (handleOwner) throw new Error("preview test handle is already assigned");
-    user = repo.createUser({
-      handle: PREVIEW_TEST_ACCOUNT.handle,
-      displayName: PREVIEW_TEST_ACCOUNT.displayName,
-      bio: "Cont public pentru testarea interfeței Nexus.",
-      passwordHash: hashPassword(password),
-    });
-    repo.linkProvider(user.id, { email: PREVIEW_TEST_ACCOUNT.email });
-  } else {
+  if (user) {
     repo.updatePassword(user.id, hashPassword(password));
+  } else {
+    const handleOwner = repo.getUserByHandle(PREVIEW_TEST_ACCOUNT.handle);
+    if (handleOwner) {
+      if (!adoptHandle) throw new Error("preview test handle is already assigned");
+      // Un cont migrat poate purta deja alt email (sau niciunul). Niciodată nu rescriem un email
+      // existent: adoptarea se face doar pe o înregistrare fără email sau cu exact emailul de test.
+      if (handleOwner.email && String(handleOwner.email).toLowerCase() !== PREVIEW_TEST_ACCOUNT.email) {
+        throw new Error("preview test handle is already assigned to another email");
+      }
+      repo.linkProvider(handleOwner.id, { email: PREVIEW_TEST_ACCOUNT.email });
+      user = repo.updatePassword(handleOwner.id, hashPassword(password));
+    } else {
+      user = repo.createUser({
+        handle: PREVIEW_TEST_ACCOUNT.handle,
+        displayName: PREVIEW_TEST_ACCOUNT.displayName,
+        bio: "Cont public pentru testarea interfeței Nexus.",
+        passwordHash: hashPassword(password),
+      });
+      repo.linkProvider(user.id, { email: PREVIEW_TEST_ACCOUNT.email });
+    }
   }
 
   repo.verifyUserEmail(user.id);

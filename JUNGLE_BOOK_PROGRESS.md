@@ -4296,5 +4296,235 @@ Nimic din pașii 3–5 nu a fost executat: nu am oprit, nu am șters și nu am m
 6. **Sesiunea de audit** — `audit-local.mjs --handle` a scris un rând în `sessions` cu
    `device_id = "audit"`, `device_label = "audit runda 34"`. Este o adăugare documentată; se poate închide
    din aplicație ca orice sesiune.
-7. **Rundele 20–34 sunt necomise** pe `codex/camera-draft-stability`; commitul cere aprobarea owner-ului.
+7. ~~**Rundele 20–34 sunt necomise**~~ — comise în runda 35 (§35.1).
+
+## 35. Checkpoint git și autentificarea locală: de ce nu intra nimeni (28 octombrie 2026)
+
+**Ce s-a cerut:** salvarea muncii rundelor 20–34 într-un commit sigur, apoi diagnosticarea loginului cu
+email/parolă (`test@nexus.ro`) și a loginului xPortal, fără a modifica datele, conturile sau parolele
+owner-ului și fără a aduce Railway înapoi.
+
+**Concluzia într-o propoziție:** munca rundelor 20–34 este salvată (commit `57c566c`), iar ambele loginuri
+eșuau din **aceeași cauză de configurare locală, nu de cod**: baza adusă din exportul Railway nu are
+**niciun** cont cu email și parolă (exportul nu cară credențiale), iar serverul local nu are `Project ID`
+WalletConnect, deci `/auth/mvx/init` răspunde `503` înainte ca vreun relay Reown să fie contactat.
+
+### 35.1 Checkpoint-ul
+
+| | |
+| --- | --- |
+| depozit | `C:/Users/Romeo/projects/nexus_deepsek` (`https://github.com/rrommeoo1/nexus-deepsek.git`) |
+| branch | `codex/camera-draft-stability` (verificat cu `git branch --show-current`, nu presupus) |
+| commit | `57c566c` — `checkpoint: preserve Jungle Book rounds 20-34` |
+| conținut | **174 de fișiere**, +20 860 / −2 947 |
+| poziție | `ahead 24` față de `origin/codex/camera-draft-stability`; **niciun push** (nu a fost aprobat) |
+| verificare | `git status --short --branch` după commit: 0 fișiere în staging, 18 rămase necomise (scratch-uri de sesiune, §35.2) |
+
+Commitul a fost construit **pe căi explicite**, nu cu `git add -A`: `git add -u` pentru cele 107 fișiere
+deja urmărite, apoi `git add <cale> …` pentru fiecare fișier nou verificat. Un `git add -A` ar fi luat și
+cele 254 de intrări necunoscute de la `git status`, dintre care majoritatea sunt capturi, dump-uri și
+sonde de sesiune.
+
+### 35.2 Ce a intrat și ce a rămas afară
+
+**A intrat** (sursă, teste, unelte, documentație):
+
+| grup | fișiere |
+| --- | --- |
+| `apps/nexus-mobile/src/**` | 93 (inclusiv `postOrigin.ts`, `editorialDocument.ts`, `textInsert.ts`, `theme/editorial.ts`, `app/post/[id].tsx`, `app/tag/[tag].tsx`) |
+| `apps/nexus-mobile/scripts/**` | 44 (25 de suite `test-*.cjs` noi, `build-contact-sheet.ps1`, `capture-screen.ps1`) |
+| `apps/nexus-web/**` | `scripts/text-faces-http-e2e.mjs`, `test/post-text-faces.test.js`, `test/post-content-origin.test.js` |
+| unelte | `scripts/capture-android-screen.ps1`, `tools/local-backend/audit-local.mjs`, `tools/parity/adb-pair.ps1`, `tools/attach-devnet-{payee,wallet}.mjs`, `tools/images/**` |
+| documentație | `HANDOFF.md`, `JUNGLE_BOOK_PROGRESS.md`, `JUNGLE_BOOK_VISUAL_VERIFICATION.md`, `docs/DEV-WORKFLOW.md`, `docs/22-local-to-hosted.md`, `docs/PARITY-MATRIX.md`, `docs/MONETIZATION-SPEC.md`, `apps/nexus-mobile/README.md`, `MIGRATION.md` |
+| reguli | `.clinerules`, `.clineignore`, `AGENTS.md` |
+
+**A rămas afară, intenționat:** 18 fișiere (sonde `_*.mjs` din `tools/`, dump-uri `docs/parity-report/*.txt`,
+`apps/nexus-web/.tmp-inspect.cjs`) plus folderele de dovezi (`JUNGLE_BOOK_VERIFICATION/`, `docs/screens/`,
+capturile noi din `docs/parity-report/`, `planning/evidence-*.png`) și scratch-ul din rădăcină
+(`_bundle_*.js`, `_xportal_base.apk`, `_wc_src/`, `_session.json`, `_*.txt`). Niciunul nu este produs: sunt
+dovezi de sesiune, iar unele poartă numele contului sau id-ul dispozitivului.
+
+`.gitignore` a fost întărit ca să nu poată fi luate din greșeală: `JUNGLE_BOOK_VERIFICATION/`,
+`docs/screens/`, `docs/parity-report/**/*.{png,xml,dump.txt}`, `planning/evidence-*.png`, `/_*`
+(scratch-ul din rădăcină) și `apps/nexus-mobile/_out_*.txt`. Intrarea `_*` a fost verificată înainte:
+`git ls-files ':(top)_*'` întoarce **0** fișiere urmărite, deci regula nu ascunde nimic real.
+
+**Verificarea de secrete**, pe diff-ul complet (924 KB) și apoi pe cel din staging (1,6 MB): zero potriviri
+pentru `PRIVATE KEY`, `eyJhbGciOi` (JWT), `sk_live`, `AKIA…`, `NEXUS_SESSION_SECRET=<valoare>`,
+`NEXUS_TEST_ACCOUNT_PASSWORD=<valoare>`, `password = "<…>"`, `mnemonic`, `xprv` și `erd1…:`. Niciun fișier
+`.env`, `.sqlite`, `-wal`/`-shm`, log, imagine sau clip nu apare între cele 174. `apps/nexus-mobile/.env.example`
+este singurul fișier de mediu comis — și trebuie să fie, `.gitignore` are `!**/.env.example`.
+
+Testele au rulat **înainte** de commit, pe arborele de lucru care urma să fie comis: web `npm test`
+**868 teste / 0 eșec**, mobil `npm test` **exit 0** (58 de fișiere), `tsc --noEmit` **exit 0**.
+
+### 35.3 De ce loginul cu email eșua: contul nu există în baza locală
+
+Instanța vie răspunde pe `http://127.0.0.1:5000` (`/health`: `status=ready`, `environment=local_development`,
+`users=9`, `posts=48`, `media=24`), `/api/version` raportează `commit=6fd70c5`, `text_style=2`, `node v24.19.0`,
+deci **codul din arbore**, nu un bundle vechi. Baza este `C:\Nexus\data\nexus.sqlite`, deschisă **read-only**:
+
+| fapt | valoare |
+| --- | --- |
+| `test@nexus.ro` în `users` | **absent** (`SELECT * FROM users WHERE lower(email)=?` → nimic) |
+| conturi în total | 9 |
+| conturi cu `email` | **0** |
+| conturi cu `password_hash` | **0** |
+| `@test` (id 1) | `email = NULL`, `password_hash = NULL`, `email_verified = 0`, `traffic_class = HUMAN_ORGANIC`, `account_state = active`, `onboarded_at = 1`, 7 postări, o singură persona (`social`) |
+
+Deci **loginul pe email nu poate reuși pentru nimeni**, cu nicio parolă: `POST /auth/email/login` face
+`repo.getUserByEmail(email)`, iar pe un rând fără `email` întoarce `null` → `401 invalid credentials`.
+Nu este „parola greșită", este „nu există credențial". Ruta veche `/auth/login` nici măcar nu mai există
+(`410`, „folosește autentificarea securizată cu email sau xPortal"); cea reală este `/auth/email/login`,
+cu `scrypt` + `timingSafeEqual` (§35.4).
+
+**De unde vine golul.** Exportul care a hrănit migrarea este
+`C:\Users\Romeo\NexusBackups\railway-export-20261027`; în tot JSON-ul lui nu apare **niciun** email
+(`Select-String 'nexus\.ro|@…'` → 0). `tools/migration/import-local.mjs` chiar scrie coloana `email`, dar
+din câmpul pe care exportul nu îl are, iar `password_hash` **nu este importat deloc** (nici nu poate fi:
+API-ul public al deployment-ului nu expune hash-uri). Ce a rămas din `test@nexus.ro` de pe Railway este
+**handle-ul** `@test` cu postările lui — exact ce trebuia păstrat, minus identitatea de login.
+
+### 35.4 Parola: ce s-a putut verifica și ce nu
+
+Algoritmul este clar din cod (`apps/nexus-web/lib/security.js`): `scryptSync(parolă, sare, 64)` cu
+parametrii impliciți ai lui `node:crypto` (`N=16384, r=8, p=1`), sare de 16 octeți în hex, stocat ca
+`<sare>:<hash>`, comparat cu `timingSafeEqual`; `hashPassword` refuză parolele sub 8 caractere.
+
+Verificarea s-a făcut prin **funcția produsului** (`verifyPassword`), pe baza vie, cu două candidate — forma
+reținută de owner și forma fără spațiu, singura care apare într-un artefact de build (gitignorat) al unei
+autentificări reușite de pe deployment. Rezultatul este **irelevant prin construcție**: nu există hash față
+de care să compare, deci `verifyPassword` nu a putut fi hrănită. Parola **nu este validată** și nu se
+afirmă că este corectă. Nu a fost scrisă, tipărită, logată, salvată sau comisă, iar aici e numită doar
+„forma reținută".
+
+
+
+### 35.5 Repararea minimă: `--adopt-handle` (pregătită, **ne rulată** pe datele owner-ului)
+
+Adoptarea unui cont migrat este o **schimbare de cod**, nu un `UPDATE` scris de mână, și e oprită implicit:
+
+| fișier | schimbare |
+| --- | --- |
+| `apps/nexus-web/lib/preview-test-account.js` | opțiune nouă `adoptHandle` (implicit `false`). Cu ea: dacă emailul nu există dar handle-ul da, leagă emailul de **acea** înregistrare și îi pune parola; refuză dacă handle-ul poartă deja **alt** email („already assigned to another email"); fără flag, comportamentul de dinainte („already assigned") rămâne |
+| `apps/nexus-web/scripts/dev-test-account.mjs` | flag `--adopt-handle`; tipărește explicit „email legat de contul existent @test (id 1): același cont, nicio înregistrare nouă" |
+| `apps/nexus-web/test/preview-test-account.test.js` | **nou**, 6 teste: garda de preview, creare, re-rulare (aceeași înregistrare, parola veche moare), refuz fără flag, adoptare (același id, wallet-ul supraviețuiește, zero duplicate), refuz când handle-ul are alt email |
+
+`server.js` cheamă `ensurePreviewTestAccount(repo)` fără opțiuni, deci calea de preview/producție este
+**neschimbată**: adoptarea există doar pentru seeder-ul local, la cerere explicită.
+
+**Impactul, dacă owner-ul aprobă:** se atinge **un singur rând** (`users.id = 1`, `@test`) — se scriu
+`email = test@nexus.ro`, `email_verified = 1`, `password_hash` nou (sarea veche nu există, deci nu se poate
+păstra), plus persona `social` dacă lipsește. Nu se creează cont, nu se mută postări, nu se șterge nimic;
+`mvx_address` și `linked_wallet` rămân. Reversul este o restaurare din backup (`restore-backup.mjs`).
+Comanda, după aprobare, este cea de mai jos, cu `C:\Nexus\data` ca director de date:
+
+```powershell
+$env:NEXUS_DATA_DIR='C:\Nexus\data'; $env:NEXUS_TEST_ACCOUNT_PASSWORD='<parola aleasă de owner>'
+node apps\nexus-web\scripts\dev-test-account.mjs --adopt-handle
+```
+
+### 35.6 Matricea de autentificare, dovedită pe o **copie**
+
+Ca să nu ating datele owner-ului, verificarea a rulat pe un **snapshot** luat cu API-ul de backup al SQLite
+(`backup()`, 890 de pagini — fișierul viu este ținut deschis de server, deci nu se poate copia cu
+`Copy-Item`), într-un director temporar, cu o instanță proprie pe portul **5099** și un
+`NEXUS_SESSION_SECRET` propriu. Fișierul viu a fost recitit după teste: **neschimbat** (`test@nexus.ro`
+absent, 9 conturi, 0 cu parolă). Directorul de probă a fost șters la final.
+
+| pas | comandă / cerere | rezultat |
+| --- | --- | --- |
+| seeder fără flag | `dev-test-account.mjs` | **refuz**, exit 1, „preview test handle is already assigned", zero scriere |
+| seeder cu flag | `dev-test-account.mjs --adopt-handle` | „adoptat: @test (id 1) <test@nexus.ro>", parolă validă: da, email verificat: da, persona social: da |
+| 1. date corecte | `POST /auth/email/login` | **200**, `ok=true`, `@test`, `email_verified=true`, cookie-uri `nexus_session` + `nexus_device_id` |
+| 2. sesiune | `GET /api/me` cu cookie | **200**, `@test`, `persona=social`, 5 profile |
+| 3. parolă greșită | `POST /auth/email/login` | **401** `{"ok":false,"error":"invalid credentials"}` |
+| 4. logout | `POST /auth/logout` → `GET /api/me` | **200**, apoi **401** (sesiunea moare) |
+| 5. fără cookie | `GET /api/me` | **401** |
+| 6. repornire | proces oprit, altul pornit (PID nou), **același cookie** | `GET /api/me` → **200**, `@test` — sesiunea supraviețuiește procesului |
+| 7. celelalte conturi | `users` în copie | tot 9, aceleași id-uri, `@test` tot cu 7 postări |
+
+Observație de metodă: prima încercare a pasului 6 a ieșit 401 din cauza **testului**, nu a serverului —
+`Invoke-WebRequest -Headers @{Cookie=…}` este filtrat de .NET (antet restricționat). Repetat cu un
+`CookieContainer` real (login → kill → restart → `/api/me` în același proces) a dat 200.
+
+
+### 35.7 xPortal: cauza exactă este `503 WALLETCONNECT_PROJECT_NOT_ATTESTED`
+
+`GET /auth/mvx/init` pe instanța vie, cu originea telefonului:
+
+```json
+503 {"ok":false,"code":"WALLETCONNECT_PROJECT_NOT_ATTESTED",
+     "error":"xPortal nu este încă activat pentru http://192.168.1.153:5000. Este necesar un Project ID emis
+              de WalletConnect Dashboard și această origine în Allowlist."}
+```
+
+Poarta este `walletConnectAttestation()` (`apps/nexus-web/lib/env.js`): `ready = projectIdConfigurat ȘI
+dashboardAtestat ȘI origineAtestată`. În `C:\Nexus\env\jungle.env`:
+
+| variabilă | stare acum | ce face |
+| --- | --- | --- |
+| `NEXUS_WC_PROJECT_ID` | **gol (0 caractere)** | fără el `projectIdConfigured = false` |
+| `NEXUS_WC_PROJECT_ATTESTED` | **absent** | „allowlist-ul a fost confirmat în dashboard" |
+| `NEXUS_WC_ATTESTED_ORIGINS` | **absent** | listă exactă de origini permise |
+| `NEXUS_ORIGIN` | **absent** | originea se ia din `Host`, adică exact ce dă telefonul |
+| `NEXUS_DEPLOYMENT_MODE` | `local` | deci **nu** se aplică implicitul de preview și nici Project ID-ul public |
+
+Deci serverul refuză **înainte** de orice conexiune WalletConnect: pagina podului încarcă
+`/xportal-bridge.html`, `/wc-bundle.js`, `/xportal-bridge.js` (toate 200) și moare la `init`. Mesajul care
+ajunge în aplicație este exact ramura `wc-bundle|project id|allowlist|relay` din `xPortalFailureSentence`:
+„Serverul nu poate deschide conexiunea WalletConnect acum…".
+
+Dovada că **doar configurarea lipsește**: pe instanța de probă, cu `NEXUS_WC_PROJECT_ID` (32 hex),
+`NEXUS_WC_PROJECT_ATTESTED=true` și originea în `NEXUS_WC_ATTESTED_ORIGINS`, același endpoint întoarce
+**200** cu `init` real (`network=mainnet`, `chainId=1`, `signable_message`), iar cu un `Host` neatestat
+întoarce **503** — regula de origine funcționează, dar cere **aceeași** origine pe care o încarcă WebView-ul.
+
+### 35.8 Reown / allowlist: **neverificat direct**
+
+Nu există CLI, token sau sesiune autentificată în browser pe acest PC, iar dashboard-ul Reown nu are API
+public pentru allowlist. Deci **allowlist-ul rămâne de verificat de owner**, și nu se afirmă nimic despre
+conținutul lui. Ce trebuie însă înțeles, ca să nu se cațăre pe peretele greșit:
+
+1. **Acum** allowlist-ul nici nu este atins: serverul local nu dă niciun Project ID, deci nu există client
+   WalletConnect care să contacteze relay-ul. Un „allowlist greșit" nu poate fi cauza de azi.
+2. Când va fi atins, contează **originea paginii podului** (un origin `http(s)://…`), nu id-ul aplicației
+   Android și nu schema. `app.nexus.mobile.dev` și `nexusdev://` merg doar în `metadata.redirect.native`
+   (`xPortalRedirectScheme`), ca xPortal să poată întoarce cititorul în aplicație.
+3. Originea reală de azi este `http://192.168.1.153:5000` (telefonul intră pe LAN: `192.168.1.184`, `okhttp`),
+   deci **această** valoare ar trebui să apară în `NEXUS_WC_ATTESTED_ORIGINS` și în allowlist-ul proiectului.
+4. Project ID-ul folosit de build este cel pe care serverul îl dă la `/auth/mvx/init` (`wcProjectId`) — nu o
+   constantă din aplicație. Deci un singur loc de schimbat: `C:\Nexus\env\jungle.env`.
+
+### 35.9 Al doilea zid, previzibil: contextul sigur al paginii podului
+
+WalletConnect are nevoie de WebCrypto. `http://192.168.1.153:5000` **nu** este context sigur în WebView
+(doar `localhost`, `127.0.0.1` și `https` sunt), deci chiar cu Project ID și allowlist corecte, pagina
+podului poate eșua la primul apel criptografic. Varianta locală care închide și problema asta este cea pe
+care `apiOrigin.ts` o are deja ca ultimă treaptă: `adb reverse tcp:5000 tcp:5000` +
+`EXPO_PUBLIC_NEXUS_API_URL=http://localhost:5000`; atunci originea de atestat este `http://localhost:5000`.
+Nu s-a dovedit pe telefon (ar cere Project ID real); este scris aici ca pas următor, **nu ca fapt**.
+
+### 35.10 Ce rămâne deschis
+
+1. **Owner:** aprobarea rulării `dev-test-account.mjs --adopt-handle` pe `C:\Nexus\data`, cu o parolă aleasă
+   de el (§35.5). Fără ea, loginul pe email rămâne imposibil — previzibil, nu un bug.
+2. **Owner:** Project ID-ul din Reown Cloud (proiectul „Jungle Book") + confirmarea allowlist-ului pentru
+   originea aleasă, apoi cele trei variabile în `C:\Nexus\env\jungle.env` și repornirea serviciului.
+3. **Owner:** verificarea allowlist-ului în dashboard — singurul pas pe care agentul nu îl poate face.
+4. **Agent, după 1–2:** login pe telefon (email + xPortal) și captură. Azi ambele sunt **NEVERIFICATE** ca
+   reușită pe dispozitiv; eșecul, în schimb, este dovedit (§35.11).
+5. **Rămâne din runda 34:** pagina „Mașină", eticheta „Asistat de AI" pe ecran, scrierile sociale pe
+   instanța vie, cititorul web fără etichetă de origine (§31.5.6), rândul de sesiune `audit`.
+6. **Runda 35 nu a atins** nicio postare, niciun cont, nicio parolă și nicio variabilă din `C:\Nexus\env`.
+
+### 35.11 Dovezi
+
+| dovadă | unde |
+| --- | --- |
+| telefonul ajunge la backend-ul local și e refuzat | `C:\Nexus\logs\server-2026-10-28.log`: **8×** `POST /auth/email/login 401` și **11×** `GET /auth/mvx/init 503` de la `192.168.1.184 okhttp/4.12.0`; cele trei fișiere ale podului, `200` |
+| contul nu există în baza vie | `SELECT * FROM users WHERE lower(email)=?` → gol; 9 conturi, 0 cu email, 0 cu parolă |
+| exportul nu are credențiale | `NexusBackups\railway-export-20261027\**` → 0 potriviri de email |
+| reparația funcționează | 6 teste noi (`preview-test-account.test.js`) + rularea pe copie (§35.6) |
+| suita nu a fost atinsă | web **868/0**, mobil **58 de fișiere/0**, `tsc --noEmit` **0** |
 
