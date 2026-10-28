@@ -201,7 +201,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
     setStickersOpen(false);
   }
 
-  // The web offers automatic music for a fresh capture. Request the same real Railway catalog once
+  // The web offers automatic music for a fresh capture. Request the same real catalog once
   // when this editor opens; never replace a track/file the author already chose or invent a fallback.
   useEffect(() => {
     if (draftRef.current.audioUri || draftRef.current.jamendoAudioUrl) return;
@@ -433,7 +433,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
             {musicTracks.map((track) => <Pressable key={track.id} accessibilityRole="button" onPress={() => selectMusic(track)} style={styles.track}><Text style={styles.previewTitle}>{track.name}</Text><Text style={styles.muted}>{track.artist} · CC BY</Text></Pressable>)}
           </ScrollView>
           <Pressable accessibilityRole="button" disabled={audioBusy} onPress={() => void chooseMusic().then(() => setMusicOpen(false))}><Text style={styles.doneText}>Alege fișier audio de pe telefon</Text></Pressable>
-          <Text style={styles.muted}>Melodiile Jamendo se publică prin selecția semnată de Railway, valabilă două ore. Un fișier de pe telefon necesită declararea dreptului de folosire în Detalii.</Text>
+          <Text style={styles.muted}>Melodiile Jamendo se publică prin selecția semnată de server, valabilă două ore. Un fișier de pe telefon necesită declararea dreptului de folosire în Detalii.</Text>
         </View>
       ) : stickersOpen ? (
         <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>

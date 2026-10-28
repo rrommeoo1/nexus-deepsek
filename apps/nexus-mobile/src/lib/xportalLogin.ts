@@ -113,15 +113,19 @@ function pairingUri(uri: string): string {
 }
 
 /**
- * What to open, in the order that actually reaches the wallet on Android: xPortal declares the `wc:`
- * scheme itself, then its own `xportal:` scheme, then the Branch universal link the web client uses
- * (the universal link needs the app-link plumbing, and on a warm xPortal it can land on the wallet
- * home without the pairing). The first link the system accepts wins.
+ * What to open, in the order that actually reaches the wallet on Android.
+ *
+ * The wallet's own scheme comes first: `xportal://` is declared by xPortal alone (verified on the
+ * device with `pm resolve-activity`), so the pairing lands in xPortal without a chooser. The bare
+ * `wc:` URI is second because several wallets on the test phone (xPortal, Binance, KuCoin, MetaMask,
+ * Once) declare it: Android then shows "Open with" and the login stops on a screen the reader has to
+ * answer. The Branch universal link is last (it needs app-link plumbing, and on a warm xPortal it can
+ * land on the wallet home without the pairing).
  */
 export function xPortalWalletLinks(uri: string): string[] {
   const value = pairingUri(uri);
   const encoded = encodeURIComponent(value);
-  return [value, `xportal://wc?uri=${encoded}`, `${XPORTAL_UNIVERSAL_LINK}?uri=${encoded}`];
+  return [`xportal://wc?uri=${encoded}`, value, `${XPORTAL_UNIVERSAL_LINK}?uri=${encoded}`];
 }
 
 export function nativeAuthTokenIsValid(token: unknown): boolean {

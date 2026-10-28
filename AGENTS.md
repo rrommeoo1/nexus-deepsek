@@ -74,6 +74,24 @@ secvențial al packet-ului curent, fără deschiderea unui workstream nou.
 - Actorii sintetici sunt marcați `SYSTEM_TEST`, nu folosesc date reale și nu pot
   influența reputația, economia, adopția sau metricile de producție.
 
+## Verificare vizuală și capturi de ecran
+
+- Fluxul obligatoriu pentru orice schimbare de UI: CODE → BUILD → DEVICE TEST → JPG CAPTURE →
+  VALIDATE → VISUAL INSPECT → REPORT. Un pas fără dovadă este un pas neexecutat.
+- Un JPG valid nu dovedește interfața: dovada este JPG-ul **citit** și descris (text, poziții,
+  elemente lipsă). Un cadru negru sau un spinner nu este dovadă; unealta iese cu codul 10 și nu
+  publică nimic.
+- Capturile se fac exclusiv cu `scripts/capture-android-screen.ps1`. Uneltele vechi
+  (`tools/images/safe-screencap.ps1`, `apps/nexus-mobile/scripts/capture-screen.ps1`) sunt
+  wrappere subțiri peste el. Niciodată `screencap` manual și niciodată `>` pentru fișiere binare:
+  telefonul are două display-uri, iar avertismentul „Multiple displays” ajunge altfel în PNG.
+- Un sufix `.bad` nu este dovadă de corupție: carantina se anulează doar prin
+  `tools/images/validate-images.ps1 -Path <dir> -RestoreBad`, care re-decodează fișierul înainte
+  să-i dea numele înapoi și nu suprascrie nimic. Aceeași comandă repară capturile cu text în față
+  (semnătura PNG găsită după linia `[Warning] Multiple displays…`): prefixul se taie, iar fișierul
+  se păstrează doar dacă restul se decodează complet.
+
+
 ## Disciplina livrării
 
 - P0 precede verticalele; dependențele și WIP limits din `planning/` sunt obligatorii.

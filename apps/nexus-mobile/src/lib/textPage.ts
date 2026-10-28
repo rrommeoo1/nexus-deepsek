@@ -16,20 +16,132 @@
  *     only stand at its foot. A page of words written in the composer therefore keeps the rail's own
  *     rectangle instead (`wordPageRailReserve`), and the flow narrows only the lines that really reach
  *     it. The gutter above stays for a page that has no flow to narrow — the legacy reading, which is
- *     split by characters and cannot re-wrap a single line.
+ *     split by characters and cannot re-wrap a single line;
+ *   · the two margins. The 66dp are measured from the *screen's* edge and the words are inset by the
+ *     page's own padding, so the gutter a page keeps inside itself is `TEXT_PAGE_RAIL_GUTTER - padH`
+ *     (`wordPageGutter`) — the very rectangle `wordPageRailReserve` cuts out. Keeping the full 72dp
+ *     inside a page that already stands 14dp in from the edge is what left a strip of paper between the
+ *     last word and the buttons (owner, 28 October 2026: textul „nu se întinde până la butoane").
  *
  * A picture, a clip or a cell of a list never reads this module: `wordPageHead` and `wordPageGutter`
  * answer with what they were given, so the photograph and the reel keep the composition they had.
  */
 
+/**
+ * The folio: the `1/22` of a page of words, and the band it owns at the foot of the paper.
+ *
+ * The owner, 30 October 2026: „numerotarea să fie jos, ca într-o carte". The indicator used to be a
+ * dark chip pinned to the page's lower right, drawn *over* whatever the page put there — an emoji, the
+ * place the author attached, the first line of the next paragraph — and nothing reserved its room.
+ * A book's folio is the opposite of that: it stands centred at the foot, in the page's own face, and
+ * the text column ends above it. So it is a **band**, and every surface that splits an article into
+ * pages subtracts it from the measure (`EditorialPage.marginBottom`, `PostReading`'s capacity):
+ *
+ *   band     the height no word may enter — 26dp: a 10dp folio line plus its air;
+ *   inset    how far the digits stand above the page's foot — 12dp;
+ *   size     the type, in points: small, spaced, and *secondary*;
+ *   tracking the letter spacing that makes `1/22` read as set type rather than as a badge.
+ *
+ * It is drawn on the paper itself (`pagePalette.text`, at a little over half its ink), never on a
+ * plate: a folio is printed, not stuck on.
+ */
+export const PAGE_FOLIO = {
+  band: 26,
+  inset: 12,
+  size: 10,
+  tracking: 1.6,
+  /**
+   * How much of the page's ink the digits keep: enough to be read (the cream page's ink at 68 % still
+   * measures ~5.4:1 against its own paper, over the 4.5:1 small text owes) and quiet enough to stay
+   * behind the words, which are printed at 100 %.
+   */
+  ink: 0.68,
+} as const;
+
+/**
+ * The paper a page of words gives up to its folio.
+ *
+ * `two` is `true` on a page that belongs to a reading of more than one page — the only case the
+ * indicator is printed in. A surface that reserves the band for a single page too is right to do so: a
+ * composer must give up the same paper its published page will, or the line that fits in the composer
+ * is the line the reader pushes onto the next page.
+ */
+export function pageFolioBand(two = true): number {
+  return two ? PAGE_FOLIO.band : 0;
+}
+
+/**
+ * The same folio, printed **lower**, for the one surface that has the room: a page of words opened from a
+ * profile (round 32, owner, 31 October 2026).
+ *
+ * Round 31 gave a page of words its way out at the foot (`lib/readerBar.ts`), in a 48dp band the page gave
+ * up above the device's own inset. The owner then read the same screen and said the number sat too high —
+ * „mută contorul puțin mai jos, folosește spațiul de deasupra barei" — because that band is exactly what
+ * stood between the digits and the foot: 48dp of empty paper under a `1/3`.
+ *
+ * Round 32 takes the door off a page opened from a profile (the phone's own Back is the door there, and it
+ * returns to the same profile) and hands the room back to the page. The number is reprinted in the row it
+ * keeps for itself, `PROFILE_FOLIO`, and the words' own boundary follows it down by the difference.
+ *
+ * The row is **the same kind of row**, only closer to the foot — the arithmetic that keeps a digit off a
+ * word is unchanged (`band` still clears `inset + size`):
+ *
+ *   band    16dp — the height no word may enter (a 10dp line plus its air; `PAGE_FOLIO` keeps 26);
+ *   inset    3dp — how far the digits stand above the page's foot (12 on a page that carries a door).
+ *
+ * What does **not** move: `size`, `tracking` and `ink`. A folio is set type in both cases; only its
+ * distance from the foot changes. Nothing else in the app reads this row — the feed, the composer route
+ * and every page of media still ask for `PAGE_FOLIO` (`folioRow(false)`), which is the row they had.
+ */
+export const PROFILE_FOLIO = {
+  band: 16,
+  inset: 3,
+} as const;
+
+/** The row a folio's digits occupy on one page of words, for the surface that is drawing it. */
+export function folioRow(profileReader: boolean): { band: number; inset: number } {
+  return profileReader
+    ? { band: PROFILE_FOLIO.band, inset: PROFILE_FOLIO.inset }
+    : { band: PAGE_FOLIO.band, inset: PAGE_FOLIO.inset };
+}
+
+/**
+ * The digits of the folio — `1/3`, `3/3` — from the page the reader is on and the pages the flow made.
+ *
+ * One function, called by both readers (`PostReading`, `EditorialPage`), because a number printed in two
+ * places is a number that can disagree with itself. The `1/22` the owner saw on a three-page article
+ * (31 October 2026) was exactly that: the route over the page printed a *post* counter — „postarea 1 din
+ * cele 22 ale profilului" — while the paper at the foot of the same screen said `1/3`. The route draws
+ * no counter at all now, and both readers print their number from here, from the pagination they
+ * actually produced.
+ *
+ * A reading of one page prints nothing (`''`): a book does not number its only page. An index past the
+ * end — a re-split caught the reader on a page that no longer exists, one frame before the reader pulls
+ * itself back — prints the last page that is really there, never a page that is not.
+ */
+export function folioLabel(index: number, total: number): string {
+  const pages = Math.max(0, Math.round(Number(total) || 0));
+  if (pages < 2) return '';
+  const at = Math.min(pages, Math.max(1, Math.round(Number(index) || 0) + 1));
+  return `${at}/${pages}`;
+}
+
 /** The head of a page of words: a 54dp face, a 17dp name over a 13dp handle. */
 export const TEXT_PAGE_HEAD = { disc: 54, name: 17, handle: 13 } as const;
 
-/** The room the action rail keeps on a page of words: its own 56dp cell, 10dp in, plus 6dp of air. */
-export const TEXT_PAGE_RAIL_GUTTER = 66 + 6;
 
 /** At least this much of the page must stay free to the right of the words for the rail to be safe. */
 export const RAIL_FOOTPRINT = 66;
+
+/**
+ * The air between the words and the rail's hit area — six points, measured from the rail's own foot and
+ * from the page's right edge alike. It is one number because it is one decision: a line of words stops a
+ * hair short of the buttons, never on them.
+ */
+export const RAIL_LINE_AIR = 6;
+
+/** The room the action rail keeps on a page of words: its own 56dp cell, 10dp in, plus `RAIL_LINE_AIR`. */
+export const TEXT_PAGE_RAIL_GUTTER = RAIL_FOOTPRINT + RAIL_LINE_AIR;
 
 /**
  * The 56×56 cell every press of the rail shares (`.clipQuickActions>button`). Exported because the room a
@@ -78,7 +190,7 @@ export function wordPageRailReserve(input: {
   sound?: boolean;
 }): RailReserve {
   const cells = Math.max(0, Math.round(input.cells));
-  const air = 6;
+  const air = RAIL_LINE_AIR;
   /** A disc needs a row of its own: with four cells the rail has none, so it pays nothing for one. */
   const disc = Boolean(input.sound) && cells > 4;
   const height = cells
@@ -103,11 +215,19 @@ export function wordPageHead<T extends PageMetrics>(metrics: T, wordPage: boolea
 }
 
 /**
- * The room the rail keeps on the right: a page of words keeps its footprint, a page of media keeps the
- * wider gutter it has always had, and a cell keeps none (its actions are a row under the words).
+ * The room the rail keeps on the right: a page of words keeps the buttons' own reach, a page of media
+ * keeps the wider gutter it has always had, and a cell keeps none (its actions are a row under the words).
+ *
+ * `padH` is the page's own horizontal padding, because the rail is measured from the *screen's* edge and
+ * the words are measured from inside the padding: a page that stands 14dp in from the edge keeps
+ * `72 - 14 = 58`dp of its own measure for a rail that reaches 72dp in — the same rectangle
+ * `wordPageRailReserve` cuts out of the flow. Passing nothing keeps the whole footprint, which is what a
+ * caller that draws no padding of its own wants.
  */
-export function wordPageGutter(metricsGutter: number | null | undefined, wordPage: boolean): number {
+export function wordPageGutter(metricsGutter: number | null | undefined, wordPage: boolean, padH = 0): number {
   const gutter = Number(metricsGutter);
   if (!(gutter > 0)) return 0;
-  return wordPage ? TEXT_PAGE_RAIL_GUTTER : gutter;
+  if (!wordPage) return gutter;
+  const inset = Math.max(0, Number(padH) || 0);
+  return Math.max(0, TEXT_PAGE_RAIL_GUTTER - inset);
 }

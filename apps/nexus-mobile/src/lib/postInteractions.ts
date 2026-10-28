@@ -143,7 +143,7 @@ export function fetchCommentVersions(commentId: number): Promise<{ ok: true; ver
   return nexusApi(`/api/comments/${commentId}/versions`);
 }
 
-/** Actors and authored citations are server records; an old Railway backend returns an explicit error. */
+/** Actors and authored citations are server records; an older backend returns an explicit error. */
 export function fetchCommentEngagement(commentId: number, kind: 'likes' | 'quotes', cursor = 0): Promise<CommentEngagementPage> {
   return nexusApi<CommentEngagementPage>(`/api/comments/${commentId}/${kind}?cursor=${cursor}&limit=20`);
 }

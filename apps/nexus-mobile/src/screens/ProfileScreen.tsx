@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import type { ReactNode } from 'react';
 
 import {
@@ -1316,7 +1317,7 @@ const styles = StyleSheet.create({
   filtersToggle: { flexGrow: 0, flexBasis: 44, minHeight: 46, alignItems: 'center', justifyContent: 'center' },
   filtersToggleGlyph: { color: '#9fb2bb', fontSize: 13, lineHeight: 15 },
   /** `[aria-expanded=true],[data-reading=popular|relevant]{color:#67f5ed}` */
-  filtersToggleOn: { color: '#67f5ed' },
+  filtersToggleOn: { color: blackSilver.silver },
   /** `.ownerContentFilters{top:100%;left:8px;flex-direction:column;gap:6px;min-width:190px;padding:8px;border:1px solid #26343d;border-radius:16px;background:#0b151d}` */
   filters: {
     position: 'absolute',
@@ -1342,7 +1343,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0f1a23',
   },
   /** `button[aria-pressed=true]{border-color:#2fbdb3;background:#0d2a2c;color:#dff9f6}` */
-  filterChipOn: { borderColor: '#2fbdb3', backgroundColor: '#0d2a2c' },
+  filterChipOn: { borderColor: blackSilver.bright, backgroundColor: blackSilver.graphite },
   filterChipText: { color: '#9fb2bb', fontSize: 12.5 },
   filterChipTextOn: { color: '#dff9f6' },
   /**
@@ -1378,7 +1379,7 @@ const styles = StyleSheet.create({
     minHeight: 44, justifyContent: 'center', paddingHorizontal: 14,
     borderWidth: 1, borderColor: socialTokens.colors.markBorder, borderRadius: 14,
   },
-  manageBarButtonOn: { borderColor: socialTokens.archive.tilePinnedFirstEdge, backgroundColor: '#0d2a2c' },
+  manageBarButtonOn: { borderColor: socialTokens.archive.tilePinnedFirstEdge, backgroundColor: blackSilver.graphite },
   manageBarText: { color: socialTokens.colors.white, fontSize: 13, fontWeight: '700' },
   manageBarTextOn: { color: '#dff9f6' },
   manageBarHint: { flexShrink: 1, color: socialTokens.colors.muted, fontSize: 12, lineHeight: 17 },

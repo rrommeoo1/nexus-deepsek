@@ -56,11 +56,24 @@ export const API_CONTRACT = 1;
  *   `post_shares.grid_position`, so originals and reposts interleave in one arrangement without ever
  *   touching the original author's post. A client that does not see this name keeps arranging posts
  *   only, which is exactly what the older server accepts.
+ *
+ * `text_style` is the one name whose **number** matters, because the allowlist behind it grew
+ * (`apps/nexus-web/lib/post-text-style.js`):
+ *
+ * - `1` — three faces (`serif`, `sans`, `mono`) and three measures (`small`, `medium`, `large`);
+ * - `2` — the six faces of the composer (`+ slab`, `casual`, `condensed`) and `xlarge`.
+ *
+ * A build that answers `1` (or does not answer at all) refuses a `slab`/`casual`/`condensed` page
+ * with `TEXT_STYLE_INVALID`, i.e. the author loses the publication *after* writing it — which is
+ * exactly what happened to the owner's „Mașină" page on 28 October 2026: the composer offered six
+ * faces, the server in front of it knew three. Naming the version is what lets the phone ask before
+ * it sends a page (`apps/nexus-mobile/src/lib/backendVersion.ts`) instead of discovering it in a
+ * refusal. A client that needs `1` still passes on a `2` server: a later number is a superset.
  */
 export const BACKEND_CAPABILITIES = Object.freeze({
   post_read: 1,
   post_gallery: 1,
-  text_style: 1,
+  text_style: 2,
   editorial_document: 1,
   post_tags: 1,
   impressions: 1,

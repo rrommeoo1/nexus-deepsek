@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { blackSilver } from '../theme/blackSilver';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,6 +28,7 @@ import { mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
 import { uploadErrorMessage, uploadMediaResumable } from '../lib/uploadClient';
 import { RemoteImageSource } from './PostMedia';
 import { socialTokens } from '../theme/social';
+import { mercuryAvatar } from '../theme/mercury';
 
 /**
  * The words the record's own visibility values are read as (`profile.experience`'s map, `onboarding.js`
@@ -498,7 +500,7 @@ const styles = StyleSheet.create({
   counter: { alignSelf: 'flex-end', color: '#8b9ca6', fontSize: 11.5 },
   problem: { color: '#ffb3c1', fontSize: 12, lineHeight: 16 },
   state: { color: '#8b9ca6', fontSize: 12, lineHeight: 16 },
-  stateGood: { color: '#5df0a8' },
+  stateGood: { color: blackSilver.success },
   stateBad: { color: '#ffb3c1' },
   /** `.coverSheetHint{color:#8b9ca6;font-size:12px;line-height:1.45}` */
   hint: { flexShrink: 1, minWidth: 0, color: '#8b9ca6', fontSize: 12, lineHeight: 17 },
@@ -512,10 +514,17 @@ const styles = StyleSheet.create({
   /** The header's own disc: 78px, white edge, its own well (`.ownerAvatar` on the phone shell). */
   avatar: {
     width: 78, height: 78, flexGrow: 0, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
-    padding: 2, borderWidth: 2, borderColor: '#ffffff', borderRadius: 39, backgroundColor: '#090a0c', overflow: 'hidden',
+    padding: 2, borderWidth: 2, borderColor: '#ffffff', borderRadius: 39,
+    /**
+     * The editor's own disc is the same default face the header draws (round 30): without a picture it
+     * used to be `#090a0c`, i.e. a black circle a hair darker than the sheet around it, and the `＋`
+     * inside it was the only thing visible. Mercury makes the placeholder a plate — the picture, when
+     * there is one, still covers it completely.
+     */
+    backgroundColor: mercuryAvatar.plate, overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%', borderRadius: 37 },
-  avatarInitials: { color: '#ffffff', fontSize: 22, lineHeight: 26 },
+  avatarInitials: { color: mercuryAvatar.ink, fontSize: 22, lineHeight: 26 },
   suggestions: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, paddingTop: 2 },
   suggestion: {
     minHeight: 38, justifyContent: 'center', paddingHorizontal: 12,
@@ -528,7 +537,7 @@ const styles = StyleSheet.create({
     minHeight: 44, flexGrow: 1, flexBasis: 0, alignItems: 'center', justifyContent: 'center',
     borderWidth: 1, borderColor: '#26343d', borderRadius: 14, backgroundColor: '#0f1a23',
   },
-  choiceOn: { borderColor: '#2fbdb3', backgroundColor: '#0d2a2c' },
+  choiceOn: { borderColor: blackSilver.bright, backgroundColor: blackSilver.graphite },
   choiceText: { color: '#9fb2bb', fontSize: 13 },
   choiceTextOn: { color: '#dff9f6' },
   actions: { gap: 8, paddingTop: 4 },
@@ -537,9 +546,9 @@ const styles = StyleSheet.create({
   /** `.coverSheet menu button{min-height:48px;border-radius:14px;background:#101a23;font-weight:700}`, in the save's own colour. */
   save: {
     minHeight: 48, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: '#167d7b', borderRadius: 14, backgroundColor: '#101a23',
+    borderWidth: 1, borderColor: blackSilver.hairlineStrong, borderRadius: 14, backgroundColor: '#101a23',
   },
   /** A save with nothing to save is drawn, and says why by staying out of reach. */
   saveOff: { opacity: 0.5 },
-  saveText: { color: '#5af2e8', fontSize: 15, fontWeight: '700' },
+  saveText: { color: blackSilver.bright, fontSize: 15, fontWeight: '700' },
 });

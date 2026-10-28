@@ -2,8 +2,8 @@ import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { AppHeader, headerFloats, type AppHeaderSwitch } from '../components/AppHeader';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { AppHeader, type AppHeaderSwitch } from '../components/AppHeader';
 import { AppNav } from '../components/AppNav';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 import { NexusLandingBrand } from '../components/NexusLandingBrand';
@@ -19,7 +19,7 @@ import { clearSession, readSession, signInWithEmail, signOut, type LoginResult }
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
 import { readUnreadTotal } from '../lib/unread';
-import { FeedScreen, nextMode, type FeedModeId } from '../screens/FeedScreen';
+import { FeedScreen } from '../screens/FeedScreen';
 import { FriendsScreen } from '../screens/FriendsScreen';
 import { LiveScreen } from '../screens/LiveScreen';
 import { MessagesScreen } from '../screens/MessagesScreen';
@@ -30,6 +30,7 @@ import { SettingsScreen } from '../screens/SettingsScreen';
 import { WalletScreen } from '../screens/WalletScreen';
 import { buildLine } from '../lib/buildStamp';
 import { socialTokens, profileModules as socialModules } from '../theme/social';
+import { editorial } from '../theme/editorial';
 import { nexusTokens } from '../theme/tokens';
 
 /** The Android app version, read from app.json so the two numbers can never drift apart. */
@@ -61,7 +62,6 @@ function PendingScreen({ title, detail }: { title: string; detail: string }) {
 }
 
 export default function NativeHomeScreen() {
-  const insets = useSafeAreaInsets();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [booting, setBooting] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -70,7 +70,6 @@ export default function NativeHomeScreen() {
   const [xportalOpen, setXportalOpen] = useState(false);
   const [backendVersion, setBackendVersion] = useState('');
   const [slot, setSlot] = useState<NavSlot>('primary');
-  const [feedMode, setFeedMode] = useState<FeedModeId>('reels');
   /**
    * The screens the profile menu opens (`lib/profileMenu.ts`): the wallet on one of its two halves, the
    * monetisation and the settings. `null` means the shell is showing its own slot.
@@ -233,14 +232,13 @@ export default function NativeHomeScreen() {
    */
   const onRelationChanged = useCallback(() => setProfileKey((value) => value + 1), []);
 
-  const onCycleFeedMode = useCallback(() => setFeedMode((current) => nextMode(current)), []);
-
   /**
-   * `goHome()` - the wordmark, and the feed switch off it, land on the feed at its first reading. It sits
-   * with the other callbacks, above the early returns, because a hook may not be reached on only some of
-   * the renders: the boot line and the login line leave before the header is ever built.
+   * `goHome()` — the wordmark lands on the feed at its default reading (all content). Nothing has to be
+   * restored any more: the tab bar never leaves the foot of the screen (round 10), so the only thing this
+   * does is choose the slot. It sits with the other callbacks, above the early returns, because a hook
+   * may not be reached on only some of the renders.
    */
-  const goHome = useCallback(() => { setSlot('primary'); setFeedMode('reels'); }, []);
+  const goHome = useCallback(() => setSlot('primary'), []);
 
   /**
    * The profile ticker contains real doors. This callback must remain above the two early render
@@ -298,9 +296,7 @@ export default function NativeHomeScreen() {
   const moduleTitle = socialModules.find((entry) => entry.id === me.persona)?.title ?? me.persona;
   /** The name the account gave the profile being read, which the first switch reads out (app.js:1436). */
   const profileName = me.profiles?.find((entry) => entry.persona === me.persona)?.name || moduleTitle;
-  /** The reading the feed is on: the second switch of an off-feed bar names it (app.js:1404, 1418-1421). */
-  const readingTitle = socialTokens.feedModes.find((entry) => entry.id === feedMode)?.title ?? feedMode;
-  /** Only the feed wears `.appHeader.feedHeader`; the profile and the inbox wear no bar at all
+  /** Only the feed wears the feed bar; the profile and the inbox wear no bar at all
    * (app.js:1397, 1416; profile-experience.css:1, social-human-ux.css:161). */
   const onFeed = me.persona === 'social' && slot === 'primary';
   /**
@@ -321,12 +317,6 @@ export default function NativeHomeScreen() {
     },
     ...(me.persona === 'social' ? [
       {
-        key: 'feed' as const,
-        label: readingTitle,
-        accessibilityLabel: `Schimbă feedul Social · ${readingTitle}`,
-        onPress: goHome,
-      },
-      {
         key: 'friends' as const,
         label: 'Prieteni',
         accessibilityLabel: 'Deschide relațiile Social · Prieteni',
@@ -338,22 +328,21 @@ export default function NativeHomeScreen() {
    * The profile and the inbox wear no bar of this shell: `profile-experience.css:1` and
    * `social-human-ux.css:161` both hide `#phoneHeader` (`:has(.accountScreen)` / `:has(.inboxScreen)`),
    * and the inbox prints its own `.messengerTopbar` in the scroller instead.
+   *
+   * The feed wears none either (round 8). Its old bar carried one control — the Toate · Postări ·
+   * Reel-uri toggle — and the owner removed the filter with the request that the post itself fill the
+   * screen. A bar left without a control is a black strip above the picture; the wordmark already sits
+   * in the tab bar and on every other screen, so the feed now begins at the notch. `FeedHeader` and
+   * `FeedFilter` were deleted with the band they painted.
    */
-  const header = slot === 'account' || slot === 'inbox' ? null : onFeed ? (
+  const header = slot === 'account' || slot === 'inbox' || onFeed ? null : (
     <AppHeader
-      variant="feed"
-      modeId={feedMode}
-      topInset={headerFloats('feed', feedMode) ? insets.top : 0}      onPressWordmark={goHome}
-      onCycleMode={onCycleFeedMode}
-    />
-  ) : (
-    <AppHeader
-      variant="screen"      onPressWordmark={goHome}
+      variant="screen"
+      onPressWordmark={goHome}
       switches={offFeedSwitches}
     />
   );
-  /** Reels floats that bar over the clip, so it leaves the flow and the feed keeps the whole column. */
-  const floatingHeader = onFeed && headerFloats('feed', feedMode);
+  /** No bar floats any more: the feed's chrome is one solid strip, so no post slides under it. */
   const screen = (() => {
     /**
      * The owner's own doors. The profile's three bars open its own menu (`ProfileMenuSheet`) and never the
@@ -430,14 +419,12 @@ export default function NativeHomeScreen() {
     if (slot === 'utility') return <LiveScreen />;
     if (slot === 'search') return <SearchScreen key={`search-${searchQuery}`} initialQuery={searchQuery} />;
     if (me.persona !== 'social') return <PendingScreen title={moduleTitle} detail="Acest modul nu este încă portat. Comută înapoi pe Social din sertarul de profil." />;
-    return <FeedScreen mode={feedMode} onModeChange={setFeedMode} />;
+    return <FeedScreen />;
   })();
 
   return (
-    <SafeAreaView edges={floatingHeader ? [] : ['top']} style={styles.shell}>
-      {floatingHeader ? (
-        <View pointerEvents="box-none" style={styles.floatingHeader}>{header}</View>
-      ) : header}
+    <SafeAreaView edges={onFeed ? [] : ['top']} style={styles.shell}>
+      {header}
       <View style={styles.body}>{screen}</View>
       {error ? (
         <View style={styles.errorBar}>
@@ -447,14 +434,23 @@ export default function NativeHomeScreen() {
           </Pressable>
         </View>
       ) : null}
-      <View pointerEvents="box-none" style={floatingHeader ? styles.immersiveNav : undefined}>
+      {/**
+       * The tab bar floats above the shell instead of occupying a band inside it, and every page reserves
+       * its height at the foot, so a word, a caption or the rail is never hidden behind the glass.
+       *
+       * It is permanent (round 10). The owner asked for it to stop sliding away on a scroll — "vreau sa
+       * faci footer ul sa nu mia dispara la scroll..va ramane permananet" — so the transform, the hidden
+       * state and the clock that carried it are gone, and the pages that keep clear of its band have
+       * nothing left to follow. The reply is written in the reader's own composer (`CommentsSheet`), so
+       * no second plate is drawn here.
+       */}
+      <View style={styles.navOverlay}>
         <AppNav
           active={slot}
           onSelect={onSelectSlot}
           onOpenCreate={() => router.push('/camera')}
           avatarSource={avatarSource}
           unreadCount={unreadCount}
-          immersive={floatingHeader}
         />
       </View>
     </SafeAreaView>
@@ -462,13 +458,12 @@ export default function NativeHomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  /** `.phoneScreen:has(.appNav.social){background:#000}` */
-  shell: { flex: 1, backgroundColor: '#000000' },
-  /** `#phoneHeader` over a Reels feed: out of the flow, over the clip (feed-surface.css:96-98). */
-  floatingHeader: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 40 },
-  /** The 9:16 reel remains underneath the seven controls, all the way to the screen edge. */
-  immersiveNav: { position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 40 },
+  /** `.phoneScreen:has(.appNav.social){background:#000}` — now the Jungle Book field, not pure black. */
+  shell: { flex: 1, backgroundColor: editorial.field },
+  /** The body is the whole shell: the tab bar floats over it, and the feed reserves its own foot. */
   body: { flex: 1 },
+  /** The tab bar: pinned to the foot for good, laid out over the shell and never inside it. */
+  navOverlay: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   boot: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000' },
   bootText: { color: socialTokens.colors.muted, fontSize: 14 },
   loginScreen: { flex: 1, backgroundColor: nexusTokens.colors.canvas },

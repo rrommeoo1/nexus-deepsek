@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import type { Conversation } from '../lib/socialTypes';
@@ -173,7 +174,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: '#050608',
   },
-  eyebrow: { color: '#80dcd9', fontSize: 10, letterSpacing: 2, fontWeight: '800' },
+  eyebrow: { color: blackSilver.silver, fontSize: 10, letterSpacing: 2, fontWeight: '800' },
   title: { color: '#f5f8fa', fontSize: 19, fontWeight: '800' },
   close: { position: 'absolute', right: 8, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   closeText: { color: '#ffffff', fontSize: 20, fontWeight: '800' },

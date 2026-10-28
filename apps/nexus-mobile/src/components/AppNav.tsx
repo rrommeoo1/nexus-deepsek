@@ -1,21 +1,33 @@
 import { Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
-import { NexusMark, type NavSlot } from './NexusMark';
-import { BrandLogo } from './BrandLogo';
+import Svg, { Circle, Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { NexusMark, PlusMark, type NavSlot } from './NexusMark';
+import { BrandAvatar } from './BrandAvatar';
 import type { MediaSource } from '../lib/socialTypes';
+import { blackSilver } from '../theme/blackSilver';
 import { jungle } from '../theme/jungle';
 import { socialTokens } from '../theme/social';
 
 /**
  * The bottom bar of the Social shell: seven marks in one shared pane of glass.
- * Geometry, colours and the create cell come from socialTokens, which transcribes the web CSS — the
- * bar is 60px + the device inset, the glass is the 50px `:before` starting 4px down and 6px in from each
- * side, and the six drawn marks are 32px discs inside it (feed-surface.css:1673-1689).
  *
- * The create cell is the product's mark alone: 54 dp, no ring, no disc, no gradient and no shadow behind
- * it (owner's rule, 17 October 2026). It keeps the wider share of the row and the label `Creează`, so the
- * touch target is exactly the button it was — only the paint is gone.
+ * Geometry comes from `socialTokens`, which transcribes the web CSS — the bar is 60px + the device inset,
+ * the glass is the 50px `:before` starting 4px down and 6px in from each side, and the six drawn marks are
+ * 32px discs inside it (feed-surface.css:1673-1689).
+ *
+ * Round 31 (owner, 31 October 2026): the bar is **matte black** — an opaque ramp from `#101113` to
+ * `#090A0B`, with one silver hairline along the glass and a neutral black shadow, where it used to be a
+ * green-black gradient with a green shadow. The marks are the metal: `jungle.navIdle` (`#A5A5A5`) for a
+ * closed place and `jungle.navActive` (`#E1E3E5`) for the open one, so the profile tab is no longer the
+ * banana it was. The account cell with no picture wears the JB fruit logo (`BrandAvatar`).
+ *
+ * The create cell is the one mark made of metal: a 52 dp circle painted with the palette's polish
+ * (`blackSilverPolish`: bright silver at the light, silver across the body, deep mercury at the foot),
+ * under a white bezel and a silver glow, with the plus drawn in **matte black** (`createGlyph`) — the
+ * strongest pair the palette owns, and the prominence the owner asked for („un argintiu puternic, cu un
+ * `+` închis"). The letters stay off the button (19 October 2026); the circle and the silver came back on
+ * the owner's word (20 October 2026). It keeps the wider share of the row and the label `Creează`, so the
+ * touch target is exactly the button it was.
  */
 export type AppNavProps = {
   active: NavSlot;
@@ -30,13 +42,37 @@ export type AppNavProps = {
 
 const slots: NavSlot[] = ['primary', 'inbox', 'search', 'create', 'friends', 'utility', 'account'];
 
+/**
+ * The bar's own height, in one place. `.appNav` is `padding-top + glass + max(padding-bottom, inset)`
+ * (feed-surface.css:1673-1677), and the shell reserves exactly this band: the floating bar, the feed's
+ * overlays and the reader's rail all measure it the same way, so a word never ends up behind the glass.
+ */
+export function appNavHeight(bottomInset: number): number {
+  const tokens = socialTokens.nav;
+  return tokens.paddingTop + tokens.glass.height + Math.max(tokens.paddingBottomMin, bottomInset);
+}
+
+/**
+ * That same band, for the pages that scroll behind the bar (round 10).
+ *
+ * The bar is permanent now, so it never steps out of the way: a list that ran under it would end with a
+ * row the reader could not see — or could not press. Every scrolling page therefore reserves
+ * `useNavReserve()` at the foot of its content and adds its own breathing room on top. The feed measures
+ * the same number by hand (`FeedScreen`) because it is paged, not scrolled; both read `appNavHeight`, so
+ * the bar and the pages cannot drift apart.
+ */
+export function useNavReserve(): number {
+  const insets = useSafeAreaInsets();
+  return appNavHeight(insets.bottom);
+}
+
 export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCount = 0, immersive = false }: AppNavProps) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const tokens = socialTokens.nav;
   const colors = socialTokens.colors;
   const inline = width <= 380 ? tokens.paddingInlineNarrow : tokens.paddingInline;
-  const barHeight = tokens.paddingTop + tokens.glass.height + Math.max(tokens.paddingBottomMin, insets.bottom);
+  const barHeight = appNavHeight(insets.bottom);
 
   return (
     <View accessibilityRole="toolbar" accessibilityLabel="navigation" style={[styles.bar, immersive && styles.immersiveBar, { height: barHeight, paddingHorizontal: inline }]}>
@@ -90,9 +126,12 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
               ]}
             >
               {create ? <CreateDisc /> : (
-                <View style={[styles.disc, selected && styles.discActive, slot === 'account' && avatarSource ? styles.discAvatar : null]}>
+                <View style={[styles.disc, selected && styles.discActive, slot === 'account' ? styles.discAvatar : null]}>
                   {slot === 'account' && avatarSource ? (
                     <Image source={avatarSource} style={styles.avatar} accessibilityIgnoresInvertColors />
+                  ) : slot === 'account' ? (
+                    /** No picture on this account: the disc wears the JB fruit logo, like every other face. */
+                    <BrandAvatar size={socialTokens.nav.disc.size - 4} />
                   ) : (
                     <NexusMark slot={slot} color={selected ? jungle.navActive : jungle.navIdle} />
                   )}
@@ -109,9 +148,48 @@ export function AppNav({ active, onSelect, onOpenCreate, avatarSource, unreadCou
   );
 }
 
-/** The create cell: the product's mark alone — no ring, no disc, no shadow behind it. */
+/**
+ * The create cell: the platinum circle and the plus it carries.
+ *
+ * It is drawn, not shipped as a picture, for the same reason the six other marks are: the metal is four
+ * stops the theme owns (`socialTokens.nav.create.polish`), so the disc cannot arrive half-sharpened on a
+ * device with a different pixel ratio, and the plus cannot change shape with the system font. The `Path`
+ * across the upper left is the bezel's specular — the hairline of light a polished disc has and a flat
+ * grey circle never does.
+ */
 function CreateDisc() {
-  return <BrandLogo variant="nav" />;
+  const disc = socialTokens.nav.create;
+  const colors = socialTokens.colors;
+  return (
+    <View style={styles.createDisc}>
+      <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 100 100">
+        <Defs>
+          <RadialGradient
+            id="nxCreatePolish"
+            cx={disc.polishCenter.x}
+            cy={disc.polishCenter.y}
+            r="78%"
+            fx={disc.polishCenter.x}
+            fy={disc.polishCenter.y}
+          >
+            {disc.polish.map((stop) => (
+              <Stop key={stop.offset} offset={stop.offset} stopColor={stop.color} />
+            ))}
+          </RadialGradient>
+        </Defs>
+        <Circle cx={50} cy={50} r={50} fill="url(#nxCreatePolish)" />
+        {/** The bezel's light: one arc on the upper left, where the gradient's own core sits. */}
+        <Path
+          d="M12 30 A 45 45 0 0 1 72 8"
+          fill="none"
+          stroke={disc.specular}
+          strokeWidth={1.6}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <PlusMark size={disc.glyphSize} color={colors.createGlyph} weight={disc.glyphStroke} />
+    </View>
+  );
 }
 
 const navLabels: Record<NavSlot, string> = {
@@ -198,11 +276,31 @@ const styles = StyleSheet.create({
   },
   /** `button[data-slot="account"] i` carries `overflow:hidden` so the picture is cut to the disc. */
   discAvatar: { overflow: 'hidden' },
-  /** `.appNav.social button.active:not(.createNav) i` — the open place, lit from within. */
+  /**
+   * `.appNav.social .createNav i` — the platinum disc: 52 dp, a 4 dp bezel, the plus painted in the
+   * disc's own ink and one white glow underneath. The metal is the SVG above (sharp at any density);
+   * `overflow: 'hidden'` keeps that drawing inside the round bezel on every device.
+   */
+  createDisc: {
+    width: socialTokens.nav.create.size,
+    height: socialTokens.nav.create.size,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: socialTokens.nav.create.radius,
+    borderWidth: socialTokens.nav.create.borderWidth,
+    borderColor: socialTokens.colors.createBorder,
+    backgroundColor: socialTokens.colors.createInk,
+    shadowColor: socialTokens.colors.createShadow,
+    shadowOpacity: 1,
+    shadowRadius: socialTokens.nav.create.glowRadius,
+    shadowOffset: { width: 0, height: 0 },
+    overflow: 'hidden',
+  },
+  /** `.appNav.social button.active:not(.createNav) i` — the open place, lit from within, in the metal. */
   discActive: {
     borderColor: jungle.borderStrong,
-    backgroundColor: 'rgba(139,208,74,0.12)',
-    shadowColor: 'rgba(139,208,74,0.34)',
+    backgroundColor: blackSilver.washStrong,
+    shadowColor: blackSilver.hairlineStrong,
     shadowOpacity: 1,
     shadowRadius: 11,
     shadowOffset: { width: 0, height: 0 },

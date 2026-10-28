@@ -13,8 +13,23 @@
 import { readEditorialDocument, type EditorialDocument } from './editorialDocument';
 
 export type TextThemeId = 'jungle' | 'paper' | 'midnight' | 'ember' | 'moss' | 'ink';
-export type TextFontId = 'serif' | 'sans' | 'mono';
-export type TextSizeId = 'small' | 'medium' | 'large';
+/**
+ * The faces a page can be set in.
+ *
+ * `serif`, `sans` and `mono` are the three the composer offered since the first page. The three added in
+ * the text-integrity round were checked against `/system/etc/fonts.xml` on the owner's Xiaomi before
+ * being offered: every one of them resolves to a *different* typeface on the phone, so a menu entry is a
+ * face the author can see and not a synonym of another:
+ *
+ * - `slab` — `serif-monospace` (Noto Serif Mono): a typewriter, wide and even;
+ * - `casual` — `casual` (CommingSoon): the hand-written face, for a note rather than an article;
+ * - `condensed` — `sans-serif-condensed` (Roboto Condensed): narrower letters, more words per line.
+ *
+ * A family the phone does not have falls back to its own default (see `fontFamilyFor`), so an old Android
+ * draws the page in its reading face instead of drawing nothing.
+ */
+export type TextFontId = 'serif' | 'sans' | 'mono' | 'slab' | 'casual' | 'condensed';
+export type TextSizeId = 'small' | 'medium' | 'large' | 'xlarge';
 export type TextAlignId = 'left' | 'center';
 export type TextPlatform = 'ios' | 'android' | 'web' | 'default';
 
@@ -73,8 +88,8 @@ export type TextPagePalette = {
 };
 
 export const TEXT_THEME_IDS: readonly TextThemeId[] = ['jungle', 'paper', 'midnight', 'ember', 'moss', 'ink'];
-export const TEXT_FONT_IDS: readonly TextFontId[] = ['serif', 'sans', 'mono'];
-export const TEXT_SIZE_IDS: readonly TextSizeId[] = ['small', 'medium', 'large'];
+export const TEXT_FONT_IDS: readonly TextFontId[] = ['serif', 'sans', 'mono', 'slab', 'casual', 'condensed'];
+export const TEXT_SIZE_IDS: readonly TextSizeId[] = ['small', 'medium', 'large', 'xlarge'];
 export const TEXT_ALIGN_IDS: readonly TextAlignId[] = ['left', 'center'];
 
 /** The editor's own cap on a text post (`POST /api/posts` keeps the same ceiling for a text page). */
@@ -121,13 +136,30 @@ export const TEXT_FONTS: readonly { id: TextFontId; label: string }[] = [
   { id: 'serif', label: 'Serif' },
   { id: 'sans', label: 'Sans' },
   { id: 'mono', label: 'Mono' },
+  { id: 'slab', label: 'Mașină' },
+  { id: 'casual', label: 'De mână' },
+  { id: 'condensed', label: 'Îngust' },
 ];
 
-/** `size` is the measure of the 9:16 page: a small one, the reference one and a poster one. */
+/**
+ * `size` is the measure of the 9:16 page: a small one, the reference one and a poster one.
+ *
+ * Each size is 5–8 % smaller than it was until 29 October 2026 (owner: „textul e prea mare, vreau mai
+ * compact, dar să rămână lizibil"), and every line height is tighter by the same step, because a page of
+ * words is read as an article and not as a caption: on the owner's 469 dp phone the reference page used to
+ * set 24 dp type on 34 dp lines (1.42) and now sets 22 dp on 31 dp (1.41) — 9 % more words per line at the
+ * same measure, and a page that reads denser without losing its air. The pagination is computed from these
+ * numbers (`editorialFlow`), so a page re-flowed at the new size is still one page per screen.
+ */
 export const TEXT_SIZES: readonly { id: TextSizeId; label: string; fontSize: number; lineHeight: number }[] = [
-  { id: 'small', label: 'Mic', fontSize: 20, lineHeight: 30 },
-  { id: 'medium', label: 'Mediu', fontSize: 24, lineHeight: 34 },
-  { id: 'large', label: 'Mare', fontSize: 30, lineHeight: 42 },
+  { id: 'small', label: 'Mic', fontSize: 19, lineHeight: 28 },
+  { id: 'medium', label: 'Mediu', fontSize: 22, lineHeight: 31 },
+  { id: 'large', label: 'Mare', fontSize: 28, lineHeight: 39 },
+  /**
+   * The poster step (text-integrity round). It keeps the same leading ratio as the other three (1.38),
+   * because a bigger page is still a page and not a headline with the lines pushed together.
+   */
+  { id: 'xlarge', label: 'Foarte mare', fontSize: 34, lineHeight: 47 },
 ];
 
 export const TEXT_ALIGNS: readonly { id: TextAlignId; label: string }[] = [
@@ -135,11 +167,125 @@ export const TEXT_ALIGNS: readonly { id: TextAlignId; label: string }[] = [
   { id: 'center', label: 'Centru' },
 ];
 
-/** The emoji the composer offers above the keyboard; the picker never reaches the network. */
-export const TEXT_EMOJI: readonly string[] = [
-  '🌿', '🌱', '🍃', '🌳', '🐅', '🐘', '🐍', '🦜', '🌞', '🌙', '✨', '🔥', '💧', '🌊', '🏔️', '🧭',
-  '❤️', '👏', '🙌', '💬', '📖', '✍️', '📷', '🎧', '☕', '🍯', '🥭', '🌶️', '🪶', '🧡', '💚', '🖤',
+/**
+ * The emoji the composer offers above the keyboard, in the groups the picker shows.
+ *
+ * Lifted from a row above one small input into a real picker in the text-integrity round. The set is
+ * *local*: no network, no dependency (`rn-emoji-keyboard` was checked and is not in the manifest, and a
+ * picker that fetches a font or a list is a picker that stops working on a bad connection). Every
+ * sequence here is drawn by the system font on both platforms, which is why emoji carrying a skin tone or
+ * a zero-width-joiner family are left out — they are the ones phones disagree about.
+ */
+export const TEXT_EMOJI_GROUPS: readonly { id: string; label: string; emoji: readonly string[] }[] = [
+  {
+    id: 'chipuri',
+    label: 'Chipuri',
+    emoji: [
+      '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🙂', '🙃', '😉', '😊',
+      '😇', '🥰', '😍', '🤩', '😘', '😋', '😛', '😜', '🤪', '🤨', '🧐', '🤓',
+      '😎', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫',
+      '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤯', '😳', '🥵', '🥶', '😱',
+      '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😬',
+      '🙄', '😯', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢',
+      '🤮', '🤧', '😷', '🤒', '🤕', '🤠', '😈', '💩', '👻', '💀', '👽', '🤖',
+    ],
+  },
+  {
+    id: 'gesturi',
+    label: 'Gesturi',
+    emoji: [
+      '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘',
+      '🤙', '👈', '👉', '👆', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜',
+      '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🫂', '👀',
+      '👁️', '👄', '👂', '👃', '🧠', '🫀', '🦷', '🦴', '👶', '🧒', '🧓', '👴',
+    ],
+  },
+  {
+    id: 'animale',
+    label: 'Animale',
+    emoji: [
+      '🐅', '🐆', '🐘', '🦏', '🦛', '🐊', '🐍', '🦎', '🐢', '🦜', '🦚', '🦩',
+      '🦉', '🦅', '🐒', '🦍', '🦧', '🐐', '🦌', '🐃', '🐎', '🐏', '🦙', '🐕',
+      '🐈', '🐇', '🦇', '🦔', '🦦', '🦥', '🐌', '🐛', '🦗', '🐝', '🐞', '🐜',
+      '🦋', '🕷️', '🐟', '🐠', '🐡', '🦈', '🐬', '🐳', '🦭', '🐙', '🦐', '🦞',
+      '🦀', '🐚', '🐸', '🪶',
+    ],
+  },
+  {
+    id: 'plante',
+    label: 'Plante',
+    emoji: [
+      '🌿', '🌱', '🍃', '🍂', '🍁', '🌳', '🌲', '🪵', '🌴', '🌵', '🌾', '🌺',
+      '🌻', '🌹', '🌷', '🪷', '🌸', '💐', '🍄', '🪴', '🍀', '☘️', '🪻', '🌼',
+    ],
+  },
+  {
+    id: 'cer',
+    label: 'Cer și foc',
+    emoji: [
+      '🌞', '🌝', '🌚', '🌙', '⭐', '🌟', '💫', '✨', '⚡', '🔥', '💥', '☄️',
+      '🌈', '☀️', '🌤️', '⛅', '☁️', '🌧️', '⛈️', '🌨️', '❄️', '⛄', '💨', '💧',
+      '💦', '🌊', '🫧', '☔',
+    ],
+  },
+  {
+    id: 'mancare',
+    label: 'Mâncare',
+    emoji: [
+      '☕', '🍵', '🧉', '🥤', '🧃', '🍯', '🥭', '🍌', '🍎', '🍐', '🍊', '🍋',
+      '🍉', '🍇', '🍓', '🍒', '🍑', '🥝', '🍅', '🥑', '🥦', '🥬', '🥒', '🌶️',
+      '🌽', '🥕', '🍆', '🥔', '🥜', '🍞', '🥐', '🥖', '🥨', '🧀', '🥚', '🍳',
+      '🥞', '🥓', '🍗', '🌭', '🍔', '🍟', '🍕', '🌮', '🍝', '🍜', '🍲', '🥗',
+      '🍿', '🥫',
+    ],
+  },
+  {
+    id: 'obiecte',
+    label: 'Obiecte',
+    emoji: [
+      '📖', '📚', '📕', '📗', '📘', '📙', '📓', '📒', '📝', '✏️', '🖊️', '🖋️',
+      '🖌️', '🖍️', '📷', '📸', '📹', '🎥', '🎬', '🎧', '🎤', '🎼', '🎵', '🎶',
+      '🎹', '🥁', '🎸', '🎺', '🎻', '🧭', '🔭', '🔬', '🧪', '🪔', '🕯️', '🔦',
+      '📱', '💻', '⌨️', '🖥️', '🖨️', '💾', '💿', '📀', '📺', '📻', '⏰', '⌛',
+      '🔑', '🗝️', '🛠️', '🔧', '🔨', '🪓', '⛏️', '🔩', '⚙️', '🧵', '🧶', '🧲',
+    ],
+  },
+  {
+    id: 'semne',
+    label: 'Semne',
+    emoji: [
+      '❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '💔', '❣️', '💕',
+      '💞', '💓', '💗', '💖', '💘', '💝', '💟', '☮️', '☯️', '🕉️', '☸️', '✡️',
+      '💬', '🗯️', '💭', '✅', '❌', '❗', '❓', '💯', '🔴', '🟠', '🟡', '🟢',
+      '🔵', '🟣', '⚫', '⚪',
+    ],
+  },
 ];
+
+/**
+ * Every emoji of the picker, once, in the order the groups show them.
+ *
+ * Deduplicated: the flat list is what a caller searches and what the tests count, and a pictograph that
+ * appears in two groups (a butterfly is an animal *and* a sign of spring) would otherwise be offered twice
+ * under two tabs and would make „how many emoji does the picker have" two different numbers.
+ */
+export const TEXT_EMOJI: readonly string[] = Array.from(
+  new Set(TEXT_EMOJI_GROUPS.flatMap((group) => group.emoji)),
+);
+
+/**
+ * The colour the system paints behind selected text, and the handle it draws at each end.
+ *
+ * The owner, 29 octombrie 2026: „când selectez text apare verde" — the wash came from the Android theme,
+ * whose `colorControlHighlight` is the brand mark `#2f5d45`, and a dark green rectangle under dark ink is
+ * unreadable. A selection is not a brand surface: it has to keep the letters visible and it is not a
+ * gesture cue. This azure keeps the page's dark ink at ~8:1 against the wash (AA at any size) and is
+ * deliberately a different hue from every texture of the paper, so nobody mistakes one for the other.
+ *
+ * The *native* selection is kept — handles, magnifier, Copy/Cut/Paste — because a hand-built selection
+ * loses the platform's own gestures; only its colour is chosen here (`selectionColor` on the field).
+ */
+export const TEXT_SELECTION_COLOR = '#7fc4f0';
 
 const COLOR = /^#[0-9a-f]{6}$/i;
 
@@ -377,11 +523,56 @@ export function pagePaletteOf(style?: Pick<TextStyle, 'theme'> | null): TextPage
   return { background: paper.background, text: paper.text, mark: paper.accent, accent: chosen.accent };
 }
 
-/** The platform's own face for a family; `undefined` lets the system pick its reading face. */
+/**
+ * The platform's own face for a family; `undefined` lets the system pick its reading face.
+ *
+ * The Android names are the *generic* families of the platform, resolved through `/system/etc/fonts.xml`
+ * — never a font file name, because a file name that a later Android renames turns a page into tofu.
+ * `serif-monospace`, `casual` and `sans-serif-condensed` are the three the owner's phone really draws
+ * differently from `serif`/`sans`/`mono` (checked on the Xiaomi MIX Flip in this round).
+ */
 export function fontFamilyFor(font: TextFontId, platform: string): string | undefined {
-  if (font === 'serif') return platform === 'ios' ? 'Georgia' : platform === 'android' ? 'serif' : platform === 'web' ? 'Georgia, serif' : undefined;
-  if (font === 'mono') return platform === 'ios' ? 'Menlo' : platform === 'android' ? 'monospace' : platform === 'web' ? 'ui-monospace, monospace' : undefined;
-  return platform === 'ios' ? 'System' : platform === 'android' ? 'sans-serif' : undefined;
+  const family: Record<TextFontId, { ios: string; android: string; web?: string }> = {
+    serif: { ios: 'Georgia', android: 'serif', web: 'Georgia, serif' },
+    mono: { ios: 'Menlo', android: 'monospace', web: 'ui-monospace, monospace' },
+    sans: { ios: 'System', android: 'sans-serif' },
+    slab: { ios: 'Courier New', android: 'serif-monospace', web: 'Courier New, ui-monospace, monospace' },
+    casual: { ios: 'Marker Felt', android: 'casual', web: 'Comic Sans MS, cursive' },
+    condensed: { ios: 'AvenirNextCondensed-Medium', android: 'sans-serif-condensed', web: 'Arial Narrow, sans-serif' },
+  };
+  const entry = family[font] ?? family.serif;
+  if (platform === 'ios') return entry.ios;
+  if (platform === 'android') return entry.android;
+  if (platform === 'web') return entry.web;
+  return undefined;
+}
+
+/**
+ * The **metric** face a page is laid out with, which is not the face it is drawn in.
+ *
+ * `lib/fontMetrics.ts` carries the real advances of three font files read off the phone (Noto Serif, the
+ * sans pair, DroidSansMono), and the flow (`lib/editorialFlow.ts`) measures every line with them. The three
+ * faces added in the text-integrity round have no tables of their own, so each is measured with the closest
+ * table it has — and always with the **wider** one, because the model must never promise a line more room
+ * than its glyphs take:
+ *
+ * - `slab` is Noto Serif Mono, a constant advance like `mono`'s;
+ * - `casual` is CommingSoon, wide and round: measured with `serif`, the widest proportional table;
+ * - `condensed` is Roboto Condensed, narrower than anything tabled: also measured with `serif`, so its lines
+ *   break a little early rather than losing their last word off the page.
+ *
+ * A wrong guess in this direction costs a word on the next line; the other direction costs a clipped word.
+ */
+export function metricFaceFor(font: TextFontId): 'serif' | 'sans' | 'mono' {
+  const face: Record<TextFontId, 'serif' | 'sans' | 'mono'> = {
+    serif: 'serif',
+    mono: 'mono',
+    sans: 'sans',
+    slab: 'mono',
+    casual: 'serif',
+    condensed: 'serif',
+  };
+  return face[font] ?? 'serif';
 }
 
 /** WCAG relative luminance of `#rrggbb`, used by the composer to keep every pair readable. */

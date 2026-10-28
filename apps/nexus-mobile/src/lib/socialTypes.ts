@@ -3,6 +3,7 @@ import { mediaUrl } from './nexusApi';
 import { mediaHeaders } from './session';
 import type { StudioManifest } from './studioManifest';
 import type { TextStyle } from './textStyle';
+import type { ContentProvenance } from './publishClient';
 
 /**
  * The shapes the existing endpoints answer with. They are read from apps/nexus-web/lib/api.js
@@ -63,6 +64,16 @@ export type SocialPost = {
    * Absent on every post that never chose one, so the reader's own composition still applies.
    */
   text_style?: TextStyle | null;
+  /**
+   * The author's own declaration about how the post was made — `provenance` of `socialPostView`
+   * (`lib/api.js`), one of `CONTENT_PROVENANCE` (`lib/moderation.js`). It is a *declaration*, not a
+   * verification: the server stores what the author chose and never greps a picture to confirm it.
+   *
+   * The composer has always sent it, and it was always in this payload; until round 33 nothing on the
+   * reading side drew it, so a post declared „Asistat de AI" looked exactly like an undeclared one.
+   * `NOT_DECLARED` (the default, and what every legacy post carries) is drawn as nothing at all.
+   */
+  provenance?: ContentProvenance | string | null;
   user_id?: number;
   persona?: string;
   kind?: string;
@@ -394,6 +405,18 @@ export const REACTION_PICKER_GLYPHS: Record<string, string> = {
  * plate, because the ring that used to carry "on" was removed with it.
  */
 export const REACTION_EMPTY_HEART = '\u{1F90D}';
+
+/**
+ * The same empty heart on a page of **words** (owner, 28 October 2026).
+ *
+ * The owner refused the plate the silver-and-graphite round had put *behind* the reaction's emoji: „fără
+ * fundal în spatele emoji-urilor". Without that plate the white heart is a white shape on cream paper, so
+ * the pair of the material decides which heart an untouched press prints — graphite on paper, silver at
+ * night — and an emoji carries its own colour, which is why the press needs no background at all. It stays
+ * the *empty* heart: not `LOVE`'s red and not `LIKE`'s thumb, so a like that has just been taken back is
+ * still unmistakable.
+ */
+export const REACTION_EMPTY_HEART_ON_PAPER = '\u{1F5A4}';
 
 /**
  * `reactionSummary()` of the web (`app.js:3579-3595`): the counts ranked, the total, and the two or

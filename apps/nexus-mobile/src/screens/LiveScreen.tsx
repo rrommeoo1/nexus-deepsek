@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
+import { useNavReserve } from '../components/AppNav';
 import { RemoteImageSource } from '../components/PostMedia';
 import { RelationButton } from '../components/RelationButton';
+import { BrandAvatar } from '../components/BrandAvatar';
 import { rememberPayload, useRelation } from '../lib/relations';
-import { compactCount, initialsFor, mediaSourceForPath, type LivePage, type LiveSession } from '../lib/socialTypes';
+import { compactCount, mediaSourceForPath, type LivePage, type LiveSession } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 import { openSocialProfile } from '../lib/profileNavigation';
 
@@ -17,6 +20,7 @@ const describe = (cause: unknown) => (cause instanceof Error ? cause.message : '
  * be watched. The screen prints that reason verbatim instead of showing a player that would show black.
  */
 export function LiveScreen() {
+  const navReserve = useNavReserve();
   const [page, setPage] = useState<LivePage | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -64,7 +68,7 @@ export function LiveScreen() {
   return (
     <ScrollView
       style={styles.screen}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingBottom: navReserve + 14 }]}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={socialTokens.colors.white} />}
     >
       {transport && transport.public_broadcast !== true ? (
@@ -97,7 +101,7 @@ function LiveRow({ session, viewers, followersLabel = false }: { session: LiveSe
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${session.handle}`} onPress={() => openSocialProfile(session.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-        {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, session.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={42} /> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${session.handle}`} onPress={() => openSocialProfile(session.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -119,12 +123,12 @@ function LiveRow({ session, viewers, followersLabel = false }: { session: LiveSe
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#000000' },
-  content: { padding: 14, gap: 10 },
+  content: { paddingTop: 14, paddingHorizontal: 14, gap: 10 },
   gate: { color: socialTokens.colors.muted, fontSize: 12, lineHeight: 18 },
   sectionTitle: { color: socialTokens.colors.white, fontSize: 13, fontWeight: '800', textTransform: 'uppercase', marginTop: 8 },
   empty: { color: socialTokens.colors.muted, fontSize: 13 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#111820', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: blackSilver.graphite, alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: socialTokens.colors.text, fontSize: 14, fontWeight: '800' },
   rowText: { flex: 1, minWidth: 0 },

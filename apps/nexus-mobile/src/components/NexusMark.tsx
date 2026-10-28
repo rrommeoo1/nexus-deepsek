@@ -49,6 +49,35 @@ export function NexusMark({ slot, size = socialTokens.nav.icon.size as number, c
   );
 }
 
+/**
+ * `nav-marks.js:18` — `if (slot === "create") return "+";`. The web prints the create cell as a text
+ * plus; here it is drawn, so its stroke matches the six marks beside it and its shape cannot change with
+ * the device's font.
+ *
+ * The cell used to carry the brand's letters, and the owner asked for them to leave the button
+ * (19 October 2026). The letters never came back; the circle did: on 20 October 2026 the owner asked for
+ * the plus to stand on a circle again, with the silver of the first build behind it — "adaugă pe butonul
+ * + un cerc, iar pe fundal un silver metalizat, platinat cum a fost înainte". So the plus is drawn *on*
+ * the platinum disc (`AppNav` → `CreateDisc`), where it needs a heavier stroke than a mark on glass:
+ * hence `weight`.
+ */
+export function PlusMark({
+  size = socialTokens.nav.create.glyphSize as number,
+  color = socialTokens.colors.white,
+  weight,
+}: {
+  size?: number; color?: string;
+  /** The stroke, in viewBox units, when the surface knows better than the mark's own ratio. */
+  weight?: number;
+}) {
+  const strokeWidth = weight ?? socialTokens.nav.icon.strokeWidth * (size / socialTokens.nav.icon.size);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path d="M12 5v14M5 12h14" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
 /** `FEED_ICONS.close` — the way out of the drawer. */
 export function CloseMark({ size = socialTokens.feedHeader.iconButton.iconSize as number, color = socialTokens.colors.white }: { size?: number; color?: string }) {
   return (

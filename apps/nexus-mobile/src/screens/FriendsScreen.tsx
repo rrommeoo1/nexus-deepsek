@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
+import { useNavReserve } from '../components/AppNav';
 import { RemoteImageSource } from '../components/PostMedia';
 import {
   decideFollowRequest, relationErrorMessage, relationsSnapshot, remember, rememberPayload,
@@ -8,9 +10,10 @@ import {
 } from '../lib/relations';
 import { RelationButton } from '../components/RelationButton';
 import {
-  initialsFor, mediaSourceForPath, relativeTime,
+  mediaSourceForPath, relativeTime,
   type FollowRequest, type FollowRequestsPage, type RelationPerson, type RelationsPage,
 } from '../lib/socialTypes';
+import { BrandAvatar } from '../components/BrandAvatar';
 import { socialTokens } from '../theme/social';
 import { openSocialProfile } from '../lib/profileNavigation';
 
@@ -38,6 +41,7 @@ const describe = (cause: unknown) => (cause instanceof Error ? cause.message : '
  * before it shows the sheet), so the host hands the screen the reading instead of the screen guessing one.
  */
 export function FriendsScreen({ initialTab = 'requests' }: { initialTab?: TabId } = {}) {
+  const navReserve = useNavReserve();
   const [tab, setTab] = useState<TabId>(initialTab);
   const [requests, setRequests] = useState<FollowRequest[] | null>(null);
   const [people, setPeople] = useState<RelationPerson[] | null>(null);
@@ -158,7 +162,7 @@ export function FriendsScreen({ initialTab = 'requests' }: { initialTab?: TabId 
         <FlatList<RelationPerson | FollowRequest>
           data={rows}
           keyExtractor={(row) => String('id' in row ? row.id : row.user_id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: navReserve + 10 }]}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refreshTab} tintColor={socialTokens.colors.white} />}
           ListEmptyComponent={<Text style={styles.empty}>{tab === 'requests' ? 'Nicio cerere în așteptare.' : 'Nimeni aici încă.'}</Text>}
           renderItem={({ item }) => (tab === 'requests'
@@ -181,7 +185,7 @@ function RequestRow({ request, busy, onDecide }: {
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${request.handle}`} onPress={() => openSocialProfile(request.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-        {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, request.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={42} /> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${request.handle}`} onPress={() => openSocialProfile(request.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -209,7 +213,7 @@ function PersonRow({ person }: { person: RelationPerson }) {
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-        {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, person.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={42} /> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.rowText}>
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -231,9 +235,9 @@ const styles = StyleSheet.create({
   tabText: { color: 'rgba(255,255,255,0.62)', fontSize: 12, fontWeight: '700' },
   tabActive: { color: socialTokens.colors.white },
   notice: { color: socialTokens.colors.muted, fontSize: 12, paddingHorizontal: 14, paddingTop: 10 },
-  list: { paddingVertical: 10 },
+  list: { paddingTop: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10 },
-  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: '#111820', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 44, height: 44, borderRadius: 22, overflow: 'hidden', backgroundColor: blackSilver.graphite, alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: socialTokens.colors.text, fontSize: 14, fontWeight: '800' },
   rowText: { flex: 1, minWidth: 0 },

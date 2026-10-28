@@ -2875,3 +2875,1426 @@ numit de 1,5 ori prea lenți, iar 36 / 1,5 = 24.
 2. **Pagina veche (fără document)** păstrează coloana: `PostTextReading` taie textul pe caractere și nu
    poate reîmpacheta un rând, deci cuvintele ar intra sub butoane. O pagină scrisă în editor are flux și
    scapă de coloană; una de dinainte de documente nu are cum.
+
+
+## 26. Ce a refuzat ownerul a doua zi: pastila din spatele emoji-ului și lățimea paginii (28 octombrie 2026)
+
+### 26.1 Punctul de plecare
+
+- `HEAD` = `6fd70c5`; peste el stătea, necommis, runda argintiu-grafit (materialul celor șase butoane,
+  documentată în `apps/nexus-mobile/MIGRATION.md` §25). Runda asta nu rescrie nimic din ea: corectează două
+  lucruri pe care ownerul le-a citit pe telefon a doua zi.
+- Telefonul: Xiaomi 25098PN5AC, `192.168.1.184:39097`, 1220×2656px la densitatea 416 (override) = **469dp
+  lățime**. Metro pe 8081 și backend-ul pe 5000 rulau; aplicația a fost adusă în față cu
+  `am start -n app.nexus.mobile.dev/.MainActivity` (mecanismul normal), nu cu alt build.
+
+### 26.2 Ce s-a dovedit stricat, cu cauza
+
+1. **Pastila din spatele emoji-ului.** Nu era o moștenire veche: runda de argintiu-grafit dăduse like-ului
+   exact placa celorlalte patru apăsări (`railPaper`/`railNight` + `…On`, în `ReactionControl`). Ownerul a
+   refuzat fundalul, nu emoji-ul.
+2. **Lățimea paginii de cuvinte.** Două cauze suprapuse, amândouă măsurate pe ecran:
+   `EditorialPage` compunea cu **o singură** margine (`Math.max(18, round(width * 0.072))`, 32dp la 441dp),
+   iar `PostCanvas` adaugă peste ea paddingul paginii (14dp) → **46dp de hârtie goală pe fiecare latură**
+   (textul începea la 119px și se termina la 1102px, adică 45,8 / 45,4dp, pe un ecran de 469dp);
+   iar coloana veche (`wordPageGutter`) ținea 72dp *în interiorul* paddingului de 14dp, deci un text fără
+   document se oprea la 383dp, cu 20dp înainte de marginea stângă a barei (403dp).
+
+### 26.3 Ce s-a schimbat
+
+1. **Emoji-ul fără placă** — `ReactionControl` a pierdut `railPaper`, `railPaperOn`, `railNight`,
+   `railNightOn`; celula rămâne 56×56 cu discul de 36×39 și contorul. Starea reacției este glifa, nu o a
+   doua placă: inima goală la o apăsare neatinsă, fața aleasă altfel. Fiindcă inima albă nu se vede pe cremă,
+   inima goală urmează terenul — `REACTION_EMPTY_HEART` (🤍) noaptea, `REACTION_EMPTY_HEART_ON_PAPER` (🖤) pe
+   hârtie (`lib/socialTypes.ts`). Comentariul, salvarea, distribuirea, `Urmărește` și `Editează profilul`
+   păstrează materialul neschimbat.
+2. **Pagina are două margini** — `lib/editorialFlow.ts` primește `marginLeft`/`marginRight` (`marginX` rămâne
+   marginea din stânga pentru cine îl citea simetric), `EditorialPage` le calculează o dată: cu bară, stânga
+   `max(12, 3.2 %)` (14dp la 441dp) și dreapta `RAIL_LINE_AIR` (6dp); fără bară (compozitorul), simetric ca
+   înainte. `lib/textPage.ts` are acum `RAIL_LINE_AIR` ca un singur număr (intră în `TEXT_PAGE_RAIL_GUTTER`,
+   în înălțimea rezervei și în marginea din dreapta a paginii citite).
+3. **Coloana veche se scade din padding** — `wordPageGutter(metricsGutter, wordPage, padH)` întoarce
+   `TEXT_PAGE_RAIL_GUTTER - padH` (58dp), exact dreptunghiul pe care `wordPageRailReserve` îl taie din flux;
+   `PostCanvas` îi dă `metrics.padH`. O fotografie sau un clip nu primesc paddingul peste colțura lor.
+
+
+### 26.4 Ce s-a măsurat pe telefon (uiautomator, nu impresii)
+
+Pagina articolului `[36,316][1184,2226]`, celula reacției `[1048,1727][1194,1873]` (146×146px = 56×56dp),
+comentariu `[1048,1878][1194,2023]`, salvare `[1048,2029][1194,2174]`, distribuire `[1048,2179][1194,2325]`.
+
+| Ce | Înainte | Acum |
+|---|---|---|
+| marginea stângă a textului | 119px = 45,8dp | **72px = 27,7dp** |
+| marginea dreaptă (deasupra butoanelor) | 1102px = 423,8dp | **1168px = 449,2dp** |
+| rândurile care ating bara | se opreau la 1019px | se opresc la 1032px (397dp), 6dp înainte de bară |
+| măsura fluxului | 378dp | **422dp** |
+
+Pe cele patru documente reale din baza vie (`C:\Nexus\data\nexus.sqlite`, postările 46, 45, 44, 43), rulate
+prin motor cu pagina de 441,5×734,6dp: aceleași cuvinte, același număr de pagini (2/4/2/2), fotografiile pe
+aceleași pagini, `overflow` neschimbat. Pagina 1 a postării 44 lasă hârtie goală sub text pentru că fotografia
+ei se mută pe pagina 2 — la fel se întâmpla și înainte de rundă, nu e o regresie a măsurii.
+
+### 26.5 Ce s-a dovedit, rulat
+
+- `npm test` în `apps/nexus-mobile`: **42 de scripturi, 393 de cazuri, `fail 0`**.
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`: curat.
+- Teste noi: `test-text-page.cjs` — „pagina citită are o margine de citit și un singur aer până la bară"
+  (marginea din dreapta este `RAIL_LINE_AIR`, pagina fără bară rămâne simetrică) și cazul coloanei vechi
+  (`wordPageGutter(…, padH)` = lățimea rezervei, nu 72dp); `test-editorial-document.cjs` — „măsura paginii
+  are două margini" (pe motor: niciun rând nu trece de marginea din dreapta, niciunul nu intră în dreptunghiul
+  barei, rândurile de deasupra urcă până la marginea mică, pagina fără bară compune la fel ca înainte);
+  `test-feed-rail.cjs` — celula reacției nu mai poartă nicio placă (`railPlate`/`railPaper:`/`railNight:`
+  absente), ținta de 56×56 rămâne, inima goală urmează terenul, iar celelalte trei apăsări își păstrează
+  `ground`/`groundOn`.
+- Pe telefon: paleta se deschide la ținere (`input motionevent DOWN` pe celula reacției) și numele emoji-ului
+  de sub deget urmează degetul (`Love` → `Furios`); deplasarea în afara pastilei și eliberarea **închid panoul
+  fără să scrie nimic** (`post_reactions` pentru postarea 39 a rămas gol, total 13 reacții ca înainte); inima
+  goală de pe hârtie se citește `U+1F5A4` (🖤), iar cea de pe paginile fără document `U+1F90D` (🤍).
+
+### 26.6 Ce rămâne deschis (spus pe față)
+
+1. **Culoarea nu poate fi citită de mine.** Nu deschid capturi ADB (unealta de imagine a refuzat mereu
+   fișierele), deci „nu mai are fundal" este dovedit prin cod, prin token și prin test, nu prin ochi: placa,
+   muchia și colțul au dispărut din acea celulă, iar emoji-ul e un text direct pe pagină. Verdictul vizual
+   rămâne al ownerului.
+2. **Mărirea emoji-ului nu se citește din ierarhie.** `uiautomator` raportează noduri, nu transformări: am
+   dovedit că pastila se deschide și că celula de sub deget se schimbă odată cu degetul, dar scara de 1,72×
+   rămâne o afirmație a codului (`PICKER_GROW`) plus testul paletei, nu o măsurătoare pe ecran.
+3. **Trimiterea unei reacții noi nu a fost exersată pe telefon**, ca să nu ating conținutul real: potrivirea
+   glifă ↔ reacție trimisă a fost citită din datele existente (postarea 44 are `WOW` în bază și 😮 pe placă).
+4. **Pagina fără document** (text vechi) nu are flux, deci nu poate reîmpacheta un rând: i-am dat doar
+   dreptunghiul corect al barei (58dp în loc de 72dp), nu camera pe înălțime. Nu există în baza vie o
+   postare de cuvinte fără document ca s-o măsor pe ecran; regula e ținută de test.
+5. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul
+   `npm test`, are nevoie de `apps/nexus-web/public/profile-ticker.js`).
+## 27. A treia zi: măsura din fontul telefonului, toate patru butoane fără plăci, lipitul în compozitor (29 octombrie 2026)
+
+### 27.1 Punctul de plecare (trei propoziții de la owner)
+
+1. „Textul e prea mare și se termină rândurile prea devreme, deși mai aveau loc" — coloana părea îngustă și cu
+   spațiu gol în dreapta.
+2. „Comentariul, salvarea și distribuirea au încă fundal" — runda §26 scosese placa doar de sub reacție.
+3. „Apăs lung pe text, dar Paste nu apare" — textul copiat din Chrome nu putea fi lipit în compozitor.
+
+### 27.2 Ce s-a dovedit stricat, cu cauza
+
+1. **Măsura nu era a fontului.** `lib/editorialFlow.ts` decide unde se rupe un rând **înainte** ca React Native
+   să deseneze ceva, dintr-un tabel scris de mână („o literă mică ≈ 0,54 din corp", ×1,035 la final). Citit din
+   `NotoSerif-Regular.ttf` de pe telefon, tabelul acela ieșea cu **2–9 % mai lat** decât fontul real: fiecare
+   rând se rupea cu un cuvânt mai devreme, iar hârtia rămasă la capăt era exact „spațiul gol" reclamat. Rândul
+   întâi al postării 46: model 362,2dp, desenat 354,2dp.
+2. **Trei din patru apăsări mai purtau placa.** `PostRail` aplica `styles.groundPaper`/`groundNight` pe celula
+   de 56×56 a comentariului, salvării și distribuirii, iar starea „luată" era placa întoarsă (`groundOn`).
+3. **Compozitorul nu avea niciun câmp sub deget.** Pagina de cuvinte este desenată de flux ca rânduri așezate
+   absolut, deci un `Pressable` de rând primea apăsarea; singurul `TextInput` al componentei era cel de 1×1px,
+   ascuns (`styles.hiddenInput`), cu care vorbește doar tastatura. Un `Pressable` nu are selecție, mânere și
+   meniu de clipboard — de aceea Paste nu apărea niciodată.
+
+### 27.3 Ce s-a schimbat (fișiere și de ce)
+
+1. **`lib/fontMetrics.ts` (nou).** Avansul real al fiecărui caracter, citit din fișierele de font ale
+   telefonului (`cmap` → glifă, `hmtx` → avans, ÷ `unitsPerEm`), în miimi din corp, **rotunjit în sus**, plus
+   `LINE_SAFETY` de 1,5 % și clase de siguranță (emoji 1,28; CJK 1; necunoscut 0,8). Tabele: serif regular +
+   serif bold (`NotoSerif-*.ttf`), sans = max(MiSans, Roboto) fiindcă `sans-serif` poate fi oricare dintre ele,
+   mono = 0,601 (`DroidSansMono`). `editorialFlow.measureTextWidth` deleagă acum la el, deci tot motorul
+   (rupere de rând, rupere de cuvânt lung, poziția cursorului) folosește aceeași măsură.
+2. **`lib/textStyle.ts`.** `TEXT_SIZES`: `19/28`, `22/31`, `28/39` — cu 5–8 % mai mic și cu interlinierea
+   strânsă cu aceeași măsură. Pagina citită, compozitorul și paginile vechi citesc toate același token.
+3. **`components/RichText.tsx` + `EditorialPage`.** `allowFontScaling={false}` pe rândul publicat și pe fiecare
+   segment de marcă: altfel un telefon cu textul mărit ar fi desenat litere mai mari decât cele măsurate.
+4. **`components/PostRail.tsx`.** Fără `groundPaper`/`groundPaperOn`/`groundNight`/`groundNightOn`; cele trei
+   apăsări folosesc `styles.cell` (56×56) singură. Starea „luată" este un punct de 4dp în `metricRow` (rândul de
+   14dp pe care celula îl rezerva deja), în cerneala terenului — citește pe cremă și pe fotografie deopotrivă.
+5. **`components/ReactionControl.tsx`.** Ultima urmă de cerneală întoarsă a dispărut: pe hârtie `inkOn` este
+   `#F4F3ED` (cifră albă pe cremă), un rest din runda cu plăci. Starea reacției rămâne glifa.
+6. **`lib/editorialDocument.ts`.** `paragraphsOf` (o singură regulă de paragraf, folosită și de
+   `applyPlainText`) și `setBlockText(document, id, value)`: înlocuiește un paragraf, taie textul lipit după
+   rândurile goale, păstrează pozele și salturile de pagină, scoate blocul golit și acceptă `id = null` (foaia
+   deschisă pe o pagină goală → primele paragrafe ale articolului).
+7. **`components/EditorialPage.tsx`.** Apăsare lungă (`FIELD_HOLD_MS` = 420ms) pe un rând sau pe hârtia goală
+   deschide **foaia paragrafului**: `TextInput` nativ, multiline, `autoFocus`, cu fața și corpul paginii, peste
+   hârtia ei, plus „Gata" (44dp). Câmpul ascuns este `editable={false}` cât timp foaia e deschisă, iar cursorul
+   desenat de pagină dispare sub ea. Ce se scrie se întoarce în document o singură dată, la închidere.
+
+### 27.4 Ce s-a măsurat pe telefon (uiautomator + Chrome pe device, nu impresii)
+
+Pagina articolului `[36,316][1184,2226]` (măsura 421,5dp), postarea 46, 19 rânduri pe pagina 1:
+
+| Ce | Înainte | Acum |
+|---|---|---|
+| corpul paginii | 24dp / 34dp | **22dp / 31dp** |
+| înălțimea unui rând | 89px = 34,2dp | **81px = 31,2dp** |
+| primul rând | „**Nu, carnea crudă nu se spală" (30 de caractere) | „**Nu, carnea crudă nu se spală înainte" (38) |
+| umplerea măsurii (media rândurilor) | 80,8 % | **90,9 %** |
+| hârtie goală la capătul rândului | ~81dp | **~38dp** |
+| rândurile articolului (aceleași 253 de cuvinte) | 53 | **44** |
+| marginea stângă / dreaptă a textului | 72px / 1168px | neschimbate (72px / 1168px) |
+| rândurile care ating bara | se opresc la 1019px | la fel (1019px, 6dp înainte de bară) |
+| cele patru celule ale barei | 146×146px (56×56dp) | aceleași, fără placă |
+
+Modelul a fost verificat **independent de React Native**: o pagină servită de pe host (`adb reverse tcp:8099`) și
+deschisă în Chrome pe telefon a măsurat 24 de șiruri cu `canvas.measureText` la 22px. Față de model:
+serif 1,015–1,032, sans 1,017–1,050, mono 1,017 — modelul e mereu mai lat (deci nu taie), niciodată cu peste
+5 %. Fixture-ul acestor 24 de măsurători este chiar în `scripts/test-font-metrics.cjs`.
+
+### 27.5 Ce s-a dovedit, rulat
+
+- `npm test` în `apps/nexus-mobile`: **44 de scripturi, `fail 0`** — între ele două scripturi noi:
+  `test-font-metrics.cjs` (9 cazuri: modelul între măsura reală și +6 %, tabelul vechi mai lat decât fontul,
+  mono cu un singur pas, bold serif propriu, caractere necunoscute socotite late, marja sub 2 %, acoperirea
+  ASCII + latină extinsă + diacritice românești, rândul desenat fără scalare) și `test-text-field.cjs`
+  (9 cazuri: `setBlockText` pe toate ramurile, plus sursa compozitorului — câmp nativ, multiline, `autoFocus`,
+  fără `contextMenuHidden`, fără citire de clipboard, apăsare lungă pe rând și pe pagina goală, câmpul ascuns
+  oprit cât timp foaia e deschisă).
+- `node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`: curat.
+- Pe telefon, prin ADB/uiautomator: pagina 46 se desenează la 22/31 cu numerele de mai sus; bara are patru
+  celule de 56×56dp (`Deschide selectorul de reacții`, `Comentarii`, `Salvează`, `Distribuie`), comentariul
+  deschide foaia „Comentarii · 0", distribuirea deschide meniul („Redistribuie în feed", „Distribuie în afara
+  Jungle Book"); apăsarea lungă pe pagină deschide foaia paragrafului (`PARAGRAFUL`, `Gata`, câmp
+  `android.widget.EditText` `enabled=true` `focused=true`, câmpul ascuns `enabled=false`); „Gata" scrie textul
+  în pagină (`7/20000`).
+- **Lipitul, cap-coadă, pe telefon** (nu pe hârtie): o pagină servită de pe host prin `adb reverse tcp:8099` a
+  fost deschisă în Chrome; butonul ei a scris **977 de caractere** în clipboardul Android (`COPIAT 977
+  CARACTERE`, afișat în pagină); `input keycombination 113 50` (Ctrl+V, comanda de lipire a Androidului) a
+  adus textul în câmpul nativ al foii (1001 de caractere în `EditText`, cu diacritice întregi), iar „Gata" l-a
+  scris în pagină: **971/20000**, două pagini, paragrafele păstrate.
+- **Text + fotografie, pe telefon:** ownerul a confirmat selecția în selectorul HyperOS (pasul pe care un agent
+  orb la ecran nu l-a putut face); au intrat trei atașamente, le-am redus la unul din butoanele compozitorului
+  (`Șterge atașamentul 2`, `Șterge atașamentul 3`), iar pagina a trecut de la 3 la 2 pagini. Fotografia
+  (ilustrație originală `bambus-illustration.png`, 900×600, împinsă în `Download` și indexată cu
+  `MEDIA_SCANNER_SCAN_FILE`) a fost trasă între rânduri: **textul se împachetează în jurul ei** (rândurile de
+  lângă imagine `x665-1034`, cele de sub ea `x186-1034`). Postarea a rămas **nepublicată**; baza de date
+  (`C:\Nexus\data\nexus.sqlite`: 43 de postări, max id 47; 23 de rânduri media) și folderul de media (23 de
+  fișiere) sunt identice înainte și după.
+- Logcat după repornire: nicio linie `ReactNativeJS` și niciun `FATAL EXCEPTION`.
+
+### 27.6 Ce rămâne deschis (spus pe față)
+
+1. **Meniul de selecție al Android nu poate fi declanșat de ADB pe acest telefon.** Nici `input swipe x y x y
+   900`, nici `input motionevent DOWN/UP` (1,1s), nici dublul tap nu scot bara cu Paste/Copiază. Dovada că nu e
+   vina câmpului nou: exact aceleași gesturi nu scot meniul nici pe câmpul de comentariu, care există de mai
+   multe runde. Lipirea a fost dovedită prin **comanda de lipire a Androidului** (`input keycombination 113 50`,
+   adică Ctrl+V) în câmpul real: 977 de caractere copiate din Chrome au intrat în câmp și, la „Gata", în
+   pagină. Verdictul „meniul apare la deget" rămâne al ownerului, care poate ține apăsat o secundă.
+2. **Confirmarea din selectorul de fotografii a trebuit făcută de owner.** Arborle de accesibilitate al
+   selectorului HyperOS nu are, pentru selecție multiplă, niciun buton de confirmare (`Cancel`, contorul
+   „Preview (N/5)", setările de confidențialitate, grila — nimic altceva), deci un agent orb la ecran nu poate
+   duce pasul până la capăt. El a apăsat; restul (reducerea la o fotografie, așezarea între rânduri,
+   previzualizarea) e verificat mai sus.
+3. **Un text lipit nu a fost publicat** ca postare de probă: contul este contul real xPortal al ownerului, iar
+   regula rundei este să nu se publice fără acordul lui explicit. Ciorna (971 de caractere + o fotografie,
+   nepublicată) a rămas în compozitor, pe telefon.
+4. **Defect găsit, nereparat:** `mediaBusy` din compozitor rămâne `true` când rezultatul selectorului se
+   pierde (am blocat „+ Fotografie" până la repornirea aplicației). Ar merita un `finally` cu timeout sau o
+   resetare la revenirea în prim-plan. Tot acolo: un selector multi poate întoarce mai multe fișiere decât a
+   ales ownerul dacă o selecție veche rămâne în starea lui (de aici trei atașamente în loc de unul).
+5. **Un Reel nu a putut fi deschis:** în baza vie nu există nicio postare activă cu clip (fișierele `.webm`
+   sunt pe rânduri retrase), deci regresia pentru clip e acoperită doar de componenta comună (`PostRail`) și de
+   teste. Postarea de cuvinte (46, 47) și articolul cu fotografie (46) au fost deschise și verificate.
+6. **Tabelele sunt ale fețelor de pe Android.** iOS (Georgia) ar avea nevoie de rândul lui; până atunci, un
+   telefon iOS ar măsura cu avansurile lui Noto Serif.
+7. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul `npm test`).
+
+## 28. A patra zi: atingerea care deschide câmpul, publicarea care duce la pagină (29 octombrie 2026)
+
+### 28.1 Punctul de plecare (ce a spus ownerul, în șase propoziții)
+
+1. „Apăs lung 0,5–1 secundă în zona de text și **nu se întâmplă nimic**. Nu apare nici bara de editare a
+   Androidului, deci nu pot lipi." — adică lipirea dovedită în §27 (977 de caractere prin Ctrl+V în câmp) nu
+   ajunge la degetul lui, iar runda aceea nu are voie să se declare terminată.
+2. „După ce public o postare de TEXT, mă aruncă în cameră și trebuie să ies manual." Compozitorul este deschis
+   de butonul „TEXT" al vizorului, iar după publicare `router.back()` te întorcea exact acolo.
+3. „Scoate selectorul de temă: o singură temă Kindle, cu hârtia și litera de acum."
+4. „«Cine poate vedea?» să fie un comutator frumos, cu trei poziții: **Public / Privat / Doar eu**."
+5. „Proveniența, la fel — același tip de comutator."
+6. „Locația să vină din GPS, cu un **X** lângă ea; comentariile și distribuirea rămân on/off."
+
+### 28.2 Ce s-a dovedit stricat, cu cauza (măsurat pe telefon, nu presupus)
+
+**A. „Nu se întâmplă nimic" avea două cauze, iar a doua ar fi închis orice reparație a primeia.**
+
+1. *Hârtia nu era o țintă.* Singura ușă spre câmp era o ținere de 420 ms care trebuia să nimerească **exact un
+   rând desenat**: pagina este un flux de rânduri așezate absolut (`editorialFlow`), iar marginile, golul dintre
+   paragrafe, hârtia de sub ultimul rând și spațiul de lângă fotografie nu aveau niciun `Pressable`. Pe telefon
+   asta este cea mai mare parte din pagină. Măsurat: pagina `[116,309][1104,2065]`, primul rând `[72,415]`, iar
+   între paragrafe un gol de 38px fără niciun nod apăsabil.
+2. *Cuvintele nu erau într-un câmp pe care să-l poți selecta.* Pagina desena fiecare rând ca `Text`, iar textul
+   întregii pagini trăia într-un `TextInput` **de 1×1px**, invizibil — măsurat pe telefon ca nodul „Textul
+   postării", `[116,309][119,312]`, adică 3×3 pixeli. O apăsare lungă pe un `Text` nu selectează nimic, iar un
+   câmp pe care nu-l vezi nu are peste ce să pună bara cu Paste: chiar când foaia paragrafului se deschidea
+   (și se deschidea — dovedit cu uiautomator: `PARAGRAFUL`, `Gata`, `EditText focused=true`), degetul nu găsea
+   meniul unde îl căuta.
+
+**B. Publicarea te ducea în cameră, iar cauza era sub compozitor.** `camera.tsx` face `router.push('/text')`,
+deci stiva este `[perete, cameră, text]`; `router.back()` după publicare sărea în vizor, iar cardul „PUBLICAT"
+nu avea decât butonul „Închide" — tot spre cameră. Verificat în cod și pe telefon: intrarea în TEXT se face
+numai din camera (`Scrie o postare de text`, `[758,2137][944,2239]`).
+
+**C. Meniul de selecție al Android nu poate fi declanșat de ADB pe acest telefon — dovedit cu un martor.**
+Experimentul de control din această rundă: aceeași apăsare lungă sintetică (`input swipe x y x y 900`, apoi
+`input motionevent DOWN/UP` la 0,95 s) a fost aplicată pe **bara de adrese a Chrome** și pe **textul unei pagini
+din Chrome** — nici acolo nu apare bara de selecție în arborele uiautomator (dump-urile sunt identice octet cu
+octet înainte și după). Deci lipsa barei în dump nu spune nimic despre aplicația noastră: injecția de gesturi nu
+ajunge la `ActionMode`. Verdictul „apare la deget" rămâne al ownerului.
+
+**D. Selectorul de temă schimba un fir de 2px.** Pagina este `pagePaletteOf` în orice temă, deci cele șase
+mostre schimbau doar accentul firului de sus: un control întreg de ecran pentru o schimbare pe care ownerul nu o
+vedea ca „temă". 
+
+**E. Două defecte lăsate deschise în §27.6** — `mediaBusy` blocat după un rezultat pierdut al galeriei, și
+confuzia dintre „permisiune refuzată" și „build fără modul nativ" — au fost închise pe drum (vezi §28.3).
+
+### 28.3 Ce s-a schimbat (fișiere și de ce)
+
+- `src/components/EditorialPage.tsx` — **rescrisă partea de editare**: câmpul ascuns de 1×1px, cursorul desenat
+  de pagină, `selectAt`, `onSelectionChange`, `caretLine`, `caretPage` și `editorialTextMap` au fost scoase;
+  hârtia întreagă este acum un `Pressable` așezat *sub* rânduri și *sub* fotografii, care deschide câmpul
+  paragrafului de sub deget (`paragraphAt`), iar un rând deschide același câmp cu cursorul exact la caracterul
+  atins (`caretAt`). Foaia are acum o propoziție de ajutor („Ține apăsat pe un cuvânt ca să copiezi, lipești sau
+  selectezi tot"), `selection` împins o singură dată din locul atingerii și eliberat la prima mișcare a
+  cursorului, și un `BackHandler` care închide foaia înaintea ecranului.
+- `src/app/text.tsx` — selectorul de temă și cel de aliniere au fost **scoase** (cu stilurile lor), tema ciornei
+  este normalizată la `TEXT_DEFAULT_THEME`; „Cine vede" și „Proveniență" sunt acum două comutatoare segmentate
+  (`Segment`, cu rol de radio, 44dp pe poziție, track derulabil pentru cele patru declarații); locația scrisă de
+  mână a fost înlocuită cu rândul detectat + X; publicarea face `dismissAll()` + `push('/post/:id')` cu id-ul
+  confirmat; galeria are termen (`GALLERY_DEADLINE_MS`).
+- `src/lib/location.ts` — **nou**: permisiune, fix cu termen de 12 s, rotunjire la patru zecimale, geocoderul
+  produsului, alegerea numelui (zonă → oraș → stradă) și tipul `PlaceDetection` care nu aruncă niciodată.
+- `app.json` + `android/app/src/main/AndroidManifest.xml` — `ACCESS_COARSE_LOCATION` și
+  `ACCESS_FINE_LOCATION`, plus pluginul `expo-location` cu propoziția arătată de sistem pe iOS; `expo-location`
+  a intrat în `package.json`/`package-lock.json` (deci build nativ nou).
+- `scripts/test-text-composer.cjs`, `scripts/test-text-location.cjs`, `scripts/test-publish-navigation.cjs` —
+  **noi**; `scripts/test-text-field.cjs` rescris pentru noul drum; `scripts/test-text-style.cjs` actualizat;
+  lanțul `npm test` le include.
+- `apps/nexus-mobile/MIGRATION.md` §28, `docs/PARITY-MATRIX.md` §13.7, acest document.
+
+
+### 28.4 Ce s-a măsurat pe telefon (Xiaomi 25098PN5AC, HyperOS/Android 16, prin ADB + uiautomator)
+
+- **Un build nou, fiindcă modulul de locație este nativ.** Prima încercare de `npm run build:android:dev` a
+  picat cinstit: `LicenceNotAcceptedException … ndk;27.1.12297006`. Cauza nu era proiectul, ci mașina — SDK-ul
+  Android de aici avea **doar `platform-tools`** (nici platformă, nici build-tools, nici NDK, nici
+  `cmdline-tools`), deci APK-ul de pe telefon fusese construit în altă parte. Am instalat ce lipsea
+  (`cmdline-tools`, `platforms;android-36`, `build-tools;36.0.0`, `cmake;3.22.1`, `ndk;27.1.12297006`,
+  licențe acceptate) și build-ul a trecut: **BUILD SUCCESSFUL in 13m 25s**, APK 114,9 MB, instalat cu
+  `adb install -r` (datele aplicației păstrate). Manifestul instalat are acum `ACCESS_COARSE_LOCATION` și
+  `ACCESS_FINE_LOCATION` (`granted=false` la instalare).
+- **Compozitorul, fără selectoarele scoase.** LITERĂ (Serif/Sans/Mono) și MĂRIME (Auto/Mic/Mediu/Mare) au rămas;
+  TEMĂ și ALINIERE nu mai există în arborele de accesibilitate. „Cine vede" este un track cu **trei** poziții
+  radio: Public `[75,469][425,583]`, Privat `[435,469][785,583]`, Doar eu `[795,469][1145,583]` (350×114 px
+  fiecare ≈ 127×41 dp). Atingerea pe „Privat" a dat `checked=true` pe ea și a schimbat propoziția de sub track în
+  „Doar prietenii — urmărire reciprocă — o văd."; atingerea pe „Public" a adus-o înapoi. „Proveniență" are
+  **patru** poziții în același tip de track, derulabil: „Nu declar", „Făcut de mine", „AI asistat", „Generat de
+  AI", fiecare cu propoziția întreagă dedesubt.
+- **Locația, cap-coadă.** La deschidere, rândul spune de ce are nevoie de locație și oferă „Folosește" (fără
+  dialog). Apăsarea a deschis **dialogul sistemului** — „Allow Jungle Book Dev to access location info?" cu
+  Approximate / Precise / **Allow only while using the app** / Only this time / Deny — deci dialogul aparține
+  unei apăsări, cum cere regula. După „Allow only while using the app", locația a fost citită și numită:
+  **„Czyżyny, Cracovia"** (`Scoate locația din postare` lângă ea). „Cracovia" este numele românesc al
+  Cracoviei — verificat separat, aceleași coordonate cerute lui Nominatim cu `pl` răspund „Kraków" — deci
+  antetul `Accept-Language: ro,en` trimis de aplicație chiar schimbă limba. **X-ul** a scos locul: rândul a
+  revenit la ofertă, iar ciorna a rămas cu `publishing.location=""` și `locationDismissed=true`; după o
+  repornire rece locul **nu** a mai fost readus.
+
+- **Publicarea, cap-coadă, pe contul real, cu acordul ownerului.** O pagină de probă („Test Jungle Book:
+  pagina de proba, se poate sterge…", titlu „Test publicare TEXT", vizibilitate Public, locație scoasă) a fost
+  publicată din compozitor. Rezultatul, măsurat în bază: **o singură postare nouă**, `id=49`, `kind=text`,
+  `visibility=public`, `provenance=NOT_DECLARED`, `title="Test publicare TEXT"`, `location=""`,
+  `allowComments/allowRepost/allowDownload/watermark=true`, `text_style_json` cu `theme=paper`,
+  `font=serif`, `size=medium`, `align=left` și documentul paginii (44 → **45** postări, max id 48 → **49**).
+  Aplicația a sărit **direct pe pagina creată**: arborele arată pagina articolului cu textul scris, bara
+  (`Deschide selectorul de reacții`, `Comentarii`, `Salvează`, `Distribuie`) și „Vezi traducerea" — **nicio
+  cameră** în niciun dump de după publicare. Înapoi din postare a dus în perete/profilul de sub ea, nu în vizor.
+- **Ciorna ownerului a fost protejată.** Publicarea de probă avea nevoie de un compozitor gol, iar ciorna lui
+  (781 de caractere, textul Kindle) ar fi fost ștearsă de publicare. A fost copiată **în sandboxul aplicației**
+  (`current.json.bak`, 2258 de octeți, identic), ștearsă pentru probă, iar după publicare **restaurată** din
+  copie; compozitorul arată din nou `778/20000 CARACTERE` cu textul lui. Un test de siguranță peste ea: atingere
+  pe un rând → foaia paragrafului cu textul lui, `focused=true`; Înapoi (închide tastatura), Înapoi (închide
+  foaia) → compozitorul rămâne deschis, contorul tot 778, ciorna tot 781 de caractere — nicio modificare.
+- **Meniul de selecție rămâne nedovedibil prin ADB** (vezi §28.2 C). Ce s-a putut dovedi: câmpul este un
+  `android.widget.EditText` real, vizibil (`[162,551][1058,2030]`), `focused=true`, cu tastatura arătată
+  (`mInputShown=true`), fără `contextMenuHidden` și fără nimic deasupra lui — iar React Native nu oprește
+  `ActionMode`-ul de inserare: `ReactEditText.kt` instalează un callback care doar scoate „paste as plain text"
+  din meniu. Verdictul „apare la deget" rămâne al ownerului.
+
+### 28.5 Ce s-a dovedit, rulat
+
+- `npm test` în `apps/nexus-mobile`: **50 de scripturi, `fail 0`** (exit 0), între ele patru noi/actualizate:
+  `test-text-composer.cjs` (8 cazuri), `test-text-location.cjs` (5), `test-publish-navigation.cjs` (4),
+  `test-text-field.cjs` (9, rescris pentru noul drum: un singur `TextInput`, fără câmp ascuns, atingere *și*
+  ținere, cursorul din locul atingerii, `BackHandler`).
+- `npx tsc --noEmit`: curat.
+- Pe telefon, prin ADB/uiautomator: toate cele din §28.4 (layout-ul compozitorului, cele două comutatoare,
+  dialogul de permisiune, locația detectată și scoasă, publicarea care deschide postarea 49, Înapoi, ciorna
+  neatinsă).
+- Baza de date și media înainte/după: 44 → 45 postări (doar cea de probă, cerută de owner), 24 de rânduri
+  media și 24 de fișiere — neschimbate; reacțiile, salvările și comentariile existente neatinse.
+- Logcat după repornire: nicio linie `ReactNativeJS` de eroare, niciun `FATAL EXCEPTION`.
+
+### 28.6 Ce rămâne deschis (spus pe față)
+
+1. **Bara nativă de selecție (Paste/Copiază) nu poate fi declanșată prin ADB pe acest telefon** — dovedit în
+   această rundă și pe Chrome (bara de adrese și textul unei pagini), nu doar pe câmpul nostru. Ce s-a schimbat
+   față de §27 este drumul: câmpul se deschide la o **atingere** oriunde pe hârtie, nu doar la o ținere pe un
+   rând, iar textul nu mai stă într-un câmp invizibil. Confirmarea finală („țin apăsat în câmp → apare Paste →
+   lipesc paragraful din Chrome") este a ownerului, cu degetul.
+2. **Postarea de probă 49 este publică** și a fost lăsată acolo la cererea ownerului („o șterg eu mai târziu"):
+   titlu „Test publicare TEXT", textul începe cu „Test Jungle Book: pagina de proba, se poate sterge.".
+3. **Geocoderul are un cache pe coordonate, nu pe limbă** (`api.js`, `cacheKey` din
+   `/api/location/suggestions`): cine întreabă primul pentru o zonă stabilește limba răspunsului pentru
+   următoarele 15 minute. Nu s-a schimbat nimic acolo în această rundă — aplicația trimite `ro,en`, iar webul
+   trimite limba lui; dacă un client cere `pl`, următorul client poate primi un nume polonez. De reparat într-o
+   rundă care atinge backendul.
+4. **`mediaBusy` are acum termen (5 minute), dar selectarea multiplă a galeriei HyperOS poate întoarce încă
+   fișiere în plus** dintr-o selecție veche; curățarea lor rămâne manuală (butonul „Șterge atașamentul N").
+5. **Un Reel nu a fost deschis** în această rundă: în baza vie nu există nicio postare activă cu clip, deci
+   fluxul video e acoperit doar de componentele comune și de teste.
+6. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul `npm test`).
+
+## 29. A cincea zi: ce scrie în câmp este ce se publică — lipitul, emojiul, litera și mărimea (30 octombrie 2026)
+
+### 29.1 Punctul de plecare (patru propoziții de la owner)
+
+1. „Lipesc un text în compozitor, apăs **Gata**, apoi **Publică** — și în postare apare un clip care nu are nicio
+   legătură cu ce am scris."
+2. „Emoji-ul intră peste text, nu în câmp."
+3. „Selecția e verde, ca tot restul aplicației. Pe o pagină de hârtie ar trebui să fie albastră."
+4. „Am nevoie de mai multe litere și de o mărime pe care s-o citesc de la un metru."
+
+### 29.2 Ce s-a dovedit stricat, cu cauza (citit în cod și dovedit cu teste, nu presupus)
+
+**A. Compozitorul ținea două adevăruri, iar butoanele citeau fiecare altul.** `draft.document` era pagina desenată,
+`body` era textul din câmp, iar textul lipit trăia între ele într-al treilea loc (`flight`, commit-ul câmpului).
+`Publică` compunea postarea din `draft.document` și `draft.attachments` — deci cuvintele lipite, dacă nu fuseseră
+închise cu `Gata` înainte de a apăsa `Publică`, nu ajungeau în `caption`, iar fișierele se luau din lista de
+atașamente, nu din pagină: un clip scos din pagină se urca la publicare și apărea în postare.
+
+**B. `reconcileMedia` avea o scurtătură care nu repara nimic.** Când nu mai era loc pentru niciun fișier
+(`room === 0`), `used` rămânea gol, iar testul „documentul e deja de acord" (`used.length === room`) era
+**adevărat** — așa că funcția întorcea documentul neatins, cu blocuri media care arătau spre fișiere care nu mai
+existau. Un astfel de document trecea mai departe la server exact așa. Prins de testul D din runda asta.
+
+**C. Emojiul scria în pagină, nu în câmp.** Bara chema `applyPlainText`, care rescria documentul întreg — iar
+câmpul deschis, care tocmai avea focus și un cursor, își pierdea textul. Emojiul trebuie să fie o **tastă**, ca
+orice altă literă.
+
+**D. Rândurile autorului aveau două reguli.** `paragraphsOf` (calea câmpului) păstra un `\n` în mijlocul unui
+paragraf, `documentFromPlainText` (calea veche) îl prefacea în spațiu: același text lipit ajungea cu un rând mai
+puțin pe pagină dacă intra pe ușa cealaltă.
+
+**E. Șase fețe, trei tabele de măsură.** Pagina se rupe pe rânduri măsurate (`measureTextWidth`), iar tabelele de
+metrici există doar pentru `serif`, `sans` și `mono`. Cele trei fețe noi (`slab`, `casual`, `condensed`) nu aveau
+nicio tabelă, deci ar fi fost măsurate cu fața implicită — un rând ar fi ieșit fie prea scurt, fie tăiat.
+
+### 29.3 Ce s-a schimbat (fișiere și de ce)
+
+- `src/app/text.tsx`: un singur adevăr la publicare —
+  `page = useMemo(() => flight ? setBlockText(draft.document, flight.blockId, flight.text) : draft.document, [draft.document, flight])`,
+  iar de aici se citesc `body`, contorul de caractere, ciorna și ce pleacă la server:
+  `reconcileMedia(page, draft.attachments.length)` → `file = reconciled.kept.map(…)`, `caption = documentPlainText(reconciled.document)`,
+  `textStyle: { …draft.style, document: reconciled.document }`. Postarea, galeria și pagina ei nu mai pot descrie
+  trei articole diferite. Emoji-ul trece prin `insertRequest` (un nonce), nu prin rescrierea paginii.
+- `src/components/EditorialPage.tsx`: câmpul este singurul drum al textului; `onFieldChange` anunță compozitorul
+  la fiecare tastă; emoji-ul se inserează la cursor prin nonce; selecția își are culoarea ei
+  (`selectionColor={TEXT_SELECTION_COLOR}`), nu accentul temei; măsura se face cu `metricFont` (`metricFaceFor`),
+  desenul cu `bodyFont` (`fontFamilyFor`) — două funcții diferite, pentru că o față poate fi desenată fără să aibă
+  tabelă de metrici.
+- `src/components/TextToolbar.tsx`: bară mai joasă, cu trei uși care își spun starea („Literă · Serif",
+  „Mărime · Mare", „Emoji"), în loc de rândurile `LITERĂ` / `MĂRIME` care ocupau tot ecranul.
+- `src/lib/textStyle.ts`: `TEXT_FONT_IDS` are șase fețe (`serif`, `sans`, `mono`, `slab`, `casual`, `condensed`),
+  `TEXT_SIZE_IDS` are patru trepte (`small`, `medium`, `large`, `xlarge` — 34/47), `metricFaceFor` spune cu ce
+  tabelă se măsoară fiecare față (`slab → mono`, `casual → serif`, `condensed → serif`, adică cea mai lată tabelă
+  apropiată, ca rândul să se rupă mai devreme, niciodată mai târziu), `TEXT_SELECTION_COLOR = '#7fc4f0'`, iar
+  `TEXT_EMOJI` este liste locale de grupuri, trecute prin `Set`, ca un emoji aflat în două grupuri să nu apară de
+  două ori în grilă.
+- `src/lib/editorialDocument.ts`: `documentFromPlainText` refolosește `paragraphsOf`, deci un `\n` din mijlocul
+  unui paragraf supraviețuiește pe orice ușă; scurtătura din `reconcileMedia` numără acum și blocuri, nu doar
+  indici, deci un document cu media fără fișiere nu mai trece drept „deja de acord".
+- `apps/nexus-web/lib/post-text-style.js` și `post-editorial-document.js`: listele de fețe, mărimi și măsuri
+  extinse, ca serverul să nu refuze o postare scrisă cu o față nouă (un refuz aici = o postare pierdută).
+- `scripts/test-text-integrity.cjs` (**nou**, 10 cazuri A–I), `scripts/test-text-field.cjs`,
+  `scripts/test-text-composer.cjs`, `scripts/test-text-style.cjs` actualizate; `package.json` include noul script
+  în `npm test` (51 de scripturi).
+
+### 29.4 Ce s-a dovedit, rulat
+
+- `npm test` în `apps/nexus-mobile`: **51 de scripturi, 439 de cazuri, `fail 0`**, exit 0.
+- `scripts/test-text-integrity.cjs`, cele zece cazuri, toate trecute: A (lipit → `Gata` → `Publică` publică exact
+  textul lipit și păstrează clipul de pe pagină), B (publicare fără `Gata`: compozitorul citește `page`, nu
+  `draft`), B2 (fiecare tastă este o intenție nouă — o reîncercare nu repetă textul dinainte, în trei locuri),
+  C (deschizi și închizi câmpul fără nicio tastă: pagina rămâne aceeași referință), D (o ciornă veche nu poate
+  readuce un fișier care nu mai e pe pagină: blocul orfan iese, restul se renumerotează, o pagină curată rămâne
+  aceeași referință), E (emoji = `insertRequest`, fără `applyPlainText`, `TEXT_EMOJI` fără dubluri), F (un `\n`
+  scris de autor dă trei rânduri pe o singură pagină, iar dus-întors prin `documentPlainText` îl păstrează),
+  G (șase fețe ↔ trei tabele, familii Android distincte, patru mărimi în ordine crescătoare, măsura pe
+  `metricFont`), H (ce listează telefonul este exact ce acceptă serverul: `condensed` și `xlarge` trec de
+  `normalizeTextStyle`), I (selecția e albastră de cerneală, distinctă de `palette.mark` și `palette.accent`, cu
+  contrast ≥ 1,4 pe hârtie și pe cerneală).
+- `npx tsc --noEmit`: exit 0, nicio linie de ieșire.
+- `apps/nexus-web`: `node --test test/post-publishing.test.js` — 10 din 10 trecute (exit 0).
+
+### 29.5 Ce nu s-a dovedit încă (spus pe față)
+
+1. **Nimic din runda asta nu a fost văzut pe telefon.** Toate dovezile de mai sus sunt rulări pe calculator;
+   verificarea pe Xiaomi MIX Flip, pe o **ciornă nepublicată**, rămâne de făcut (lipit → `Gata` → `Publică`,
+   emoji la cursor, selecție albastră, cele șase fețe și cele patru mărimi).
+2. **Trei fețe noi sunt măsurate cu tabela vecină** (`slab → mono`, `casual → serif`, `condensed → serif`): rândul
+   se poate rupe cu un cuvânt mai devreme decât ar trebui. Greșeala este sigură (nu taie text), dar se vede; de
+   judecat pe telefon înainte de a-i face tabele proprii.
+3. **Webul validează și păstrează `textStyle`, dar nu desenează pagina editorială**: în `apps/nexus-web` nu
+   există nicio mapare de la `font` la un `font-family` (niciun `data-font`, niciun `Georgia`, niciun `monospace`
+   derivat din stil), deci cele trei fețe noi nu au deocamdată corespondent vizual în browser.
+4. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul `npm test`).
+
+
+
+## 30. A șasea zi: locația, negrul dur, Back-ul, numerotarea și traducerea (30 octombrie 2026)
+
+### 30.1 Punctul de plecare (cinci propoziții de la owner)
+
+1. „Pe profil, un nume lung de locație intră peste butonul din dreapta — `Editează profilul`, `Urmărește`."
+2. „Scoate negrul dur: iconițele reacțiilor, avatarul implicit și butonul `+` să fie un argintiu Mercury."
+3. „Dacă deschid un clip din profil și vreau înapoi, butonul Back stă peste numele profilului."
+4. „Numerotarea `1/22` să fie jos, centrată, ca într-o carte — și să nu stea peste locație sau peste emoji."
+5. „`Vezi traducerea` apare pe aproape fiecare postare, deși textul este deja în limba telefonului."
+
+### 30.2 Ce s-a dovedit stricat, cu cauza
+
+**A. Locația și ușa autorului împărțeau același rând, iar locația nu avea locul ei.** În `PostCanvas`, capul
+unei postări aduna `@handle`, data și locația într-un **singur** `Text` cu `numberOfLines={1}`, iar acel text
+stătea într-un rând (`styles.authorLine`) împreună cu butonul de relație (`RelationButton variant="compact"` —
+`Urmărește`, `Editează profilul`). Rândul nu rezerva niciun drept pentru ușă și niciun rând pentru locație:
+`authorRow` avea `flexShrink: 1` fără `minWidth: 0`, iar ușa nu avea `flexShrink: 0`. Pe un telefon îngust, cu
+un font de sistem mare sau cu un nume lung de locație, textul ieșea sub buton. Verificat în cod, nu presupus.
+
+**B. Trei valori „negre" în trei locuri diferite, fără niciun token comun.** Nu exista niciun token `mercury`
+în temă. Pagina de cuvinte își desena glifele coloanei cu `post.controls.paper.ink` (`#2B3134` — citit ca negru
+pe crem), avatarul implicit al profilului avea `backgroundColor: '#090a0c'` (cu o valoare mai închisă decât
+câmpul pe care stătea, deci arăta ca o gaură), iar butonul `+` avea ultima oprire a gradientului `#050608` și
+plusul desenat tot în `#050608`. Fiecare componentă își inventase propriul negru.
+
+**C. Back-ul plutea peste pagină.** Ruta `src/app/post/[id].tsx` desena un disc de 42dp la `left: 12,
+top: insets.top + 8`, **peste** compoziție, iar contorul plimbării (`3/22`) la `top: insets.top + 14`, centrat.
+Nimic nu rezerva spațiu: `PostCard` primea `topInset={insets.top}`, deci capul autorului începea exact sub
+ceasul telefonului — adică sub Back.
+
+**D. Numerotarea era un chip negru în colț, fără bandă rezervată.** `EditorialPage` desena `1/22` ca
+`position: absolute; right: 10; bottom: 8` pe `rgba(8,10,13,0.72)`, iar `PostReading` ca `right: 0; bottom: -2`
+pe același gen de placă. Fluxul (`editorialFlow`) nu știa de ele: marginea de jos era `max(22, 6.4%)`, așa că
+un rând putea fi așezat sub cifre, iar pe postarea deschisă din profil chipul stătea peste locație.
+
+**E. Regula de traducere cerea dovada invers.** `needsTranslation` întorcea `true` când postarea **nu** avea
+limbă („nimic nu dovedește că e limba ta"), iar compozitorul nu trimite `language` deloc — deci butonul apărea
+aproape peste tot. În plus, regula veche scutea engleza pentru orice cititor, exact invers față de tabelul cerut
+(română + engleză = *da*). Nicio detecție locală, niciun cache.
+
+### 30.3 Ce s-a schimbat, fișier cu fișier
+
+**Token nou — `apps/nexus-mobile/src/theme/mercury.ts`.** Un singur metal neutru, cu cinci nuanțe și o
+funcție: `base #A5A5A5` (valoarea numită de owner), `light #D6D8D9` (lumina discului), `deep #7C8083` (metalul
+în umbră — **singura** nuanță permisă unei glife pe hârtie), `shadow #5B5F62` (piciorul discului, niciodată
+negru), `graphite #2B3134` (cerneala care stă *pe* metal). Contrastul fiecărei perechi este măsurat de test:
+grafit pe metal 5,3:1 · metal în umbră pe hârtie 3,5:1 · metal pe câmpul junglei 7,6:1. `mercuryAvatar` dă
+perechea avatarului implicit (placă + cerneală + fir), iar `mercuryMarkOn('paper' | 'night')` dă cerneala unei
+glife pe cele două terenuri.
+
+**`theme/social.ts`.** `post.controls` capătă a noua cheie `mark`, pe ambele terenuri: pe hârtie `mercury.deep`,
+noaptea `#E6EAE8` — adică **neschimbat**. Ușile (`ink`) și cifrele (`count`) își păstrează cerneala. `nav.create`
+are acum patru opriri Mercury (alb → lumină → metal → umbră) și două cerneluri noi: `colors.createInk =
+mercury.base` (discul de sub desen) și `colors.createGlyph = mercury.graphite` (plusul).
+
+**`components/PostRail.tsx`.** Coloana citește `markInk = controls.mark` pentru cele patru glife (comentariu,
+salvare, distribuire, discu sonor) și pentru spinner; punctul de stare (`stateInk`) rămâne `controls.ink`, iar
+cifrele rămân `count`. Reels nu trece `tone`, deci ia `night` — neatins.
+
+**`components/AppNav.tsx`.** Plusul este desenat cu `colors.createGlyph`; geometria, ținta de atingere,
+eticheta de accesibilitate și deschiderea compozitorului sunt exact cele de dinainte.
+
+**`components/ProfileHeader.tsx` + `components/ProfileEditSheet.tsx` + `components/PostCanvas.tsx`.** Avatarul
+implicit este `mercuryAvatar.plate` cu inițiale `mercuryAvatar.ink` (profil, editor de profil, discul autorului
+din orice postare). Poza reală rămâne desenată peste placă, neschimbată.
+
+**`lib/postChrome.ts` (nou, pur).** `POST_HEADER` (52dp bandă, buton 44dp, disc 34dp, fir, tipografie) +
+`postHeaderHeight(inset)` / `postPageTopInset(inset)` — antetul își rezervă exact înălțimea, iar pagina începe
+sub ea. `postHeaderNameWidth({ width, counter })` dă lățimea numelui după ce scazi ușile. `POST_HEAD` +
+`postHeadArrangement({ width, padding, fontScale, actionWidth })` decid dacă ușa autorului stă **lângă** cuvinte
+sau **sub** ele: `row` doar când `width − 2·pad ≥ (identityMin + action + gap) · fontScale`, altfel `stack`.
+
+**`lib/textPage.ts`.** `PAGE_FOLIO` (bandă 26dp, inset 12dp, corp 10dp, spațiere 1,6, cerneală 68 %) și
+`pageFolioBand()`. Banda este *în interiorul* marginii de jos a hârtiei, nu peste cuvinte.
+
+**`lib/language.ts` (nou, pur).** `languageCodeOf` (normalizare `ro-RO`/`ro_RO`/`RO` → `ro`),
+`deviceLanguage`/`activeLanguage`/`setReaderLanguage`/`subscribeReaderLanguage` (limba activă se poate schimba,
+iar cititorii sunt anunțați), `needsTranslation` rescris (necunoscut → **nu**; fără scutirea pentru engleză),
+`readLanguage`/`detectLanguage` (șapte limbi: ro, pl, en, de, fr, es, it — cuvinte-funcție + diacritice),
+`detectCached` (cache mărginit la 256 de fragmente), `postLanguageOf` (metadatele bat detectorul; `und` nu este
+o declarație) și `translationForPost`. Regula de pagină amestecată: dacă a doua limbă este la mai puțin de 1,8×
+de prima, sau câștigătorul nu acoperă măcar 55 % din cuvinte, textul este amestecat și nu se oferă traducere.
+
+**`components/PostCanvas.tsx`.** Locația are rândul ei, `numberOfLines={POST_HEAD.locationLines}` (două rânduri,
+rupere naturală); rândul de sub nume este `@handle · dată`; ușa stă într-o coloană `flexShrink: 0`, aliniată sus
+(`marginTop: POST_HEAD.actionTop`), iar numele primește `flexGrow: 1, flexShrink: 1, minWidth: 0`; pe ecran
+îngust sau cu font mare, `authorLineStack` coboară ușa sub cuvinte, aliniată la dreapta. Traducerea se decide cu
+`translationForPost(post, readerLanguage)`, iar `readerLanguage` vine din `useSyncExternalStore` — deci o
+schimbare de limbă recalculează poarta fără reload.
+
+**`components/EditorialPage.tsx` + `components/PostReading.tsx`.** `1/22` este acum un **folio** tipărit:
+centrat pe lățimea paginii (`left: 0, right: 0, alignItems: 'center'`), la `PAGE_FOLIO.inset` deasupra piciorului,
+în seriful paginii, cu cifre tabulare și la 68 % din cerneala hârtiei (≈5,4:1 pe crem). Fluxul primește
+`marginBottom: max(pageFolioBand(), 6,4 %)`, iar `PostReading` păstrează banda sub cuvinte
+(`pageWords.paddingBottom = PAGE_FOLIO.band`). Ambele componente sunt folosite și în feed, și în postarea
+deschisă din profil, deci poziția este aceeași în toate contexte.
+
+**`app/post/[id].tsx`.** Antet adevărat: `accessibilityRole="header"`, înălțime `postHeaderHeight(insets.top)`,
+rând flex — Back (44×44 + `hitSlop`) · nume (`flex: 1, minWidth: 0`, un rând, elipsă) · contorul plimbării.
+Pagina primește `topInset={postPageTopInset(insets.top)}`. `close()` păstrează istoricul (`router.canGoBack()` →
+`router.back()`), apoi se întoarce la **profilul de origine** când ruta a fost deschisă dintr-un link, și doar în
+ultimă instanță la feed.
+
+
+### 30.4 Teste rulate efectiv (nu „ar trebui să treacă")
+
+- `apps/nexus-mobile`: lanțul `npm test` rulat script cu script (54 de scripturi, cele 51 existente + 3 noi,
+  **460 de cazuri** în total, față de 439 înainte) — 54/54 exit 0. Cele trei suite noi:
+  - `scripts/test-post-chrome.cjs` (7 cazuri): antetul își rezervă `inset + 52`; numele se îngustează după uși;
+    ușa autorului stă `row` pe 393dp și `stack` pe 250dp, la `fontScale 1,8` și la o ușă de 260dp; canvasul pune
+    locația pe rândul ei (`numberOfLines={POST_HEAD.locationLines}`) și ține ușa într-o coloană care nu se
+    micșorează; ruta are `accessibilityRole="header"`, `topInset={pageTopInset}`, Back 44×44, fără `top:
+    insets.top + 8/14`; folio-ul este centrat, are bandă proprie și apare în ambele componente; traducerea
+    cerută rămâne o apăsare reală în toate cele trei locuri.
+  - `scripts/test-mercury.cjs` (6 cazuri): valorile tokenului; contrastul măsurat al celor patru perechi
+    (WCAG, aceeași aritmetică drept `test-theme-contrast.cjs`) **și** faptul că `base` nu are voie ca glifă pe
+    crem; avatarul implicit (profil, editor, disc de autor) cu poza reală neatinsă; `paper.mark = mercury.deep`
+    și `night.mark = #E6EAE8` (Reels neatins, dovezile pe text); butonul `+` fără nicio oprire neagră, cu
+    comportamentul și eticheta neschimbate; emoji-urile și paleta exact ca înainte (`\u{1F90D}`, `\u{1F5A4}`,
+    cele opt fețe) și `ReactionControl`/`ReactionPalette` fără Mercury.
+  - `scripts/test-language.cjs` (8 cazuri): normalizarea codurilor; tabelul cerut (ro/ro nu, ro/en da, pl/pl nu,
+    pl/ro da, en/en nu, en/pl da, necunoscut/emoji nu, cititor fără limbă nu); limba activă se schimbă și își
+    anunță abonații o singură dată; detectorul recunoaște ro/pl/en; text scurt, nume, hashtag, link, emoji și
+    cifre → `''`; pagina amestecată → `''`; metadatele bat detectorul, `und` nu este declarație, iar cache-ul nu
+    remăsoară aceleași cuvinte (`languageCacheSize`).
+- `apps/nexus-mobile`: `node ./node_modules/typescript/bin/tsc --noEmit` — exit 0, nicio linie de ieșire.
+- Suitenile existente care atingeau zona au fost actualizate acolo unde descriau **vechea** intenție:
+  `test-post-presentation.cjs` (regula a plecat în `lib/language.ts`), `test-nav-band.cjs` (gradientul `+` este
+  acum Mercury), `test-brand-paint.cjs` și `test-hero-parity.cjs` (stub-ul lor de `require` încarcă acum
+  `theme/mercury.ts`, pentru că `social.ts` îl importă), `test-profile-grid.cjs` și
+  `test-no-fullscreen-post.cjs` (Back păstrează istoricul **și** se întoarce la profilul de origine).
+
+### 30.5 Ce nu s-a dovedit încă (spus pe față)
+
+1. **Nimic din runda asta nu a fost văzut pe telefon.** Toate dovezile de mai sus sunt rulări pe calculator:
+   suprapunerea locației, antetul cu Back, folio-ul și culoarea Mercury trebuie confirmate de owner pe Xiaomi
+   MIX Flip, pe profilul lui **și** pe profilul altcuiva (butoanele diferă: `Editează profilul` vs `Urmărește`),
+   plus pe o postare de text de 22 de pagini.
+2. **Avatarurile din liste** (Mesaje, Prieteni, Căutare, Live, comentarii) păstrează plăcile lor reci
+   (`#203c49`, `#111820`), pentru că acelea **nu** sunt negre și trecerea lor pe Mercury ar rescrie vizual niște
+   liste pe care ownerul nu le-a numit. Dacă le vrea și pe ele, este o singură linie de temă per ecran.
+3. **Webul are propria poartă de traducere** (`apps/nexus-web/public/caption-translation.js`): își tipărește
+   butonul cu `language || "und"` și lasă browserul să detecteze. Regula nouă (necunoscut → ascuns, dominantă
+   clară, fără scutirea pentru engleză) este implementată doar în aplicația mobilă; portarea în browser este o
+   rundă separată.
+4. **Cele trei fețe noi de text rămân măsurate cu tabela vecină** (`slab → mono`, `casual → serif`,
+   `condensed → serif`) — observația din §29.5 rămâne valabilă, neatinsă de runda asta.
+5. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul `npm test`).
+
+
+## 31. A șaptea zi: un singur antet, folio-ul documentului, ușa la picior (31 octombrie 2026)
+
+### 31.1 Punctul de plecare (două propoziții de la owner)
+
+1. „Pe o postare de text, numele autorului apare de două ori, unul sub altul — o dată sus, în bara paginii,
+   o dată pe hârtie."
+2. „Și sus scrie `1/22`, deși pagina spune `1/3`. Când sunt la pagina a treia, `1/22` nu înseamnă nimic:
+   numărul trebuie să fie al documentului, iar Back trebuie să stea undeva unde nu acoperă textul."
+
+### 31.2 Ce s-a dovedit stricat, cu cauza
+
+**A. Aceleași trei fapte erau tipărite de două ori, în două locuri care nu se știau între ele.** Ruta
+`src/app/post/[id].tsx` desena un antet propriu — `accessibilityRole="header"`, înălțime
+`postHeaderHeight(insets.top)`, cu discul de Back de 34dp, numele afișat (`display_name`) și `@handle` — peste
+**orice** pagină, inclusiv peste o pagină de cuvinte. Iar pagina de cuvinte își tipărește singură capul, prin
+`PostCanvas` (`TEXT_PAGE_HEAD`: disc de 54dp, nume de 17dp, handle de 13dp), fiindcă așa arată o pagină
+publicată în compozitor. Rezultatul, pe orice postare de text deschisă din grilă: **numele autorului de două
+ori**, la 52dp unul de altul. Niciuna dintre cele două componente nu greșea singură — contractul dintre ele
+lipsea.
+
+**B. `1/22` număra postările plimbării, nu paginile documentului.** Antetul rutei tipărea
+`` `${at + 1}/${list.length}` `` — poziția în lista verticală de postări a profilului (`at`, `list`) — în timp
+ce folio-ul aceleiași pagini, tipărit de `PostReading`/`EditorialPage` la piciorul hârtiei, spunea `1/3`, adică
+numărul paginilor pe care fluxul chiar le produsese. Două numere, două surse, două înțelesuri: pe un ecran de
+citit, al doilea număr („a câta postare din profil") nu răspunde la nicio întrebare a cititorului. Stilurile
+contorului (`counter`, `counterText`, `counterSize`) trăiau în ruta postării, nu în pagină.
+
+**C. Scoaterea antetului lua cu ea singura ușă a paginii.** După runda 30, Back stătea *în* antetul rutei
+(`POST_HEADER`), iar antetul stătea peste tot. O pagină de cuvinte fără antet ar fi rămas fără nicio ieșire
+— deci mutarea ușii nu era o preferință estetică, ci o consecință: ușa trebuia să ajungă într-o bandă pe care
+pagina o cedează **înainte** să fie desenată, nu peste cuvinte, după. Asta a fost refuzul rundei 30 spus din
+nou: un control care plutește peste compoziție nu poate fi felul în care compoziția se citește.
+
+**D. Numărul era compus în două locuri.** Atât `PostReading`, cât și `EditorialPage` își scriau cifrele singure
+(`` `${current + 1}/${total}` ``), deci puteau să nu fie de acord nici între ele, nici cu pagerul.
+
+
+### 31.3 Ce s-a schimbat, fișier cu fișier
+
+**Contract nou — `apps/nexus-mobile/src/lib/postPresentation.ts::readsAsPage`.** O singură întrebare, pusă în
+același loc de toți cei care au nevoie de ea: *postarea asta se citește ca pagină de cuvinte?* Răspunsul este
+`stageFor(post) === 'text' || 'article'` — un text fără media și un articol (text + `text_style` + o
+fotografie) da; o poză, un clip și un citat, nu. Un citat este deliberat exclus: este o conversație desenată pe
+placă întunecată, iar o ușă mată tipărită pe ea ar fi singurul control pe care paleta nu-l poate așeza.
+Canvasul (`wordPage`) și ruta întreabă acum aceeași funcție, deci antetul nu poate „ști" altceva decât știe
+pagina.
+
+**Bandă nouă — `apps/nexus-mobile/src/lib/readerBar.ts`.** `READER_BAR` ține patru numere și unul de margine:
+`height: 48` (banda, fără insetul telefonului), `button: 44` (ținta de apăsare), `disc: 36` (discul desenat
+înăuntru — cu un punct mai mare decât cele 34dp ale antetului, fiindcă pe crem nu există hairline-ul unei
+fotografii care să țină desenul), `glyph: 26`, `inline: 10` (marginea paginii). `readerBarHeight(insetBottom)`
+**adună** insetul, nu îl contopește: ușa stă deasupra barei de gesturi, iar cuvintele se termină deasupra ușii.
+`readerPageTopInset(insetTop)` întoarce exact `insets.top`: o pagină de cuvinte tipărește capul autorului ca
+primul lucru pe hârtie, deci pornește în banda notificărilor. Dacă ar primi `postPageTopInset` (inset + 52),
+hârtia ar începe cu o bandă goală sub ceas — chiar golul pe care antetul îl umplea înainte.
+
+**Ruta — `apps/nexus-mobile/src/app/post/[id].tsx`.** Antetul se desenează numai peste paginile care **nu** au
+cap propriu (`!wordPage`), neschimbat în rest. Contorul plimbării a plecat cu totul (niciun număr de postare
+nu se mai tipărește nicăieri în rută). Pe o pagină de cuvinte, ruta desenează o singură bandă la picior,
+goală, cu o ușă de 44dp la marginea paginii, care apasă **aceeași** funcție `close` pe care o apăsa antetul
+(istoric întâi, apoi profilul plimbării, apoi feedul). Insets-urile se decid per pagină: `topInsetFor` /
+`bottomInsetFor` întreabă `readsAsPage`, deci o poză primește `postPageTopInset` + `insets.bottom`, iar un
+text primește `insets.top` + `readerBarHeight(insets.bottom)`.
+
+**Un singur număr — `apps/nexus-mobile/src/lib/textPage.ts::folioLabel`.** Ambele cititoare
+(`PostReading`, `EditorialPage`) tipăresc `folioLabel(current, total)`: `1/3`, `2/3`, `3/3`. O citire de o
+singură pagină nu tipărește nimic (`''` — o carte nu își numerotează singura pagină), iar un index rămas în
+urmă după o re-liniere tipărește ultima pagină care chiar există, niciodată una care nu există. Pagerul și
+numărul sunt ținute în acord în amândouă: când fluxul produce mai puține pagini decât era cititorul, indexul
+este readus (`if (page <= total - 1) return;`), iar offsetul este re-emis numai când se schimbă numărul de
+pagini (`[total, box.width]`), nu la fiecare deget.
+
+**Compoziția — `PostCanvas`, `PostCard`, `PostRail` (neschimbate în intenție, schimbate în aritmetică).**
+Banda nu este desenată peste pagină: `PostCanvas` primește `bottomInset` și îl adaugă la `padB`
+(`paddingBottom: metrics.padB + bottomInset`), `PostCard` dă railului `bottom={RAIL_FOOT + bottomInset}` și
+panoului de distribuire `bottom={214 + bottomInset}`. Cu banda de 48dp, ultimul rând al articolului, ultima
+țintă a railului și folio-ul se opresc toate deasupra ușii.
+
+**Teste.** `scripts/test-reader-page.cjs` (nou, 8 cazuri): aritmetica benzii (insetul se adaugă, un inset
+absurd nu scurtează banda, banda încape ținta de 44dp); discul în țintă și săgeata în disc; `readerPageTopInset`
+fără cele 52 de puncte; `readsAsPage` adevărat numai pentru text și articol; ruta nu mai are antet peste o
+pagină de cuvinte, nu mai are `${at + 1}` și nici `counterSize`; pagina este măsurată cu banda piciorului
+înainte de a fi desenată (ruta, `PostCanvas`, `PostCard` — prin contracte de sursă); ușa din picior apasă
+exact `close`-ul antetului, cu ambele răspunsuri; folio-ul ambelor cititoare vine din `folioLabel`, pagerul
+urmează numărul și se readuce singur. `scripts/test-post-chrome.cjs` (7 cazuri) descrie acum folio-ul centrat
+cu bandă proprie, iar `package.json` are `test-reader-page.cjs` în lanț, imediat după `test-post-chrome.cjs`.
+
+
+### 31.4 Ce s-a dovedit, pe calculator și pe telefon
+
+**Pe calculator.** `npm test` din `apps/nexus-mobile` (56 de scripturi, 53 de rapoarte `node:test`): zero
+eșecuri, lanțul ajunge la ultimul script (`test-xportal-state.cjs`, 12 cazuri). `tsc --noEmit` (`node
+./node_modules/typescript/bin/tsc`) — exit 0, nicio linie de ieșire. Cele trei suite ale zonei, rulate separat:
+`test-reader-page.cjs` 8/8, `test-post-chrome.cjs` 7/7, `test-text-page.cjs` 8/8.
+
+**Pe telefon** (Xiaomi MIX Flip, `25098PN5AC`, 1220×2656, densitate 416dpi ⇒ **2,6 px/dp**, deci ecranul are
+469,2 × 1021,5 dp; aplicația `app.nexus.mobile.dev`). Toate numerele de mai jos sunt citite din
+`uiautomator dump` (px) și împărțite la 2,6.
+
+1. **Un singur antet.** Postarea 50 („Amazon Kindle e-readers…", 3 pagini) deschisă din grila profilului:
+   arborele începe cu `[36,151][838,305] „Profilul lui @wallet4e8gv6"` — adică **capul paginii, la 58 dp**,
+   exact `insets.top`, fără cele 52 de puncte de chrome deasupra. Nu există niciun nod `header`, niciun al
+   doilea rând cu numele. Pe o poză (postarea 41), antetul rutei există și e întreg:
+   `[0,0][1220,286]` (0…110 dp = 58 + 52), cu Back la `[26,160][140,275]`.
+2. **Folio-ul este al documentului.** Nodul `[36,2285][1184,2321] d="Pagina 3 din 3"`, cifrele
+   `[586,633]` — centrul 609,5 px = 234,4 dp, adică mijlocul celor 469,2 dp. Sus, în locul lui `1/22`, nu mai
+   există nimic.
+3. **Numărul urmează pagerul.** Pe aceeași postare, trei gesturi orizontale: `1/3` → `2/3` → `3/3`, iar al
+   patrulea (dincolo de ultima pagină) rămâne `3/3` — nu apare `4/3` și nu apare o pagină albă.
+4. **Indexul se resetează cu documentul.** Ieșire și reintrare în aceeași postare: din nou `1/3`.
+5. **O pagină nu se numerotează.** Postarea „Test Jungle Book: pagina de proba…" (o singură pagină): „Pagina
+   articolului" există, nodul `din 1` nu.
+6. **Ușa din picior stă în banda cedată.** `[26,2414][140,2528] d="Înapoi la profilul lui @wallet4e8gv6"` =
+   10…54 dp × 928,5…972,3 dp, adică 44×44 dp la marginea de 10 dp a paginii. Marginea de jos a hârtiei este
+   `readerBarHeight(48)` = 96 dp deasupra marginii ecranului (925,5 dp), bara de gesturi ocupă ultimii ~48 dp,
+   iar ultima țintă a railului se termină la 900 dp și folio-ul la 893 dp: nimic nu atinge ușa.
+7. **Ușa duce înapoi acolo de unde ai deschis.** Deschisă din grila profilului (celula cu text Amazon Kindle),
+   ușa din picior a adus ecranul **înapoi pe profilul `@wallet4e8gv6`**, cu peretele la aceeași derulare
+   (`r31_foot_door_returns_to_profile.jpg`), iar jurnalul serverului arată `GET /api/profiles/wallet4e8gv6` +
+   impresii după apăsare, fără niciun `GET /api/posts/50`. Deschisă dintr-un stack de linkuri (unde pagina
+   anterioară era altă postare), ușa a revenit *întâi* în istoric — exact ce promite `close`: istoric, apoi
+   profilul, apoi feedul.
+8. **Cele două pagere nu se bat.** În plimbarea pe verticală, o tragere verticală a trecut la **următoarea
+   postare** („Test Jungle Book: pagina de proba…", o pagină, fără folio), iar cele orizontale au întors
+   paginile documentului. Compoziția păstrează deci contractul vechi: vertical = altă postare, orizontal =
+   altă pagină a aceluiași document.
+
+**Capturi publicate** (fiecare validată de `scripts/capture-android-screen.ps1`: focus `app.nexus.mobile.dev`,
+cadru neuniform, JPG decodat complet) și **citite** una câte una, cu observația scrisă între ele:
+
+- `r31_text_reader_foot.jpg` (19:41) — pagina 1/3: un singur cap de autor (avatar, „Mother Fucker",
+  „@wallet4e8gv6 · 5 h", „Czyżyny, Cracovia"), fără antet de rută și fără `1/22`; hârtie crem, text serif pe
+  toată lățimea, railul cu patru uși în dreapta; `1/3` centrat la picior, iar discul negru de Back **sub**
+  folio, în banda rezervată, fără nicio linie de text dedesubt.
+- `r31_profile_wall_before_tile.jpg` (19:47) — profilul din care s-a deschis celula („Mother Fucker",
+  `@wallet4e8gv6`, 2 / 0 / 20, „Editează profilul", banda și grila de text).
+- `r31_foot_door_lands_on_profile.jpg` (19:46) — după ușa din picior, apăsată dintr-o postare deschisă **din
+  istoricul de linkuri**: Back a revenit în istoric, la postarea 25 („Good morning ❤️", Test Nexus/@test),
+  care își păstrează antetul rutei și Back-ul de sus, fără bandă la picior — dovada că o pagină cu poză nu a
+  fost atinsă de rundă.
+- `r31_foot_door_returns_to_profile.jpg` (19:48) — după ușa din picior, apăsată dintr-o postare deschisă din
+  grila profilului: ecranul este profilul, la aceeași derulare.
+
+
+### 31.5 Ce nu s-a dovedit încă (spus pe față)
+
+1. **Compozitorul nu a fost redeschis pe telefon în runda asta.** `EditorialPage` tipărește acum același
+   `folioLabel`, iar pagerul lui se readuce după o re-liniere — ambele verificate prin contracte de sursă în
+   `test-reader-page.cjs`, nu pe ecran. O verificare de compozitor pe telefon (scrie, liniile se rup, `1/2`
+   apare/corect) rămâne de făcut.
+2. **Un clip (Reel) nu a fost deschis pe telefon în runda asta.** Dovezile pentru „paginile cu media păstrează
+   antetul" sunt o poză (postarea 25 și 41). Un clip trece prin `ReelPage`, altă compoziție; antetul rutei
+   este desenat de aceeași condiție `!wordPage`, dar nu a fost văzut pe un clip.
+3. **Banda a fost măsurată pe un singur telefon**, cu insetul de jos de ~48 dp (bară de gesturi). Pe un telefon
+   cu alt inset, banda scade sau crește exact cu el (`readerBarHeight` adună, nu contopește) — aritmetica e
+   testată, măsura nu.
+4. **Documentul de două pagini** (`1/2`, cel din peretele profilului) nu a fost deschis în runda asta: pe
+   telefon s-au văzut `1/3` (de trei ori, plus revenirea la `3/3` după un gest în plus) și o pagină fără număr.
+   Aritmetica pentru N = 2 este acoperită de `folioLabel`, nu de ecran.
+5. **Discul de la picior este negru mat, cu o hairline de metal** (`blackSilver.matteBlack` + `edge`), nu
+   argintiu Mercury: pe crem, un disc argintiu ar fi măsurat ~1,5:1 față de propria hârtie și ar fi citit ca o
+   *placă a identității*, nu ca o ieșire din pagină. Este o decizie de design a acestei runde, nu o cerință a
+   ownerului: dacă o vrea argintie sau cu etichetă text („Înapoi"), este o singură schimbare în `styles.readerDisc`.
+6. **Webul are propriul cititor** (`apps/nexus-web`): pagina de postare din browser își tipărește singură
+   antetul și numărul. Regula din runda asta (un antet, un număr, ușa la picior) este implementată doar în
+   aplicația mobilă; portarea în browser este o rundă separată.
+7. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul
+   `npm test`), neschimbat de runda asta.
+
+
+
+## 32. Pagina de text deschisă din profil: fără ușă în pagină, folio mai jos, butoanele telefonului pe argint (31 octombrie 2026)
+
+### 32.1 Ce s-a cerut (trei propoziții, un singur context)
+
+1. „Când deschid o postare de text **din profil**, butonul Back din pagina de jos e de prisos: aplicația are
+   deja Back în bara de jos. Scoate-l de acolo."
+2. „Mută contorul (`1/3`) puțin mai jos, folosește spațiul de deasupra barei, și lasă textul să coboare cu el."
+3. „Butoanele de jos ale telefonului (Back, Home, recente) abia se văd pe fundalul alb — dă-le un argint
+   discret, dar numai aici."
+
+Toate trei sunt despre **aceeași pagină citită din același loc**. Feed-ul, compozitorul, pozele, clipurile și
+Reels-urile rămân neatinse — iar asta e jumătate din muncă: schimbarea trebuia legată de *origine*, nu de tipul
+postării.
+
+### 32.2 Cum știe ruta de unde a fost deschisă (fără deducții)
+
+Ruta `src/app/post/[id].tsx` are de la runda 30 doi calleri, și numai unul trimite profilul:
+
+- `components/ProfileTile.tsx` → `router.push({ pathname: '/post/[id]', params: { id, key, profile: door.handle, tab: door.tab, reading: door.reading } })`
+  — peretele își spune numele;
+- `src/app/text.tsx` (recepția compozitorului, după `Publică`) → `params: { id }` — fără `profile`.
+
+Deci `handle.length > 0` **este** originea. Runda asta a numit-o explicit:
+
+```ts
+const profileOrigin = handle.length > 0;
+const walkMode = profileOrigin;
+```
+
+`walkMode` rămâne numele plimbării prin arhivă (neschimbat, testat de `test-profile-grid.cjs`), iar
+`profileOrigin` este numele deciziei de design. Feed-ul nu intră niciodată în ruta asta: `FeedScreen` montează
+`PostCard` direct, în shell, cu bara de tab-uri deasupra — de aceea „un text deschis din feed" este, în cod,
+chiar pagina din feed, iar ea nu vede niciuna dintre schimbările rundei.
+
+### 32.3 Ce s-a schimbat, pe fișiere
+
+**`src/lib/readerBar.ts`** — două funcții pure, lângă banda rundei 31:
+
+- `PROFILE_READER_FOOT = { air: 10 }` + `profileReaderBottomInset(inset)` = insetul telefonului **plus** 10dp de
+  hârtie. Banda de 48dp a ușii nu mai e rezervată: pagina din profil nu are ușă, deci nu are ce bandă să
+  păzească. Diferența față de `readerBarHeight` este exact `READER_BAR.height − air`, nu o cifră inventată.
+- `readerDoorShown({ wordPage, profileOrigin, canGoBack })` — regula, într-un singur loc: o pagină care nu e
+  pagină de cuvinte nu are ușă; o pagină deschisă din altundeva decât un profil **păstrează** ușa (recepția
+  compozitorului e singura ieșire de acolo); o pagină din profil **nu** o mai desenează — cu o excepție
+  intenționată: o intrare fără istoric în aplicație (`nexusdev://post/<id>`), unde Back-ul telefonului ar
+  închide aplicația, deci ușa rămâne singura cale spre profilul plimbării.
+
+**`src/lib/textPage.ts`** — `PROFILE_FOLIO = { band: 16, inset: 3 }` + `folioRow(profileReader)`. Același folio,
+tipărit mai jos: cifrele stau la 3dp de piciorul paginii (nu la 12), iar marginea de sub cuvinte scade de la
+26dp la 16dp — deci textul coboară cu ele. `size`, `tracking` și `ink` **nu** se rescriu: se mută rândul, nu
+tipul. `folioRow(false)` întoarce exact `PAGE_FOLIO`, deci feed-ul și compozitorul își păstrează rândul.
+
+**`src/components/SystemNavBand.tsx`** (nou) — placa de metal de sub butoanele telefonului:
+
+- o `View` de înălțimea `insets.bottom` exact, la `bottom: 0`, `backgroundColor: blackSilver.silver`
+  (`#C4C7CB` — argintul Mercury, valoarea cerută de owner) și o hairline de `deepMercury` sus, ca placa să nu
+  se lipească de hârtie;
+- `<NavigationBar style="dark" />` din `expo-navigation-bar` cât timp placa e montată. Modulul ține un **stack**
+  de intrări: la demontare o scoate și reaplică stilul aplicației (`app.json`: `style: "light"`). De aceea
+  componenta nu are niciun `useEffect` de restaurare — o restaurare scrisă de mână ar fi fost al doilea loc
+  care poate greși;
+- `pointerEvents="none"` + `importantForAccessibility="no-hide-descendants"`: placa e fundal, butoanele rămân
+  ale sistemului;
+- nu se atinge `setBackgroundColorAsync` (în edge-to-edge, sub RN 0.86, nu mai există) și nu se schimbă nimic
+  global: placa e desenată de ecran, pentru ecran.
+
+**`src/app/post/[id].tsx`** — trei legături, toate pe `profileOrigin`:
+
+```ts
+const bottomInsetFor = (entry) => {
+  if (!readsAsPage(entry)) return insets.bottom;                       // poză, clip, citat: neschimbat
+  return profileOrigin ? profileReaderBottomInset(insets.bottom) : readerBarHeight(insets.bottom);
+};
+const folioFor = (entry) => folioRow(readsAsPage(entry) && profileOrigin);
+const showReaderDoor = readerDoorShown({ wordPage, profileOrigin, canGoBack: router.canGoBack() });
+const systemNavPlate = profileOrigin && wordPage;
+```
+
+iar în JSX: `{showReaderDoor ? <View style={styles.readerBar}>…` (ușa), `<PostCard … folio={folioFor(entry)} />`,
+și `{systemNavPlate ? <SystemNavBand height={insets.bottom} /> : null}` **după** pagină și ușă, ca placa să
+acopere exact ultimul inset. Sonda de dezvoltare `__POST_ROUTE` raportează acum și `profileOrigin`, `wordPage`,
+`door`, `navPlate` — dar a fost mutată **sub** deciziile piciorului, fiindcă un `const` citit în lista de
+dependențe a unui `useEffect` se citește înainte să existe (temporal dead zone).
+
+**`PostCard` → `PostCanvas` → { `EditorialArticle` → `EditorialPage`, `PostTextReading` }** — un singur prop nou,
+`folio?: { band, inset }`, trecut prin toate cinci, cu valoare implicită `PAGE_FOLIO`:
+
+- `PostTextReading`: `folio ? { paddingBottom: folio.band } : null` pe containerul cuvintelor și
+  `styles.folio, folio ? { bottom: folio.inset } : null` pe folio. Stilurile statice rămân neatinse, deci
+  contractele rundei 31 din `test-post-chrome.cjs` trec neatinse;
+- `EditorialPage`: același `bottom`, iar **marginea fluxului rămâne** `max(pageFolioBand(), 6,4%)` — deliberat:
+  numărul se mută, rândurile nu, deci numărul de pagini al unui articol autorat nu se poate schimba din poziția
+  cifrelor. (Pe telefon, 6,4% dintr-o pagină de 1021dp este 65dp, oricum peste oricare dintre benzi.)
+
+
+### 32.4 Teste
+
+`scripts/test-reader-page.cjs` a trecut de la 8 la **15 cazuri** (7 noi, aceleași convenții: module pure rulate
+în Node + contracte de sursă, fără DOM):
+
+1. `profileReaderBottomInset` adună insetul și păstrează doar `air`; diferența față de `readerBarHeight` este
+   exact banda minus aerul;
+2. `readerDoorShown` — cele cinci combinații (profil cu/fără istoric, altă origine, pagină de media);
+3. `folioRow` — rândul din profil e mai jos pe ambele numere, încape numărul (`band ≥ inset + size`), nu stă pe
+   muchie (`inset > 0`), iar `folioRow(false)` este exact `PAGE_FOLIO`;
+4. ruta leagă toate trei de `profileOrigin`, cu `canGoBack` citit de la router și `folio={folioFor(entry)}`;
+5. rândul trece prin toate cele cinci componente, iar `marginBottom`-ul fluxului rămâne cel din runda 31;
+6. feed-ul și recepția compozitorului **nu** trimit niciun rând nou (`FeedScreen` nu conține `folio`);
+7. `SystemNavBand`: `style="dark"`, `blackSilver.silver`, înălțimea = insetul, `pointerEvents="none"`, gardă
+   `Platform.OS === 'android'`, **fără** `useEffect` de restaurare, plus contrastul `onSilver` pe `silver`
+   recalculat din temă (≥ 4,5:1).
+
+Două teste existente au fost actualizate pentru adevărul nou, nu slăbite: `test-text-page.cjs` (JSX-ul
+`EditorialArticle` e acum pe mai multe linii și primește `folio`) și `test-profile-grid.cjs` (`walkMode` se
+citește acum din `profileOrigin`, aceeași condiție, cu numele originii).
+
+Pe calculator: `npm test` **verde** (56 de scripturi, 0 eșecuri), `tsc --noEmit` **exit 0**.
+
+### 32.5 Dovezi de pe telefon (Xiaomi MIX Flip, 1220×2656 px, 2,6 px/dp ⇒ 469×1021,5 dp)
+
+Insetul de jos al telefonului: **47,7 dp** (bară cu trei butoane: Back, Home, recente).
+
+**Pagina 50 deschisă din profil (articol autorat, trei pagini).** Arborul de accesibilitate, citit prin sonda
+care reîncearcă (dump-ul brut nu prinde starea `idle` pe perete):
+
+| ce | înainte (runda 31) | acum (runda 32) |
+| --- | --- | --- |
+| ușa din picior | 44×44 dp la 10…54 × 928,5…972,3 dp | **niciun nod** `Înapoi la profilul lui @…` |
+| cifrele folio-ului | jos la 893 dp (128,5 dp peste marginea de jos) | jos la **939,6 dp** (**81,9 dp** peste marginea de jos) |
+| centrare | 586…633 px (centru 609,5 din 1220) | **586…633 px** (aceeași centrare) |
+| piciorul paginii | 925,5 dp | **942,7 dp** |
+| marginea dintre ultimul rând și cifre | — | **28,6 dp** (16dp bandă + 3dp inset + linia) |
+
+Măsurat pe `final_jpg/r32_profile_text_reader_low_folio.jpg`, pixel cu pixel (System.Drawing, nu ochi):
+placa de argint începe la **y = 2535 px** (975,0 dp) și ține până jos — **46,5 dp**, adică exact insetul,
+minus hairline-ul de sus; culoarea la 4px de margine este **(196,199,204)** ≈ `#C4C7CC`, adică
+`blackSilver.silver` după compresia JPG. Hârtia de deasupra plăcii, la y = 2516 px, este **(245,239,227)** —
+cremul paginii, neatins. Cea mai închisă urmă a glifelor sistemului în placă este **(93,94,96)**, adică
+**3,83:1** față de placă (WCAG 1.4.11 cere 3:1 pentru un control); înainte, alb pe crem, era ~1,05:1. Android
+își desenează glifele în cerneala lui (noi cerem doar `style="dark"`), deci 3,83:1 este rezultatul sistemului,
+nu o culoare aleasă de aplicație.
+
+**Paginarea** (neschimbată): `1/3` → `2/3` → `3/3` la fiecare gest, iar un al patrulea gest rămâne `3/3`;
+folio-ul stă la aceleași coordonate pe toate trei paginile (2407…2443 px), deci nu sare între pagini.
+Reintrarea în aceeași postare pornește din nou de la `1/3`. O pagină de un singur ecran (postarea „Corect 🌿🌿🌿"
+din plimbare) nu tipărește niciun număr, iar antetul rutei rămâne absent — dovada că regula se aplică *pe
+pagină*, nu pe rută.
+
+**Back-ul telefonului.** Apăsat din pagină, a adus peretele profilului la **aceeași derulare** (aceleași trei
+celule sus: Kindle / „Test publicare TEXT" / Bambus) și a **readus bara de jos la starea aplicației**: negru,
+glife albe — adică placa și `style="dark"` au fost date înapoi la demontare, exact cum cere cerința.
+
+**O poză deschisă din profil (postarea 33).** Antetul rutei rămâne (`Înapoi la profilul lui @wallet4e8gv6`,
+țintă 10…54 × 61,5…105,8 dp), fără folio, fără ușă la picior, fără placă: poza umple ecranul până la butoanele
+telefonului, care rămân albe pe negru. Neschimbată.
+
+**Un text din feed (postarea 51, două pagini).** Bara de tab-uri a aplicației stă sub pagină, folio-ul `1/2`
+deasupra ei (2407…2443 px, adică rândul `PAGE_FOLIO` cu inset 12), fără ușă de cititor, iar bara de jos a
+telefonului rămâne neagră cu glife albe. Neschimbat față de runda 31 — și singura dovadă de care aveam nevoie
+pentru „feed-ul nu se atinge".
+
+Imaginile publicate și citite: `final_jpg/r32_profile_wall_before_tile.jpg` (peretele înainte de atingere, cu
+bara de jos neagră), `r32_profile_text_reader_low_folio.jpg` (pagina nouă), `r32_system_back_returns_to_profile.jpg`
+(Back → profil, placa dată înapoi), `r32_profile_media_unchanged.jpg` (poza din profil), 
+`r32_feed_text_page_unchanged.jpg` (pagina de text din feed). `r32_text_reader_from_profile.jpg` este **înainte**-ul
+aceleiași pagini, prins pe bundle-ul rundei 31 înainte de reîncărcare: ușa neagră de 36dp la 10…54 dp și folio-ul
+sus. `r32_text_reader_walk_page2.jpg` poartă un nume greșit (a fost capturat când aplicația se reîncărcase în feed);
+ce conține este aceeași pagină de text din feed, cu `1/2`.
+
+
+### 32.6 Ce rămâne deschis
+
+1. **Compozitorul nu a fost redeschis pe telefon în runda asta** (rămâne §31.5.1): `EditorialPage` primește acum
+   și `folio`, dar compozitorul nu trimite niciunul, deci își păstrează `PAGE_FOLIO`. Verificarea pe ecran a
+   unei pagini scrise (linii re-rupte, `1/2` corect) rămâne de făcut.
+2. **Un clip (Reel) deschis din profil** nu a fost văzut pe ecran nici în runda asta (§31.5.2). Poza 33 acoperă
+   aceeași condiție de cod (`!wordPage` ⇒ antet, fără placă), dar un clip trece prin `ReelPage`.
+3. **Glifele sistemului sunt ale sistemului**: `style="dark"` cere cerneală închisă, iar Android o desenează la
+   ~3,83:1 pe argint. Dacă ownerul vrea mai mult contrast, singura pârghie a aplicației este placa (un argint
+   mai deschis, `blackSilver.bright`, ar da ~5:1) — o linie în `styles.band` din `SystemNavBand.tsx`.
+4. **Banda de 48dp a ușii rămâne pentru recepția compozitorului** și pentru o intrare fără istoric: acolo ușa
+   există, deci are nevoie de cameră. Nu a fost deschisă pe telefon în runda asta (ruta `/post/[id]` fără
+   `profile`, care cere un `Publică`).
+5. **Discul rotativ cu roată dințată** care se vede pe paginile de text (x≈40…170 px, suprapus peste „altul. 2.")
+   apare și în capturile rundei 31, pe bundle-ul vechi: este o unealtă de dezvoltare/meniu, nu ceva atins de
+   rundă. Rămâne de identificat și scos înainte de o demonstrație — nu a fost atins aici.
+6. **Webul** (`apps/nexus-web`) are propriul cititor și nu a fost portat (§31.5.6).
+7. `scripts/test-ticker-parity.cjs` rămâne singurul eșec preexistent din `scripts/` (nu e în lanțul `npm test`).
+
+
+## 33. „Mașină" refuzată la publicare, emoji la cursor, originea conținutului pe pagină (28 octombrie 2026)
+
+### 33.1 Ce s-a cerut (trei defecte, trei cauze diferite)
+
+1. „Am scris o pagină în litera **Mașină** (și în `casual`/`condensed`/`xlarge`) și la `Publică` mi s-a spus să
+   aleg o temă din listă. Tema era aleasă."
+2. „Apăs un emoji cu cursorul la mijlocul frazei și emoji-ul apare **la sfârșitul** paragrafului."
+3. „Vreau să se vadă pe postarea publicată **ce a declarat autorul** despre cum a fost făcută — în feed și în
+   profil."
+
+Toate trei sunt despre ceva ce *există* deja într-o jumătate a produsului și lipsește în cealaltă: șase fețe
+există în compozitor dar nu în server, cursorul există în câmp dar nu în panoul de emoji, declarația există în
+bază dar nu pe ecran.
+
+### 33.2 Cauza refuzului: un contract fără număr de versiune
+
+`apps/nexus-web/lib/post-text-style.js` are șase fețe (`serif`, `sans`, `mono`, `slab`, `casual`, `condensed`)
+și patru mărimi (`small`, `medium`, `large`, `xlarge`) **în arborele de lucru**, dar deployment-ul din fața
+telefonului (`e74f8ff`, Railway) are allowlist-ul vechi, de trei fețe. `normalizeTextStyle` întoarce `null`
+pentru `slab`, ruta răspunde `TEXT_STYLE_INVALID`, iar editorul poate tipări doar mesajul generic al câmpului
+— „Alege o temă din listă" — pentru că refuzul nu numește litera.
+
+Asta nu se putea repara în client: telefonul nu avea **niciun mod** de a afla allowlist-ul dinainte.
+`GET /api/version` publica `text_style: 1` atât pentru serverul cu trei fețe, cât și pentru cel cu șase —
+numărul era același, deci întrebarea nu exista. Reparația este contractul:
+
+- `apps/nexus-web/lib/build-info.js` — `text_style: 2`, cu comentariul care spune ce înseamnă fiecare număr
+  (`1` = trei fețe și trei mărimi, `2` = șase fețe și `xlarge`) și de ce un client care cere `1` trece pe un
+  server `2` (un număr mai mare este un superset);
+- `apps/nexus-mobile/src/lib/backendVersion.ts` — `TEXT_STYLE_CAPABILITY_V2 = 2`, cele două liste
+  (`TEXT_STYLE_V2_FONTS`, `TEXT_STYLE_V2_SIZES`), etichetele fețelor pentru mesaj, codul nou
+  `BACKEND_TEXT_STYLE_OLDER` și `requireTextStyleContract(style)`;
+- `apps/nexus-mobile/src/app/text.tsx` — `await requireTextStyleContract(draft.style)` **înainte** de
+  `requirePageCapabilities()` și de încărcarea fișierelor.
+
+Trei răspunsuri, un singur refuz: server `>= 2` ⇒ pagina pleacă; server `1` ⇒ refuz aici, cu litera pe nume
+(„litera «Mașină» (slab)"), plus propoziția că textul rămâne salvat pe telefon; server care **tace** ⇒ `null`,
+adică pagina pleacă, fiindcă tăcerea este aceeași conexiune pe care ar folosi-o POST-ul, iar un hiccup de
+rețea nu are voie să devină publicare blocată. O pagină în `serif`/`sans`/`mono` la `small`/`medium`/`large`
+nu întreabă nimic: zero cereri, zero cache, zero mod nou de a eșua.
+
+**Un server vechi nu se repară din telefon.** Deployment-ul Railway rămâne, până la o publicare aprobată de
+owner, pe allowlist-ul de trei fețe; ce s-a câștigat aici este că refuzul este acum *spus* — și că un server
+actualizat este recunoscut ca atare, fără ghicit după commit.
+
+### 33.3 Emoji la cursor: socoteala mutată într-un modul pur
+
+`onSelectionChange` exista din runda 9, dar consuma evenimentul doar ca să elibereze pinul atingerii
+(`caret: null`) și **arunca intervalul**. Singura poziție cunoscută era deci sfârșitul șirului, iar efectul de
+inserare lipea emoji-ul la coadă: `text: \`${current.text}${addition}\``.
+
+- `apps/nexus-mobile/src/lib/textInsert.ts` (nou, fără nicio dependență la rulare) — `snapOffset` /
+  `snapSelection` taie intervalul la pagină, îl pune în ordine și îl scoate din mijlocul unei perechi
+  surrogate (un `slice` acolo ar rupe emoji-ul în două); `insertAtSelection(text, addition, selection)`
+  întoarce `{ text, caret }`, iar `caret` este poziția pe care se sprijină **următorul** emoji. Un *cursor*
+  (`start === end`) se mută cu ambele capete la stânga, o *selecție* crește în afară: altfel „selectează un
+  emoji și scrie peste el" ar lăsa jumătate de caracter.
+- `src/components/EditorialPage.tsx` — `field` devine `{ blockId, text, caret, selection }`; `openField`
+  ține minte locul atingerii și ca prim interval; `onSelectionChange` păstrează intervalul raportat
+  (`snapSelection`) în loc să-l arunce; efectul de inserare scrie la `selection ?? caret ?? text.length` și
+  lasă cursorul după emoji. Fără interval raportat niciodată, comportamentul vechi rămâne (la coadă) — este
+  singurul caz în care nu există nimic mai bun de folosit.
+- `src/app/text.tsx` — doar comentariul lui `insertEmoji` s-a schimbat: cererea era deja corectă (nonce, nu
+  rescrierea paginii).
+
+
+### 33.4 Originea conținutului pe pagină: o declarație citată, nu o verificare
+
+Declarația exista la scris (`PROVENANCE_LABELS`, `lib/publishClient.ts`), era validată și păstrată de server
+(`normalizeProvenance`, `lib/moderation.js`) și venea în fiecare răspuns (`socialPostView`,
+`provenance: post.provenance`). Pe partea de citire nu o desena nimeni: patru răspunsuri diferite arătau la fel.
+
+- `src/lib/socialTypes.ts` — `SocialPost.provenance?: ContentProvenance | string | null`, cu motivul scris
+  lângă el (compozitorul a trimis-o dintotdeauna; cititorul nu a tipărit-o niciodată).
+- `src/lib/postOrigin.ts` (nou, pur) — `POST_ORIGIN_LABELS`, `POST_ORIGIN_HINT`, `originOf(post)`:
+  - etichetele încep toate cu „Declarat": serverul păstrează ce a ales autorul, nu verifică poza, iar o
+    formulare de tipul „Fotografie reală" ar preface propoziția autorului în promisiunea produsului;
+  - `NOT_DECLARED` nu desenează nimic — o poartă fiecare postare scrisă înainte de compozitor, deci
+    tipărirea ei ar eticheta toată arhiva și nu ar spune nimic despre nicio postare; un post nedeclarat **nu**
+    este re-etichetat „creat de autor", fiindcă nimeni nu a declarat asta;
+  - o valoare necunoscută (server mai nou, grafie veche) nu se ghicește: `originOf` întoarce `''`.
+- `src/components/PostCanvas.tsx` — a treia linie discretă din antet, sub loc și aliniată cu numele
+  (`marginLeft: head.disc + 8`), în **afara** `Pressable`-ului care duce la profil: „Asistat de AI" este o
+  propoziție despre postare, nu un mod de a deschide un profil. `accessibilityLabel` = eticheta **plus**
+  `POST_ORIGIN_HINT`, deci un cititor de ecran aude și ce nu este declarația. `POST_HEAD.originLines = 2`.
+  Celula de arhivă (`variant="tile"`) nu o desenează: 155 px nu țin o propoziție, iar celula nu este o
+  suprafață de citire.
+
+Fiindcă feed-ul și profilul citesc aceeași compoziție (`FeedScreen`/`post/[id].tsx` → `PostCard` →
+`PostCanvas`), o singură linie acoperă amândouă; `ReelPage` (poze, clipuri) folosește tot `PostCanvas`.
+
+
+### 33.5 Testele rundei
+
+Pe calculator, toate verzi (cifrele în §33.6):
+
+- `apps/nexus-web/test/post-text-faces.test.js` (nou, 5 cazuri) — `openDb(':memory:')` + `handleRequest`:
+  capacitatea raportată este `2`; matricea **144** de combinații (6 fețe × 4 mărimi × 6 teme) publică,
+  persistă în rând și se întoarce întreagă prin `GET`; combinații arbitrare; contractul `1` publică neschimbat
+  (pagină veche, postare fără stil); refuzurile refuză în continuare.
+- `apps/nexus-web/test/post-content-origin.test.js` (nou, 4 cazuri) — toate cele patru valori
+  `CONTENT_PROVENANCE` supraviețuiesc publicării, rândului, citirii postării și feed-ului; nedeclaratul rămâne
+  `NOT_DECLARED` (și `USER`/`UNKNOWN`/`user` se normalizează la el); o valoare necunoscută este refuzată cu
+  `provenance invalid` și nu se scrie nimic; declarația merge și pe o poză și pe o pagină cu stil, fără să
+  schimbe felul sau textul.
+- `apps/nexus-mobile/scripts/test-text-insert.cjs` (nou, 11 cazuri) — început/mijloc/sfârșit, înlocuirea unui
+  interval, „selectează tot", fără interval (vechea comportare), interval imposibil sau invers, cursor în
+  mijlocul unei perechi surrogate, rânduri noi păstrate, trei emoji consecutive, emoji compuse (familie ZWJ,
+  steag, ton, inimă cu selector) — plus două teste de legare: efectul din `EditorialPage` folosește
+  `insertAtSelection`, iar ce se scrie în câmp este exact ce ajunge în pagină la `Gata` (`setBlockText`).
+- `apps/nexus-mobile/scripts/test-post-origin.cjs` (nou, 5 cazuri) — cele trei etichete și nedeclaratul,
+  onestitatea formulării (niciun „verificat"/„real"/„garantat"), o singură etichetă per postare, în afara ușii
+  de profil, celula de arhivă curată, `provenance` în tip și în `socialPostView`.
+- `scripts/test-backend-version.cjs` — patru cazuri noi pentru contractul v2 (poarta întreabă o dată; server
+  `1` refuză cu litera pe nume; pagina obișnuită nu întreabă nimic; serverul care tace nu blochează) și
+  aserțiunea pe `build-info.js` rescrisă pe nume + valoare (`text_style: 2`).
+- `scripts/test-text-field.cjs` și `scripts/test-text-integrity.cjs` — aduse la adevărul nou: pinul atingerii
+  se eliberează în continuare, dar intervalul este **păstrat**, iar emoji-ul nu se mai lipește la coadă.
+
+### 33.6 Dovezi
+
+**Pe calculator.** `apps/nexus-web`: `node --test` complet — **862 teste, 0 eșecuri** (incluzând cele două
+fișiere noi). `apps/nexus-mobile`: lanțul `npm test` — **58 de fișiere, 0 eșecuri**; `tsc --noEmit` exit 0.
+
+**Backend local repornit.** Procesul de pe portul 5000 rula din 27 octombrie și își ținea amprenta în memorie
+(`3f9ddd8b…`, `text_style: 1`). După repornire (`node --max-old-space-size=1024 server.js`, PID nou):
+`source_fingerprint: c34cf0d2…`, `capabilities.text_style: 2`. Poarta telefonului, întrebată pe viu:
+`slab` → acceptat (v2), `casual` + `xlarge` → acceptat, `condensed` → acceptat, `serif` + `large` → fără poartă.
+
+
+**Pe telefon** (Xiaomi MIX Flip, 2,6 px/dp, ecran 1220×2656), captură
+`JUNGLE_BOOK_VERIFICATION/final_jpg/r33_reader_after_reload.jpg` (`RESULT_JSON`, `focusOk: true`,
+`exec-out`, 490 113 bytes): o pagină de text deschisă din profilul propriu arată, sub nume și sub loc, linia
+**„Declarat: cameră"**. Măsurat în arborele de accesibilitate (`uiautomator dump`):
+
+| element | bounds (px) | dp (÷2,6) |
+| --- | --- | --- |
+| nume | `[197,150][838,210]` | x 75,8…322,3 · y 57,7…80,8 |
+| `@wallet4e8gv6 · 27 min` | `[197,210][838,256]` | y 80,8…98,5 |
+| loc („Czyżyny, Cracovia") | `[197,258][838,304]` | y 99,2…116,9 |
+| **„Declarat: cameră"** | `[197,307][839,353]` | x **75,8** · y **118,1…135,8** |
+
+Marginea de stânga este identică cu a numelui și a locului (75,8 dp = fața de 67,8 dp + 8 dp de aer), deci
+eticheta se aliniază cu coloana de cuvinte pe orice variantă; diferența față de rândul locului este de 3 px
+(≈1,2 dp, adică `POST_HEAD.locationGap`), iar înălțimea de 46 px (17,7 dp) este un singur rând. Nodul are
+`content-desc` = „Declarat: cameră. Ce a declarat autorul despre cum a fost făcut conținutul. Jungle Book nu
+verifică declarația.", `clickable="false"`, `focusable="false"` — este text, nu parte din ușa profilului.
+Restul antetului (nume, handle, ceas, loc, „Editează profilul") este neschimbat, iar pagina, folio-ul `1/2`,
+railul și bara de jos arată ca în runda 32.
+
+### 33.7 Ce rămâne deschis (și de ce nu se poate închide de aici)
+
+1. **Deployment-ul Railway trebuie actualizat pentru ca „Mașină" să se publice în producție.** Serverul din
+   fața telefonului are allowlist-ul de trei fețe; arborele are șase. Până la o publicare aprobată de owner,
+   refuzul este cel *corect* (pagina nu pleacă, autorul află de ce și nu pierde textul), dar nu este succesul
+   cerut. Nu se raportează ca rezolvat din client.
+2. **Emoji-ul la cursor nu a fost văzut pe telefon în runda asta.** Regula este acoperită de 11 teste pure și
+   de două teste de legare, iar câmpul a fost deschis pe ecran în runde anterioare, dar gestul „cursor la
+   mijloc, apasă emoji" nu a fost executat pe dispozitiv: cere compozitorul deschis, o atingere în text și o
+   apăsare în panoul de emoji. Este primul lucru de făcut în runda următoare, cu două capturi (înainte/după).
+3. **Un post nedeclarat nu a fost văzut pe ecran** după această rundă: captura dovedește partea „cu etichetă".
+   Partea „fără etichetă" este ținută de `originOf` (test) și de `{origin ? … : null}` (formă unică), dar o
+   poză cu un post moștenit ar închide subiectul. Nu s-a putut face fără Back, iar regula rundelor interzice
+   Back/Home în timpul capturilor.
+4. **Matricea de 144 de combinații rulează pe server, nu pe telefon**: că cele șase fețe *se desenează*
+   corect pe ecran este verificat de `test-text-integrity.cjs` (G) pe măsurători de font, nu de o captură.
+5. **Webul** (`apps/nexus-web`) are propriul cititor și nu a fost portat nici la eticheta de origine (§31.5.6).
+
+
+---
+
+# Runda 34 — migrare locală completă, dependența Railway scoasă, audit al aplicației
+
+**Decizia proprietarului (28 octombrie 2026):** Jungle Book rulează în întregime pe PC-ul proprietarului.
+Railway nu este backendul dorit și nu este ținta de deployment. Telefonul vorbește cu PC-ul, iar nimic din
+aplicație nu mai are voie să cadă, în tăcere, pe un host remote.
+
+## 34.1 Ce s-a găsit la început (inventarul de dependențe)
+
+Aplicația era deja locală în fapt: serviciul `tools/local-backend` ținea portul 5000, baza
+`C:\Nexus\data\nexus.sqlite`, media în `C:\Nexus\data\media`, pornit de task-ul programat „Jungle Book
+Backend” și vegheat de `jungle-backend-service.mjs`. Ce rămăsese erau **căi de întoarcere** și **texte**:
+
+| componentă | unde | local/remote | Railway implicat | ce s-a făcut | cum se verifică |
+| --- | --- | --- | --- | --- | --- |
+| rezolvarea originii API | `src/lib/apiOrigin.ts` | **remote implicit** | da — `HOSTED_ORIGIN` | scos; implicitul este `http://localhost:5000` prin `adb reverse` | `scripts/test-api-origin.cjs` (8 teste) |
+| eticheta din shell | `apiOriginLabel` | local | numele „API: Railway” | scos; orice host străin e numit pe nume | același fișier de test |
+| pornirea Metro | `tools/dev-start.ps1` | **remote implicit** | da — `$apiOrigin` cădea pe Railway | origine derivată local + `adb reverse tcp:5000` când e loopback | `Parser::ParseFile` + rulare |
+| script de Metro | `apps/nexus-mobile/builds/metro-railway.cmd` | remote | da | retras; `builds\metro-local.cmd` citește `.env` | fișierul întors cu codul 3 |
+| text în interfață | `CommentsSheet.tsx`, `CaptureEditor.tsx` | — | „backend-ul Railway”, „selecția semnată de Railway” | „serverul”, „selecția semnată de server” | `npm test` (brand + server-errors) |
+| comentarii de cod | `publishClient`, `capturePublish`, `commentNavigation`, `postInteractions`, `ProfileMenuSheet`, `SettingsScreen` | — | descriau un backend remote | rescrise la „server” | citire |
+| referințe de instrument | `tools/web-ref/harness.mjs` | remote | da (implicit) | rămâne pentru arhiva de referință web, **nu** e în calea de date | citire |
+| documentație istorică | `HANDOFF.md`, `MIGRATION.md`, `JUNGLE_BOOK_PROGRESS.md` | — | da, istoric | **păstrată neatinsă**: este jurnalul, nu runtime-ul | citire |
+| xPortal / WalletConnect | `lib/mvx.js`, `NEXUS_WC_PROJECT_ID` | **extern, obligatoriu** | nu | neschimbat: autentificarea xPortal nu se atinge | `/auth/mvx/init` |
+
+Cele două locuri care *foloseau* Railway în timpul rulării erau deci `apiOrigin.ts` (implicitul) și
+`dev-start.ps1` (implicitul de pornire). Amândouă sunt acum locale, iar un test eșuează dacă un host
+remote reapare în sursele aplicației.
+
+
+## 34.2 Implicitul remote, scos din rezolvarea originii
+
+`apiOrigin.ts` avea trei trepte, iar a treia era un deployment Railway: un build care nu găsea
+`EXPO_PUBLIC_NEXUS_API_URL` și nici un host de packager citea și **scria** alt server decât al
+proprietarului. Treapta a treia este acum `http://localhost:5000` — loopback-ul telefonului, adus pe PC
+prin `adb reverse tcp:5000`, pe care `tools/dev-start.ps1` îl deschide când originea este loopback. Nu
+există niciun alt URL în fișier, iar `scripts/test-api-origin.cjs` verifică exact asta:
+
+* o origine configurată câștigă, fără slash final;
+* un build de dezvoltare urmează PC-ul care a servit bundle-ul (LAN, portul 5000);
+* un packager pe `localhost` și un build fără nicio configurare cad amândouă pe `http://localhost:5000`
+  și **spun pe consolă** că au nevoie de `adb reverse tcp:5000`;
+* singurele URL-uri din fișier sunt loopback-ul și șablonul `${host}` al packager-ului;
+* niciun fișier din `src/lib` care atinge calea de date nu mai numește un host remote.
+
+Consecința practică: dacă PC-ul nu răspunde, cererea **eșuează vizibil**; nu mai există un mod în care
+aplicația să pară că merge pentru că vorbește cu altcineva.
+
+## 34.3 Un singur backend, măsurat — nu presupus
+
+Unealta nouă `tools/local-backend/audit-local.mjs` întreabă, în aceeași rulare, serviciul, baza și
+depozitul de media. Baza se deschide `readOnly`; singura scriere este opțională și etichetată
+(`--handle <h>` creează o sesiune ca un login, cu `device_id = "audit"`).
+
+Rulat pe instanța vie (28 octombrie 2026, 21:21 UTC), **toate verificările au trecut**:
+
+```
+[PASS] /health răspunde 200 — status=200, environment=local_development, users=9, posts=48
+[PASS] serviciul raportează starea ready — status=ready
+[PASS] /api/version răspunde și anunță text_style v2 — commit=6fd70c5, api_contract=1, text_style=2
+[PASS] editorial_document este anunțat — editorial_document=1
+[PASS] numărul de conturi din bază este cel raportat de /health — db=9, health=9
+[PASS] numărul de postări din bază este cel raportat de /health — db=48 rânduri (46 active), health=48
+[PASS] fiecare rând de media are fișierul lui — 24 rânduri, 0 lipsă
+[PASS] dimensiunea din bază este dimensiunea de pe disc — 0 nepotriviri
+[PASS] numele fișierului este sha256-ul conținutului — 0 nepotriviri
+[PASS] media se descarcă prin HTTP local, cu dimensiunea din bază — 4/4 eșantioane
+[PASS] /api/me răspunde pentru contul audit — @wallet4e8gv6, persona=social
+[PASS] feed-ul se încarcă din backend-ul local — 20 postări în prima pagină
+[PASS] profilul propriu se încarcă, cu arhiva — 21 postări (text=7, image=13, video=1)
+[PASS] o postare se citește din backend-ul local — #52 text
+[note] fețe și mărimi citite din arhivă — serif/medium
+[note] declarații de origine în arhivă — #52=CAMERA_CAPTURED_DECLARED, #51=CAMERA_CAPTURED_DECLARED
+[note] notificări — 0 elemente
+```
+
+Cele două numărători care trebuie să fie egale — `/health` și `SELECT COUNT(*)` din fișierul de pe disc —
+sunt egale, deci telefonul citește **chiar** baza din `NEXUS_DATA_DIR`, nu o copie uitată în repository
+(`apps/nexus-web/data` păstrează doar baza de dezvoltare de dinaintea importului, cu 39 de conturi de test).
+
+## 34.4 Baza de date și media: integritate, nu doar existență
+
+| categorie | local (28 oct 2026) | dovada |
+| --- | --- | --- |
+| conturi | 9 | `/health` = `users` |
+| profiluri (personas) | 12 | inventar |
+| postări | 48 (46 active: image 21, text 17, video 8) | inventar + arhiva din API |
+| media atașată | 30 legături `post_media` | inventar |
+| comentarii | 41 | inventar |
+| reacții / salvate | 13 / 0 | inventar |
+| urmăriri | 2 | inventar |
+| conversații / mesaje | 0 / 0 | inventar (mesageria nu e folosită pe acest cont) |
+| fișiere media | 24 fișiere, 24 rânduri | hash + dimensiune + HTTP |
+| proveniență salvată | `NOT_DECLARED` 45, `CAMERA_CAPTURED_DECLARED` 3 | inventar |
+
+Fișierele poartă numele sha256-ului conținutului, iar toate cele 24 se decodau la dimensiunea din bază:
+store-ul este conținut-adresat, deci o copiere greșită ar fi fost prinsă de hash, nu de „se încarcă poza”.
+
+
+## 34.5 Toate cele șase fețe, pe backend-ul local, prin HTTP
+
+Runda 33 a reparat *contractul* (`text_style: 2`) și a dovedit matricea în memorie
+(`test/post-text-faces.test.js`). Ce lipsea era dovada că un server **pornit**, cu o **sesiune reală**,
+păstrează pagina: ruta, cookie-ul, `Idempotency-Key`, rândul din SQLite și citirea înapoi.
+`apps/nexus-web/scripts/text-faces-http-e2e.mjs` (`npm run test:text-faces`) face exact atât, pe un
+director temporar (baza proprietarului nu este atinsă; se șterge la final):
+
+```
+[PASS] serverul local răspunde la /health — 1 conturi în baza temporară
+[PASS] serverul local anunță text_style v2 — text_style=2, contract=1, commit=6fd70c5
+[PASS] 144 de publicări (6 fețe × 4 mărimi × 6 teme) sunt acceptate și întoarse la fel — 144/144 prin GET /api/posts/:id
+[PASS] litera serif|sans|mono|slab|casual|condensed publică și la mărimea xlarge
+[PASS] pagina apare în arhiva profilului — HTTP 200, 100 postări în arhivă
+[PASS] conținutul SYSTEM_TEST nu intră în feed-ul clasat — HTTP 200, 0 postări, 0 ale contului de test
+[PASS] fiecare pagină este în baza de date cu stilul ei — 144/144 rânduri identice cu cererea
+[PASS] toate paginile aparțin contului SYSTEM_TEST — @face_owner_e2e
+[PASS] toate paginile stau în persona social — social
+```
+
+Ultimul rând de „feed” este o constatare, nu un eșec: `createUser` marchează automat `SYSTEM_TEST` (numele
+contului spune asta) iar `listSocialFeed` citește numai `HUMAN_ORGANIC`, deci conținutul sintetic nu
+influențează clasamentul — regula din `AGENTS.md`, verificată aici pe viu. Paginile se văd în arhiva
+autorului, care este suprafața de citire pentru un cont de test.
+
+Pe backend-ul proprietarului, aceleași două lucruri se văd direct: `/api/version` → `text_style: 2`, iar
+arhiva `@wallet4e8gv6` întoarce pagini cu `text_style` (azi `serif/medium`, fiindcă atât s-a scris până
+acum). Publicarea unei pagini „Mașină” rămâne o acțiune a proprietarului.
+
+## 34.6 Originea conținutului: doar AI primește o linie
+
+Decizia din runda 34 este mai îngustă decât eticheta din runda 33:
+
+| valoare salvată | ce se vede |
+| --- | --- |
+| `NOT_DECLARED` | nimic |
+| `CAMERA_CAPTURED_DECLARED` | nimic |
+| `AI_ASSISTED` | **Asistat de AI** |
+| `AI_GENERATED` | **Generat cu AI** |
+
+Prefixul „Declarat:” a fost scos din textul vizibil. Propoziția pentru cititorul de ecran a rămas
+(„Ce a declarat autorul… Jungle Book nu verifică declarația.”), fiindcă două cuvinte nu pot spune nici
+cine a declarat, nici că nu e verificat. Valoarea salvată, cele patru valori acceptate de server și
+`normalizeProvenance` sunt neatinse: s-a schimbat **doar** ce se desenează. `scripts/test-post-origin.cjs`
+(5 teste) ține regula, inclusiv forma unică `{origin ? (…) : null}` din `PostCanvas` și faptul că celula de
+arhivă nu tipărește nimic.
+
+Pe telefon, postarea #52 are `CAMERA_CAPTURED_DECLARED` și **nu** mai arată nicio linie sub loc (captura
+`r34_feed_after_origin_change.jpg`, antetul are exact trei rânduri: nume, `@wallet4e8gv6 · 57 min`, loc).
+O pagină `AI_ASSISTED` nu a fost publicată — vezi §34.9.
+
+
+## 34.7 Emoji la cursor: ce lipsea pe telefon (și de ce nu era aritmetica)
+
+Runda 33 a reparat aritmetica (`lib/textInsert.ts`, 11 teste pure) și a păstrat intervalul raportat de
+telefon. Pe dispozitiv, gestul a arătat însă altceva: scrie „Ana are mere.”, așază cursorul, apasă
+„Gata”, apasă „Emoji” — emoji-ul apare **la sfârșitul frazei**.
+
+Cauza nu era inserarea, ci drumul până la ea:
+
+1. cât timp foaia de scriere e deschisă, tastatura acoperă bara compozitorului, deci butonul „Emoji” nu
+   poate fi apăsat (măsurat: câmpul se termină la y=1783 px, bara stă la y≈2438…2482 px);
+2. butonul Înapoi al telefonului nu doar ascunde tastatura — `hardwareBackPress` închide foaia;
+3. `closeField` arunca foaia **și** intervalul (`setField(null)`), iar ramura din efectul de inserare care
+   rulează fără foaie deschisă nu avea ce cursor să folosească și cădea pe `text.length`.
+
+Reparația este cea mai mică ce face gestul posibil: `lastCaretRef` ține ultimul cursor cunoscut (așezat de
+atingerea pe hârtie, de fiecare `onSelectionChange`, sau la închidere) și este citit de inserarea care
+rulează fără foaie; dacă paragraful nu mai există, se revine la comportamentul documentat (coada ultimului
+paragraf). Este un ref, nu o stare: nu re-randează pagina. `test-text-field.cjs` a primit un al zecelea test
+care ține contractul.
+
+**Pe telefon** (Xiaomi MIX Flip, focus verificat înainte de fiecare input, două capturi citite):
+
+* `r34_emoji_at_caret.jpg` — textul `A😀na are mere.`: degetul a atins începutul rândului (offset 1), iar
+  emoji-ul a intrat **între „A” și „na”**, nu la coadă. Contorul: 15/20000.
+* `r34_emoji_mid_sentence.jpg` — textul `A😀na are mer😀e.`: o a doua atingere la mijlocul rândului a produs
+  `mer😀e`, iar cursorul albastru se vede **imediat după** al doilea emoji (înlănțuirea funcționează).
+
+Ce nu a fost exersat pe dispozitiv: înlocuirea unui interval selectat și emoji-ul lângă un rând nou. Ambele
+sunt acoperite de teste pure (`insertAtSelection` cu `{start,end}` și cu `\n`), dar nu au o poză.
+
+## 34.8 Dovezi
+
+**Pe calculator.** `apps/nexus-web`: `node --test test/*.test.js` — **862 teste, 0 eșecuri**.
+`apps/nexus-mobile`: lanțul `npm test` — **58 de fișiere, 0 eșecuri**, inclusiv noile
+`test-api-origin.cjs` (8 teste, rescris), `test-post-origin.cjs` (5 teste, rescris) și
+`test-text-field.cjs` (10 teste, unul nou). `tsc --noEmit` exit 0.
+`npm run test:text-faces` — matricea de 144 prin HTTP, PASS.
+
+**Repornire controlată.** `stop-backend.ps1` → „backend stopped cleanly”, portul 5000 închis;
+`start-backend.ps1` → supervisor nou (PID 25492, copil 23636), `healthy: true`, `data dir C:\Nexus\data`,
+`api/version` OK. După repornire, `audit-local.mjs` a trecut din nou toate verificările: aceleași 9 conturi,
+48 de postări, 24 de fișiere media, 0 lipsă, 0 nepotriviri de hash.
+
+**Pe telefon.** `r34_after_restart.jpg` — după ce serviciul a fost oprit și repornit, aplicația reîncărcată
+arată aceeași postare din backend-ul local („Mother Fucker / @wallet4e8gv6 · 1 h / Czyżyny, Cracovia”,
+pagina „1/2”, bara de jos), fără nicio linie de origine sub loc. Toate cele trei capturi au `focusOk: true`
+și au trecut validarea PNG → JPG a uneltei.
+
+**Dovada din partea serverului** (jurnalul serviciului, `NEXUS_REQUEST_LOG=1`, `C:\Nexus\logs\
+server-2026-10-28.log`): cererile telefonului vin de la `192.168.1.184` cu `okhttp/4.12.0` — **47 de cereri
+pe 9 rute** (`/api/social/feed`, `/api/profiles/wallet4e8gv6`, `/api/notifications`,
+`/api/chat/conversations`, `POST /api/social/impressions`…), toate `200` sau `202`. Alături apar cererile
+`/api/version` de pe `127.0.0.1` cu user-agent `node`, adică uneltele de audit din această rundă
+(`audit-local.mjs`, `text-faces-http-e2e.mjs`), nu telefonul. Deci telefonul vorbește cu PC-ul, iar
+aplicația nu mai atinge niciun alt server.
+
+
+## 34.9 Railway: ce s-a inventariat, ce lipsește pentru retragere
+
+Aplicația nu mai are nicio cale de rulare către Railway (secțiunea 34.1). Ce rămâne este **platforma**,
+nu codul, iar inventarul ei nu se poate face fără accesul proprietarului: pe acest PC nu există `railway`
+CLI, nici `~/.railway`, nici `RAILWAY_TOKEN`, deci nu pot fi citite serviciile, volumele, domeniile sau
+backup-urile proiectului. Ce se știe din exportul deja făcut (27 octombrie, `~/NexusBackups/
+railway-export-20261027`, `manifest.json`):
+
+| ce | valoare din manifest |
+| --- | --- |
+| sursă | `https://nexus-deepsek-production.up.railway.app` |
+| commit al instanței hosted | `e74f8ff` |
+| conturi | 8 (`devnet_test_01`, `test`, `urailwaytest01a20d`…`05313a`, `wallet4e8gv6`) |
+| profiluri | 12 |
+| postări | 36 (18 în feed) + detalii pentru toate |
+| comentarii | 37 |
+| media | 20 referite, **20 descărcate**, 0 eșuate |
+| fișiere scrise | 94 (API JSON + media) |
+| acces SQLite direct | **nu** — „HTTP only; the SQLite file lives on the platform volume and is not reachable without platform credentials” |
+
+Importul acelui export în `C:\Nexus\data` (`import-report.json`, 27 octombrie) a raportat
+`commitments_verified: 36`, `media_files_copied: 20`, `media_missing: []`,
+`commitment_mismatches: []`, `integrity: ok`. Baza locală are azi **mai mult** decât exportul (48 de
+postări față de 36, 24 de fișiere față de 20), fiindcă postările de după import s-au scris direct aici.
+
+Deci: datele și media necesare sunt local. Ce nu se poate afirma fără platformă: dacă volumul Railway mai
+are vreun obiect care nu a fost niciodată expus prin API (un avatar orfan a fost deja semnalat în §18.9),
+dacă există backup-uri de platformă și ce domenii/politici sunt atașate. Pașii de retragere, în ordine, și
+ce se întâmplă la fiecare:
+
+1. **Confirmare în dashboard** (owner): proiectul, serviciile, volumul, domeniile, backup-urile.
+2. **Export final** dacă între timp s-a mai scris ceva: `node tools/migration/export-railway.mjs <dir>`
+   cu `NEXUS_PROD_URL` + `NEXUS_PROD_TOKEN` (token de sesiune al contului, nu o parolă).
+3. **Comparație** cu `C:\Nexus\data` pe id-uri și pe hash-uri de media înainte de orice oprire.
+4. **Opriearea serviciului** (nu ștergerea): aplicația nu mai depinde de el, deci efectul este zero pentru
+   telefon; reversibil dintr-un clic. Domeniul rămâne rezervat.
+5. **Ștergerea permanentă** — separat, cu confirmare explicită, după ce un backup local a fost restaurat
+   într-un drill (`restore-backup.mjs --drill`).
+
+Nimic din pașii 3–5 nu a fost executat: nu am oprit, nu am șters și nu am modificat nimic remote.
+
+## 34.10 Ce rămâne deschis
+
+1. **O pagină „Mașină” publicată de owner** — contractul este v2 local, dar publicarea este acțiunea lui;
+   nu s-a publicat conținut de test în feed-ul real.
+2. **Eticheta „Asistat de AI” pe ecran** — nu există nicio postare cu această valoare în baza locală, iar
+   a crea una ar însemna fie să public ceva nedeclarat de owner, fie să modific provenance-ul unei postări
+   reale. Regula este ținută de 5 teste; o poză cere o postare AI declarată de owner.
+3. **Scrierile sociale pe instanța vie** (comentariu, reacție, salvare, follow, editare de profil,
+   upload de avatar/foto/clip) nu au fost exersate pe datele proprietarului — ar însemna să modific
+   conținutul lui. Ele sunt acoperite de suita backend (`node --test`, 862 de teste) și de e2e-urile pe
+   instanțe temporare; pe instanța vie sunt **NEVERIFICATE**.
+4. **Mesageria** nu are date pe acest cont (0 conversații, 0 mesaje), deci nu are ce verifica.
+5. **Webul** (`apps/nexus-web`) are propriul cititor, fără eticheta de origine și fără poarta de contract
+   (§31.5.6) — neschimbat în această rundă.
+6. **Sesiunea de audit** — `audit-local.mjs --handle` a scris un rând în `sessions` cu
+   `device_id = "audit"`, `device_label = "audit runda 34"`. Este o adăugare documentată; se poate închide
+   din aplicație ca orice sesiune.
+7. **Rundele 20–34 sunt necomise** pe `codex/camera-draft-stability`; commitul cere aprobarea owner-ului.
+

@@ -43,7 +43,8 @@ export const nexusTokens = {
   login: {
     root: {
       paddingVertical: 18, paddingHorizontal: 14,
-      backgroundImage: 'radial-gradient(95% 52% at 50% 100%, rgba(76,142,102,.075), transparent 72%)',
+      /** The field's only glow: a quiet wash of the metal at the foot of the login screen (was green). */
+      backgroundImage: 'radial-gradient(95% 52% at 50% 100%, rgba(196,199,203,.075), transparent 72%)',
       animation: 'none',
     },
     card: {

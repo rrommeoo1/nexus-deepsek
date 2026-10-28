@@ -14,10 +14,12 @@
       "package": "app.nexus.mobile.dev",
       "permissions": [
         "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#02150D",
+        "backgroundColor": "#101113",
         "foregroundImage": "./assets/brand/jb-icon-foreground-1024.png",
         "monochromeImage": "./assets/brand/jb-icon-monochrome-1024.png"
       },
@@ -40,15 +42,21 @@
       "expo-video",
       "expo-audio",
       [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Jungle Book citește locația o singură dată, ca să scrie pe pagină unde ai scris-o. Coordonatele nu sunt salvate; rămâne doar numele locului."
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "image": "./assets/brand/jb-mark-1024.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#000000",
+          "backgroundColor": "#101113",
           "dark": {
             "image": "./assets/brand/jb-mark-1024.png",
-            "backgroundColor": "#000000"
+            "backgroundColor": "#101113"
           }
         }
       ]

@@ -18,7 +18,7 @@ import type { RailReserve } from '../lib/textPage';
  * composition instead of being reinterpreted by a newer engine.
  */
 export function EditorialArticle({
-  post, style, active = true, pageStyle, railReserve = null,
+  post, style, active = true, pageStyle, railReserve = null, folio,
 }: {
   post: SocialPost;
   style: TextStyle;
@@ -30,6 +30,12 @@ export function EditorialArticle({
    * full height of the page (owner's rejection, 27 October 2026).
    */
   railReserve?: RailReserve | null;
+  /**
+   * The row the folio is printed in (`lib/textPage.ts::folioRow`). Passed straight through to the one
+   * `EditorialPage` that draws the page: a reader opened from a profile prints its number lower, and the
+   * feed, the composer and every card keep the row they had.
+   */
+  folio?: { band: number; inset: number };
 }) {
   const [box, setBox] = useState({ width: 0, height: 0 });
   const document = editorialDocumentForPost(post);
@@ -51,6 +57,7 @@ export function EditorialArticle({
           height={box.height}
           active={active}
           railReserve={railReserve}
+          folio={folio}
           accessibilityLabel="Pagina articolului"
         />
       ) : null}

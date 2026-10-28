@@ -8,7 +8,7 @@
 
     1. verifica adb si telefonul conectat (Wireless debugging sau cablu);
     2. porneste Metro pe portul 8081, daca nu asculta deja;
-    3. face adb reverse DOAR pentru 8081 (API-ul ramane pe Railway, niciodata prin reverse);
+    3. face adb reverse DOAR pentru 8081 (API-ul nu trece prin reverse daca are origine LAN);
     4. aduce Nexus Dev in prim-plan cu `am start -n app.nexus.mobile.dev/.MainActivity`;
     5. ii da adresa Metro a acestui PC din LAN, ca sa nu fie tastata in launcher.
 
@@ -95,8 +95,8 @@ if (-not (Test-MetroPort -Port $MetroPort)) {
   }
 }
 
-# adb reverse: numai Metro. API-ul are origine proprie (Railway sau EXPO_PUBLIC_NEXUS_API_URL)
-# si nu trebuie sa treaca niciodata prin telefon -> PC.
+# adb reverse pentru Metro. API-ul este chiar acest PC (tools/local-backend, portul 5000) si primeste
+# propriul reverse mai jos, dar numai cand originea lui este loopback-ul telefonului.
 $reverse = Invoke-DeviceAdb -Serial $serial -Arguments @('reverse', "tcp:$MetroPort", "tcp:$MetroPort")
 if ($reverse -match 'cannot|error|not found') { Write-Warn 'adb reverse a esuat; Metro va fi citit prin LAN.' } else { Write-Ok "adb reverse tcp:$MetroPort -> tcp:$MetroPort" }
 
@@ -113,13 +113,26 @@ function Get-LanAddress {
   return $null
 }
 
-$apiOrigin = $env:EXPO_PUBLIC_NEXUS_API_URL
-if (-not $apiOrigin) { $apiOrigin = 'https://nexus-deepsek-production.up.railway.app' }
-$apiLabel = 'API: Railway'
-if ($apiOrigin -match 'localhost|127\.0\.0\.1|^http://(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)') { $apiLabel = 'API: local' }
-
 $lan = $null
 if (-not $Localhost) { $lan = Get-LanAddress }
+
+# API-ul este acest PC (`tools/local-backend`, portul 5000). Originea vine din `EXPO_PUBLIC_NEXUS_API_URL`
+# (apps\nexus-mobile\.env, pe care Metro il citeste la bundle) sau, daca variabila lipseste, din adresa LAN
+# pe care o vede si telefonul. Nu exista implicit remote: daca nici LAN-ul nu e cunoscut, ramane
+# loopback-ul telefonului, adus inapoi pe PC prin `adb reverse tcp:5000`.
+$apiOrigin = $env:EXPO_PUBLIC_NEXUS_API_URL
+if (-not $apiOrigin -and $lan) { $apiOrigin = "http://${lan}:5000" }
+if (-not $apiOrigin) { $apiOrigin = 'http://localhost:5000' }
+$apiLabel = 'API: local'
+if ($apiOrigin -notmatch 'localhost|127\.0\.0\.1|^http://(10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)') {
+  try { $apiLabel = "API: $(([System.Uri]$apiOrigin).Host)" } catch { $apiLabel = "API: $apiOrigin" }
+}
+
+if ($apiOrigin -match '://(localhost|127\.0\.0\.1)') {
+  $apiReverse = Invoke-DeviceAdb -Serial $serial -Arguments @('reverse', 'tcp:5000', 'tcp:5000')
+  if ($apiReverse -match 'cannot|error|not found') { Write-Warn "adb reverse tcp:5000 a esuat: $apiOrigin nu va raspunde din telefon." } else { Write-Ok 'adb reverse tcp:5000 -> tcp:5000' }
+}
+
 $metroUrl = "http://localhost:$MetroPort"
 if ($lan) { $metroUrl = "http://${lan}:$MetroPort" }
 
@@ -137,7 +150,7 @@ if ($opened -match 'Error|Exception') { Write-Warn "Deep link-ul Metro a esuat: 
 if (-not $lan) { Write-Warn 'Nu am gasit o adresa LAN; folosesc localhost prin adb reverse.' }
 
 Write-Host ''
-Write-Ok "Gata. Telefon $serial, Metro $metroUrl, $apiLabel"
+Write-Ok "Gata. Telefon $serial, Metro $metroUrl, $apiLabel ($apiOrigin)"
 Write-Host '[dev] Edita src/ -> Fast Refresh. APK nou doar cand se schimba ceva nativ (docs/DEV-WORKFLOW.md).' -ForegroundColor DarkGray
 
 Write-Ok "Metro asculta pe portul $MetroPort"

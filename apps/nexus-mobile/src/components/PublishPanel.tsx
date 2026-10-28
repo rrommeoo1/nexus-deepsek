@@ -9,6 +9,7 @@
  */
 
 import { useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import {
   Image, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
@@ -429,7 +430,7 @@ const styles = StyleSheet.create({
   doneText: { color: '#ff6384', fontWeight: '800' },
   footer: { gap: 8, paddingTop: 10 },
   progress: { color: '#aab5c2', fontSize: 12, textAlign: 'center' },
-  success: { color: '#8be3b0', fontSize: 12, lineHeight: 18 },
+  success: { color: blackSilver.success, fontSize: 12, lineHeight: 18 },
   error: { color: '#ff9b9b', fontSize: 12, lineHeight: 18 },
   primaryButton: { backgroundColor: '#ff315f', borderRadius: 14, padding: 15, alignItems: 'center' },
   primaryText: { color: '#fff', fontWeight: '800', fontSize: 15 },

@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { RemoteImage, RemoteImageSource, RemoteVideo } from './PostMedia';
-import { initialsFor, mediaKindOf, mediaSourceForPath, type StoryView } from '../lib/socialTypes';
+import { mediaKindOf, mediaSourceForPath, type StoryView } from '../lib/socialTypes';
+import { BrandAvatar } from './BrandAvatar';
 import { recordStoryView } from '../lib/stories';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
@@ -142,7 +144,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: 
           {kind === 'image' && media ? <RemoteImage item={media} fit="contain" style={styles.media} onError={() => setFailed(index)} /> : null}
           {!media ? (
             <View style={styles.fallback}>
-              <View style={styles.fallbackDisc}><Text style={styles.fallbackInitials}>{initialsFor(name, author?.handle)}</Text></View>
+              <View style={styles.fallbackDisc}><BrandAvatar size={112} /></View>
               <Text style={styles.fallbackCaption}>{story?.caption || 'Jungle Book Story'}</Text>
             </View>
           ) : null}
@@ -150,7 +152,7 @@ export function StoryViewer({ stories, startIndex, onClose, onSeen, viewerId }: 
 
           <View style={[styles.header, { top: topInset + 13 }]}>
             <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${author?.handle || name}`} onPress={() => openSocialProfile(author?.handle, onClose)} style={styles.avatar}>
-              {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} /> : <Text style={styles.avatarInitials}>{initialsFor(name, author?.handle)}</Text>}
+              {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} /> : <BrandAvatar size={33} />}
             </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${author?.handle || name}`} onPress={() => openSocialProfile(author?.handle, onClose)} style={styles.authorLink}>
               <Text style={styles.name} numberOfLines={1}>{name}</Text>
@@ -181,15 +183,15 @@ const styles = StyleSheet.create({
   /** `.storyProgress{height:3px;flex:1;border-radius:3px;background:rgba(255,255,255,.30)}` */
   progressTrack: { height: 3, flex: 1, borderRadius: 3, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.30)' },
   /** `.storyProgress b{background:#fff;box-shadow:0 0 7px rgba(85,238,255,.8)}` */
-  progressDone: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', backgroundColor: '#ffffff', boxShadow: '0 0 7px rgba(85,238,255,0.8)' },
+  progressDone: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '100%', backgroundColor: '#ffffff', boxShadow: '0 0 7px rgba(225,227,229,0.8)' },
   /** `.storyViewerMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}` */
   media: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   /** `.storyViewerFallback{inset:0;place-content:center;gap:22px;padding:52px}` + the 116px disc. */
   fallback: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', gap: 22, padding: 52, backgroundColor: '#060914' },
   fallbackDisc: {
-    width: 116, height: 116, borderRadius: 58, borderWidth: 1, borderColor: '#52eff8',
-    alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b1424',
-    boxShadow: '0 0 50px rgba(0,229,255,0.3)',
+    width: 116, height: 116, borderRadius: 58, borderWidth: 1, borderColor: blackSilver.bright,
+    alignItems: 'center', justifyContent: 'center', backgroundColor: blackSilver.graphite,
+    boxShadow: '0 0 50px rgba(196,199,203,0.3)',
   },
   fallbackInitials: { color: '#ffffff', fontSize: 34, fontWeight: '800' },
   fallbackCaption: { maxWidth: 330, color: '#ffffff', fontSize: 18, lineHeight: 26, textAlign: 'center' },
@@ -199,8 +201,8 @@ const styles = StyleSheet.create({
   authorLink: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 7, minHeight: 44 },
   /** `.storyViewerAvatar{width:36px;height:36px;border:1.5px solid #51f4f4;border-radius:50%;background:#152536;font-size:10px;font-weight:800}` */
   avatar: {
-    width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: '#51f4f4',
-    alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: '#152536',
+    width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: blackSilver.bright,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden', backgroundColor: blackSilver.graphite,
   },
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: '#ffffff', fontSize: 10, fontWeight: '800' },

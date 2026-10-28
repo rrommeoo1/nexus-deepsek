@@ -1,12 +1,15 @@
 import { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { HEADER_WORDS, deriveRelationUi, type RelationTarget, type RelationView } from '../lib/relations';
-import { initialsFor, mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
+import { mediaSourceForPath, type ProfileView } from '../lib/socialTypes';
 import { OWNER_ROW, ownerRowLabels } from '../lib/profileActions';
 import { PROFILE_MENU_WORD } from '../lib/profileMenu';
 import { jungle, fruitRing, fruitWash } from '../theme/jungle';
+import { blackSilver } from '../theme/blackSilver';
+import { mercuryAvatar } from '../theme/mercury';
 import { socialTokens } from '../theme/social';
 import { MessageButton, RelationButton, RelationMenuButton } from './RelationButton';
+import { BrandAvatar } from './BrandAvatar';
 import { RemoteImageSource } from './PostMedia';
 import type { TickerDoor } from './ProfileTicker';
 
@@ -206,7 +209,7 @@ export function ProfileHeader({
             {avatar ? (
               <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
             ) : (
-              <Text style={styles.avatarInitials}>{initialsFor(profile?.name, profile?.handle)}</Text>
+              <BrandAvatar size={socialTokens.identity.avatarSize - 2} />
             )}
           </View>
         </View>
@@ -360,11 +363,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: socialTokens.identity.avatarSize / 2,
-    backgroundColor: '#090a0c',
+    /**
+     * A record with no picture: the Mercury plate, not a black hole (owner, 30 October 2026). The old
+     * `#090a0c` was the same value as the field it stood on, so a profile without a face read as a
+     * missing element instead of as a person; the metal and its graphite initials are one pair
+     * (`theme/mercury.ts`, 5.3:1) and a real uploaded picture is still drawn on top of it unchanged.
+     */
+    backgroundColor: mercuryAvatar.plate,
+    borderWidth: 1,
+    borderColor: mercuryAvatar.edge,
     overflow: 'hidden',
   },
   avatarImage: { width: '100%', height: '100%', borderRadius: socialTokens.identity.avatarSize / 2 },
-  avatarInitials: { color: '#ffffff', fontSize: 30, fontWeight: '600' },
+  avatarInitials: { color: mercuryAvatar.ink, fontSize: 30, fontWeight: '600' },
   /** The row of buttons: the two wide ones share the width, the round entry keeps its 38dp. */
   buttons: {
     flexDirection: 'row',
@@ -374,8 +385,8 @@ const styles = StyleSheet.create({
   },
   buttonFill: { flex: 1, minWidth: 0 },
   /**
-   * The owner's own row (`lib/profileActions.ts`): ~40 dp tall, fully round, one neutral editor, one green
-   * money door and a round share with no word. It is drawn here and not with `RelationButton` because the
+   * The owner's own row (`lib/profileActions.ts`): ~40 dp tall, fully round, one silver editor and a
+   * round `⋯` that opens the profile menu. It is drawn here and not with `RelationButton` because the
    * owner named these three shapes, and the relation button belongs to somebody else's record.
    */
   ownerRow: {
@@ -393,14 +404,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: OWNER_ROW.labelPaddingInline,
     borderRadius: OWNER_ROW.radius,
   },
+  /**
+   * The owner's own door — `Editează profilul` — in the reader's material.
+   *
+   * Round 31 (owner, 31 October 2026): it is the **solid silver chip** the leading door wears on somebody
+   * else's record, with matte-black words, so the two profiles cannot show the same action in two
+   * materials. The round `⋯` beside it stays the quiet graphite plate: the row prints one leading action
+   * and one quiet one, exactly like `Urmărește · Mesaj` does.
+   */
   ownerNeutral: {
     borderWidth: 1,
-    borderColor: socialTokens.relations.neutralBorder,
-    backgroundColor: socialTokens.relations.neutralSurface,
+    borderColor: socialTokens.post.controls.paper.edgeStrong,
+    backgroundColor: blackSilver.silver,
   },
   ownerPressed: { opacity: 0.82 },
   ownerNeutralLabel: {
-    color: socialTokens.relations.neutralInk,
+    color: blackSilver.onSilver,
     fontSize: OWNER_ROW.labelSize,
     fontWeight: OWNER_ROW.labelWeight,
   },
@@ -411,12 +430,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: OWNER_ROW.menuSize / 2,
     borderWidth: 1,
-    borderColor: socialTokens.relations.neutralBorder,
-    backgroundColor: socialTokens.relations.neutralSurface,
+    borderColor: socialTokens.post.controls.night.edge,
+    backgroundColor: socialTokens.post.controls.night.plate,
   },
   /** The three dots of the round entry. Drawn as text so the glyph matches the platform's own ellipsis. */
   ownerMenuGlyph: {
-    color: socialTokens.relations.neutralInk,
+    color: socialTokens.post.controls.night.ink,
     fontSize: OWNER_ROW.menuGlyph,
     lineHeight: OWNER_ROW.menuGlyph + 4,
     fontWeight: '800',

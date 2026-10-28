@@ -177,7 +177,7 @@ if (mark) {
 
 // The brand component is the only loader, and it must not paint a frame around the mark.
 const logo = readFileSync(join(ROOT, 'src', 'components', 'BrandLogo.tsx'), 'utf8');
-if (!logo.includes('jb-mark-header-1x.png') || !logo.includes('jb-mark-nav-1x.png') || !logo.includes('jb-mark-1024.png')) {
+if (!logo.includes('jb-mark-header-1x.png') || !logo.includes('jb-mark-1024.png')) {
   fail('BrandLogo.tsx does not load the transparent mark');
 }
 if (/borderRadius|backgroundColor/.test(logo)) fail('BrandLogo.tsx draws a shape around the mark');

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
 
@@ -328,7 +329,7 @@ function PreferenceForm({ pref, persona, ownerId }: { pref: Preference; persona:
 
 const styles = StyleSheet.create({
   /** `.notificationLoading{padding:28px;text-align:center;color:#7be7de}` */
-  loading: { padding: 28, textAlign: 'center', color: '#7be7de', fontSize: 14 },
+  loading: { padding: 28, textAlign: 'center', color: blackSilver.muted, fontSize: 14 },
   screen: { flex: 1 },
   /** `.notificationCenter{display:grid;gap:12px;padding-bottom:24px}` inside the inbox's own 16px inset. */
   content: { gap: 12, paddingBottom: 24 },
@@ -341,18 +342,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderWidth: 1,
-    borderColor: 'rgba(90,222,236,0.22)',
+    borderColor: blackSilver.hairline,
     borderRadius: 18,
     backgroundColor: '#0a222d',
   },
   headerText: { gap: 3, flexShrink: 1 },
   /** `>header small{color:#75e7e1;font-size:10px;letter-spacing:.12em}` */
-  eyebrow: { color: '#75e7e1', fontSize: 10, letterSpacing: 1.2 },
+  eyebrow: { color: blackSilver.silver, fontSize: 10, letterSpacing: 1.2 },
   /** `>header b{font-size:16px}` */
   unread: { color: '#e9f1f4', fontSize: 16, fontWeight: '700' },
   /** `>header button{min-height:38px;padding:8px 11px;border:1px solid rgba(50,228,218,.42);border-radius:13px;background:#0d292e;color:#79eee5;font-weight:700}` */
-  markAll: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: 'rgba(50,228,218,0.42)', borderRadius: 13, backgroundColor: '#0d292e' },
-  markAllText: { color: '#79eee5', fontSize: 13, fontWeight: '700' },
+  markAll: { minHeight: 38, justifyContent: 'center', paddingHorizontal: 11, paddingVertical: 8, borderWidth: 1, borderColor: blackSilver.hairlineStrong, borderRadius: 13, backgroundColor: blackSilver.graphite },
+  markAllText: { color: blackSilver.bright, fontSize: 13, fontWeight: '700' },
   off: { opacity: 0.45 },
   notice: { color: '#ffc6c6', fontSize: 12, lineHeight: 17 },
   /** `.notificationList{display:grid;gap:7px}` */
@@ -369,9 +370,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(7,17,27,0.82)',
   },
   /** `.notificationRow.unread{border-color:rgba(48,228,216,.4);background:linear-gradient(100deg,rgba(14,46,54,.94),rgba(12,20,35,.9))}` */
-  rowUnread: { borderColor: 'rgba(48,228,216,0.4)', backgroundColor: '#0e2e36' },
-  dot: { color: '#54e6db', fontSize: 10, width: 16, lineHeight: 16 },
-  dotUnread: { color: '#54e6db' },
+  rowUnread: { borderColor: blackSilver.hairline, backgroundColor: blackSilver.graphite },
+  dot: { color: blackSilver.silver, fontSize: 10, width: 16, lineHeight: 16 },
+  dotUnread: { color: blackSilver.silver },
   rowText: { flex: 1, minWidth: 0, gap: 3 },
   /** `.notificationRow b{font-size:13px}` */
   rowLabel: { color: '#e9f1f4', fontSize: 13, fontWeight: '700' },
@@ -393,19 +394,19 @@ const styles = StyleSheet.create({
   prefFieldLabel: { color: '#aebdc5', fontSize: 11 },
   /** `form>label{color:#aebdc5;font-size:11px;display:flex;align-items:center;gap:5px}` */
   check: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 32 },
-  checkBox: { width: 16, color: '#79eee5', fontSize: 13 },
+  checkBox: { width: 16, color: blackSilver.bright, fontSize: 13 },
   checkLabel: { color: '#aebdc5', fontSize: 11 },
   previews: { flexDirection: 'row', gap: 6 },
   preview: { minHeight: 32, justifyContent: 'center', paddingHorizontal: 10, borderWidth: 1, borderColor: '#2a4651', borderRadius: 9, backgroundColor: '#091722' },
-  previewOn: { borderColor: '#79eee5', backgroundColor: '#0d292e' },
+  previewOn: { borderColor: blackSilver.bright, backgroundColor: blackSilver.graphite },
   previewText: { color: '#d9e8ec', fontSize: 11 },
-  previewTextOn: { color: '#79eee5' },
+  previewTextOn: { color: blackSilver.bright },
   quietRow: { flexDirection: 'row', gap: 6 },
   quietInput: { width: 77, minHeight: 32, paddingHorizontal: 6, borderWidth: 1, borderColor: '#2a4651', borderRadius: 9, backgroundColor: '#091722', color: '#d9e8ec', fontSize: 12 },
   /** `.notificationSettings form>button{min-height:38px;border:1px solid rgba(50,228,218,.42);border-radius:13px;background:#0d292e;color:#79eee5}` */
-  save: { minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(50,228,218,0.42)', borderRadius: 13, backgroundColor: '#0d292e' },
-  saveText: { color: '#79eee5', fontSize: 13, fontWeight: '700' },
-  prefResult: { color: '#79eee5', fontSize: 11 },
+  save: { minHeight: 38, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: blackSilver.hairlineStrong, borderRadius: 13, backgroundColor: blackSilver.graphite },
+  saveText: { color: blackSilver.bright, fontSize: 13, fontWeight: '700' },
+  prefResult: { color: blackSilver.bright, fontSize: 11 },
   /** `.emptyInbox` — the same box the conversation list prints when it has nothing. */
   emptyBox: { minHeight: 110, padding: 14, gap: 8, alignItems: 'center', justifyContent: 'center' },
   emptyTitle: { color: '#dce7e9', fontSize: 15, fontWeight: '700', marginTop: 10 },

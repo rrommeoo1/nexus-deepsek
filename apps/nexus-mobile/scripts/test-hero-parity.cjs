@@ -45,13 +45,22 @@ const bandSource = readFileSync(BAND, 'utf8');
 const buttonSource = readFileSync(BUTTON, 'utf8');
 
 /** The tokens, compiled the way the app's other scripts compile TS. */
+const { loadThemeModule } = require('./theme-modules.cjs');
+const mercury = loadThemeModule('mercury');
+const palette = loadThemeModule('blackSilver');
+
 const tokens = (() => {
   const compiled = ts.transpileModule(readFileSync(resolve(ROOT, 'src/theme/social.ts'), 'utf8'), {
     fileName: 'social.ts',
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
   }).outputText;
   const shim = { exports: {} };
-  new Function('exports', 'require', 'module', compiled)(shim.exports, () => ({}), shim);
+  /** `social.ts` imports the palette and Mercury (rounds 30–31); every other module stays a stub. */
+  new Function('exports', 'require', 'module', compiled)(
+    shim.exports,
+    (id) => ({ './mercury': mercury, './blackSilver': palette }[id] ?? {}),
+    shim,
+  );
   return shim.exports.socialTokens;
 })();
 

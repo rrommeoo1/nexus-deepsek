@@ -22,6 +22,7 @@ import { idempotencyKeyIsValid, newMutationKey } from './idempotency';
 import { PublishingError, normalizePublishing, type PublishingDetails } from './publishing';
 import { authHeaders } from './session';
 import type { StudioManifest } from './studioManifest';
+import { normalizeTextStyle, TextStyleError, type TextStyle } from './textStyle';
 
 /** `PROFILE_VISIBILITY` of `lib/repo.js`; anything else is answered with `400 visibility invalid`. */
 export type PostVisibility = 'public' | 'followers' | 'friends' | 'private';
@@ -88,6 +89,7 @@ const MESSAGES: Record<string, string> = {
   PUBLISH_MEDIA_DUPLICATE: 'Același fișier apare de două ori în postare.',
   PUBLISH_CAPTION_REQUIRED: 'O postare fără fișier are nevoie de o descriere.',
   PUBLISH_VISIBILITY: 'Audiența aleasă nu este acceptată de server.',
+  PUBLISH_TEXT_STYLE: 'Serverul nu a acceptat stilul paginii (temă, literă, mărime sau așezare). Reia cu un stil din listă; textul rămâne salvat pe telefon.',
   PUBLISH_PROVENANCE: 'Declarația despre conținut nu este acceptată de server.',
   PUBLISH_LANGUAGE: 'Limba aleasă nu este acceptată de server.',
   PUBLISH_PERSONA: 'Profilul activ nu este cel din care publici. Comută profilul și reia.',
@@ -98,6 +100,14 @@ const MESSAGES: Record<string, string> = {
   PUBLISH_JAMENDO_EXPIRED: 'Alegerea din catalogul Jamendo a expirat (este valabilă 2 ore). Alege melodia din nou.',
   PUBLISH_MODERATION: 'Publicarea a fost oprită de o regulă automată de siguranță.',
   PUBLISH_VERIFY_FAILED: 'Serverul a răspuns, dar postarea nu a putut fi confirmată. Verifică profilul: postarea poate exista deja.',
+  /**
+   * The words went through, the page did not. A server build from before the editorial rounds has never
+   * heard of `text_style`: it takes the caption, keeps `kind` and the photographs, and answers 200
+   * without the look or the layout. The post is real, so this is not a refusal — but it is not the
+   * publication the author asked for either, and the feed can only draw what came back (a photograph
+   * with a caption). Saying "publicat" here is the one thing the editor must not do (26 October 2026).
+   */
+  PUBLISH_TEXT_STYLE_LOST: 'Postarea a plecat, dar serverul nu a păstrat pagina: textul și pozele sunt publicate fără tema și fără aranjamentul ales. Ciorna rămâne pe telefon până când serverul este actualizat.',
   PUBLISHING_INVALID: 'Detaliile de publicare nu sunt valide.',
   PUBLISHING_TAGS_INVALID: 'Etichetele nu au trecut verificarea serverului.',
   PUBLISHING_LINK_INVALID: 'Linkul nu este o adresă HTTPS publică.',
@@ -130,6 +140,9 @@ const SERVER_ERRORS: Record<string, string> = {
   'one video per post': 'PUBLISH_MEDIA_KIND',
   'a video post carries one media': 'PUBLISH_MEDIA_KIND',
   'text post cannot be empty': 'PUBLISH_CAPTION_REQUIRED',
+  'text style requires a text post': 'PUBLISH_TEXT_STYLE',
+  'TEXT_STYLE_REQUIRES_TEXT': 'PUBLISH_TEXT_STYLE',
+  'TEXT_STYLE_INVALID': 'PUBLISH_TEXT_STYLE',
   'verified media upload required': 'PUBLISH_MEDIA_UNVERIFIED',
   'verified creator audio upload required': 'PUBLISH_MEDIA_UNVERIFIED',
   'creator audio requires image or video': 'PUBLISH_AUDIO_NEEDS_MEDIA',
@@ -147,6 +160,7 @@ export function publishFailure(code: string, status = 0, retryable = false): Pub
 export function publishErrorMessage(error: unknown): string {
   if (error instanceof PublishError) return error.message;
   if (error instanceof PublishingError) return error.message;
+  if (error instanceof TextStyleError) return MESSAGES.PUBLISH_TEXT_STYLE;
   if (error instanceof Error && MESSAGES[error.message]) return MESSAGES[error.message];
   return 'Postarea nu a putut fi publicată. Textul și fișierul rămân salvate pe telefon; reia.';
 }
@@ -170,14 +184,21 @@ export type PublishIntent = {
   language?: string | null;
   provenance: ContentProvenance;
   publishing?: PublishingDetails | null;
-  /** The uploaded source object; absent for a text-only post, which this editor does not offer. */
+  /** The authored look of a text post; absent for a post that keeps the reader's composition. */
+  textStyle?: TextStyle | null;
+  /** The uploaded source object; absent for a text-only post. */
   media?: MediaRef | null;
+  /**
+   * An ordered gallery (a text page with one photograph, or several). When present it wins over
+   * `media`; the server stores `media_items` in order and classifies the post as a POST.
+   */
+  mediaItems?: MediaRef[] | null;
   kind?: PostKind | null;
   /** Uploaded audio, `social_audio` purpose. Mutually exclusive with the Jamendo selection. */
   audio?: MediaRef | null;
   audioRights?: CreatorAudioRights | null;
   audioAttribution?: string | null;
-  /** Signed by Railway's Jamendo endpoint; never a service credential. */
+  /** Signed by the backend's Jamendo endpoint; never a service credential. */
   jamendoSelectionToken?: string | null;
   jamendoTrackId?: string | null;
   jamendoPreviewOffset?: number | null;
@@ -204,17 +225,20 @@ const CONTENT_COMMITMENT = /^[a-f0-9]{64}$/;
  */
 export function publishBody(intent: PublishIntent): Record<string, unknown> {
   const audioAttribution = (intent.audioAttribution ?? '').trim();
+  const mediaItems = intentMediaItems(intent).slice(0, 10);
+  const first = mediaItems[0] ?? null;
   return {
     caption: intent.caption,
     persona: intent.persona,
-    kind: intent.media ? (intent.kind ?? 'image') : 'text',
-    media_hash: intent.media?.hash,
-    media_ext: intent.media?.ext,
-    media_items: intent.media ? [intent.media] : undefined,
+    kind: mediaItems.length ? (intent.kind ?? 'image') : 'text',
+    media_hash: first?.hash,
+    media_ext: first?.ext,
+    media_items: mediaItems.length ? mediaItems : undefined,
     visibility: intent.visibility,
     language: intent.language ?? null,
     provenance: intent.provenance,
     publishing: intent.publishing ?? undefined,
+    text_style: intent.textStyle ? normalizeTextStyle(intent.textStyle) : undefined,
     studio_manifest: intent.studioManifest ?? null,
     audio_hash: intent.audio?.hash,
     audio_ext: intent.audio?.ext,
@@ -225,18 +249,25 @@ export function publishBody(intent: PublishIntent): Record<string, unknown> {
   };
 }
 
+/** The gallery a publish intent carries, whether it was given as one item or as a list. */
+export function intentMediaItems(intent: PublishIntent): MediaRef[] {
+  if (Array.isArray(intent.mediaItems) && intent.mediaItems.length) return intent.mediaItems;
+  return intent.media ? [intent.media] : [];
+}
+
 /**
  * The rules `normalizeCreatorAudio` and `sanitizeText` apply server-side, checked locally first so a
  * refusal arrives before a byte is uploaded. Nothing here is stricter than the server, except the
  * one case the server cannot check: an object it never received.
  */
 export function assertPublishable(intent: PublishIntent): void {
-  const caption = nfkcString(intent.caption).slice(0, 2000).trim();
-  if (!intent.media && !caption) throw publishFailure('PUBLISH_CAPTION_REQUIRED', 0);
-  if (intent.jamendoSelectionToken && !intent.media) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
+  const caption = nfkcString(intent.caption).slice(0, 20000).trim();
+  const media = intentMediaItems(intent);
+  if (!media.length && !caption) throw publishFailure('PUBLISH_CAPTION_REQUIRED', 0);
+  if (intent.jamendoSelectionToken && !media.length) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
   if (intent.jamendoSelectionToken && intent.audio) throw publishFailure('PUBLISH_AUDIO_CONFLICT', 0);
   if (intent.audio) {
-    if (!intent.media) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
+    if (!media.length) throw publishFailure('PUBLISH_AUDIO_NEEDS_MEDIA', 0);
     if (!intent.audioRights || !CREATOR_AUDIO_RIGHTS.includes(intent.audioRights)) {
       throw publishFailure('PUBLISH_AUDIO_RIGHTS_REQUIRED', 0);
     }
@@ -392,5 +423,30 @@ export async function publishPost(request: PublishRequest): Promise<PublishedPos
   // A 200 that does not confirm the post is not a publication: the answer is shown as a failure so
   // the user checks the profile instead of believing a post that may never have been written.
   if (!post) throw publishFailure('PUBLISH_VERIFY_FAILED', response.status);
+  /**
+   * The other half of the same rule, and the one that produced a live defect (26 October 2026). When the
+   * body carried an authored page and the answer comes back with a real post but no `text_style`, the
+   * server did write the post — without the look and without the document. That is exactly what an older
+   * deployment answers: it stores the caption and the gallery, ignores the field it never heard of, and
+   * still says `ok: true`. The editor says so, in its own words, instead of confirming a page the reader
+   * will never see.
+   */
+  if (authoredPage(body) && !answeredPage(answer)) {
+    throw publishFailure('PUBLISH_TEXT_STYLE_LOST', response.status);
+  }
   return post;
+}
+
+/**
+ * Whether this request carried a page whose look and layout have to come back. `publishBody` drops an
+ * absent style (`undefined`), so a truthy object is exactly the case where the answer must keep one.
+ */
+function authoredPage(body: Record<string, unknown>): boolean {
+  return isRecord(body.text_style);
+}
+
+/** The same question for the answer: `text_style` on the confirmed post, never a `null` placeholder. */
+function answeredPage(answer: unknown): boolean {
+  const post = isRecord(answer) && isRecord(answer.post) ? answer.post : null;
+  return post !== null && isRecord(post.text_style);
 }

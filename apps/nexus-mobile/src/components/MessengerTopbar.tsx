@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 6,
     minHeight: 66,
-    backgroundColor: 'rgba(1,5,3,0.96)',
+    backgroundColor: 'rgba(9,10,11,0.96)',
   },
   /** `.messengerHome{min-height:44px;width:100%}` in the grid's 112px column (measured 112x64). */
   home: { width: 112, minHeight: 64, justifyContent: 'center', gap: 4 },

@@ -1,5 +1,6 @@
 import type { EditorialDocument, EditorialMediaBlock, EditorialTextBlock } from './editorialDocument';
 import { blockText } from './editorialDocument';
+import { advanceOf, measureRun } from './fontMetrics';
 
 /**
  * The page flow: words around pictures, then pages.
@@ -38,7 +39,18 @@ export type EditorialFlowOptions = {
   /** A heading is set at this size; the body keeps `fontSize`. */
   headingSize?: number;
   headingLine?: number;
+  /** The page's reading margin, both sides. The two below override it, side by side. */
   marginX?: number;
+  /**
+   * The two margins of the measure, when the page's two sides are not the same number — which is every
+   * page a reader reads: the words stand a modest margin in from the left, and on the right only the small
+   * gap that separates them from the rail's hit area (`RAIL_LINE_AIR`). A margin that is the same on both
+   * sides throws away, on the right, paper that no button stands on (owner, 28 October 2026: the text
+   * „nu folosește lățimea ecranului, deși are loc până la butoane"). Omitted, each falls back to
+   * `marginX`, so every caller that has no rail in its corner keeps composing exactly as before.
+   */
+  marginLeft?: number;
+  marginRight?: number;
   marginTop?: number;
   marginBottom?: number;
   paragraphGap?: number;
@@ -94,39 +106,43 @@ export type EditorialFlow = {
   contentWidth: number;
   contentHeight: number;
   marginX: number;
+  /** The measure's two margins; `marginX` is the left one. */
+  marginLeft: number;
+  marginRight: number;
   marginTop: number;
 };
 
-type Token = { text: string; start: number; end: number; spaceBefore: boolean };
+type Token = {
+  text: string;
+  start: number;
+  end: number;
+  spaceBefore: boolean;
+  /**
+   * A line break the author typed stands between the previous word and this one. The page draws words,
+   * never a control character, so the break becomes a new line at this token instead of a glyph — and a
+   * pasted address, poem or list keeps the shape it was pasted in (`paragraphsOf` no longer folds `\n`
+   * into a space).
+   */
+  breakBefore?: boolean;
+};
 type Interval = { x: number; width: number };
 type FloatRect = { x: number; y: number; width: number; height: number };
 
 /**
- * A conservative proportional width table. Values are shares of the font size for the system serif
- * and sans faces; a mono face uses a fixed advance. The table is deliberately a little generous, so a
- * line stays inside its measured interval on Android's own fonts rather than clipping its last word.
+ * The width of a run of words — measured, not guessed (`lib/fontMetrics.ts`).
+ *
+ * The engine used a hand-written table of "shares of the font size" until 29 October 2026, generous on
+ * purpose so that a line would never be cut on the phone. Measured against the face the phone really draws
+ * (Noto Serif, `/system/fonts` on the owner's Xiaomi), that table was 2–9 % too wide, and every line broke a
+ * word early: the page had a ragged right edge the owner read as „spațiu gol" beside the rail. `fontMetrics`
+ * carries the real advances of every character a page can hold, read out of the font files themselves.
  */
-const NARROW = new Set('ijl.,:;\'!|`'.split(''));
-const WIDE = new Set('mwMW@%'.split(''));
-
 export function glyphFactor(char: string, font: EditorialFont): number {
-  if (font === 'mono') return 0.62;
-  if (char === ' ') return 0.28;
-  if (char === '\t') return 0.56;
-  if (NARROW.has(char)) return 0.31;
-  if (WIDE.has(char)) return 0.86;
-  if (char >= 'A' && char <= 'Z') return 0.68;
-  if (char >= '0' && char <= '9') return 0.56;
-  if (char === '—' || char === '–') return 0.85;
-  if (char === '…') return 0.8;
-  if ((char.codePointAt(0) ?? 0) > 0x2000) return 0.95;
-  return 0.54;
+  return advanceOf(char, font);
 }
 
 export function measureTextWidth(text: string, fontSize: number, font: EditorialFont, bold = false): number {
-  let total = 0;
-  for (const char of Array.from(text)) total += glyphFactor(char, font) * fontSize;
-  return total * (bold ? 1.045 : 1) * 1.035;
+  return measureRun(text, fontSize, font, bold);
 }
 
 function splitLongWord(word: string, start: number, maxWidth: number, fontSize: number, font: EditorialFont): Token[] {
@@ -159,9 +175,15 @@ function tokensOf(block: EditorialTextBlock, fontSize: number, font: EditorialFo
   let match: RegExpExecArray | null;
   while ((match = pattern.exec(text)) !== null) {
     const start = match.index;
+    /** The whitespace between the two words: it carries the author's line breaks. */
+    const gap = previousEnd >= 0 ? text.slice(previousEnd, start) : '';
     const pieces = splitLongWord(match[0], start, maxWidth, fontSize, font);
     pieces.forEach((piece, index) => {
-      tokens.push({ ...piece, spaceBefore: index === 0 && previousEnd >= 0 });
+      tokens.push({
+        ...piece,
+        spaceBefore: index === 0 && previousEnd >= 0,
+        breakBefore: index === 0 && gap.includes('\n'),
+      });
     });
     previousEnd = start + match[0].length;
   }
@@ -176,11 +198,13 @@ export function flowEditorialDocument(document: EditorialDocument, options: Edit
   const headingSize = Math.max(fontSize, Number(options.headingSize) || fontSize * 1.42);
   const headingLine = Math.max(headingSize, Number(options.headingLine) || headingSize * 1.35);
   const marginX = Math.max(8, Number(options.marginX) || 26);
+  const marginLeft = options.marginLeft === undefined ? marginX : Math.max(8, Number(options.marginLeft) || 0);
+  const marginRight = options.marginRight === undefined ? marginX : Math.max(0, Number(options.marginRight) || 0);
   const marginTop = Math.max(8, Number(options.marginTop) || 30);
   const marginBottom = Math.max(8, Number(options.marginBottom) || 30);
   const paragraphGap = Math.max(0, Number(options.paragraphGap) || Math.round(lineHeight * 0.52));
   const mediaGap = Math.max(4, Number(options.mediaGap) || Math.round(lineHeight * 0.55));
-  const contentWidth = Math.max(20, pageWidth - marginX * 2);
+  const contentWidth = Math.max(20, pageWidth - marginLeft - marginRight);
   const contentHeight = Math.max(40, pageHeight - marginTop - marginBottom);
   const maxPages = Math.max(1, Math.trunc(Number(options.maxPages) || 160));
   const aspectRatios = options.aspectRatios ?? {};
@@ -223,7 +247,7 @@ export function flowEditorialDocument(document: EditorialDocument, options: Edit
 
   function freeIntervals(top: number, height: number): Interval[] {
     const lineBottom = top + height;
-    const bounds: Interval[] = [{ x: marginX, width: contentWidth }];
+    const bounds: Interval[] = [{ x: marginLeft, width: contentWidth }];
     const overlapping = floats
       .filter((rect) => rect.y < lineBottom && rect.y + rect.height > top)
       .sort((a, b) => a.x - b.x);
@@ -270,10 +294,10 @@ export function flowEditorialDocument(document: EditorialDocument, options: Edit
       const placeAt = (top: number): EditorialMediaBox | null => {
         if (top + mediaHeight > bottom + 0.5) return null;
         const x = block.placement === 'right'
-          ? marginX + contentWidth - mediaWidth
+          ? marginLeft + contentWidth - mediaWidth
           : block.placement === 'center'
-            ? marginX + (contentWidth - mediaWidth) / 2
-            : marginX;
+            ? marginLeft + (contentWidth - mediaWidth) / 2
+            : marginLeft;
         const box: EditorialMediaBox = {
           blockId: block.id,
           page: page.index,
@@ -358,6 +382,8 @@ export function flowEditorialDocument(document: EditorialDocument, options: Edit
       let empty = true;
       while (index < tokens.length) {
         const token = tokens[index];
+        /** The author's own line break ends the line before this word (`Token.breakBefore`). */
+        if (!empty && token.breakBefore) break;
         const prefix = empty ? '' : (token.spaceBefore ? ' ' : '');
         const candidate = `${text}${prefix}${token.text}`;
         const width = measureTextWidth(candidate, size, font, heading);
@@ -402,7 +428,10 @@ export function flowEditorialDocument(document: EditorialDocument, options: Edit
     overflow,
     contentWidth,
     contentHeight,
-    marginX,
+    /** `marginX` stays the *left* margin, which is the number a symmetric caller has always read. */
+    marginX: marginLeft,
+    marginLeft,
+    marginRight,
     marginTop,
   };
 }

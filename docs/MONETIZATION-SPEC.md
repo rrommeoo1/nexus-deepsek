@@ -345,9 +345,10 @@ F0 (acest document) -> aprobarea owner-ului pe RISKS #1-#5 -> F1 (backend + test
 
 ## 7. Ce rămâne explicit în afara scopului
 
-Like-uri plătite (interzise de server prin `likes_paid: false`, `api.js:2715`), venit din trafic sintetic,
-payout real, abonamente cu reînnoire automată, economie pentru conținut adult, cumpărare prin magazinele de
-aplicații. Fiecare cere o decizie care nu există încă — vezi `docs/MONETIZATION-RISKS.md`.
+Venit din trafic sintetic, payout real, abonamente cu reînnoire automată, economie pentru conținut adult,
+cumpărare prin magazinele de aplicații. Fiecare cere o decizie care nu există încă — vezi
+`docs/MONETIZATION-RISKS.md`. Like-urile plătite **nu** mai stau aici: din 18 octombrie 2026 serverul le
+cere plătite, iar fluxul complet este descris în §9.
 
 
 ## 8. Politica de împărțire v3 și modul de decontare (18 octombrie 2026)
@@ -383,9 +384,11 @@ Riscurile fiecăruia, pe scurt: `batched` **ține banii fanului în custodie** �
 `per_action` nu ține nimic, dar costă de N ori mai mult și face prețurile mici imposibile la cursuri
 mari. Ambele sunt **devnet only**: niciun transfer cu valoare reală, nicio promisiune de payout.
 
-**Starea de azi:** niciunul dintre cele două moduri nu are încă un adaptor de lanț în cod. `batched`
-există ca parametru de calcul (`NEXUS_SETTLEMENT_MODE`, `NEXUS_BATCH_SIZE`) și ca politică în §8.4;
-fluxul on-chain (depunere, decontare, ancorare) rămâne de construit și de rulat pe devnet.
+**Starea de azi (18 octombrie 2026):** `per_action` are acum un adaptor real de lanț — `lib/devnet-payments.js`
+citește contul plătitorului, semnează transferul și îl difuzează pe devnet, iar `lib/action-payments.js`
+leagă fiecare acțiune plătită de propriul rând `ActionPaymentIntent` (vezi §9). `batched` există în continuare
+doar ca parametru de calcul (`NEXUS_SETTLEMENT_MODE`, `NEXUS_BATCH_SIZE`) și ca politică în §8.4; fluxul lui
+on-chain (depunere, decontare, ancorare) rămâne de construit și de rulat pe devnet.
 
 ### 8.3 Ce refuză serverul
 
@@ -403,4 +406,72 @@ este în rădăcina ancorată, fără să publice lista. Cât timp devnet-ul nu 
 să ruleze: nu există încă un loc în schemă pentru rădăcină, iar fluxul este următorul pas după
 alimentarea conturilor. Când va exista, fiecare răspuns va purta `chain: "simulated"` sau
 `chain: "devnet"`, ca să nu poată fi confundate.
+
+## 9. F2b — aprecierea și comentariul plătite (18 octombrie 2026)
+
+Această secțiune înlocuiește propoziția din §7: like-ul nu mai este gratuit și nu mai este „interzis de
+server”, pentru că serverul îl cere plătit. Suma nu este inventată de telefon: serverul o citește din
+prețul creatorului (`resolveActionPrice`) și o trimite în `402 PAYMENT_REQUIRED`.
+
+### 9.1 Prețul și cine plătește
+
+| acțiune | implicit | cine încasează | cine nu plătește niciodată |
+|---|---|---|---|
+| apreciere (`LIKE`) | 3 ¢ | creatorul postului | autorul pe propriul post, creatorul cu „totul gratuit”, prețul `0` |
+| comentariu | 4 ¢ | creatorul postului | la fel |
+| distribuire (`repost`) | 0 ¢ | — | toți: rămâne gratuită |
+
+`likes_paid: false` din `GET /api/creator/dashboard` rămâne adevărat în sensul lui: platforma nu plătește
+nimic pentru un like. Banii merg cititor → creator, nu din fondul rețelei.
+
+### 9.2 Contractul
+
+| Rută | Ce face |
+|---|---|
+| `GET /api/posts/:id/action-quote?action=…` | prețul, sursa lui, adresa plătitorului și a creatorului, soldul devnet, cât lipsește, linkul de faucet |
+| `POST /api/posts/:id/action-payment` `{action}` + `Idempotency-Key` | semnează și difuzează transferul devnet; întoarce rândul `ActionPaymentIntent` (`status`, `tx_hash`, `explorer_url`) |
+| `GET /api/action-payments/:intent` | recitește lanțul pentru un transfer deja difuzat; nu semnează niciodată din nou |
+| `POST /api/posts/:id/reaction` `{kind, active, payment_intent_id}` | like-ul se scrie doar cu un `intent_id` `broadcast`/`confirmed` al aceluiași cititor, post și acțiune |
+| `POST /api/posts/:id/comments` `{body, parent_id, payment_intent_id}` | la fel; `403` înainte de orice preț dacă `allowComments: false` |
+
+Ordinea pe server: `requirePaidAction` → reconciliere pe lanț → `consumeActionPaymentIntent` (o singură
+folosire) → scrierea. Un al doilea tap cu același `intent_id` primește `409 PAYMENT_ALREADY_USED` plus un
+citat nou, deci nu poate produce un al doilea like sau un al doilea comentariu.
+
+### 9.3 Ce face telefonul
+
+| Suprafață | Comportament |
+|---|---|
+| `PostCard` (inima) | trimite reacția; la `402 PAYMENT_REQUIRED` deschide `ActionPaymentSheet` cu citatul serverului; după aprobare retrimite aceeași reacție cu `payment_intent_id` |
+| `CommentsSheet` | la `402` ține textul într-un rând `pending` și îl retrimite cu aprobarea, sub **aceeași** cheie de idempotență; refuzul aprobării readuce rândul ca `failed`, fără să piardă textul |
+| `ActionPaymentSheet` | arată prețul, comisionul, totalul, soldul și cât lipsește; butonul de confirmare e blocat cât timp soldul nu acoperă; link de faucet plus „verifică din nou” fără să închizi foaia; după plată arată hash-ul și explorer-ul |
+
+Reguli care nu se negociază:
+
+1. Telefonul nu calculează bani: sumele vin din `quote.chain` în wei și se formează prin `egldFromWei`, la
+   fel ca `formatEgld` de pe server (6 zecimale, fără zerouri de prisos).
+2. Cheia de idempotență se naște la deschiderea foii și rămâne aceeași la reîncercare. Se schimbă doar când
+   serverul a închis rândul (`IDEMPOTENCY_CONFLICT`, `PAYMENT_ALREADY_USED`, `PAYMENT_FAILED`,
+   `CHAIN_TRANSACTION_FAILED`, `CHAIN_BROADCAST_REFUSED`, `CHAIN_INSUFFICIENT_FUNDS`) —
+   `paymentKeyRotates` din `src/lib/actionPayments.ts`. O conexiune căzută **nu** rotește cheia: reluarea
+   aceleiași chei este modul de a recupera un transfer care a plecat, fără a plăti de două ori.
+3. Fără fonduri, foaia spune cât lipsește și nu promite nimic: `payForAction` întoarce
+   `CHAIN_INSUFFICIENT_FUNDS` cu adresa, soldul și suma necesară.
+4. Un host fără portofele nu improvizează: implicitul este `devnet`, iar lipsa portofelului cititorului sau a
+   adresei creatorului dă `503 WALLET_STORE_MISSING` (sau `PAYER_WALLET_MISSING` / `PAYEE_WALLET_MISSING`)
+   **înainte** ca vreun rând să fie scris. Rândul „fără transfer” există doar când cineva cere explicit
+   `NEXUS_PAYMENTS_CHAIN=simulated` (sau `off`), și rămâne marcat `chain_mode: "simulated"` ca să nu poată fi
+   confundat cu o plată.
+
+### 9.4 Ce este dovedit și ce lipsește
+
+Dovedit azi: 13 teste pe telefon (`scripts/test-action-payments.cjs`), 28 pe server
+(`test/action-payments.test.js`, `p1-action-ledger`, `creator-pricing`), `tsc --noEmit` 0; un citat real de
+pe devnet pentru un like de 3 ¢ (0.001 EGLD + 0.000114 EGLD comision, sold 0, lipsă 0.001114 EGLD) și
+refuzul explicit `CHAIN_INSUFFICIENT_FUNDS` când portofelul nu are EGLD.
+
+Lipsește un hash real de tranzacție: cele cinci portofele de test (`docs/.test-wallets.local`) au 0 EGLD pe
+devnet (`tools/probe-devnet-balances.mjs`), iar faucetul cere captcha în browser. Pașii, în ordine: (1)
+faucet pentru primul portofel; (2) citatul arată `can_afford: true`; (3) un like din telefon produce un
+`tx_hash`; (4) hash-ul se deschide în `https://devnet-explorer.multiversx.com/transactions/<hash>`.
 

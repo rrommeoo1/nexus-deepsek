@@ -1,7 +1,8 @@
 /* global __dirname */
 // Mașina de stări a conectării xPortal (`src/lib/xportalState.ts`), așa cum o conduce foaia.
 // Ce se verifică aici: un attempt trece doar înainte, un `token` sau un `failed` nu mai pot fi
-// resuscitate de un mesaj întârziat, iar expirarea de 120 s e singura cale către „nu a confirmat”.
+// resuscitate de un mesaj întârziat, iar expirarea de 300 s (aceeași fereastră ca pe server) e
+// singura cale către „nu a confirmat”.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
@@ -33,10 +34,10 @@ function ticks(n) {
   return Array.from({ length: n }, () => ({ type: 'tick' }));
 }
 
-test('fereastra de așteptare este de 120 de secunde', () => {
-  assert.equal(machine.XPORTAL_WAIT_SECONDS, 120);
+test('fereastra de așteptare este de 300 de secunde, ca pe server', () => {
+  assert.equal(machine.XPORTAL_WAIT_SECONDS, 300);
   assert.equal(machine.XPORTAL_INITIAL_STATE.stage, 'idle');
-  assert.equal(machine.XPORTAL_INITIAL_STATE.seconds, 120);
+  assert.equal(machine.XPORTAL_INITIAL_STATE.seconds, 300);
 });
 
 test('deschiderea foii pornește un attempt nou, în „preparing”', () => {
@@ -68,9 +69,9 @@ test('un pairing existent nu mai e trimis înapoi în „preparing”', () => {
   assert.equal(state.stage, 'pairing');
 });
 
-test('ceasul expiră exact după 120 de secunde și doar în timpul așteptării', () => {
+test('ceasul expiră exact după 300 de secunde și doar în timpul așteptării', () => {
   const paired = run([{ type: 'open' }, { type: 'pairing' }]);
-  const almost = ticks(119).reduce((state, action) => machine.xPortalReduce(state, action), paired);
+  const almost = ticks(299).reduce((state, action) => machine.xPortalReduce(state, action), paired);
   assert.equal(almost.stage, 'pairing');
   assert.equal(almost.seconds, 1);
   const expired = machine.xPortalReduce(almost, { type: 'tick' });
@@ -83,16 +84,16 @@ test('ceasul expiră exact după 120 de secunde și doar în timpul așteptării
 });
 
 test('expirarea nu ascunde linkurile și nu mai e anunțată ca așteptare', () => {
-  const expired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(120)]);
+  const expired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(300)]);
   assert.equal(expired.stage, 'expired');
   assert.equal(machine.xPortalIsWaiting(expired), false);
   const label = machine.xPortalWaitLabel(expired);
-  assert.match(label, /nu a confirmat în 2 minute/);
+  assert.match(label, /nu a confirmat în 5 minute/);
   assert.match(label, /Redeschide xPortal/);
 });
 
 test('întoarcerea în aplicație după expirare redeschide fereastra', () => {
-  const expired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(120)]);
+  const expired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(300)]);
   const back = machine.xPortalReduce(expired, { type: 'active' });
   assert.equal(back.stage, 'pairing');
   assert.equal(back.seconds, machine.XPORTAL_WAIT_SECONDS);
@@ -103,7 +104,7 @@ test('întoarcerea în aplicație după expirare redeschide fereastra', () => {
 test('„Deschide xPortal din nou” resetează ceasul și numără redeschiderile', () => {
   const paired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(30), { type: 'active' }]);
   assert.equal(paired.returns, 1);
-  assert.equal(paired.seconds, 90);
+  assert.equal(paired.seconds, 270);
   const reopened = machine.xPortalReduce(paired, { type: 'reopen' });
   assert.equal(reopened.stage, 'pairing');
   assert.equal(reopened.seconds, machine.XPORTAL_WAIT_SECONDS);
@@ -136,7 +137,7 @@ test('închiderea foii șterge attempt-ul din memorie', () => {
 test('eticheta de așteptare spune secundele rămase și nu numește alt produs', () => {
   const paired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(15)]);
   const label = machine.xPortalWaitLabel(paired);
-  assert.equal(label, 'Se așteaptă confirmarea din xPortal… (105s)');
+  assert.equal(label, 'Se așteaptă confirmarea din xPortal… (285s)');
   assert.doesNotMatch(label, /Nexus/);
   assert.equal(machine.xPortalWaitLabel(machine.XPORTAL_INITIAL_STATE), '');
 });

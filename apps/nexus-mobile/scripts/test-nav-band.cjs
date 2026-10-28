@@ -146,9 +146,20 @@ test('padurea sta sub cuvinte si numai pe o pagina fara fotografie de fundal', (
   }
 });
 
-test('discul de creare este platina, nu cerneala', () => {
+test('discul de creare este platină, nu cerneală', () => {
   const tokens = read('src/theme/social.ts');
-  assert.match(tokens, /polish: \[\r?\n\s+\{ offset: 0, color: '#ffffff' \},\r?\n\s+\{ offset: 0\.38, color: '#d8dce1' \},\r?\n\s+\{ offset: 0\.72, color: '#343941' \},\r?\n\s+\{ offset: 1, color: '#050608' \},/, 'gradientul radial al webului (feed-surface.css:850-855)');
+  /**
+   * Runda 31 (owner, 31 octombrie 2026): discul este acum argintul *luminat* al paletei — patru opriri
+   * care urcă de la `bright` la umbra metalului, fără nici un negru. Semnul `+` este negru mat.
+   */
+  assert.match(tokens, /polish: blackSilverPolish/, 'gradientul discului vine din paletă');
+  const palette = read('src/theme/blackSilver.ts');
+  const stops = palette.slice(palette.indexOf('blackSilverPolish'), palette.indexOf('BLACK_SILVER_PAIRS'));
+  for (const member of ['bright', 'silver', 'muted', 'deepMercury']) {
+    assert.ok(stops.includes(`blackSilver.${member}`), `discul are oprirea ${member}`);
+  }
+  const discBlock = tokens.slice(tokens.indexOf('create: {'), tokens.indexOf('/** Where the light strikes'));
+  assert.doesNotMatch(discBlock, /#050608|#343941|#d8dce1/, 'discul nu mai are nicio oprire neagră');
   assert.match(tokens, /polishCenter: \{ x: '35%', y: '28%' \}/, 'lumina cade din stanga sus');
   assert.match(nav, /const disc = socialTokens\.nav\.create;/, 'bara isi ia platina din token');
   assert.match(nav, /\{disc\.polish\.map\(\(stop\) => \(/, 'fiecare oprire a gradientului este desenata');

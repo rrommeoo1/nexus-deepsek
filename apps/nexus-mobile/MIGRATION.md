@@ -1591,4 +1591,294 @@ neschimbat, este în `docs/REBRAND.md`; aici rămân doar deciziile de layout.
   Detaliile prelucrării și deviația de la rampa liniară (măsurată: 49 px, de aceea s-a trecut la vot de
   majoritate + o medie 3×3) sunt în `docs/REBRAND.md` §5.
 
+## 25. Butoanele cititorului: argintiu și grafit, pe două terenuri (28 octombrie 2026)
+
+- **Decizia ownerului.** „Butoanele astea — Editează profilul, Urmărește, like, comentariu, repost, share — să
+  fie un argintiu discret cu grafit, nu alb pe crem”, cu „contrast mai bun pe paginile crem”. Cele șase
+  apăsări pe care le atinge un cititor sunt de acum **un singur material**, `socialTokens.post.controls`, cu
+  două terenuri și fără o a treia culoare:
+  - `paper` — **placa argintie** `rgba(250,249,244,0.86)`, **muchia grafit** `rgba(38,44,46,0.16)` (tare:
+    `0.44`), **cerneala grafit** `#2B3134`, contorul `#3B4245`. Un glif alb pe crem era invizibil; asta era
+    reclamația.
+  - `night` — **placa grafit** `rgba(236,239,237,0.10)`, **muchia argint** `rgba(233,236,235,0.26)` (tare:
+    `0.55`), **cerneala argint** `#E6EAE8`, contorul `#D8DEDB`. Coloana rămâne discretă peste o fotografie, în
+    loc să imprime cinci discuri albe pe ea.
+- **Starea nu e o a doua culoare.** Un like ales, un salvate, un repost luat se citesc prin **întoarcerea
+  plăcii** (`plateOn`/`inkOn`: cremă pe grafit pe hârtie, grafit pe argint noaptea), nu prin rozul `#ff315f`
+  al vechii coloane și nu prin verdele frunzei. `edgeStrong` este singura diferență dintre o ușă principală
+  (`Urmărește`, `Editează profilul`) și una secundară pe hârtie.
+- **Cine spune terenul.** Coloana e desenată *peste* pagină și nu-și vede fundalul, deci terenul îl dă pagina
+  care o așază: `PostRail.tone` (și `PostDistributePanel.tone`, și `ReactionControl.tone`, și
+  `RelationButton.tone`), implicit `night`. `PostCard` îl calculează cu **același clasificator pe care îl
+  citește canvasul** (`stageFor`): `text` și `article` sunt pagini de cuvinte, deci `paper`; poză, clip, citat
+  și cardul 9:16 rămân `night`. Așa fundalul paginii și butoanele ei nu pot să nu fie de acord.
+- **Ce s-a atins:** `theme/social.ts` (tokenul `post.controls` cu `radius: 18` + `ControlTone`), `PostRail.tsx`
+  (placa fiecărei apăsări și foaia meniului de distribuire, două variante), `ReactionControl.tsx` (placa și
+  cerneala like-ului, inclusiv starea aleasă), `RelationButton.tsx` (cele două uși, pe ambele terenuri; `Mesaj`
+  ia aceeași placă de noapte, ca rândul să nu tipărească un verde lângă un gri), `ProfileHeader.tsx`
+  (`Editează profilul` și rotundul `⋯` de pe câmpul închis al profilului, terenul `night`), `PostCard.tsx`
+  (terenul, dus la toate cele trei componente).
+- **Verificare.** `scripts/test-feed-rail.cjs` are un test nou care ține regula: cele opt fețe ale fiecărui
+  teren, cele două montări care primesc `tone`, absența `#ff315f`/`#ffffff` din coloană și întoarcerea plăcii
+  ca stare. `node scripts/test-feed-rail.cjs`, `test-hero-parity`, `test-relations` și `tsc --noEmit` trec;
+  restul suitei din `npm test` trece neschimbat.
+
+## 26. A doua zi: emoji-ul fără pastilă și măsura paginii până la bară (28 octombrie 2026)
+
+- **Ce a refuzat ownerul.** Două lucruri de formă, citite pe Xiaomi: (1) „fundalul din spatele emoji-urilor" —
+  runda §25 pusese placa materialului și **în spatele like-ului**, iar emoji-ul trebuie să stea pe pagină
+  fără niciun fel de pastilă; (2) „textul nu folosește lățimea ecranului, deși are loc până la butoane".
+- **Emoji-ul.** `ReactionControl` a pierdut, în varianta `rail`, exact ce-i fusese dat în §25: `railPaper`,
+  `railPaperOn`, `railNight`, `railNightOn` (fundal + muchie + colț). Celula rămâne 56×56, cu discul de 36×39
+  și rândul de contor, iar comentariul, salvarea și distribuirea își păstrează placa (`PostRail.ground`).
+  Starea unei reacții este **glifa**, nu o a doua placă: inima goală a unei apăsări neatinse și fața aleasă
+  pentru orice altceva. Fiindcă inima albă (`REACTION_EMPTY_HEART`, 🤍) ar fi fost un alb pe cremă, inima
+  goală urmează terenul — **argintiu noaptea, grafit pe hârtie** (`REACTION_EMPTY_HEART_ON_PAPER`, 🖤): un
+  emoji își poartă propria culoare, deci nu are nevoie de fundal ca să fie văzut. Tokenul
+  `post.controls` rămâne al celorlalte cinci apăsări; comentariul din `theme/social.ts` spune acum care e
+  singura apăsare fără placă și de ce.
+- **Măsura paginii.** Pagina își punea **aceeași** margine pe ambele laturi
+  (`marginX: Math.max(18, Math.round(width * 0.072))` în `EditorialPage`, adică 32dp), peste paddingul de
+  14dp al cititorului: 46dp de hârtie goală în stânga **și** 46dp în dreapta, deasupra unor butoane care stau
+  doar în colțul din dreapta-jos. Fluxul are acum două margini (`marginLeft`/`marginRight` în
+  `lib/editorialFlow.ts`, `marginX` rămâne cea din stânga pentru orice cititor simetric): pe o pagină care
+  poartă bara, stânga este marginea de citit (`max(12, 3.2 %)` = 14dp la 441dp), iar dreapta este doar
+  `RAIL_LINE_AIR` (6dp) — dreptunghiul barei (`RailReserve`) rămâne singurul lucru care ține locul liber
+  din colțul de jos. Pagina fără bară (previzualizarea din compozitor) compune simetric, ca înainte.
+- **Coloana veche.** `wordPageGutter` primește acum `padH`: urma barei se măsoară de la marginea ecranului,
+  iar cuvintele stau în paddingul paginii, deci o pagină care intră 14dp în ecran ține `72 - 14 = 58dp` din
+  măsura ei — exact dreptunghiul pe care `wordPageRailReserve` îl taie din flux. Înainte ținea 72dp, adică
+  textul se oprea cu 20dp înainte de butoane (măsurat: 383dp față de marginea stângă a barei la 403dp).
+- **Numerele, pe telefonul ownerului** (Xiaomi 25098PN5AC, 1220×2656px la 416dpi = 469dp lățime; pagina
+  articolului `[36,316][1184,2226]`, celula reacției `[1048,1727][1194,1873]`):
+  textul începe la **119px → 72px** (45,8 → 27,7dp) și se termină la **1102px → 1168px** (423,8 → 449,2dp);
+  rândurile care ating bara se opresc la 397dp, adică 6dp înainte de `1048px`. Măsura fluxului, pe
+  documentele reale din baza vie (postările 46, 45, 44, 43), trece de la **378dp la 422dp**, cu aceleași
+  cuvinte, aceleași număr de pagini și fotografiile pe aceleași pagini.
+- **Fișiere:** `theme/social.ts`, `lib/socialTypes.ts` (`REACTION_EMPTY_HEART_ON_PAPER`),
+  `components/ReactionControl.tsx`, `lib/textPage.ts` (`RAIL_LINE_AIR`, `wordPageGutter(padH)`),
+  `lib/editorialFlow.ts` (cele două margini), `components/EditorialPage.tsx` (`margins`),
+  `components/PostCanvas.tsx` (paddingul paginii intră în calculul coloanei).
+- **Verificare:** `npm test` (42 de scripturi, 393 de cazuri, `fail 0`) și `tsc --noEmit`, plus trei cazuri
+  noi: „pagina citită are o margine de citit și un singur aer până la bară", „măsura paginii are două
+  margini" (pe motor, cu bara în coordonatele paginii) și regula din `test-feed-rail.cjs` care spune că
+  celula reacției nu mai poartă nicio placă. Pe telefon: paleta se deschide la ținere, numele emoji-ului
+  urmează degetul (`Love` → `Furios`), eliberarea în afara pastilei nu scrie nimic, iar inima goală de pe
+  hârtie se citește 🖤 (`U+1F5A4`).
+
+## 27. A treia zi: măsura luată din fontul telefonului, coloana fără plăci, câmpul de lipit (29 octombrie 2026)
+
+- **Ce a refuzat ownerul, în trei propoziții.** (1) „textul e prea mare și rândurile se termină prea devreme,
+  deși mai aveau loc" — pagina folosea un tabel de lățimi scris de mână, cu 2–9 % mai lat decât fontul real,
+  deci fiecare rând se rupea cu un cuvânt mai devreme; (2) „comentariul, salvarea și distribuirea au încă
+  fundal" — runda §26 scosese placa doar de sub reacție; (3) „apăs lung pe text, dar Paste nu apare" —
+  compozitorul avea un singur `TextInput`, de 1×1px, ascuns.
+- **Măsura, luată din fișierele de font.** `lib/fontMetrics.ts` (nou, fără nicio importare) ține avansul real
+  al fiecărui caracter pe care o pagină îl poate purta: `cmap` → glifă, `hmtx` → avans, împărțit la
+  `unitsPerEm`, citite pe 29 octombrie 2026 din `/system/fonts` de pe telefonul ownerului
+  (`NotoSerif-Regular.ttf`, `NotoSerif-Bold.ttf`, `MiSansLatinVF.ttf` + `Roboto-Regular.ttf` pentru
+  `sans-serif`, `DroidSansMono.ttf`). Valorile sunt în miimi din corp, **rotunjite în sus**, deci modelul poate
+  fi doar mai lat decât realul — niciodată mai îngust: un rând pe care fluxul îl crede încăput este un rând pe
+  care React Native îl desenează fără să taie ultimul cuvânt. Tabelul vechi („o literă mică ≈ 0,54 din corp",
+  ×1,035 la final) a dispărut; i s-a adăugat doar `LINE_SAFETY` = 1,5 % pentru rotunjirea sub-pixel și pentru
+  kerning (care doar **scoate** lățime, deci ignorarea lui rămâne prudentă), plus clase de siguranță pentru
+  caracterele fără tabel (emoji 1,28; CJK 1; necunoscut 0,8).
+- **Corpul paginii.** `TEXT_SIZES` a coborât cu 5–8 % (`20/30 → 19/28`, `24/34 → 22/31`, `30/42 → 28/39`),
+  iar interlinierea s-a strâns cu aceeași măsură (raportul rămâne ~1,4, ca la o carte). Pagina citită își ia
+  măsura din chiar aceste numere (`EditorialPage` → `sizeOf`), deci paginarea se recalculează singură; editorul
+  nu are o tipografie separată, iar compozitorul arată exact pagina care se publică.
+- **O nepotrivire reparată.** Rândul publicat era desenat cu `allowFontScaling` implicit (`true`): un cititor cu
+  textul mărit de sistem ar fi văzut rândurile curgând peste margine, pentru că fluxul credea mereu că încap.
+  `RichText` are acum `allowFontScaling`, iar pagina îl trece `false` pe rândul publicat și pe fiecare segment
+  de marcă. `letterSpacing` nu se folosește în corpul paginii, iar `lineHeight` este chiar cel primit de la
+  flux — măsura și desenul au acum aceleași patru numere: corp, interliniere, familie, lățime.
+
+
+
+
+- **Toate patru apăsările coloanei, fără plăci.** `PostRail` a pierdut `groundPaper`, `groundPaperOn`,
+  `groundNight`, `groundNightOn` și le folosește doar pe `styles.cell` (56×56, ținta neatinsă) cu cerneala
+  terenului (`controls.ink`/`count`). Fiindcă nu mai există o placă de întors, starea unei apăsări luate nu mai
+  poate fi o culoare inversată: este un **punct de 4dp** în rândul de 14dp pe care celula îl rezerva deja
+  (`styles.stateDot` + `metricRow`), la salvare și la redistribuire. `ReactionControl` a pierdut și ultima
+  urmă de cerneală întoarsă (`railPaperInkOn`/`railNightInkOn`): pe hârtie `inkOn` este `#F4F3ED`, adică o
+  cifră albă pe cremă — un rest din runda în care placa se întorcea. Tokenul `post.controls` rămâne al
+  **ușilor** (Urmărește, Editează profilul, meniul de distribuire), care sunt butoane pe o suprafață.
+- **Lipitul.** Compozitorul desenează pagina cu motorul de flux (rânduri așezate absolut), deci sub deget nu
+  era niciun `TextInput`: doar un `Pressable` de rând, iar câmpul real era cel de 1×1px cu care vorbește
+  tastatura. O apăsare lungă pe un rând (sau pe hârtia unei pagini încă nescrise) deschide acum **foaia
+  paragrafului**: un `TextInput` nativ, vizibil, multiline, cu fața și corpul paginii, peste hârtia ei, cu un
+  singur „Gata" de 44dp. Acolo meniul Android (Paste, Copiază, Selectează tot) este al sistemului — nu s-a
+  adăugat niciun buton care să citească clipboardul în locul lui. Ce se scrie se întoarce în document printr-o
+  singură regulă (`setBlockText` în `lib/editorialDocument.ts`, cu `paragraphsOf` comun cu `applyPlainText`):
+  rândurile goale devin paragrafe, fotografiile și salturile de pagină rămân pe loc, iar un paragraf golit
+  dispare (un document cu paragraf gol ar fi refuzat de server, la publicare, fără să se vadă de ce).
+- **Numerele, pe telefon** (Xiaomi 25098PN5AC; pagina `[36,316][1184,2226]`, măsura 421,5dp; postarea 46,
+  19 rânduri pe pagina 1):
+
+  | Ce | Înainte | Acum |
+  |---|---|---|
+  | corpul paginii | 24dp / 34dp | **22dp / 31dp** |
+  | înălțimea unui rând | 89px = 34,2dp | **81px = 31,2dp** |
+  | primul rând | „**Nu, carnea crudă nu se spală" (30 de caractere) | „**Nu, carnea crudă nu se spală înainte" (38) |
+  | umplerea măsurii | 80,8 % (media reală a rândurilor) | **90,9 %** |
+  | hârtie goală la capătul rândului | ~81dp | **~38dp** |
+  | rândurile articolului | 53 | **44** (aceleași 253 de cuvinte) |
+
+  Măsura modelului a fost verificată **independent de React Native**: o pagină deschisă în Chrome pe același
+  telefon (`canvas.measureText`, 24 de șiruri la 22px) a dat, față de model, 1,015–1,032 pe serif, 1,017–1,050
+  pe sans și 1,017 pe mono — adică modelul este mereu mai lat, dar niciodată cu peste 5 %. (Rândul vechi, la
+  24dp, era măsurat cu 2,3 % mai lat decât îl desena telefonul; diferența pare mică, dar pe un rând de 422dp
+- **Fișiere:** `lib/fontMetrics.ts` (nou: tabelele măsurate), `lib/editorialFlow.ts` (`measureTextWidth` /
+  `glyphFactor` deleagă la ele), `lib/textStyle.ts` (corpurile), `components/RichText.tsx`
+  (`allowFontScaling`), `components/EditorialPage.tsx` (`allowFontScaling={false}`, foaia paragrafului,
+  `onLongPress`, `FIELD_HOLD_MS`), `lib/editorialDocument.ts` (`paragraphsOf`, `setBlockText`),
+  `components/PostRail.tsx` (fără plăci, `stateDot`, `metricRow`), `components/ReactionControl.tsx`
+  (cerneala nu se mai întoarce), `theme/social.ts` (cine mai are voie la placă).
+- **Verificare:** `npm test` — 44 de scripturi, `fail 0` (între ele două noi: `test-font-metrics.cjs`, 9
+  cazuri, care ține modelul lipit de măsurătoarea din Chrome, și `test-text-field.cjs`, 9 cazuri, pentru
+  câmpul de lipit și pentru `setBlockText`); `tsc --noEmit` curat. Pe telefon, prin ADB/uiautomator: pagina
+  postării 46 se desenează la 22/31 cu rândurile de mai sus; cele patru celule ale barei sunt 146×146px
+  (56×56dp), comentariul deschide foaia de comentarii, distribuirea deschide meniul („Redistribuie în feed",
+  „Distribuie în afara Jungle Book"), reacția își păstrează paleta; apăsarea lungă pe pagină deschide foaia
+  paragrafului (`PARAGRAFUL`, `Gata`, câmpul `android.widget.EditText` `enabled=true` `focused=true`), iar
+  câmpul ascuns este `enabled=false` cât timp foaia e deschisă; textul scris în foaie se întoarce în pagină
+  la „Gata" (contorul a trecut de la `0/20000` la `7/20000`). **Lipitul, cap-coadă, pe telefon:** o pagină
+  servită de pe host (prin `adb reverse`) a fost deschisă în Chrome, butonul ei a scris 977 de caractere în
+  clipboardul Android (`COPIAT 977 CARACTERE`), textul a intrat în câmpul nativ al foii, iar „Gata" a scris în
+  pagină **971/20000**. Ownerul a atașat apoi fotografia din selector; au intrat trei (selecția rămasă din
+  încercările mele plus a lui), le-am redus la **una** din butoanele compozitorului (`Șterge atașamentul 2/3`),
+  iar pagina a trecut de la 3 la **2 pagini**; fotografia a fost trasă între rânduri, iar fluxul a împachetat
+  textul în jurul ei — rândurile de lângă imagine se îngustează la `x665-1034`, cele de sub ea revin la
+  `x186-1034`. Postarea a rămas **nepublicată**, iar baza de date și folderul de media au rămas neatinse
+  (43 de postări, 23 de fișiere, înainte și după).
+- **Două defecte găsite pe drum, nereparate** (spuse ca să nu se piardă): (1) `mediaBusy` din compozitor
+  rămâne `true` dacă rezultatul selectorului se pierde (am reușit să blochez butonul „+ Fotografie" până la
+  repornirea aplicației) — ar merita un `finally` cu timeout sau o resetare la revenirea în prim-plan;
+  (2) un selector multi poate întoarce mai multe fișiere decât a ales ownerul dacă o selecție veche rămâne în
+  starea lui (de aici cele trei atașamente).
+- **Ce rămâne deschis.** (1) Meniul de selecție al Android **nu a putut fi declanșat de ADB** pe acest telefon:
+  nici apăsarea lungă sintetică (`input swipe`/`input motionevent`), nici dublul tap nu scot bara de selecție —
+  dovada e că se comportă la fel pe câmpul de comentariu, care există de mai multe runde; lipirea a fost
+  dovedită prin comanda de lipire a Androidului (`input keycombination 113 50`, Ctrl+V) în câmpul real, pe un
+  text de 977 de caractere copiat din Chrome. (2) Selectorul de fotografii al HyperOS nu expune niciun buton de
+  confirmare în arborele de accesibilitate pentru selecția multiplă, deci atașarea unei fotografii nu a putut
+  fi dusă până la capăt de un agent orb la ecran; pasul rămâne al ownerului. (3) Tabelele sunt ale fețelor de
+  pe Android; o lume iOS (Georgia) ar avea nevoie de rândul ei.
+
+  însemna zece puncte de hârtie goală la fiecare rând.)
+
+## 28. A patra zi: atingerea care deschide câmpul, publicarea care duce la pagină (29 octombrie 2026)
+
+- **Ce a refuzat ownerul, în trei propoziții.** (1) „apăs lung 0,5–1 secundă pe text și nu se întâmplă nimic;
+  nu pot lipi" — deci reparația din §27 nu a ajuns la degetul lui; (2) „după ce public, mă aruncă în cameră";
+  (3) compozitorul are prea multe controale: scoate selectorul de temă, fă din „cine vede" și din
+  „proveniență" câte un comutator frumos, ia locația din GPS cu un X lângă ea, iar comentariile și distribuirea
+  rămân întrerupătoare.
+- **Cauza reală a „nu se întâmplă nimic", măsurată pe telefon, nu ghicită.** Erau **două** defecte, iar al
+  doilea ar fi făcut prima reparație inutilă:
+  1. singura ușă spre câmp era o ținere de 420 ms care trebuia să nimerească **exact un rând desenat**. Pagina
+     este un flux de rânduri așezate absolut: marginile, golul dintre două paragrafe, hârtia de sub ultimul
+     rând și spațiul de lângă o fotografie nu aveau **niciun** `Pressable`. Pe un telefon aceea este cea mai
+     mare parte din pagină, deci degetul lovea, aproape mereu, hârtie moartă;
+  2. cuvintele paginii trăiau într-un `TextInput` **de 1×1px**, invizibil — măsurat pe telefon ca „Textul
+     postării", `[116,309][119,312]`, adică 3×3 pixeli — iar pagina le **desena** doar ca `Text`. O apăsare
+     lungă pe un `Text` nu selectează nimic, iar un câmp pe care nu-l vezi nu are peste ce să pună bara cu
+     Paste. De aceea, chiar când foaia paragrafului se deschidea (și se deschidea, dovedit cu uiautomator),
+     degetul nu găsea meniul acolo unde îl căuta.
+  Ambele au dispărut: câmpul invizibil a fost scos cu totul (`hiddenInput`, `caretHidden`, stilul `caret`,
+  `caretLine`, `editorialTextMap`, `applyPlainText` din pagină), iar **hârtia însăși este ușa**.
+- **Cum arată acum editarea.** Un `Pressable` acoperă toată pagina, *sub* rânduri și sub fotografii, deci o
+  atingere în margine, între paragrafe, sub ultimul rând sau pe o pagină încă nescrisă deschide câmpul
+  paragrafului cel mai apropiat (`paragraphAt` alege rândul de sub deget după `y`, apoi caracterul după `x`,
+  cu aceleași avansuri măsurate din font). O atingere pe un cuvânt dă drumul aceluiași câmp, cu cursorul
+  **exact acolo** (`caretAt`), iar o ținere de 420 ms face același lucru — niciuna nu mai e singura cale.
+  În foaie scrie un singur `TextInput` nativ (unul singur în toată componenta, verificat de test), vizibil,
+  multiline, `autoFocus`, fără `contextMenuHidden`, cu nimic deasupra lui: acolo trăiesc cursorul, mânerele de
+  selecție și meniul Android. „Gata" scrie paragraful înapoi prin `setBlockText`, iar butonul Înapoi al
+  telefonului închide foaia înaintea compozitorului (`BackHandler`), ca un paragraf lipit să nu se piardă
+  dintr-o atingere greșită.
+- **Publicarea duce la pagină, nu în cameră.** Cauza nu era în compozitor, ci sub el: butonul „TEXT" al
+  vizorului face `router.push('/text')` (`camera.tsx`), deci `router.back()` după publicare întorcea autorul
+  în cameră, iar cardul „PUBLICAT" nu avea decât „Închide" — tot spre cameră. Acum, după ce serverul confirmă:
+  ciorna locală se șterge, `publishedId` primește id-ul confirmat, `router.dismissAll()` golește stiva (deci
+  și camera), iar `router.push('/post/:id')` deschide **chiar postarea creată**, cu textul, tipografia,
+  fotografiile și bara ei. Înapoi din pagină duce în perete. O eroare nu navighează nicăieri, iar un al doilea
+  deget pe „Publică" nu mai poate scrie a doua postare. Cardul de confirmare rămâne doar ca rezervă, dacă
+  router-ul refuză mutarea, și butonul lui deschide același id confirmat.
+
+
+- **O singură temă: Kindle, nu șase.** Secțiunea TEMĂ a plecat cu tot cu stilurile ei (`themeRow`, `theme`,
+  `themeDot`, `themeText`), și cu ea selectorul de aliniere: pagina are un singur aspect, hârtia caldă a
+  `pagePaletteOf`, iar tema doar marca un fir de accent pe care cititorul nu-l vedea ca schimbare de pagină.
+  Ce a rămas este ce schimbă **așezarea cuvintelor** — LITERĂ (Serif/Sans/Mono) și MĂRIME (Auto/Mic/Mediu/Mare,
+  scrisă în `document.typography`) — plus titlul, neatins și tot opțional (`PUBLISHING_LIMITS.title`). O ciornă
+  deschisă acum își normalizează tema la `TEXT_DEFAULT_THEME`, ca să nu rămână pe un accent pe care autorul nu-l
+  mai poate schimba. Niciun spațiu gol nu a rămas în locul controalelor scoase: secțiunile sunt lipite în flux.
+- **„Cine vede": un comutator cu trei poziții și valorile reale din spate.** `lib/privacy-matrix.js` cunoaște
+  patru niveluri, iar compozitorul oferă trei, fără să redenumească nimic: **Public** → `public`; **Privat** →
+  `friends` (doar urmărire **reciprocă**, `MUTUAL` — prietenii, nu oricine a apăsat Follow); **Doar eu** →
+  `private` (autorul plus cine are `PRIVATE_ENTITLEMENT`; cuvântul „Doar eu" este chiar eticheta webului pentru
+  acest nivel). Nivelul `followers` nu mai este oferit, dar o ciornă care îl are îl păstrează ca o a patra
+  poziție (`LEGACY_VISIBILITY`), ca deschiderea compozitorului să nu lărgească niciodată publicul unei pagini.
+  Sub comutator stă o propoziție care spune ce înseamnă poziția aleasă. Valoarea se scrie în `draft.visibility`
+  și pleacă la server în corpul publicării (`visibility`).
+- **„Proveniență": patru poziții, aceleași valori, alt control.** `NOT_DECLARED`, `CAMERA_CAPTURED_DECLARED`,
+  `AI_ASSISTED`, `AI_GENERATED` — nici o valoare inventată, nici una pierdută. Patru etichete nu încap într-un
+  sfert de ecran fără să devină ilizibile, deci rândul este un track derulabil orizontal; propoziția întreagă a
+  alegerii (`PROVENANCE_LABELS`) se citește sub el. Proveniența nu este vizibilitate: are propriul câmp
+  (`provenance`) și propria cale către server.
+- **Comentariile și distribuirea rămân două întrerupătoare.** `Switch`-uri separate, valori separate
+  (`allowComments`, `allowRepost`) în `publishing`, iar serverul le aplică: `repo.js` refuză un comentariu sau
+  un răspuns cu `POST_COMMENTS_DISABLED`, iar `api.js` îl întoarce ca 403; repostarea este refuzată cu
+  `POST_REPOST_DISABLED` / 403 (`allowRepost === false`). Un comutator care doar ar ascunde butonul ar fi o
+  promisiune goală, deci amândouă sunt apărate de server, nu doar de ecran.
+- **Locația vine din telefon, ca nume, și se poate scoate.** `expo-location` (dependență nouă, cu rebuild
+  nativ) plus permisiunile `ACCESS_COARSE_LOCATION` / `ACCESS_FINE_LOCATION` în `app.json` și în manifest.
+  Deschiderea compozitorului **citește** permisiunea fără dialog (`getForegroundPermissionsAsync`); dialogul
+  sistemului aparține unei apăsări, iar lângă el stă propoziția care spune de ce. Un fix (ultima poziție
+  cunoscută, dacă are sub 2 minute, altfel una proaspătă, cu termen de 12 s) este rotunjit la patru zecimale
+  (~11 m) și trimis geocoderului **produsului**, `GET /api/location/suggestions?kind=reverse`, care răspunde
+  `precise_location_stored: false`. Din răspuns se păstrează **doar numele** — zona, apoi orașul, apoi strada —
+  în `publishing.location`; nici o coordonată nu intră în ciornă, în corpul publicării sau în bază. X-ul golește
+  exact acel câmp și oprește orice încercare automată ulterioară (`placeRemoved`), iar un refuz, un GPS mut sau
+  un geocoder tăcut se spun într-o propoziție și nu blochează „Publică".
+- **Două defecte vechi, închise pe drum.** `mediaBusy` nu mai poate rămâne blocat: galeria are un termen de cinci
+  minute (`GALLERY_DEADLINE_MS` + `withinDeadline`), după care butonul își revine și spune ce s-a întâmplat. Iar
+  un build fără modulul nativ spune „Aplicația instalată nu poate citi locația", nu „locația este oprită" —
+  două defecte diferite, două propoziții diferite (`readLocationPermission` întreabă întâi
+  `requireOptionalNativeModule`, ca `expo-location` să nu arunce la import).
+- **Teste.** `npm test` în `apps/nexus-mobile`: **51 de scripturi, `fail 0`**, cu trei scripturi noi —
+  `test-text-composer.cjs` (8 cazuri: tema și alinierea scoase, tipografia rămasă, titlul, cele trei poziții de
+  vizibilitate cu valorile lor, cele patru de proveniență, întrerupătoarele, controlul comun, apărarea
+  serverului), `test-text-location.cjs` (5 cazuri: modul lipsă, coordonata rotunjită, alegerea numelui, X-ul care
+  golește câmpul, permisiunea cerută de un deget) și `test-publish-navigation.cjs` (4 cazuri: id-ul confirmat,
+  `dismissAll` înainte de `push`, fără cameră, fără dublă publicare, ruta care citește postarea cerută).
+
+- **Ce s-a măsurat pe telefon (Xiaomi 25098PN5AC, Android 16/HyperOS).** Un APK nou a fost necesar (modulul de
+  locație este nativ), iar prima încercare de build a arătat că mașina avea **doar `platform-tools`** în SDK
+  (`LicenceNotAcceptedException … ndk;27.1.12297006`): am instalat `cmdline-tools`, `platforms;android-36`,
+  `build-tools;36.0.0`, `cmake;3.22.1` și `ndk;27.1.12297006`, după care `npm run build:android:dev` a trecut
+  (**13m 25s**, APK de 114,9 MB) și a fost instalat peste aplicația existentă, cu datele păstrate. Pe ecran:
+  „Cine vede" are trei poziții radio de 350×114 px fiecare (Public / Privat / Doar eu), iar alegerea se vede în
+  `checked=true` și în propoziția de sub track; „Proveniență" are patru poziții în același tip de track;
+  butonul de locație a deschis dialogul sistemului doar la apăsare, iar după „Allow only while using the app"
+  locația a fost citită și numită („Czyżyny, Cracovia" — „Cracovia" este exonimul românesc; aceleași coordonate
+  cerute lui Nominatim cu `pl` răspund „Kraków", deci antetul `Accept-Language` chiar lucrează). X-ul a golit
+  locația din ciornă (`publishing.location=""`, `locationDismissed=true`) și o repornire rece nu a readus-o.
+- **Publicarea, probată cap-coadă pe contul real, cu acordul ownerului.** O pagină de probă a fost publicată din
+  compozitor: o singură postare nouă (`id=49`, `kind=text`, `visibility=public`, `title="Test publicare TEXT"`,
+  `location=""`, `allowComments`/`allowRepost` true, `text_style_json` cu `theme=paper`/`font=serif`/
+  `size=medium`/`align=left`), 44 → 45 postări, max id 48 → 49. Aplicația a deschis **chiar acea pagină**, cu
+  textul, tipografia și bara ei, și **nicio cameră**; Înapoi a dus în peretele de sub postare. Ciorna ownerului
+  (781 de caractere) fusese copiată în sandboxul aplicației înainte de probă și a fost restaurată byte-cu-byte
+  după ea — compozitorul arată din nou 778/20000, iar deschiderea și închiderea foii nu i-au schimbat niciun
+  caracter.
+- **Ce nu a putut fi dovedit automat.** Bara nativă de selecție (Paste/Copiază) nu poate fi declanșată prin ADB
+  pe acest telefon: apăsarea lungă sintetică nu o scoate nici pe bara de adrese a Chrome, nici pe textul unei
+  pagini din Chrome, deci injecția nu ajunge la `ActionMode`. Câmpul este însă un `EditText` real, vizibil,
+  focalizat, cu tastatura arătată și fără nimic deasupra lui — confirmarea „apare la deget" rămâne a ownerului.
+
+  `test-text-field.cjs` a fost rescris pentru noul drum (atingere, nu doar ținere; fără câmp ascuns), iar
+  `test-text-style.cjs` verifică acum un singur `TextInput`. `tsc --noEmit`: curat.
 

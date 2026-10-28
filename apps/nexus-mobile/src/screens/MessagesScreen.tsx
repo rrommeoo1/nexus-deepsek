@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { blackSilver } from '../theme/blackSilver';
 import { JungleBackdrop } from '../components/JungleBackdrop';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -6,6 +7,7 @@ import {
 } from 'react-native';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { ActivityCenter } from '../components/ActivityCenter';
+import { useNavReserve } from '../components/AppNav';
 import { ContactCard } from '../components/ContactCard';
 import { InboxModulePlate, InboxToolsPlate } from '../components/InboxPlates';
 import { MessengerSearch, MessengerTopbar } from '../components/MessengerTopbar';
@@ -19,9 +21,10 @@ import {
   type InboxBox, type InboxFilter, type MessageHit, type MessageSearchResult,
 } from '../lib/messageSearch';
 import {
-  initialsFor, mediaSourceForPath, relativeTime,
+  mediaSourceForPath, relativeTime,
   type ChatMessage, type Conversation, type ConversationParticipant, type ConversationThread, type ConversationsPage, type StoryView,
 } from '../lib/socialTypes';
+import { BrandAvatar } from '../components/BrandAvatar';
 import { socialTokens } from '../theme/social';
 import { openSocialProfile } from '../lib/profileNavigation';
 
@@ -123,6 +126,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', initia
   /** `[data-inbox-persona]` (`app.js:7809`) — the module plate switches the active profile of the account. */
   onSelectModule?: (persona: string) => void;
 }) {
+  const navReserve = useNavReserve();
   const [conversations, setConversations] = useState<Conversation[] | null>(null);
   const [open, setOpen] = useState<Conversation | null>(null);
   const [creating, setCreating] = useState(false);
@@ -322,7 +326,7 @@ export function MessagesScreen({ owner, onHome, activePersona = 'social', initia
         /** `#conversation-list` is hidden from two characters on (`messenger-search.js:103`). */
         data={serverSearching ? [] : visible}
         keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, { paddingBottom: navReserve + 16 }]}
         keyboardShouldPersistTaps="handled"
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={socialTokens.colors.white} />}
         /**
@@ -442,7 +446,7 @@ function ConversationRow({ conversation, viewerId, onOpen, onContact }: {
     <View style={styles.row}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={() => openSocialProfile(peer?.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-        {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(title, peer?.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={50} /> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Deschide conversația cu ${title}`} onPress={onOpen} style={styles.rowOpen}>
         <View style={styles.rowText}>
@@ -521,6 +525,7 @@ function SearchResults({ conversationsResult, messagesResult, onOpenConversation
 }
 
 function ThreadView({ conversation, viewerId, onBack }: { conversation: Conversation; viewerId?: number; onBack: () => void }) {
+  const navReserve = useNavReserve();
   const [detail, setDetail] = useState<Conversation | null>(conversation);
   const [messages, setMessages] = useState<ChatMessage[] | null>(null);
   const [error, setError] = useState('');
@@ -596,7 +601,7 @@ function ThreadView({ conversation, viewerId, onBack }: { conversation: Conversa
 
       {notice ? <Text style={styles.notice}>{notice}</Text> : null}
 
-      <View style={styles.composer}>
+      <View style={[styles.composer, { paddingBottom: 10 + navReserve }]}>
         <TextInput
           value={draft}
           onChangeText={setDraft}
@@ -633,10 +638,10 @@ const styles = StyleSheet.create({
   retry: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16, borderWidth: 1, borderColor: socialTokens.colors.markBorder, borderRadius: 14 },
   retryText: { color: socialTokens.colors.white, fontWeight: '700', fontSize: 13 },
   /** `.screen{padding:15px 16px}` of the web — the inset the measured topbar/search/rail sit at x=16. */
-  list: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 96 },
+  list: { paddingHorizontal: 16, paddingTop: 16 },
   empty: { color: socialTokens.colors.muted, fontSize: 13, textAlign: 'center', paddingTop: 40 },
   /** `.notificationLoading{padding:28px;text-align:center;color:#7be7de}` (`p3-visual-foundation.css`). */
-  loadingNote: { padding: 28, textAlign: 'center', color: '#7be7de', fontSize: 14 },
+  loadingNote: { padding: 28, textAlign: 'center', color: blackSilver.muted, fontSize: 14 },
   /** `.inboxScreen .emptyInbox{min-height:110px;padding:14px}` (`social-human-ux.css:210`), centred column. */
   emptyBox: { minHeight: 110, padding: 14, gap: 8, alignItems: 'center', justifyContent: 'center' },
   /** `.emptyInbox b{margin-top:10px;color:#dce7e9;font-size:15px}` (`p2-messaging.css`). */
@@ -656,7 +661,7 @@ const styles = StyleSheet.create({
   /** The two plates of the topbar fill the middle columns of the grid (`messenger-spaces.css:3`). */
   plates: { flex: 1, minWidth: 0, flexDirection: 'row', gap: 6 },
   /** `.conversationRow .contactAvatar{width:52px;height:52px;border-radius:50%;background:#203c49}` (:18). */
-  avatar: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', backgroundColor: '#203c49', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', backgroundColor: blackSilver.graphite, alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   /** `.contactAvatar i{display:grid;place-items:center}` under `.conversationRow>button{color:#eef6fa}` (:17,19). */
   avatarInitials: { color: '#eef6fa', fontSize: 16, fontWeight: '800' },
@@ -670,8 +675,8 @@ const styles = StyleSheet.create({
   rowAside: { alignItems: 'flex-end', gap: 6 },
   /** `.conversationOpen strong{min-width:24px;padding:3px;border-radius:14px;background:#68ebdf;color:#071a20;
    * font-size:13px;text-align:center}` (:25). The web prints the raw count, so no `99+` here either. */
-  badge: { minWidth: 24, padding: 3, borderRadius: 14, backgroundColor: '#68ebdf', alignItems: 'center', justifyContent: 'center' },
-  badgeText: { color: '#071a20', fontSize: 13, fontWeight: '700', textAlign: 'center' },
+  badge: { minWidth: 24, padding: 3, borderRadius: 14, backgroundColor: blackSilver.silver, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { color: blackSilver.onSilver, fontSize: 13, fontWeight: '700', textAlign: 'center' },
   /** `.conversationOpen em small{font-size:12px}` (:25). */
   time: { color: '#afc2cf', fontSize: 12 },
   /** `.messengerScreen #inbox-message-results{font-size:14px;color:#afc2cf}` (`messenger-spaces.css:30`). */
@@ -697,7 +702,7 @@ const styles = StyleSheet.create({
   threadTitleText: { color: socialTokens.colors.text, fontSize: 15, fontWeight: '800' },
   threadList: { padding: 12, gap: 8 },
   notice: { color: '#ffc6c6', fontSize: 12, paddingHorizontal: 14, paddingBottom: 6 },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, padding: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)' },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, paddingTop: 10, paddingHorizontal: 10, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.12)' },
   composerInput: { flex: 1, maxHeight: 120, minHeight: 44, paddingHorizontal: 14, paddingTop: 12, paddingBottom: 12, borderRadius: 16, color: socialTokens.colors.text, backgroundColor: '#101a22', borderWidth: 1, borderColor: socialTokens.colors.markBorder, fontSize: 14 },
   send: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, justifyContent: 'center', backgroundColor: '#ffffff' },
   sendOff: { opacity: 0.4 },

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import {
   Alert, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
@@ -16,11 +17,12 @@ import { createComment, editComment, fetchCommentEngagement, fetchComments, fetc
   type CommentEngagementItem, type CommentEngagementPage, type CommentVersion } from '../lib/postInteractions';
 import { NexusApiError } from '../lib/nexusApi';
 import {
-  compactCount, initialsFor, mediaSourceForPath, reactionTotal, viewerReaction,
+  compactCount, mediaSourceForPath, reactionTotal, viewerReaction,
   type CommentPage, type CommentView, type ReactionSummary, type SocialPost,
 } from '../lib/socialTypes';
 import { useRelation } from '../lib/relations';
 import { RelationButton } from './RelationButton';
+import { BrandAvatar } from './BrandAvatar';
 
 import { socialTokens } from '../theme/social';
 import { SolidViewerIcon } from './SolidViewerIcon';
@@ -145,7 +147,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
       .catch((cause) => {
         if (ticket !== engagementTicket.current) return;
         setEngagementError(cause instanceof NexusApiError && cause.status === 404
-          ? 'Lista nu este disponibilă pe versiunea actuală a backend-ului Railway.'
+          ? 'Lista nu este disponibilă pe versiunea actuală a serverului.'
           : cause instanceof Error ? cause.message : 'Lista nu poate fi încărcată.');
       })
       .finally(() => { if (ticket === engagementTicket.current) setEngagementLoading(false); });
@@ -599,7 +601,7 @@ function CommentRow({ comment, depth, now, pending, summary, childCount, promine
       <Pressable accessibilityRole={onOpenThread ? 'button' : undefined} accessibilityLabel={onOpenThread ? `Citește comentariul lui ${name} și răspunsurile` : undefined} onPress={onOpenThread} style={[styles.row, { paddingLeft: C.rowPaddingHorizontal + Math.min(depth, C.maxIndent) * C.indentStep }, prominent && styles.prominentRow]}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${handle}`} disabled={Boolean(pending) || !(comment.handle || comment.author?.handle)} onPress={(event) => { event.stopPropagation(); onProfile(comment.handle || comment.author?.handle || ''); }} style={[styles.avatar, prominent && styles.prominentAvatar]}>
         {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-          : <Text style={styles.avatarInitials}>{initialsFor(name, handle)}</Text>}
+          : <BrandAvatar size={C.avatarSize - 2} />}
       </Pressable>
       <View style={styles.body}>
         <View style={styles.rowHead}>
@@ -667,7 +669,7 @@ function EngagementRow({ item, kind, now, onProfile }: { item: CommentEngagement
   const name = item.display_name || item.handle;
   return <View style={styles.engagementRow}>
     <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.avatar}>{avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-      : <Text style={styles.avatarInitials}>{initialsFor(name, item.handle)}</Text>}</Pressable>
+      : <BrandAvatar size={C.avatarSize - 2} />}</Pressable>
     <View style={styles.body}>
       <View style={styles.rowHead}><Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${item.handle}`} onPress={() => onProfile(item.handle)} style={styles.identityLink}><Text style={styles.rowName} numberOfLines={1}>{name}</Text>
         <Text style={styles.rowHandle} numberOfLines={1}>{`@${item.handle}`}</Text></Pressable>
@@ -736,7 +738,7 @@ const styles = StyleSheet.create({
   rowHandle: { color: '#92979d', fontSize: C.handleSize, lineHeight: C.headerHeight, flexShrink: 1 },
   rowTime: { color: '#777d84', fontSize: C.timeSize, lineHeight: C.headerHeight, marginLeft: 'auto' },
   fullDate: { color: C.actionMuted, fontSize: C.timeSize + 2, marginTop: 5, marginBottom: 3 },
-  pinned: { color: '#f0c274', fontSize: 11, fontWeight: '700', marginTop: 2 },
+  pinned: { color: blackSilver.silver, fontSize: 11, fontWeight: '700', marginTop: 2 },
   rowText: { color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, marginTop: 1 },
   measureText: { position: 'absolute', opacity: 0, zIndex: -1, color: C.bodyColor, fontSize: C.bodySize, lineHeight: C.bodyLineHeight, left: 0, right: 0 },
   expandInline: { color: '#d3d6da', fontSize: C.bodySize, fontStyle: 'italic', fontWeight: '600' },

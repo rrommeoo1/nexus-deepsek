@@ -1,4 +1,5 @@
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { blackSilver } from '../theme/blackSilver';
 import {
   REACTION_PICKER_GLYPHS, REACTION_TITLES, SOCIAL_REACTIONS,
 } from '../lib/socialTypes';
@@ -124,7 +125,7 @@ const styles = StyleSheet.create({
     borderRadius: PICKER_CELL + PICKER_EDGE - 6,
     backgroundColor: 'rgba(9,16,23,0.94)',
     borderWidth: 1,
-    borderColor: 'rgba(36,240,210,0.3)',
+    borderColor: blackSilver.hairlineStrong,
     elevation: 14,
     shadowColor: '#000000',
     shadowOpacity: 0.42,
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
     borderRadius: PICKER_CELL / 2,
   },
   /** The viewer's own reaction: a faint teal cell, so the panel opens saying what is already on. */
-  cellOn: { backgroundColor: 'rgba(127,240,230,0.14)' },
+  cellOn: { backgroundColor: blackSilver.washStrong },
   /** The emoji under the finger: one step lighter than its neighbours, never a plate of its own. */
   cellHover: { backgroundColor: 'rgba(255,255,255,0.09)' },
   /**

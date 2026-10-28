@@ -1,6 +1,12 @@
 /**
  * Tokens de design extrase 1:1 din CSS-ul web — nu un sistem nou, nu valori estimate.
  *
+ * **Nu este o paletă de UI.** Runda 31 (31 octombrie 2026) a mutat toată aplicația pe `theme/blackSilver.ts`;
+ * fișierul acesta rămâne doar ca *transcriere istorică* a variabilelor CSS ale shell-ului web (`--nx-cyan`,
+ * `--teal`, `--gold`), din care `tools/web-ref/make-native-tokens.mjs` regenerează lista. Nici un ecran nu-l
+ * importă — `scripts/test-black-silver.cjs` verifică exact asta — deci valorile lui verzi/teal/aurii nu pictează
+ * nimic. Un ecran care are nevoie de o culoare o ia din `blackSilver`, nu de aici.
+ *
  * Sursă: docs/web-ref/_tokens/css-variables.json, generat cu tools/web-ref/extract-tokens.mjs din
  * apps/nexus-web/public/*.css la viewport-ul telefonului (469x1021 CSS px, DPR 2.6).
  * Regenerare: node tools/web-ref/make-native-tokens.mjs

@@ -13,7 +13,7 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
-$exe = (Get-Command cloudflared -ErrorAction SilentlyContinue)?.Source
+$exe = (Get-Command cloudflared -ErrorAction SilentlyContinue).Source
 if (-not $exe) {
   $found = Get-ChildItem 'C:\Program Files*\cloudflared\cloudflared.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($found) { $exe = $found.FullName }

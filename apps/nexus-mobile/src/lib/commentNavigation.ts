@@ -1,7 +1,7 @@
 import type { SocialPost } from './socialTypes';
 import { router } from 'expo-router';
 
-// Navigation holds only an in-memory view of posts already fetched from Railway.
+// Navigation holds only an in-memory view of posts already fetched from the server.
 // It is not persisted and never puts media paths or account data in route parameters.
 const posts = new Map<number, SocialPost>();
 

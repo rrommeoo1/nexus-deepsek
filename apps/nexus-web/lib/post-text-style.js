@@ -15,8 +15,8 @@
 import { normalizeEditorialDocument } from './post-editorial-document.js';
 
 export const TEXT_THEMES = Object.freeze(['jungle', 'paper', 'midnight', 'ember', 'moss', 'ink']);
-export const TEXT_FONTS = Object.freeze(['serif', 'sans', 'mono']);
-export const TEXT_SIZES = Object.freeze(['small', 'medium', 'large']);
+export const TEXT_FONTS = Object.freeze(['serif', 'sans', 'mono', 'slab', 'casual', 'condensed']);
+export const TEXT_SIZES = Object.freeze(['small', 'medium', 'large', 'xlarge']);
 export const TEXT_ALIGNS = Object.freeze(['left', 'center']);
 
 /** `{ background, text }` per theme; the accent is a client-side decoration, never stored. */
@@ -29,10 +29,15 @@ export const TEXT_THEME_PALETTE = Object.freeze({
   ink: Object.freeze({ background: '#101214', text: '#f5f5f5' }),
 });
 
+/**
+ * The page a text post opens on before its author picks a look: the same default the phone holds
+ * (`TEXT_DEFAULT_THEME` in `apps/nexus-mobile/src/lib/textStyle.ts`). Paper, not a coloured card — the
+ * e-paper reading is what a page of words looks like unless its author chose otherwise.
+ */
 export const TEXT_STYLE_DEFAULTS = Object.freeze({
-  theme: 'jungle', font: 'serif', size: 'medium', align: 'left',
-  background: TEXT_THEME_PALETTE.jungle.background,
-  text: TEXT_THEME_PALETTE.jungle.text,
+  theme: 'paper', font: 'serif', size: 'medium', align: 'left',
+  background: TEXT_THEME_PALETTE.paper.background,
+  text: TEXT_THEME_PALETTE.paper.text,
   media: Object.freeze({ scale: 1, x: 0, y: 0 }),
 });
 

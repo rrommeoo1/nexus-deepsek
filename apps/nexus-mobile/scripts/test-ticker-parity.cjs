@@ -88,7 +88,8 @@ if (!web.PROFILE_TICKER_ROWS || !web.PROFILE_TICKER_ACTIONS || !web.PROFILE_TICK
   throw new Error(`${REFERENCE} is not the wave-14i band (no two rows, no PROFILE_TICKER_ACTIONS, no run minimum)`);
 }
 
-const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts'), {}, true).socialTokens;
+const { socialThemeOverrides } = require('./theme-modules.cjs');
+const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts'), socialThemeOverrides(), true).socialTokens;
 /** The description's own cut: which piece of it is text and which one leads somewhere. */
 const bioText = loadModule(resolve(ROOT, 'src/lib/profileBioText.ts'), {}, true);
 const ticker = loadModule(resolve(ROOT, 'src/components/ProfileTicker.tsx'), {

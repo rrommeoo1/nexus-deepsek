@@ -180,25 +180,57 @@ export function relationsSnapshot(): RelationView[] {
  * The store's one writer. A patch replaces only the facts it carries: a payload that says `is_following` and
  * nothing about `following_me` leaves the follower side as the last payload that knew it, which is why no
  * screen has to be handed a full record to stay correct.
+ *
+ * A patch that carries nothing new notifies nobody. This is not an optimisation: on 26 October 2026 the
+ * owner's Xiaomi requested `GET /api/profiles/wallet4e8gv6?persona=social` about forty times in six
+ * seconds, every answer `200`. The profile screen hands its payload to this store, the store emitted on
+ * every write, the host reloaded the profile on any relation change, and the reload was another identical
+ * payload — a loop that only the network round-trip bounded. Since a payload usually says the same thing
+ * twice, "no change, no notification" ends it: the first answer teaches the store something, the second
+ * teaches it nothing and therefore wakes no screen.
  */
 export function remember(patch: RelationPatch): RelationView | null {
   const id = Number(patch.userId);
   if (!Number.isSafeInteger(id) || id <= 0) return null;
   const previous = RECORDS.get(id);
-  const next: RelationView = { ...EMPTY, ...(previous ?? {}), userId: id, at: Date.now() };
+  const next: RelationView = { ...EMPTY, ...(previous ?? {}), userId: id, at: previous?.at ?? 0 };
+  let changed = !previous;
   for (const key of Object.keys(patch) as (keyof RelationView)[]) {
     if (key === 'userId' || key === 'at') continue;
     const value = patch[key];
     if (value === undefined) continue;
     if (key === 'counts') {
-      next.counts = { ...(previous?.counts ?? {}), ...(value as RelationCounts) };
+      const merged = { ...(previous?.counts ?? {}), ...(value as RelationCounts) };
+      if (!sameCounts(previous?.counts, merged)) changed = true;
+      next.counts = merged;
       continue;
     }
+    if (!sameValue(previous?.[key], value)) changed = true;
     (next as unknown as Record<string, unknown>)[key] = value;
   }
+  if (!changed) return previous ?? null;
+  next.at = Date.now();
   RECORDS.set(id, next);
   emit();
   return next;
+}
+
+/** Two facts are the same fact when they are the same value; a record that carries neither is not a change. */
+function sameValue(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (left === undefined || right === undefined) return false;
+  if (left && right && typeof left === 'object' && typeof right === 'object') {
+    return JSON.stringify(left) === JSON.stringify(right);
+  }
+  return false;
+}
+
+function sameCounts(left: RelationCounts | undefined, right: RelationCounts): boolean {
+  const before = left ?? {};
+  const leftKeys = Object.keys(before);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+  return rightKeys.every((key) => before[key as keyof RelationCounts] === right[key as keyof RelationCounts]);
 }
 
 /** Forgets every record: the session changed, so every relation in memory belongs to someone else. */

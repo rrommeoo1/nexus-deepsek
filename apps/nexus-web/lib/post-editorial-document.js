@@ -15,7 +15,7 @@ export const MIN_MEDIA_WIDTH_FRACTION = 0.28;
 export const MAX_MEDIA_WIDTH_FRACTION = 1;
 export const EDITORIAL_PLACEMENTS = Object.freeze(['left', 'right', 'center', 'full']);
 export const EDITORIAL_MEDIA_TYPES = Object.freeze(['image', 'video']);
-export const EDITORIAL_TYPOGRAPHIES = Object.freeze(['auto', 'small', 'medium', 'large']);
+export const EDITORIAL_TYPOGRAPHIES = Object.freeze(['auto', 'small', 'medium', 'large', 'xlarge']);
 
 const ID = /^[A-Za-z0-9_-]{1,64}$/;
 const invalid = () => { throw new Error('EDITORIAL_DOCUMENT_INVALID'); };

@@ -96,8 +96,32 @@ test('fiecare temă, literă și mărime se poate citi înapoi', () => {
   for (const id of TEXT_ALIGN_IDS) assert.equal(normalizeTextStyle({ align: id }).align, id);
   // An unknown id never reaches a page; `themeOf` falls back to the default page (see the test above).
   assert.equal(sizeOf('unknown').id, 'medium');
-  assert.equal(sizeOf('large').fontSize, 30);
-  assert.equal(sizeOf('large').lineHeight, 42);
+  assert.equal(sizeOf('large').fontSize, 28);
+  assert.equal(sizeOf('large').lineHeight, 39);
+});
+
+test('corpul paginii citite este mai mic și mai compact decât cel publicat până la 29 octombrie 2026', () => {
+  /**
+   * Ownerul, 29 octombrie 2026: „textul e prea mare, vreau mai compact". Cele trei mărimi au coborât cu
+   * 5–8 %, iar interlinierea s-a strâns cu aceeași măsură — destul ca un rând să țină nouă procente mai
+   * multe cuvinte la aceeași măsură a paginii, fără ca pagina să pară înghesuită (raportul rămâne ~1,4,
+   * ca la o carte).
+   */
+  const sizes = Object.fromEntries(TEXT_SIZES.map((item) => [item.id, item]));
+  const before = { small: [20, 30], medium: [24, 34], large: [30, 42] };
+  for (const [id, [fontSize, lineHeight]] of Object.entries(before)) {
+    const now = sizes[id];
+    const drop = 1 - now.fontSize / fontSize;
+    assert.ok(drop >= 0.04 && drop <= 0.09, `mărimea „${id}” a scăzut cu ${(drop * 100).toFixed(1)}%`);
+    assert.ok(now.lineHeight < lineHeight, `interlinierea „${id}” s-a strâns`);
+    const leading = now.lineHeight / now.fontSize;
+    assert.ok(leading >= 1.35 && leading <= 1.5, `raportul „${id}” rămâne lizibil (${leading.toFixed(2)})`);
+  }
+  assert.equal(sizes.medium.fontSize, 22);
+  assert.equal(sizes.medium.lineHeight, 31);
+  /** Pagina citită este compusă de motor din chiar aceste numere (`EditorialPage` → `sizeOf`). */
+  const page = readFileSync(resolve(__dirname, '../src/components/EditorialPage.tsx'), 'utf8');
+  assert.match(page, /const measure = sizeOf\(editorialSizeFor\(document, style\)\);/, 'pagina își ia măsura din token');
 });
 
 test('normalizarea strictă refuză ce ar refuza și serverul', async () => {
@@ -270,12 +294,17 @@ test('compozitorul are o singură pagină, iar fotografia ei se aranjează în e
   assert.match(composer, /editable/);
   assert.match(composer, /onChangeDocument=\{applyDocument\}/);
   assert.match(composer, /editorialMediaForAttachments\(draft\.attachments\)/);
-  // The document travels with the style, so a published page reopens with the same arrangement.
-  assert.match(composer, /textStyle: \{ \.\.\.draft\.style, document: draft\.document \}/);
-  // The words are typed into the page itself: exactly one hidden editor, inside the page component.
+  // The document travels with the style, so a published page reopens with the same arrangement — and it is
+  // the reconciled one: only the files the page still shows, renumbered to the order they are uploaded in.
+  assert.match(composer, /const reconciled = reconcileMedia\(page, draft\.attachments\.length\)/,
+    'publicarea pornește de la pagina de pe ecran, adusă în acord cu atașamentele');
+  assert.match(composer, /textStyle: \{ \.\.\.draft\.style, document: reconciled\.document \}/,
+    'documentul care pleacă este cel reconciliat, nu cel dinainte de lipire');
+  // The words are typed into the page itself: exactly one native field, inside the page component.
   const page = readFileSync(resolve(__dirname, '../src/components/EditorialPage.tsx'), 'utf8');
-  const pageInputs = page.match(/accessibilityLabel="Textul postării"/g) ?? [];
-  assert.equal(pageInputs.length, 1);
+  const fieldLabels = page.match(/accessibilityLabel="Paragraful paginii"/g) ?? [];
+  assert.equal(fieldLabels.length, 1, 'pagina are un singur câmp de scris, cel al paragrafului');
+  assert.equal((page.match(/<TextInput\s/g) ?? []).length, 1, 'și niciun al doilea câmp, ascuns, în afară de el');
 });
 
 test('cititorul deschide fotografia paginii în vizualizatorul articolului', () => {

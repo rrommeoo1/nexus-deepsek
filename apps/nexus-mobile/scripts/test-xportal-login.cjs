@@ -54,9 +54,11 @@ test('linkul care deschide xPortal e universal link-ul walletului, cu URI-ul cod
 test('handoff-ul încearcă schemele pe care xPortal le declară, în ordine', () => {
   const uri = 'wc:abc123@2?relay-protocol=irn&symKey=ff00';
   const links = login.xPortalWalletLinks(uri);
-  // `wc:` este schema pe care xPortal o înregistrează pentru WalletConnect; universal link-ul e ultimul.
-  assert.equal(links[0], uri);
-  assert.equal(links[1], `xportal://wc?uri=${encodeURIComponent(uri)}`);
+  // `xportal://` este schema pe care doar xPortal o declară: deschide walletul fără selectorul de
+  // aplicaţii (pe telefon, `wc:` este revendicat şi de Binance, KuCoin, MetaMask, Once). Universal
+  // link-ul rămâne ultimul, pentru un dispozitiv fără schema proprie.
+  assert.equal(links[0], `xportal://wc?uri=${encodeURIComponent(uri)}`);
+  assert.equal(links[1], uri);
   assert.equal(links[2], `https://xportal.app.link/wc?uri=${encodeURIComponent(uri)}`);
   assert.throws(() => login.xPortalWalletLinks('nu-e-wc'), /URI de pairing/);
 });
@@ -214,6 +216,55 @@ test('foaia cere reluarea relay-ului când aplicația revine în față', () => 
   assert.match(sheet, /xPortalRedirectScheme\(Constants\.expoConfig\?\.scheme\)/);
   // Fără `redirect`, xPortal nu are unde să întoarcă cititorul: parametrul trebuie să plece în URL.
   assert.match(sheet, /xPortalBridgeUrl\(API_ORIGIN, \{ native: redirectNative \}\)/);
+});
+
+test('foaia redeschide xPortal o singură dată, imediat după aprobare', () => {
+  const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
+  // Al doilea ecran din xPortal (semnătura) apare doar când walletul e din nou în față. Pagina
+  // anunță aprobarea cu `phase: signature`; foaia trebuie să redeschidă xPortal atunci, singură.
+  assert.match(sheet, /if \(parsed\.phase === 'signature'\) scheduleReopen\(\);/);
+  assert.match(sheet, /if \(autoReopened\.current\) return;/);
+  assert.match(sheet, /void openXPortal\(current\.uri\);/);
+  // Un singur re-open per încercare: altfel aprobarea și întoarcerea în app s-ar putea bucla.
+  assert.match(sheet, /autoReopened\.current = false;/);
+  assert.match(sheet, /cancelReopen/);
+});
+
+test('textul foii spune ambele întoarceri în Jungle Book', () => {
+  const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
+  // Prima întoarcere în app aduce aprobarea, a doua aduce semnătura; textul le numește pe amândouă,
+  // ca cititorul să nu ghicească dacă trebuie să rămână în xPortal ori să revină.
+  assert.match(sheet, /În xPortal: Connect, apoi revii în Jungle Book\./);
+  assert.match(sheet, /Connect \+ amprenta, apoi revii în Jungle Book\./);
+  assert.match(sheet, /xPortal e din nou în față: Connect, amprenta, apoi revii în Jungle Book\./);
+});
+
+test('o revenire cu xPortal înghețat îl redeschide o dată, nu în buclă', () => {
+  const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
+  // Un xPortal înghețat nu trimite niciodată `signature`: foaia poate doar să numere. Singura
+  // recuperare pe care o are aplicația e să pună xPortal din nou în față, cu aceeași cerere.
+  assert.match(sheet, /if \(state !== 'active'\) \{/);
+  assert.match(sheet, /scheduleUnstuck\(\)/);
+  assert.match(sheet, /unstuckReopened\.current = true;/);
+  assert.match(sheet, /logXPortal\('unstuck-reopen'\);/);
+  // Cititorul care se întoarce singur în xPortal anulează redeschiderea: walletul își face treaba.
+  assert.match(sheet, /cancelUnstuck\(\);/);
+  // Un singur „deblocare” per încercare, ca aprobarea să nu poată bucla app ↔ xPortal.
+  assert.match(sheet, /if \(unstuckReopened\.current \|\| unstuckTimer\.current\) return;/);
+  // Un xPortal pus în față acum câteva secunde nu mai primește un al doilea intent.
+  assert.match(sheet, /if \(Date\.now\(\) - openedAt\.current < 4000\) \{/);
+});
+
+test('fereastra de așteptare a telefonului nu contrazice serverul', () => {
+  const state = readFileSync(resolve(ROOT, 'src/lib/xportalState.ts'), 'utf8');
+  assert.match(state, /export const XPORTAL_WAIT_SECONDS = 300;/);
+  // Pagina care ține pairing-ul și clientul WalletConnect au aceeași fereastră; un 120 s aici anunța
+  // „nu a confirmat în 2 minute” în timp ce serverul mai aștepta și aprobarea venea la 184 s.
+  const bridge = readFileSync(resolve(ROOT, '../nexus-web/public/xportal-bridge.js'), 'utf8');
+  assert.match(bridge, /\b300_000\b/);
+  assert.doesNotMatch(bridge, /\b180_000\b/);
+  const client = readFileSync(resolve(ROOT, '../nexus-web/src/wc-client.js'), 'utf8');
+  assert.match(client, /PROVIDER_TIMEOUT_MS = 300_000;/);
 });
 
 test('pairing-ul poartă URI-ul şi linkul; un URI care nu e wc: nu trece', () => {

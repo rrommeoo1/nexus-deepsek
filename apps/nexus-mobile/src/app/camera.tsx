@@ -557,6 +557,20 @@ export default function CameraScreen() {
           <Pressable accessibilityRole="button" accessibilityState={{ selected: mode === 'video' }} style={[styles.mode, mode === 'video' && styles.selectedMode]} onPress={() => changeMode('video')}>
             <Text style={[styles.modeText, mode === 'video' && styles.selectedModeText]}>VIDEO</Text>
           </Pressable>
+          {/**
+            * TEXT is not a camera mode: it opens the composer of a page of words, which is a Post and
+            * never a Reel. It sits with PHOTO and VIDEO because it is the third way to start a post.
+            */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Scrie o postare de text"
+            accessibilityState={{ disabled: recording || busy || soundOpen }}
+            disabled={recording || busy || soundOpen}
+            style={[styles.mode, (recording || busy || soundOpen) && styles.modeOff]}
+            onPress={() => { cancelCountdown(); router.push('/text'); }}
+          >
+            <Text style={styles.modeText}>TEXT</Text>
+          </Pressable>
         </View>
         <View style={styles.captureRow}>
           <Pressable accessibilityRole="button" accessibilityLabel="Adaugă fotografie sau video de pe telefon" disabled={recording || busy || soundOpen} style={styles.lastCapture} onPress={() => void importFromDevice()}>
@@ -636,6 +650,7 @@ const styles = StyleSheet.create({
   mode: { borderColor: '#fff8', borderWidth: 1, borderRadius: 99, paddingHorizontal: 17, paddingVertical: 9, backgroundColor: '#0008' },
   selectedMode: { backgroundColor: '#fff', borderColor: '#fff' },
   modeText: { color: '#fff', fontWeight: '700' },
+  modeOff: { opacity: 0.45 },
   selectedModeText: { color: '#111' },
   captureRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around' },
   shutter: { width: 82, height: 82, borderRadius: 41, borderWidth: 4, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },

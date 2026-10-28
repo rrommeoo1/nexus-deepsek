@@ -1,4 +1,5 @@
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { blackSilver } from '../theme/blackSilver';
 import {
   PROFILE_MENU_CLOSE_WORD, PROFILE_MENU_SWITCH_WORD, PROFILE_MENU_TITLE, PROFILE_MENU_WORD,
   profileMenuFor, type ProfileMenuId, type ProfileSwitchOption,
@@ -36,7 +37,7 @@ export function ProfileMenuSheet({
   profiles?: ProfileSwitchOption[];
   activePersona?: string;
   onSwitchProfile?: (persona: string) => void;
-  /** `Android 0.1.0 · API: Railway`, the line the drawer's foot used to print. */
+  /** `Android 0.1.0 · API: local`, the line the drawer's foot used to print. */
   version?: string;
   /** The JavaScript this screen is running (`lib/buildStamp.ts`). */
   build?: string;
@@ -161,7 +162,7 @@ const styles = StyleSheet.create({
   },
   chipActive: { borderColor: jungle.primary, backgroundColor: jungle.primary },
   chipLabel: { color: socialTokens.relations.neutralInk, fontSize: 12.5, fontWeight: '700' },
-  chipLabelActive: { color: '#04120f' },
+  chipLabelActive: { color: blackSilver.onSilver },
   row: { minHeight: 52, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 14, gap: 2 },
   rowOn: { backgroundColor: jungle.surfaceRaised },
   label: { color: socialTokens.relations.neutralInk, fontSize: socialTokens.relations.menuLabelSize, fontWeight: '700' },

@@ -1,5 +1,9 @@
-﻿import { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
+﻿import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Pressable, StyleSheet, Text, View, useWindowDimensions,
+  type LayoutChangeEvent, type StyleProp, type ViewStyle,
+} from 'react-native';
+import { blackSilver } from '../theme/blackSilver';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { RemoteImage, RemoteImageSource, RemoteVideo } from './PostMedia';
 import { ArticleMediaBlock } from './ArticleMedia';
@@ -8,14 +12,19 @@ import { PostMediaGallery, PostTextReading, QuotePanels } from './PostReading';
 import { RichText } from './RichText';
 import { JungleGrove } from './JungleGrove';
 import { LeafMotif } from './LeafMotif';
+import { BrandAvatar } from './BrandAvatar';
 import {
-  initialsFor, mediaKindOf, mediaSourceForPath, postMediaItems, relativeTime, type SocialPost,
+  mediaKindOf, mediaSourceForPath, postMediaItems, relativeTime, type SocialPost,
 } from '../lib/socialTypes';
-import { MAX_MEDIA, locationOf, needsTranslation, quoteChain, stageFor, tagsOf, textPages, textPreview } from '../lib/postPresentation';
+import { MAX_MEDIA, locationOf, quoteChain, stageFor, tagsOf, textPages, textPreview } from '../lib/postPresentation';
+import { originOf, POST_ORIGIN_HINT } from '../lib/postOrigin';
+import { activeLanguage, subscribeReaderLanguage, translationForPost } from '../lib/language';
+import { POST_HEAD, postHeadArrangement } from '../lib/postChrome';
 import { pagePaletteOf, pageStyleForPost, textStyleForPost, defaultTextStyle } from '../lib/textStyle';
 import { wordPageGutter, wordPageHead, wordPageRailReserve } from '../lib/textPage';
 import { RAIL_FOOT } from './PostRail';
 import { socialTokens } from '../theme/social';
+import { mercury, mercuryAvatar } from '../theme/mercury';
 import { STATEMENT_CHARS, editorial, editorialType } from '../theme/editorial';
 
 /**
@@ -152,7 +161,7 @@ export function PostCanvas({
   post, variant = 'feed', layout = 'reel', active = false, muted = true, expanded = false,
   onError, onOpenAuthor, onToggleExpanded, onTranslate, notice, noticeTone = 'error',
   onPressMedia, authorAction, playBadge = false, bottomActions, page = false,
-  topInset = 0, bottomInset = 0,
+  topInset = 0, bottomInset = 0, folio,
 }: {
   post: SocialPost;
   variant?: PostCanvasVariant;
@@ -177,11 +186,21 @@ export function PostCanvas({
   /**
    * The device's own room, as the composition honours it. On a page that fills the window the media runs
    * edge to edge, so these are the only places where the hardware is respected: `topInset` is the status
-   * clock and the notch (the author starts under it), `bottomInset` is the floating tab bar and the
-   * gesture sign (the caption and the action row end above it). A 9:16 card passes neither.
+   * clock and the notch — and, on a route that draws a header of its own, that header's band as well
+   * (`postPageTopInset` of `lib/postChrome.ts`), so the author starts under both — `bottomInset` is the
+   * floating tab bar and the gesture sign (the caption and the action row end above it). A 9:16 card
+   * passes neither.
    */
   topInset?: number;
   bottomInset?: number;
+  /**
+   * The row a **page of words** prints its folio in (`lib/textPage.ts::folioRow`), when the surface reading
+   * it is not the default one: `undefined` keeps `PAGE_FOLIO` (the feed, the composer's receipt, every
+   * card), and a post opened from a profile passes `PROFILE_FOLIO`, which stands closer to the foot. Both
+   * the legacy reading (`PostTextReading`) and the authored document (`EditorialArticle`) receive it, so
+   * one page has one number in one row, whichever engine drew it.
+   */
+  folio?: { band: number; inset: number };
   onError?: () => void;
   onOpenAuthor?: () => void;
   onToggleExpanded?: () => void;
@@ -271,8 +290,13 @@ export function PostCanvas({
    * point given away on the right is a column of paper the words cannot use while the buttons stand on
    * the same edge either way. A page the composer wrote keeps even less — not a column but the buttons'
    * own rectangle (`railReserve` below), because its flow can narrow a single line.
+   *
+   * The footprint is measured from the *screen's* edge and these words are inset by `metrics.padH`, so the
+   * page keeps `TEXT_PAGE_RAIL_GUTTER - padH` of its own measure (`wordPageGutter`) — the same 58dp the
+   * reserve cuts out. Giving the whole 72dp to a page that already stands 14dp in left a strip of paper
+   * between the last word and the buttons (owner, 28 October 2026).
    */
-  const railGutter = stacked && !page ? 0 : wordPageGutter(metrics.railGutter, wordPage);
+  const railGutter = stacked && !page ? 0 : wordPageGutter(metrics.railGutter, wordPage, metrics.padH);
   /**
    * The head of a page of words: the author's face and name one step larger than the same head on a
    * card, because the page is the whole screen and a 14dp name over an 18dp page margin reads as a
@@ -284,11 +308,28 @@ export function PostCanvas({
   const headTop = (page ? 0 : metrics.padB) + topInset;
 
   /**
-   * `Vezi traducerea` is offered only for a page the reader cannot already read. A post in the
-   * phone's own language - or in English - is not a foreign text, and the owner asked for that door
-   * to disappear instead of asking a reader to translate their own words.
+   * `Vezi traducerea` is a door for a page the reader cannot read, and only for that page.
+   *
+   * Round 30 (owner, 30 October 2026): the door stood on almost every post, because the composer
+   * publishes no `language` at all and the old rule read "no language" as "nothing proves this is
+   * readable". The decision now lives in `lib/language.ts`: the row's own language first, a cached local
+   * detection of the caption after it, and **nothing** when neither answers — a name, a hashtag, a link
+   * or a page of emojis never offers a translation. The reader's language is subscribed, so changing the
+   * app's language re-decides every page on screen without a reload.
    */
-  const translation = onTranslate && needsTranslation(post.language) ? onTranslate : undefined;
+  const readerLanguage = useActiveLanguage();
+  const translation = onTranslate && translationForPost(post, readerLanguage) ? onTranslate : undefined;
+  /**
+   * Whether the author's door (`Urmărește`, `Editează profilul`) may stand beside the words or has to
+   * stand under them — measured from this frame's own width and the reader's font scale, never from a
+   * guess about the phone (`lib/postChrome.ts`). The frame reports 0 on its first render, so the window's
+   * width stands in for that frame rather than forcing a stack for one paint.
+   */
+  const viewport = useWindowDimensions();
+  const headArrangement = useMemo(
+    () => postHeadArrangement({ width: width || viewport.width, padding: metrics.padH, fontScale: viewport.fontScale }),
+    [width, viewport.width, viewport.fontScale, metrics.padH],
+  );
   const items = postMediaItems(post).slice(0, MAX_MEDIA);
   const cover = items[0] ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
@@ -392,30 +433,82 @@ export function PostCanvas({
   const name = post.author?.display_name || handle;
   const stamp = relativeTime(post.created_at);
   const location = locationOf(post);
+  const origin = originOf(post);
   const tags = tagsOf(post);
   const repostName = post.repost?.reposter?.display_name || post.repost?.reposter?.handle || '';
 
   const author = (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`Profilul lui @${handle}`}
-      onPress={onOpenAuthor}
-      disabled={!onOpenAuthor}
-      style={styles.authorRow}
-    >
-      <View style={[styles.disc, { width: head.disc, height: head.disc, borderRadius: head.disc / 2 }]}>
-        {avatar
-          ? <RemoteImageSource source={avatar} fit="cover" style={styles.fill} />
-          : <Text style={[styles.discText, { fontSize: head.name * 0.8 }]}>{initialsFor(name, handle)}</Text>}
-      </View>
-      <View style={styles.authorText}>
-        <Text style={[styles.name, { fontSize: head.name }, pageInk]} numberOfLines={1}>{name}</Text>
-        <Text style={[styles.handle, { fontSize: head.handle }, pageFaintInk]} numberOfLines={1}>
-          {[`@${handle}`, stamp, location].filter(Boolean).join(' · ')}
+    <View style={styles.authorStack}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Profilul lui @${handle}`}
+        onPress={onOpenAuthor}
+        disabled={!onOpenAuthor}
+        style={styles.authorRow}
+      >
+        <View style={[styles.disc, { width: head.disc, height: head.disc, borderRadius: head.disc / 2 }]}>
+          {avatar
+            ? <RemoteImageSource source={avatar} fit="cover" style={styles.fill} />
+            : <BrandAvatar size={head.disc - 2} />}
+        </View>
+        <View style={styles.authorText}>
+          <Text style={[styles.name, { fontSize: head.name }, pageInk]} numberOfLines={1}>{name}</Text>
+          <Text style={[styles.handle, { fontSize: head.handle }, pageFaintInk]} numberOfLines={1}>
+            {[`@${handle}`, stamp].filter(Boolean).join(' · ')}
+          </Text>
+          {/**
+            * The place the author attached, on its own line (round 30).
+            *
+            * It used to be the third item of the handle line — `@ana · acum 2 h · Cluj-Napoca, România`
+            * — glued into one `numberOfLines={1}` string that had to share a row with `Urmărește`. A long
+            * place therefore pushed the whole line under the door, and the door won: the words were
+            * ellipsized where the reader most needs them. A place is metadata, so it gets its own line and
+            * two lines of room (`POST_HEAD.locationLines`), and it wraps to the paper's measure instead of
+            * running into a button.
+            */}
+          {location ? (
+            <Text
+              style={[styles.location, { fontSize: head.handle }, pageFaintInk]}
+              numberOfLines={POST_HEAD.locationLines}
+            >
+              {location}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
+      {/**
+        * What the author declared about how the post was made (round 33).
+        *
+        * Its own line, under the block and lined up with the words, because it is metadata of the same
+        * kind as the place — and *outside* the profile door, because „Asistat de AI" is not a way to open
+        * somebody's profile: it is a sentence about this post, and a screen reader has to be able to hear
+        * it on its own (`accessibilityLabel` + `POST_ORIGIN_HINT`). The words come from `originOf`, so an
+        * undeclared or legacy post draws nothing here and keeps exactly the layout it had.
+        */}
+      {origin ? (
+        <Text
+          style={[styles.origin, { fontSize: head.handle, marginLeft: head.disc + 8 }, pageFaintInk]}
+          numberOfLines={POST_HEAD.originLines}
+          accessibilityLabel={`${origin}. ${POST_ORIGIN_HINT}`}
+        >
+          {origin}
         </Text>
-      </View>
-    </Pressable>
+      ) : null}
+    </View>
   );
+  /**
+   * The author and the relation door. Beside the words when the paper is wide enough for both, under
+   * them when it is not (`headArrangement`, `lib/postChrome.ts`): the door is a fixed-width thing and
+   * the place needs the rest, so the two can never occupy the same pixels — on a narrow phone, a large
+   * system font, or a long `Editează profilul`, the door drops to its own line and the words keep the
+   * whole measure.
+   */
+  const authorWithDoor = authorAction ? (
+    <View style={[styles.authorLine, headArrangement === 'stack' && styles.authorLineStack]}>
+      <View style={styles.authorBlock}>{author}</View>
+      <View style={[styles.authorDoor, headArrangement === 'stack' && styles.authorDoorStack]}>{authorAction}</View>
+    </View>
+  ) : author;
   /**
    * The archive cell. A picture is the cover; a clip has no poster frame the phone can draw without
    * starting one decoder per cell, so it gets the canvas's own portrait plate - the play sign, the author
@@ -433,7 +526,7 @@ export function PostCanvas({
             <Defs>
               <LinearGradient id={`nxTilePlate-${post.id}`} x1="0" y1="0" x2="0.6" y2="1">
                 <Stop offset="0" stopColor={editorial.cardTop} />
-                <Stop offset="0.55" stopColor="#121914" />
+                <Stop offset="0.55" stopColor={blackSilver.deepBlack} />
                 <Stop offset="1" stopColor={editorial.cardBottom} />
               </LinearGradient>
             </Defs>
@@ -467,7 +560,7 @@ export function PostCanvas({
             <View style={[styles.disc, { width: metrics.disc, height: metrics.disc, borderRadius: metrics.disc / 2 }]}>
               {avatar
                 ? <RemoteImageSource source={avatar} fit="cover" style={styles.fill} />
-                : <Text style={[styles.discText, { fontSize: metrics.name }]}>{initialsFor(name, handle).slice(0, 2)}</Text>}
+                : <BrandAvatar size={metrics.disc - 2} />}
             </View>
             <Text style={[styles.name, { fontSize: metrics.name }]} numberOfLines={1}>{name}</Text>
           </View>
@@ -666,12 +759,7 @@ export function PostCanvas({
                   {`${repostName} a repostat`}
                 </Text>
               ) : null}
-              {authorAction ? (
-                <View style={styles.authorLine}>
-                  {author}
-                  {authorAction}
-                </View>
-              ) : author}
+              {authorWithDoor}
             </View>
           ) : null}
 
@@ -748,7 +836,7 @@ export function PostCanvas({
                 {`${repostName} a repostat`}
               </Text>
             ) : null}
-            {authorAction ? <View style={styles.authorLine}>{author}{authorAction}</View> : author}
+            {authorWithDoor}
           </View>
 
           {/**
@@ -785,7 +873,13 @@ export function PostCanvas({
               ) : (
                 <>
                   {authoredPage ? (
-                    <EditorialArticle post={post} style={pageStyle ?? defaultTextStyle()} active={active} railReserve={railReserve} />
+                    <EditorialArticle
+                      post={post}
+                      style={pageStyle ?? defaultTextStyle()}
+                      active={active}
+                      railReserve={railReserve}
+                      folio={folio}
+                    />
                   ) : statement ? (
                     <RichText
                       text={statementText}
@@ -799,6 +893,7 @@ export function PostCanvas({
                       text={post.caption}
                       style={styles.readingBody}
                       textStyle={pageStyle}
+                      folio={folio}
                       lead={stage === 'article' ? (baseHeight) => (
                         <ArticleMediaBlock
                           items={items}
@@ -854,6 +949,18 @@ function formatClock(seconds: number): string {
   return `${minutes}:${String(rest).padStart(2, '0')}`;
 }
 
+/**
+ * The language the reader is in, as a live value.
+ *
+ * `lib/language.ts` owns the answer (the app's choice, or the phone's own locale) and tells its
+ * subscribers when it changes; this hook is what makes a surface re-decide `Vezi traducerea` on that
+ * change instead of at the next mount. `useSyncExternalStore` reads the same string it subscribes to,
+ * so a re-render without a change cannot loop.
+ */
+function useActiveLanguage(): string {
+  return useSyncExternalStore(subscribeReaderLanguage, activeLanguage, activeLanguage);
+}
+
 const styles = StyleSheet.create({
   stage: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center', backgroundColor: editorial.fieldDeep },
   /**
@@ -901,8 +1008,15 @@ const styles = StyleSheet.create({
   videoRail: { height: 4, borderRadius: 2, backgroundColor: 'rgba(241,242,237,0.22)', overflow: 'hidden' },
   videoFill: { height: 4, borderRadius: 2, backgroundColor: editorial.leaf },
   videoTime: { color: editorial.inkMuted, fontSize: 11, fontWeight: '700', letterSpacing: 0.3, minWidth: 72, textAlign: 'right' },
-  /** The author line of a post plus the author's relation, side by side. */
-  authorLine: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  /** The author line of a post plus the author's relation, side by side — or one above the other. */
+  authorLine: { flexDirection: 'row', alignItems: 'flex-start', gap: POST_HEAD.gap },
+  /** Narrow paper or a large font: the door takes its own line, under the words (`postHeadArrangement`). */
+  authorLineStack: { flexDirection: 'column', alignItems: 'stretch' },
+  /** The author keeps every point the door does not stand on, and shrinks rather than overflowing. */
+  authorBlock: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  /** The door never shrinks and never wraps: a word cut in half is not a button. */
+  authorDoor: { flexShrink: 0, alignSelf: 'flex-start', marginTop: POST_HEAD.actionTop },
+  authorDoorStack: { alignSelf: 'flex-end', marginTop: 6 },
   /**
    * A clip that has not started: the archive cell's disc (`tilePlayDisc`), at the size a full frame can
    * carry, centred over the picture so the card says "this plays" without starting the decoder.
@@ -917,15 +1031,34 @@ const styles = StyleSheet.create({
     borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15,
     borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: '#ffffff',
   },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1, minWidth: 0 },
+  /**
+   * The author block and the declaration under it. The pressable keeps the row it always had; the
+   * declaration is a sibling, so the profile door stays exactly as tall as the face and no sentence
+   * about the post is folded into the button.
+   */
+  authorStack: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
+  /**
+   * The author's face. A record with no picture used to be `editorial.panel` — a plate a shade off the
+   * frame's own charcoal, which reads as a hole in a light page and as nothing at all on the dark field.
+   * Mercury (round 30) makes a default face a metal disc with graphite initials, on every ground.
+   */
   disc: {
-    overflow: 'hidden', backgroundColor: editorial.panel, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: editorial.leafEdge,
+    overflow: 'hidden', backgroundColor: mercuryAvatar.plate, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: mercuryAvatar.edge,
   },
-  discText: { color: editorial.ink, fontWeight: '800' },
+  discText: { color: mercuryAvatar.ink, fontWeight: '800' },
   authorText: { flex: 1, minWidth: 0 },
   name: { color: editorial.ink, ...editorialType.display, fontSize: 15 },
   handle: { color: editorial.inkMuted, letterSpacing: 0.2 },
+  /** The place the author attached: its own line, two lines at most, under the handle. */
+  location: { color: editorial.inkMuted, letterSpacing: 0.2, marginTop: POST_HEAD.locationGap },
+  /**
+   * The author's declaration about how the post was made: quieter than the name, level with the words
+   * (the indent comes from the face's width, so it lines up under the handle on every variant and
+   * follows the face when a large system font grows it).
+   */
+  origin: { color: editorial.inkQuiet, letterSpacing: 0.3, marginTop: POST_HEAD.locationGap },
   caption: { color: editorial.ink },
   readMore: { color: editorial.leafInk, fontWeight: '800' },
   repostLine: { color: editorial.leaf, fontWeight: '700', letterSpacing: 0.3 },
@@ -951,7 +1084,7 @@ const styles = StyleSheet.create({
   },
   /** The brand's teal for a note that is information rather than a failure (a translation). */
   noticeInfo: {
-    color: '#dcfbf7', borderLeftColor: '#2fbdb3', backgroundColor: 'rgba(47,189,179,0.14)',
+    color: editorial.leafInk, borderLeftColor: blackSilver.silver, backgroundColor: blackSilver.washStrong,
   },
   /**
    * The same two notes on a page of paper: the inks above are written for the charcoal plate (a pale
@@ -964,7 +1097,7 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2, borderLeftColor: '#b3243c', backgroundColor: 'rgba(179,36,60,0.10)',
   },
   noticeInfoPaper: {
-    color: '#0e4f4b', borderLeftColor: '#178b82', backgroundColor: 'rgba(23,139,130,0.12)',
+    color: mercury.graphite, borderLeftColor: blackSilver.deepMercury, backgroundColor: blackSilver.hairlineSoft,
   },
 
   /**

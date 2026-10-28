@@ -58,6 +58,20 @@ test('the rail keeps its own footprint, and no more, on a page of words', () => 
   assert.ok(gutter < FEED.railGutter, 'pagina de cuvinte nu mai pierde 78dp din latime');
   assert.ok(gutter >= page.RAIL_FOOTPRINT, 'dar bara de 56dp, la 10dp de margine, incape intreaga');
   assert.ok(gutter > page.RAIL_FOOTPRINT, 'si ii ramane aer: textul nu atinge butoanele');
+  /**
+   * Urma barei se masoara de la marginea *ecranului*, iar cuvintele stau in paddingul paginii: o pagina
+   * care intra 14dp in ecran tine din masura ei doar 72 - 14 = 58dp. Aceeasi dreptunghi pe care il taie
+   * fluxul (`wordPageRailReserve`) — vechea coloana si camera noua nu pot divergea.
+   */
+  const inset = page.wordPageGutter(FEED.railGutter, true, FEED.padH);
+  assert.equal(inset, page.TEXT_PAGE_RAIL_GUTTER - FEED.padH,
+    'paddingul paginii se scade din urma barei, nu se mai adauga peste ea');
+  assert.equal(inset, page.wordPageRailReserve({ padH: FEED.padH, padB: FEED.padB, cells: 4, foot: 26 }).width,
+    'coloana veche si camera fluxului taie exact acelasi dreptunghi');
+  // O fotografie sau un clip nu primesc paddingul paginii peste coltura lor.
+  assert.equal(page.wordPageGutter(FEED.railGutter, false, FEED.padH), FEED.railGutter);
+  assert.equal(page.wordPageGutter(FEED.railGutter, true, 0), page.TEXT_PAGE_RAIL_GUTTER,
+    'un apelant fara padding propriu primeste toata urma');
   // A reel keeps its own gutter; a cell of a list has no rail and keeps none.
   assert.equal(page.wordPageGutter(FEED.railGutter, false), FEED.railGutter);
   assert.equal(page.wordPageGutter(0, false), 0);
@@ -69,7 +83,8 @@ test('the canvas asks the module, and only a page of words', () => {
   assert.match(canvas, /const wordPage = page && !tile && \(stage === 'text' \|\| stage === 'article'\);/,
     'o pagina de cuvinte este un text sau un articol, nu o fotografie si nu o celula');
   assert.match(canvas, /const head = wordPageHead\(metrics, wordPage\);/);
-  assert.match(canvas, /const railGutter = stacked && !page \? 0 : wordPageGutter\(metrics\.railGutter, wordPage\);/);
+  assert.match(canvas, /const railGutter = stacked && !page \? 0 : wordPageGutter\(metrics\.railGutter, wordPage, metrics\.padH\);/,
+    'paddingul paginii intra in calcul: bara nu mai ia de doua ori aceeasi margine');
   // The head is what the author block reads: one face, one name, one handle.
   assert.match(canvas, /\{ width: head\.disc, height: head\.disc, borderRadius: head\.disc \/ 2 \}/);
   assert.match(canvas, /styles\.name, \{ fontSize: head\.name \}/);
@@ -84,7 +99,7 @@ test('the canvas asks the module, and only a page of words', () => {
   assert.match(canvas, /const railReserve = wordPage\s*\? wordPageRailReserve\(\{/);
   assert.match(canvas, /cells: isVideo \? 5 : 4, foot: RAIL_FOOT, sound: isVideo/,
     'bara unui clip are un buton mai mult: discu coloanei sonore');
-  assert.match(canvas, /<EditorialArticle post=\{post\} style=\{pageStyle \?\? defaultTextStyle\(\)\} active=\{active\} railReserve=\{railReserve\} \/>/,
+  assert.match(canvas, /<EditorialArticle\s+post=\{post\}\s+style=\{pageStyle \?\? defaultTextStyle\(\)\}\s+active=\{active\}\s+railReserve=\{railReserve\}\s+folio=\{folio\}\s+\/>/,
     'pagina scrisa primeste camera barei, ca fluxul sa o ocoleasca');
   assert.match(code(read('src/components/EditorialArticle.tsx')), /railReserve=\{railReserve\}/);
   const editor = code(read('src/components/EditorialPage.tsx'));
@@ -124,6 +139,29 @@ test('the rail\'s own cell is the one the room is cut from', () => {
   // The module keeps its own copy of those two numbers, and a test says they agree.
   assert.equal(page.RAIL_CELL, 56);
   assert.equal(page.RAIL_GAP, 2);
+});
+
+test('pagina citită are o margine de citit și un singur aer până la bară', () => {
+  /**
+   * Ownerul, 28 octombrie 2026: „textul are prea mult spațiu gol; nu se întinde până la butoane".
+   * Pagina își punea aceeași margine pe ambele laturi (`max(18, 7.2%)`), deci pe un telefon de 469dp
+   * rămâneau 46dp de hârtie goală în stânga și încă 46dp în dreapta, deasupra unor butoane care stau doar
+   * în colțul din dreapta-jos. Fluxul are acum două margini, iar cea din dreapta este doar `RAIL_LINE_AIR`.
+   */
+  const editor = code(read('src/components/EditorialPage.tsx'));
+  assert.match(editor, /marginLeft: margins\.left,/);
+  assert.match(editor, /marginRight: margins\.right,/);
+  assert.match(editor, /return \{ left: Math\.max\(12, Math\.round\(width \* 0\.032\)\), right: RAIL_LINE_AIR \}/,
+    'pe o pagină cu bară, dreapta este aerul până la butoane');
+  assert.match(editor, /if \(!\(reserveWidth > 0\)\) return \{ left: symmetric, right: symmetric \};/,
+    'fără bară (editorul), pagina compune simetric ca înainte');
+  assert.match(editor, /const symmetric = Math\.max\(18, Math\.round\(width \* 0\.072\)\);/,
+    'marginea de citit rămâne cea pe care o compunea deja editorul');
+  // Aerul e un singur număr, citit de flux și de rezervă: nu pot divergea.
+  assert.equal(page.RAIL_LINE_AIR, 6);
+  assert.equal(page.TEXT_PAGE_RAIL_GUTTER, page.RAIL_FOOTPRINT + page.RAIL_LINE_AIR);
+  assert.equal(page.wordPageRailReserve({ padH: 14, padB: 22, cells: 4, foot: 26 }).height,
+    4 * page.RAIL_CELL + 3 * page.RAIL_GAP + page.RAIL_LINE_AIR, 'aerul rezervei este același număr');
 });
 
 test('the paper fills the page, and the article fills what the rail leaves', () => {

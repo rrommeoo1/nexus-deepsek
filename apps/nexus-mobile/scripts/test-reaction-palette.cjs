@@ -223,7 +223,7 @@ test('panoul este un rand fin, cu emoji-ul de sub deget crescut', () => {
   // Ownerul a cerut rand, nu coloana: forma verticala nu mai exista in panou.
   assert.doesNotMatch(palette, /pillVertical|chipRowVertical|vertical=/, 'panoul nu mai are o varianta verticala');
   assert.doesNotMatch(palette, /chipRowVertical/, 'nici chip-ul asezat in lateral');
-  assert.match(palette, /borderColor: 'rgba\(36,240,210,0\.3\)'/, 'o singura margine, cea a webului');
+  assert.match(palette, /borderColor: blackSilver\.hairlineStrong/, 'o singura margine, cea a paletei (runda 31)');
 });
 
 test('pastila incape in palma: opt celule si doua margini', () => {

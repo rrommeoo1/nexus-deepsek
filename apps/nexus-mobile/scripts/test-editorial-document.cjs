@@ -18,8 +18,12 @@ function load(file, requireShim) {
 const documentModule = load('src/lib/editorialDocument.ts', () => {
   throw new Error('editorialDocument.ts nu are voie să importe nimic la rulare');
 });
+const metricsModule = load('src/lib/fontMetrics.ts', () => {
+  throw new Error('fontMetrics.ts nu are voie să importe nimic la rulare');
+});
 const flowModule = load('src/lib/editorialFlow.ts', (id) => {
   if (id === './editorialDocument') return documentModule;
+  if (id === './fontMetrics') return metricsModule;
   throw new Error(`editorialFlow.ts a cerut un modul neașteptat: ${id}`);
 });
 
@@ -442,6 +446,46 @@ test('bara de acțiuni nu ia o coloană: cuvintele se îngustează doar rânduri
   const plainWidest = Math.max(...plain.pages.flatMap((page) => page.lines).map((line) => line.x + line.width));
   assert.ok(widest > plainWidest - 6, 'rândurile de deasupra butoanelor păstrează toată măsura paginii');
   assert.ok(widest > room.x, 'și intră în banda pe care o coloană ar fi lăsat-o goală');
+  assertNoOverlap(flow);
+});
+
+test('măsura paginii are două margini: una de citit și una cât aerul până la bară', () => {
+  /**
+   * Ownerul, 28 octombrie 2026: „textul nu folosește lățimea ecranului, deși are loc până la butoane".
+   * Pagina își ținea aceeași margine pe ambele laturi — 46dp pe un telefon de 469dp, măsurat pe Xiaomi —
+   * deasupra unor butoane care stau doar în colț. Acum marginea din stânga este cea de citit, iar cea din
+   * dreapta este doar aerul până la dreptunghiul barei; pagina fără bară (editorul) compune ca înainte.
+   */
+  const document = articleOf(4);
+  const pageWidth = 469 - 28;   // telefonul ownerului, minus paddingul paginii
+  const rail = railRoom(pageWidth, 700);
+  const flow = flowEditorialDocument(document, options({
+    pageWidth, pageHeight: 700, marginLeft: 14, marginRight: 6, reserve: [rail],
+  }));
+  assert.equal(flow.marginLeft, 14);
+  assert.equal(flow.marginRight, 6);
+  assert.equal(flow.marginX, 14, 'marginX rămâne marginea din stânga, pentru cine îl citea simetric');
+  assert.equal(flow.contentWidth, pageWidth - 20, 'măsura este tot ce rămâne între cele două margini');
+
+  const lines = flow.pages.flatMap((entry) => entry.lines);
+  assert.ok(lines.length > 0);
+  for (const line of lines) {
+    assert.equal(line.x, 14, `rândul „${line.text}” nu începe la marginea de citit`);
+    assert.ok(line.x + line.width <= pageWidth - 6 + 0.01,
+      `rândul „${line.text}” trece de marginea din dreapta`);
+    assert.equal(intersects(line, rail), false, `rândul „${line.text}” intră sub butoane`);
+  }
+  // Rândurile de deasupra butoanelor urcă până la marginea mică, nu până la cea de citit.
+  const above = lines.filter((line) => line.y + line.lineHeight <= rail.y);
+  assert.ok(above.length > 0, 'pagina are rânduri deasupra barei');
+  const widest = Math.max(...above.map((line) => line.x + line.width));
+  assert.ok(widest > pageWidth - 6 - 40, 'rândul se întinde până aproape de marginea din dreapta');
+
+  // Fără bară, pagina compune în continuare simetric: editorul nu și-a schimbat măsura.
+  const symmetric = flowEditorialDocument(document, options({ pageWidth, pageHeight: 700 }));
+  assert.equal(symmetric.marginLeft, 26);
+  assert.equal(symmetric.marginRight, 26);
+  assert.equal(symmetric.contentWidth, pageWidth - 52);
   assertNoOverlap(flow);
 });
 

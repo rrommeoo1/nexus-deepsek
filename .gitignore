@@ -60,3 +60,18 @@ Thumbs.db
 # this folder is a cache and must never be committed.
 docs/vision/
 
+# Verification evidence: captures, `uiautomator` dumps and manifest rows produced by a single session
+# (see .clinerules). They prove a round, they are not product files, and several of them carry the
+# account name or a device id, so they stay out of history. Older ones already tracked stay tracked.
+JUNGLE_BOOK_VERIFICATION/
+docs/screens/
+docs/parity-report/**/*.png
+docs/parity-report/**/*.xml
+docs/parity-report/**/*.dump.txt
+planning/evidence-*.png
+
+# Repository-root scratch: probes, dumps, extracted APKs and one-session scripts, all named with a
+# leading underscore. Nothing in the product reads one; a leading `_` never names a real file here.
+/_*
+apps/nexus-mobile/_out_*.txt
+

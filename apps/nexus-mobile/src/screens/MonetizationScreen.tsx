@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -135,7 +136,7 @@ export function MonetizationScreen({ handle, onClose }: { handle: string; onClos
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {loading ? <ActivityIndicator color="#5cf6e7" style={styles.spinner} /> : null}
+        {loading ? <ActivityIndicator color={blackSilver.silver} style={styles.spinner} /> : null}
         {error ? (
           <View style={styles.errorRow}>
             <Text style={styles.error}>{error}</Text>
@@ -314,7 +315,7 @@ const styles = StyleSheet.create({
   rowTitle: { color: '#eaf6ff', fontSize: 14, fontWeight: '700' },
   rowHint: { color: '#8fa3b4', fontSize: 12, lineHeight: 16 },
   switchTrack: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#1b2733', padding: 3, justifyContent: 'center' },
-  switchTrackOn: { backgroundColor: 'rgba(139,208,74,0.22)' },
+  switchTrackOn: { backgroundColor: blackSilver.washStrong },
   switchThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#7b8a97' },
   switchThumbOn: { alignSelf: 'flex-end', backgroundColor: jungle.primary },
   section: { marginTop: 14, color: '#9fb3c4', fontSize: 12, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },

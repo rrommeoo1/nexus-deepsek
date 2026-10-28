@@ -17,8 +17,9 @@ import { socialTokens } from '../theme/social';
  *   1. the clock. The age is derived at every render from the date of birth, and a new day is not an
  *      event anything announces — so the band re-reads the clock at the local midnight and whenever the
  *      app comes back to the foreground (`AppState`), which is when a birthday could have happened;
- *   2. the pace. `bandCycleMs` keeps the 48 seconds of the web's band on a 360-wide column, so a longer
- *      description travels at the same speed instead of finishing sooner;
+ *   2. the pace. `bandCycleMs` keeps the owner's pace (`lib/profileBand.ts`: one column in 24 seconds
+ *      since 27 October 2026) on a 360-wide column, so a longer description travels at the same speed
+ *      instead of finishing sooner;
  *   3. the pause. The line travels from the moment the profile is drawn; a touch stops it exactly where it
  *      stands and the next one sends it on from the same point (owner's rule, 18 October 2026). The
  *      position is arithmetic over a start point and a clock, never a read of the native animated value.

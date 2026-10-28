@@ -395,6 +395,102 @@ reintroduce `ProfileCoverPhoto` în `ProfileScreen`, se scoate `ProfileHeader`, 
 își recapătă vechile verificări (fișierul păstrează azi decizia și ce a lăsat neatins, iar comment-ul lui
 spune exact asta). Nu se modifică webul pentru asta.
 
+### 13.4 O a doua decizie a proprietarului — materialul butoanelor cititorului (28 octombrie 2026)
+
+Cele șase apăsări pe care le atinge un cititor — `Editează profilul`, relația (`Urmărește`), like, comentariu,
+repost, share — nu mai urmează albul pe nimic al `.clipQuickActions` din web. Ele sunt **un singur material,
+argintiu + grafit**, cu două terenuri (`socialTokens.post.controls`, `apps/nexus-mobile/src/theme/social.ts`),
+ales de pagina care le așază:
+
+| Teren | Unde | Placa | Muchia | Cerneala |
+|---|---|---|---|---|
+| `paper` | paginile de cuvinte (`text`, `article`) și restul paginilor crem | `rgba(250,249,244,0.86)` — argintiu | `rgba(38,44,46,0.16)`, tare `0.44` la ușa principală | `#2B3134` grafit |
+| `night` | fotografia, clipul, citatul, cardul 9:16, câmpul profilului | `rgba(236,239,237,0.10)` — grafit | `rgba(233,236,235,0.26)`, tare `0.55` | `#E6EAE8` argintiu |
+
+Starea (like ales, salvat, repostat) este **întoarcerea plăcii** (`plateOn`/`inkOn`), nu o a doua culoare: nici
+rozul `#ff315f` al vechii coloane, nici verdele frunzei editoriale din `RelationButton`. `tone` este dat de
+pagină, nu ghicit de buton, și `PostCard` îl ia din același clasificator ca fundalul (`stageFor`). Motivul,
+fișierele atinse și testul care ține regula: `apps/nexus-mobile/MIGRATION.md` §25. Site-ul rămâne neatins.
+
+**A doua zi (28 octombrie 2026): reacția nu poartă nicio placă.** Ownerul a refuzat fundalul din spatele
+emoji-ului, deci like-ul este singura dintre cele șase apăsări fără placă — emoji-ul stă direct pe pagină, iar
+starea lui este glifa (inima goală a unei apăsări neatinse, fața aleasă pentru orice altceva). Inima goală
+urmează terenul, fiindcă albul nu se vede pe cremă: `REACTION_EMPTY_HEART` (🤍) noaptea,
+`REACTION_EMPTY_HEART_ON_PAPER` (🖤) pe hârtie. Comentariul, salvarea, distribuirea, `Urmărește` și
+`Editează profilul` păstrează materialul din tabelul de mai sus. Același document: `MIGRATION.md` §26.
+
+### 13.5 Măsura paginii de cuvinte: două margini, nu una (28 octombrie 2026)
+
+O pagină de cuvinte din web își ține textul într-o coloană centrată, cu margini egale. Aplicația citește
+pagina pe tot ecranul, cu bara de acțiuni în colțul din dreapta-jos, deci marginea din dreapta nu mai are ce
+să apere: pagina are acum **o margine de citit în stânga** (`max(12, 3.2 %)`) și, în dreapta, doar aerul până
+la dreptunghiul barei (`RAIL_LINE_AIR`, 6dp). Rândurile care ating butoanele se îngustează doar ele, prin
+`RailReserve` din `lib/editorialFlow.ts`; rândurile de deasupra butoanelor păstrează toată măsura.
+
+Măsurat pe Xiaomi ownerului (469dp lățime, pagină de 441dp): textul trecea de la 45,8dp la 27,7dp de marginea
+stângă și se oprea la 423,8dp; acum se oprește la **449,2dp**, adică 6dp înainte de marginea paginii, iar
+lângă butoane la 397dp (6dp înainte de celula de 56dp a barei). Pe cele patru documente reale din baza vie,
+măsura fluxului a crescut de la 378dp la 422dp cu aceleași cuvinte, aceleași pagini și fotografiile pe aceleași
+pagini. Pagina fără bară (previzualizarea din compozitor) compune în continuare simetric: acolo nu e nimic de
+ocolit. Detalii și teste: `apps/nexus-mobile/MIGRATION.md` §26.
+### 13.6 Coloana fără plăci și măsura luată din font (29 octombrie 2026)
+
+**Cele patru apăsări.** Web-ul desenează bara cu discuri negre în spatele fiecărei icoane
+(`.clipQuickActions :is(.clipSolidIcon,.reactionMetric>b){background:#050608}`), dar ultima cascade a aceleiași
+foi le scoate (`background:transparent`, `border-color:transparent`, `box-shadow:none`) pentru ecranul de
+telefon — „Reaction marks float directly over the content. Keep the full touch target". Aplicația urmează acum
+aceeași regulă pentru **toate patru** apăsări ale coloanei (reacție, comentariu, salvare, distribuire): celula
+rămâne 56×56dp, glifa și cifra își păstrează cerneala terenului (grafit pe cremă, argintiu pe fotografie), iar
+starea unei apăsări luate este un punct de 4dp în rândul de 14dp al celulei, nu o placă întoarsă. Meniul de
+distribuire, ușa „Urmărește" și „Editează profilul" rămân butoane pe o suprafață: ele nu sunt coloana.
+
+**Măsura.** Web-ul rupe rândurile cu motorul lui de text, în browser; aplicația trebuie să le rupă înainte de a
+desena, deci are propriul model de lățimi. Modelul acela era scris de mână și ieșea cu 2–9 % mai lat decât
+`NotoSerif-Regular.ttf` de pe telefon — de unde rândurile rupte prea devreme și „spațiul gol" din dreapta. Acum
+avansurile sunt citite din fișierele de font (`lib/fontMetrics.ts`), corpul paginii a coborât cu 5–8 %
+(`19/28`, `22/31`, `28/39`), iar rândul publicat este desenat fără scalare de sistem. Măsurat pe postarea 46:
+umplerea măsurii de la **80,8 % la 90,9 %**, hârtie goală la capătul rândului de la ~81dp la ~38dp, rândurile
+articolului de la 53 la 44 (aceleași cuvinte), fără să se miște marginile paginii (72px / 1168px) sau locul
+barei. Web-ul nu are nevoie de nicio schimbare: acolo rândul îl rupe browserul, cu fontul lui.
+### 13.7 Compozitorul de TEXT: o temă, trei uși, patru declarații (29 octombrie 2026)
+
+**Tema.** Web-ul are un `select` de teme pentru pagina de cuvinte; aplicația avea șase mostre. Amândouă
+schimbau, de fapt, doar accentul unui fir de pe hârtie — pagina este `pagePaletteOf` în orice temă — deci
+ownerul a cerut scoaterea controlului. Aplicația scrie acum fiecare pagină cu `TEXT_DEFAULT_THEME` („paper") și
+normalizează tema unei ciorne vechi la deschidere; litera și mărimea rămân (schimbă *așezarea* cuvintelor), iar
+alinierea nu mai are selector (default-ul paginii este stânga, ca înainte). Web-ul păstrează selectorul: acolo
+este o preferință a autorului pentru pagina lui, nu o rânduială de compozitor.
+
+**„Cine vede".** Web-ul tipărește patru valori (`PROFILE_VISIBILITY` din `lib/repo.js`: `public`, `followers`,
+`friends`, `private`) și le validează la fel (`api.js` → `visibility invalid`). Aplicația oferă acum **trei**
+poziții, cu trei dintre ele, nemodificate: Public = `public`, Privat = `friends` (`MUTUAL` în
+`lib/privacy-matrix.js`), Doar eu = `private` (`PRIVATE_ENTITLEMENT`; „Doar eu" este eticheta webului pentru
+acest nivel). `followers` nu mai este oferit, dar o ciornă care îl poartă îl arată ca o a patra poziție, ca
+publicul unei pagini să nu poată fi lărgit deschizând compozitorul. Serverul nu s-a schimbat: aceleași patru
+valori, aceleași reguli de acces.
+
+**„Proveniență".** Aceleași patru valori pe care le acceptă `normalizeProvenance` (`NOT_DECLARED`,
+`CAMERA_CAPTURED_DECLARED`, `AI_ASSISTED`, `AI_GENERATED`), afișate ca un track derulabil, cu propoziția
+întreagă a alegerii sub el. Rămâne un câmp separat de vizibilitate, exact ca în web.
+
+**Comentarii și distribuire.** Neschimbate ca semnificație (`allowComments`, `allowRepost`), dar apărate de
+server: `POST_COMMENTS_DISABLED` → 403 la comentariu și la răspuns, `POST_REPOST_DISABLED` / `allowRepost ===
+false` → 403 la distribuire. Un comutator stins nu ascunde doar butonul.
+
+**Locația.** Web-ul cere locația scrisă de mână sau dintr-o sugestie; aplicația o ia din receptorul telefonului
+(`expo-location`, permisiune de prim-plan) și o trimite geocoderului **care există deja** în produs
+(`GET /api/location/suggestions?kind=reverse`, Nominatim cu cache, care răspunde `precise_location_stored:
+false`). Se păstrează doar numele locului, în `publishing.location`, câmpul de 120 de caractere pe care serverul
+îl valida dintotdeauna; coordonatele nu ajung în ciornă, în corpul publicării sau în bază. X-ul din compozitor
+golește acel câmp — deci postarea pleacă fără locație, nu cu una ascunsă. Niciun IP nu este folosit ca locație.
+
+
+
+
+
+
+
+
    în inbox, apoi `.notificationCenter`); rularea așteaptă credențialele de mediu.
 4. ~~Profilul altei persoane~~ → **pas pregătit** (`profile-other`: `[data-creator-profile]` de pe cardul de
    feed, preferând dialogul cu `[data-follow]`).

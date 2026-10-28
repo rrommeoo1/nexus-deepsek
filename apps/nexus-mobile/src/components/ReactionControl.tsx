@@ -2,12 +2,23 @@ import { useEffect, useRef, useState, type ElementRef } from 'react';
 import type { GestureResponderEvent } from 'react-native';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ReactionPalette } from './ReactionPalette';
-import { socialTokens } from '../theme/social';
+import { SolidViewerIcon } from './SolidViewerIcon';
+import { socialTokens, type ControlTone } from '../theme/social';
 import {
-  REACTION_EMPTY_HEART, REACTION_PICKER_GLYPHS, SOCIAL_REACTIONS, compactCount, reactionSummary, viewerReaction,
+  REACTION_EMPTY_HEART, REACTION_EMPTY_HEART_ON_PAPER, REACTION_PICKER_GLYPHS, SOCIAL_REACTIONS, compactCount,
+  reactionSummary, viewerReaction,
   type ReactionSummary,
 } from '../lib/socialTypes';
 import { PICKER_HOLD_MS, pickerIndexAt, pickerPositionAt, type PickerAnchor, type PickerBox } from '../lib/reactionPicker';
+
+/**
+ * How an untouched Like press is drawn (`PostRail.heart`, `ReactionControl.heart`).
+ *
+ * `mark` is the drawn silver heart of round 31 — the same ink as the three presses under it. `emoji` is
+ * the white-heart emoji the immersive Reels rail has always printed and which the owner asked not to
+ * disturb; nothing else uses it.
+ */
+export type ReactionHeart = 'mark' | 'emoji';
 
 /**
  * The reaction control of the web, drawn to its own measurements — and the panel the owner asked for
@@ -42,7 +53,7 @@ import { PICKER_HOLD_MS, pickerIndexAt, pickerPositionAt, type PickerAnchor, typ
  * gesture back while the panel is closed (`onResponderTerminationRequest: () => !open`), so a scroll
  * begun on the plate still scrolls the feed, and a thumb that travels before the hold cancels the hold.
  */
-export function ReactionControl({ summary, onReact, variant = 'card', onPanelChange }: {
+export function ReactionControl({ summary, onReact, variant = 'card', tone = 'night', heart = 'mark', onPanelChange }: {
   summary?: ReactionSummary | null;
   onReact: (kind: string, active: boolean) => void;
   /**
@@ -56,11 +67,27 @@ export function ReactionControl({ summary, onReact, variant = 'card', onPanelCha
    * `rail` is the reader's vertical column of actions beside a picture, a clip or a page of words; `row` is
    * the compact horizontal line a *card* carries under its words (`PostActionRow` in a 9:16 cell).
    * `whisper` and `card` are the two plates of the archive and the feed cards. The summary is the same in
-   * all four — only the plate and the edge the panel grows from change (the rail's plate is on the right,
-   * so its row grows left). The `bar` variant a page of words used to pass here is gone with the footer the
-   * owner rejected (20 October 2026): a page's presses are the rail now (`PostRail`).
+   * all four — only the surface and the edge the panel grows from change (the rail's press stands at the
+   * right of the screen, so its row grows left). The `bar` variant a page of words used to pass here is gone
+   * with the footer the owner rejected (20 October 2026): a page's presses are the rail now (`PostRail`).
    */
   variant?: 'card' | 'rail' | 'whisper' | 'row';
+  /**
+   * The ground the reaction's own reading stands on (`socialTokens.post.controls`) — the paper of a page of
+   * words or the night of a photograph, a clip and the profile's field. Told by the page that mounts the
+   * rail (`PostRail.tone`), because a press drawn over a page can see no background of its own. The card's
+   * plate, a whisper's and a row's lie on a surface their own component owns, so they ignore it.
+   */
+  tone?: ControlTone;
+  /**
+   * How the untouched press is drawn on the rail (round 31).
+   *
+   * `mark` draws the empty heart as a *mark* in the ground's own silver — the same ink `PostRail` hands
+   * Comment, Save and Share, so the four presses are one family. `emoji` keeps the white-heart emoji the
+   * immersive rail has always printed (`ReelsReader` asks for it), because the owner asked for Reels not
+   * to be touched and its heart was never the reported defect.
+   */
+  heart?: ReactionHeart;
 }) {
   const [open, setOpen] = useState(false);
   const [hover, setHover] = useState(0);
@@ -75,33 +102,65 @@ export function ReactionControl({ summary, onReact, variant = 'card', onPanelCha
   const whisper = variant === 'whisper';
   const row = variant === 'row';
   /**
-   * The edge the panel grows from: the plate of a *card* is at the left of its row, the rail's plate is at
+   * The edge the panel grows from: the plate of a *card* is at the left of its row, the rail's press is at
    * the right of the screen, so the rail grows to the left and its first emoji is the one under the thumb
    * that opened it. Both zones read the same way in `pickerIndexAt`.
    */
   const anchor: PickerAnchor = rail ? 'right' : 'left';
+  /**
+   * The one press of the rail that wears **no plate** (owner, 28 October 2026: the background behind the
+   * emoji was the thing he refused — „fără fundal în spatele emoji-urilor"). The silver-and-graphite round
+   * had given the like the same squircle as the four presses under it; the emoji *is* the press, so the
+   * squircle, its hairline and its shadow are gone from this cell and from this cell only — comment, save
+   * and share keep the material (`PostRail`).
+   *
+   * A reaction still has a state, and the state is the glyph itself: the empty heart of an untouched press
+   * (`REACTION_EMPTY_HEART`, or its graphite twin on paper) and the chosen face for everything else. No
+   * second filled plate stands in for the one that was removed.
+   *
+   * The ink is the press's own reading — the count under the glyph, and the fallback colour of the glyph
+   * itself (an emoji paints itself, but a missing one must not print black on cream or silver on night).
+   *
+   * It does **not** turn over with the reaction any more (29 October 2026): an ink that inverted was the
+   * second half of a plated press — white on the dark plate a taken press used to wear — and with the plate
+   * gone it printed a near-white count on cream (`inkOn` is `#F4F3ED` on the paper ground). The state is the
+   * glyph, so the colour of both the glyph and its count is the ground's.
+   */
+  const railInk = tone === 'paper' ? styles.railPaperInk : styles.railNightInk;
 
   /**
-   * The plate's own mark: the viewer's reaction, or the white heart of an untouched plate.
+   * The ink of a *mark* on this ground — the one `PostRail` already gives Comment, Save and Share, so the
+   * drawn empty heart of the Like press is literally the same colour as the three marks under it.
+   */
+  const markInk = socialTokens.post.controls[tone].mark;
+
+  /**
+   * The press's own mark: the viewer's reaction, or the empty heart of a press nobody has touched.
    *
    * The web's `viewerReactionHeart` was a white *outline* mark, which the owner read as "sters" on a
-   * dark plate, so the plate prints `REACTION_PICKER_GLYPHS` (the panel's own faces) — but the empty
-   * plate keeps a white heart on purpose (owner, 19 October 2026: after the second tap on a like
-   * "trebuie sa ramana inima alba, nu rosie"). A red heart here was `LOVE`'s own face, so a plate
-   * whose like had just been taken back looked exactly like one that still carried it. The emoji is
-   * the whole state: white heart for nothing chosen, the chosen face for everything else — the green
-   * ring that used to mark "on" is gone (`scoate-l`).
+   * dark plate, so the press prints `REACTION_PICKER_GLYPHS` (the panel's own faces) — but the untouched
+   * press keeps a white heart on purpose (owner, 19 October 2026: after the second tap on a like
+   * "trebuie sa ramana inima alba, nu rosie"). A red heart here was `LOVE`'s own face, so a like that
+   * had just been taken back looked exactly like one that still carried it. The emoji is the whole
+   * state: the empty heart for nothing chosen, the chosen face for everything else — the green ring that
+   * used to mark "on" is gone (`scoate-l`).
+   *
+   * On a page of words the empty heart follows the ground (owner, 28 October 2026): the rail there has no
+   * plate behind it any more, so a *white* heart would be a white shape on cream paper. The graphite twin
+   * says the same thing — „nimic ales" — in the colour the page can actually show.
    */
   const plateGlyph = mine
     ? (REACTION_PICKER_GLYPHS[mine] ?? REACTION_PICKER_GLYPHS.LIKE)
-    : REACTION_EMPTY_HEART;
+    : rail && tone === 'paper'
+      ? REACTION_EMPTY_HEART_ON_PAPER
+      : REACTION_EMPTY_HEART;
 
   /** The panel's rectangle in window coordinates — measured every time it opens (`pickerIndexAt`). */
   const box = useRef<PickerBox>({ x: 0, y: 0, width: 0, height: 0 });
   /**
-   * The plate's own rectangle, in the same coordinates. Since the row floats *above* the rail's plate
+   * The press's own rectangle, in the same coordinates. Since the row floats *above* the rail's press
    * (the owner's fourth correction), the thumb that holds it is below the pill — and still on the
-   * plate. That rectangle is handed to `pickerIndexAt`, which reads the row and the plate as one
+   * press. That rectangle is handed to `pickerIndexAt`, which reads the row and the press as one
    * corridor for the thumb, so a slide never reads as "off the reaction" just because the row was
    * lifted clear of the finger.
    */
@@ -279,7 +338,9 @@ export function ReactionControl({ summary, onReact, variant = 'card', onPanelCha
       >
         {rail ? (
           <View style={styles.railDisc}>
-            <Text style={styles.railGlyph}>{plateGlyph}</Text>
+            {!mine && heart === 'mark'
+              ? <SolidViewerIcon kind="heartLine" size={socialTokens.reels.railIconSize} color={markInk} />
+              : <Text style={[styles.railGlyph, railInk]}>{plateGlyph}</Text>}
           </View>
         ) : (
           <View style={styles.metrics}>
@@ -303,7 +364,7 @@ export function ReactionControl({ summary, onReact, variant = 'card', onPanelCha
             ))}
           </View>
         )}
-        {rail ? <Text style={styles.railCount}>{total > 0 ? compactCount(total) : ''}</Text> : null}
+        {rail ? <Text style={[styles.railCount, railInk]}>{total > 0 ? compactCount(total) : ''}</Text> : null}
       </Pressable>
 
       {open ? (
@@ -333,18 +394,37 @@ const styles = StyleSheet.create({
   /** `.clipQuickActions` column on the reader's rail; the card keeps its own action row. */
   railWrap: { alignItems: 'center' },
   cardWrap: { flexGrow: 1, flexBasis: 0, alignItems: 'center' },
-  /** `.clipQuickActions>button:not(.clipRailAvatar)` — the reference's 56×56 cell, rows 39px + 14px. */
+  /**
+   * `.clipQuickActions>button:not(.clipRailAvatar)` — the reference's 56×56 cell, rows 39px + 14px.
+   *
+   * It is the press that lost its plate first (owner, 28 October 2026: the background behind the emoji is
+   * what he refused — „fără fundal în spatele emoji-urilor"). The squircle, its hairline and the surface the
+   * silver-and-graphite round had put here are gone; the cell, its disc and its metric row stay, so the emoji
+   * is exactly as easy to hit as before. Since 29 October 2026 the three presses under it are unboxed too, so
+   * the whole column is four glyphs on the page (`PostRail`).
+   */
   railButton: { width: 56, minWidth: 56, height: 56, minHeight: 56, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  /**
+   * The ink of the count under the glyph — and the fallback colour of a glyph that has no face of its own.
+   *
+   * One ink per ground, in both states: with no plate to invert, an inverted ink would print a near-white
+   * count on cream (`paper.inkOn`) or a graphite one on a photograph (`night.inkOn`).
+   */
+  railPaperInk: { color: socialTokens.post.controls.paper.count },
+  railNightInk: { color: socialTokens.post.controls.night.count },
   cardButton: { minHeight: 44, alignItems: 'center', justifyContent: 'center', gap: 2 },
   /**
    * `.clipQuickActions :is(.clipSolidIcon,.reactionMetric>b)` 36×36 on the cell's first row — the
    * `grid-template-rows:39px 14px` floor. The disc holds the mark; the 39px row is its own height.
    */
   railDisc: { width: 36, minWidth: 36, height: 39, alignItems: 'center', justifyContent: 'center' },
-  /** `.viewerReactionHeart` was a 29px white outline mark; the owner asked for the emoji instead. */
-  railGlyph: { color: '#ffffff', fontSize: 26, lineHeight: 32, textAlign: 'center' },
+  /**
+   * `.viewerReactionHeart` was a 29px white outline mark; the owner asked for the emoji instead, so the
+   * glyph paints itself and the ground supplies only the fallback ink (`railInk`).
+   */
+  railGlyph: { fontSize: 26, lineHeight: 32, textAlign: 'center' },
   /** `.clipQuickActions :is(button small,.reactionMetric>em){font-size:11px;line-height:14px}` */
-  railCount: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 14 },
+  railCount: { fontSize: 11, fontWeight: '800', lineHeight: 14 },
   /** `.reactionSummaryGlyphs` — up to three glyph+count pairs, in the order the summary ranked them. */
   metrics: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metric: { flexDirection: 'row', alignItems: 'center' },

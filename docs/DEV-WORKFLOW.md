@@ -106,8 +106,10 @@ ceva în pluginuri (altfel prebuild-ul refolosește resursele vechi).
 ## Ce vezi mereu
 
 Ecranul de login și subsolul sertarului scriu versiunea și backend-ul:
-`Android 0.1.0 · API: Railway` sau `API: local`. Originea API vine din `EXPO_PUBLIC_NEXUS_API_URL`
-(implicit Railway); eticheta este calculată în `src/lib/apiOrigin.ts`.
+`Android 0.1.0 · API: local`. Originea API vine din `EXPO_PUBLIC_NEXUS_API_URL`; când variabila lipsește,
+aplicația urmează PC-ul care a servit bundle-ul, iar dacă nici acela nu e cunoscut folosește
+`http://localhost:5000` prin `adb reverse tcp:5000` (nu există niciun implicit remote). Eticheta este
+calculată în `src/lib/apiOrigin.ts` și orice host străin este scris pe nume.
 
 ## Reguli
 

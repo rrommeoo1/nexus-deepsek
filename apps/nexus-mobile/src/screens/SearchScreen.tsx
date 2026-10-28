@@ -1,12 +1,15 @@
 import { useCallback, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { nexusApi } from '../lib/nexusApi';
+import { useNavReserve } from '../components/AppNav';
 import { PostCard } from '../components/PostCard';
 import { RemoteImageSource } from '../components/PostMedia';
 import { RelationButton } from '../components/RelationButton';
+import { BrandAvatar } from '../components/BrandAvatar';
 import { rememberPayload, useRelation } from '../lib/relations';
 import {
-  initialsFor, mediaSourceForPath, postMediaItems, type SearchProfile, type SocialSearchPage,
+  mediaSourceForPath, type SearchProfile, type SocialSearchPage,
 } from '../lib/socialTypes';
 import { socialTokens } from '../theme/social';
 import { openSocialProfile } from '../lib/profileNavigation';
@@ -25,6 +28,7 @@ import { openSocialProfile } from '../lib/profileNavigation';
  * typing the city a second time.
  */
 export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = {}) {
+  const navReserve = useNavReserve();
   const [query, setQuery] = useState(initialQuery);
   const [page, setPage] = useState<SocialSearchPage | null>(null);
   const [asked, setAsked] = useState('');
@@ -59,8 +63,6 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
   const posts = page?.posts ?? [];
   const profiles = page?.profiles ?? [];
   const empty = page !== null && posts.length === 0 && profiles.length === 0;
-  /** The results that carry media: the gallery a card hands the full-screen reader (app.js:4913). */
-  const gallery = posts.filter((post) => postMediaItems(post).length > 0);
 
   return (
     <View style={styles.screen}>
@@ -90,13 +92,13 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
         <FlatList
           data={posts}
           keyExtractor={(post) => String(post.id)}
-          contentContainerStyle={styles.list}
+          contentContainerStyle={[styles.list, { paddingBottom: navReserve + 24 }]}
           ListHeaderComponent={profiles.length ? (
             <View style={styles.people}>
               {profiles.map((person) => <ProfileRow key={person.id} person={person} />)}
             </View>
           ) : null}
-          renderItem={({ item }) => <PostCard post={item} gallery={gallery} />}
+          renderItem={({ item }) => <PostCard post={item} />}
         />
       ) : null}
     </View>
@@ -112,7 +114,7 @@ function ProfileRow({ person }: { person: SearchProfile }) {
     <View style={styles.person}>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.avatar}>
         <RemoteImageSource source={avatar} fit="cover" style={styles.avatarImage} />
-        {!avatar ? <Text style={styles.avatarInitials}>{initialsFor(name, person.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={38} /> : null}
       </Pressable>
       <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${person.handle}`} onPress={() => openSocialProfile(person.handle)} style={styles.personText}>
         <Text style={styles.personName} numberOfLines={1}>{name}</Text>
@@ -137,10 +139,10 @@ const styles = StyleSheet.create({
   },
   go: { minHeight: 44, paddingHorizontal: 16, borderRadius: 14, justifyContent: 'center', borderWidth: 1, borderColor: socialTokens.colors.markBorder },
   goText: { color: socialTokens.colors.white, fontWeight: '700', fontSize: 13 },
-  list: { paddingTop: 4, paddingBottom: 24, paddingHorizontal: 10 },
+  list: { paddingTop: 4, paddingHorizontal: 10 },
   people: { gap: 8, paddingBottom: 12 },
   person: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 },
-  avatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: '#111820', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', backgroundColor: blackSilver.graphite, alignItems: 'center', justifyContent: 'center' },
   avatarImage: { width: '100%', height: '100%' },
   avatarInitials: { color: socialTokens.colors.text, fontSize: 13, fontWeight: '800' },
   personText: { flex: 1, minWidth: 0 },

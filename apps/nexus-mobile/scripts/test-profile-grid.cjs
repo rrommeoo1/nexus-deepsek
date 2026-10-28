@@ -366,7 +366,8 @@ test('a cell carries the order it was opened from, and the reader walks that ord
   // The wall's place of a cell is not part of the door any more: the reader finds the cell by its identity.
   assert.doesNotMatch(screenCode, /placeOf/);
   assert.doesNotMatch(tileCode, /index: String\(door\.index\)/);
-  assert.match(routeCode, /const walkMode = handle\.length > 0;/);
+  assert.match(routeCode, /const profileOrigin = handle\.length > 0;\s*const walkMode = profileOrigin;/,
+    'ruta se deschide pe plimbare exact când peretele i-a spus din ce profil vine (runda 32)');
   // The reader walks the list the wall draws — from the one function that draws it, with the archive's own
   // places. A second definition here is what made a repost lead the reader while standing last on the wall.
   assert.match(routeCode, /wallBands\(archive, tab, reading, \{ arrangement: arrangementMap\(archive\.posts\) \}\)/);
@@ -382,7 +383,7 @@ test('a cell carries the order it was opened from, and the reader walks that ord
   assert.match(routeCode, /onMomentumScrollEnd=\{\(event\) => \{/);
   assert.doesNotMatch(routeCode, /feed\b/, 'the walk never falls back to a feed');
   // Back is the stack's own, which keeps the grid mounted with its scroll position.
-  assert.match(routeCode, /if \(router\.canGoBack\(\)\) router\.back\(\);/);
+  assert.match(routeCode, /if \(router\.canGoBack\(\)\) \{ router\.back\(\); return; \}/);
 });
 
 

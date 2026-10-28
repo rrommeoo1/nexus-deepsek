@@ -1,3 +1,6 @@
+import { blackSilver, blackSilverPolish } from './blackSilver';
+import { mercury, mercuryAvatar } from './mercury';
+
 /**
  * Social shell values, extracted from the existing web stylesheets — not a new design system.
  *
@@ -14,51 +17,63 @@
  *   apps/nexus-web/public/styles.css:8,29,31       .post
  *   apps/nexus-web/public/nav-marks.js             the seven marks
  * The screens consume these tokens; nothing re-derives a colour or a size locally.
+ *
+ * Round 31 (31 October 2026): every colour in here now comes from `theme/blackSilver.ts` — the green-black
+ * glass, the teal presses, the fruit ring of the top corners and the platinum foot of the `+` are the
+ * metal. The geometry is still the web's, because a measurement is not a colour.
  */
 export const socialTokens = {
   colors: {
-    /** `.phoneScreen:has(.appNav.social){background:#000}` */
-    screen: '#000000',
-    /** `.appNav.social:before` — the shared glass, green-black in the Social theme. */
-    glassBorder: 'rgba(126,173,142,0.2)',
-    glassFillTop: 'rgba(12,19,15,0.97)',
-    glassFillBottom: 'rgba(2,7,4,0.99)',
-    glassHighlight: 'rgba(175,211,187,0.07)',
-    markBorder: 'rgba(255,255,255,0.12)',
-    markBackground: 'rgba(5,11,7,0.7)',
-    markActiveBorder: 'rgba(159,197,171,0.34)',
-    markActiveBackground: 'rgba(12,24,16,0.88)',
-    markActiveShadow: 'rgba(75,135,95,0.11)',
-    /** `.navBadge` — the unread count printed over the disc of the mark that owns it. */
-    navBadgeSurface: '#f14359',
+    /** `.phoneScreen:has(.appNav.social){background:#000}` — the field under every Social screen. */
+    screen: blackSilver.matteBlack,
+    /** `.appNav.social:before` — the shared glass, the metal's quiet hairline in the matte-black shell. */
+    glassBorder: blackSilver.hairline,
+    glassFillTop: 'rgba(16,17,19,0.97)',
+    glassFillBottom: 'rgba(9,10,11,0.99)',
+    glassHighlight: 'rgba(196,199,203,0.07)',
+    markBorder: blackSilver.hairlineSoft,
+    markBackground: 'rgba(16,17,19,0.70)',
+    markActiveBorder: 'rgba(196,199,203,0.34)',
+    markActiveBackground: 'rgba(28,30,32,0.88)',
+    markActiveShadow: 'rgba(196,199,203,0.11)',
+    /** `.navBadge` — the unread count printed over the disc of the mark that owns it (meaning, kept). */
+    navBadgeSurface: blackSilver.badge,
     navBadgeInk: '#ffffff',
-    navBadgeRing: '#071019',
-    createBorder: 'rgba(255,255,255,0.46)',
-    createInk: '#050608',
-    createShadow: 'rgba(255,255,255,0.18)',
+    navBadgeRing: blackSilver.deepBlack,
+    createBorder: 'rgba(255,255,255,0.5)',
+    /**
+     * The disc painted *behind* the drawn metal, and the plate the plus stands on.
+     *
+     * Round 31 (owner, 31 October 2026 — „plusul să fie un argintiu puternic, cu un `+` închis"): the
+     * disc's fallback plate is Bright Silver and the glyph is matte black, which is the strongest pair
+     * the palette owns (17:1). The gradient itself is `nav.create.polish`.
+     */
+    createInk: blackSilver.bright,
+    createGlyph: blackSilver.onBright,
+    createShadow: 'rgba(196,199,203,0.22)',
     white: '#ffffff',
     drawerBorder: 'rgba(255,255,255,0.28)',
-    drawerSurface: '#050608',
+    drawerSurface: blackSilver.deepBlack,
     tileBorder: 'rgba(255,255,255,0.22)',
-    tileSurface: '#0b0c0e',
+    tileSurface: blackSilver.graphite,
     postBorder: '#22313c',
     postSurface: '#0b151e',
     cardSurface: '#071019',
     cardSurface2: '#0b1720',
     /** `.appHeader:not(.feedHeader)` — plain black with a 1px line (feed-surface.css:1181-1186). */
-    appHeaderSurface: '#000000',
+    appHeaderSurface: blackSilver.deepBlack,
     appHeaderLine: 'rgba(255,255,255,0.12)',
-    /** Whispers and News print the header on `rgba(1,5,3,.96)` closed by `--nexus-green-line`. */
-    feedHeaderSurface: 'rgba(1,5,3,0.96)',
-    greenLine: 'rgba(112,164,130,0.16)',
+    /** Whispers and News print the header on the shell's own deep black, closed by one silver hairline. */
+    feedHeaderSurface: 'rgba(9,10,11,0.96)',
+    greenLine: blackSilver.hairline,
     /** The wordmark of the feed is the quiet violet of Reels; every other screen paints it white. */
     wordmarkReels: '#baa8dc',
     /** `.headerSwitches .modeBadge` in the Social theme. */
-    badgeSurface: '#08090b',
+    badgeSurface: blackSilver.graphite,
     badgeBorder: 'rgba(255,255,255,0.22)',
     badgeInk: 'rgb(238,248,251)',
-    muted: '#96a2ad',
-    text: '#f5f8fa',
+    muted: blackSilver.muted,
+    text: blackSilver.bright,
   },
   nav: {
     /** --nav-h:60px; padding 4px 7px max(6px, safe-area-bottom); padding-inline 8px (4px under 380px) */
@@ -68,13 +83,20 @@ export const socialTokens = {
     paddingInline: 8,
     paddingInlineNarrow: 4,
     gap: 1,
-    /** `.appNav.social` carries no top border; the bar itself is the gradient (feed-surface.css:1673-1677). */
+    /**
+     * `.appNav.social` — the bar is the gradient itself, with no painted top border.
+     *
+     * Round 31 (owner, 31 October 2026 — „subsolul să aibă un fundal negru mat, puternic, cu iconițe
+     * argintii"): the green-black glass (`rgba(3,8,5,.25)` → `#010302`) became an opaque matte-black
+     * ramp, so the bar is a floor and not a tint over whatever scrolled behind it. The shadow is neutral
+     * black; a green shadow was part of the old branding.
+     */
     fill: [
-      { offset: 0, color: 'rgba(3,8,5,0.25)' },
-      { offset: 0.52, color: 'rgba(2,7,4,0.97)' },
-      { offset: 1, color: '#010302' },
+      { offset: 0, color: blackSilver.matteBlack },
+      { offset: 0.52, color: '#0D0E10' },
+      { offset: 1, color: blackSilver.deepBlack },
     ],
-    shadow: 'rgba(20,64,39,0.11)',
+    shadow: 'rgba(0,0,0,0.46)',
     shadowRadius: 28,
     shadowOffsetY: -10,
     /** `.appNav:before` — the shared glass the seven marks sit in. */
@@ -84,7 +106,7 @@ export const socialTokens = {
       height: 50,
       radius: 26,
       borderWidth: 1,
-      shadow: 'rgba(13,49,29,0.16)',
+      shadow: 'rgba(0,0,0,0.5)',
       shadowRadius: 24,
       shadowOffsetY: -8,
     },
@@ -104,12 +126,16 @@ export const socialTokens = {
     /** `.appNav button i svg` */
     icon: { size: 25, strokeWidth: 1.7 },
     /**
-   * `.appNav.social .createNav i` — 52px, lifted 8px, the one mark on the bar that is metal instead of
-   * ink. `polish` transcribes the web's own platinum
-   * (`radial-gradient(circle at 35% 28%, #fff 0, #d8dce1 38%, #343941 72%, #050608 100%)`,
-   * feed-surface.css:850-855): white where the light strikes, silver across the body, graphite at the
-   * foot — so the circle reads as a polished disc, never as a grey dot.
-   */
+     * `.appNav.social .createNav i` — 52px, lifted 8px, the one mark on the bar that is metal instead of
+     * ink. `polish` transcribes the web's own platinum
+     * (`radial-gradient(circle at 35% 28%, #fff 0, #d8dce1 38%, #343941 72%, #050608 100%)`,
+     * feed-surface.css:850-855), and every stop since round 30 has been the metal rather than a hole.
+     *
+     * Round 31 (owner, 31 October 2026 — „butonul `+` să fie un argintiu puternic, proeminent"): the body
+     * of the disc is now Bright Silver at the light and Silver across it, so the `+` reads as the
+     * brightest thing on the bar; not one stop is darker than `mercury.shadow`, and the glyph is matte
+     * black (17:1). The four stops come from `blackSilver`, so the disc cannot drift from the palette.
+     */
     create: {
       size: 52,
       radius: 26,
@@ -117,16 +143,11 @@ export const socialTokens = {
       glyphSize: 26,
       glyphWeight: '300' as const,
       lift: 8,
-      polish: [
-        { offset: 0, color: '#ffffff' },
-        { offset: 0.38, color: '#d8dce1' },
-        { offset: 0.72, color: '#343941' },
-        { offset: 1, color: '#050608' },
-      ],
+      polish: blackSilverPolish,
       /** Where the light strikes the disc: the gradient's own centre, as a share of its box. */
       polishCenter: { x: '35%', y: '28%' },
       /** The bezel's specular — the hairline of light that makes silver read as polished metal. */
-      specular: 'rgba(255,255,255,0.62)',
+      specular: 'rgba(255,255,255,0.72)',
       glowRadius: 14,
       /** The plus on metal is drawn heavier than a mark on glass, or the silver eats it. */
       glyphStroke: 2.2,
@@ -174,7 +195,8 @@ export const socialTokens = {
      */
     glyphActive: {
       reels: { size: 17, radius: 8.5, fontSize: 13, lineHeight: 15, borderColor: 'rgba(233,224,255,0.68)', background: '#9b3cff', backgroundEnd: '#642be0', glow: 'rgba(140,52,255,0.38)' },
-      whispers: { size: 28, radius: 14, fontSize: 12, lineHeight: 14, borderColor: 'rgba(132,188,151,0.32)', background: 'rgba(66,134,88,0.13)', backgroundEnd: '', glow: '' },
+      /** Whispers answered in green (`rgba(132,188,151,.32)`); round 31 answers in the metal. */
+      whispers: { size: 28, radius: 14, fontSize: 12, lineHeight: 14, borderColor: blackSilver.hairlineStrong, background: blackSilver.washStrong, backgroundEnd: '', glow: '' },
       news: { size: 28, radius: 14, fontSize: 12, lineHeight: 14, borderColor: 'rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.055)', backgroundEnd: '', glow: '' },
     },
     /** `.feedHeaderIcon` — the one door of the feed bar. */
@@ -243,12 +265,96 @@ export const socialTokens = {
       border: 'rgba(255,255,255,0.16)',
       surface: 'rgba(8,10,13,0.55)',
       ink: '#f2f6f9',
-      inkOn: '#7ff0e6',
-      borderOn: 'rgba(47,189,179,0.75)',
-      surfaceOn: 'rgba(47,189,179,0.2)',
+      /** A taken press on a card answers in the metal, not in the old teal. */
+      inkOn: blackSilver.bright,
+      borderOn: 'rgba(196,199,203,0.75)',
+      surfaceOn: 'rgba(196,199,203,0.2)',
       glyph: 15,
       glyphLine: 18,
       count: 12,
+    },
+    /**
+     * The reader's controls — the owner's silver and graphite (28 October 2026).
+     *
+     * „Butoanele astea — Editează profilul, Urmărește, like, comentariu, repost, share — să fie un argintiu
+     * discret cu grafit, nu alb pe crem." The presses a reader actually touches share one pair of inks in two
+     * grounds and know no third colour:
+     *
+     *   `paper`  every page of words stands on the same cream (`pagePaletteOf` gives `#f4efe2` for all of
+     *            them), and a white glyph on it was invisible — hence „contrast mai bun pe paginile crem".
+     *            Ink is graphite, the hairline is graphite's;
+     *   `night`  a photograph, a clip, the profile's field: the same pair under a thin silver wash — silver
+     *            ink, a silver hairline — so the column stays quiet over a picture.
+     *
+     * The **rail** is four presses with **no plate at all** (owner, 28 October 2026 for the reaction, 29
+     * October 2026 for the rest: „toate cele patru butoane fără fundal"). An emoji carries its own face and a
+     * glyph needs no box: a surface behind it only ever hid the paper or the photograph. So the rail prints
+     * four marks straight on its ground and reads `ink`/`count` from here — no `plate`, no `edge`, no
+     * `*On`, because an inversion needs a surface to invert. A state that used to be that inversion is now
+     * the mark itself: the reaction's chosen face, and a four-point dot under a save or a redistribution
+     * (`PostRail.stateDot`).
+     *
+     * `plate`/`edge`/`plateOn`/`edgeOn`/`inkOn` therefore belong to the **doors** — Follow, Edit Profile, the
+     * share menu — which are still buttons on a surface, and to them only. `*On` is a door that has been
+     * *taken* (a Follow that became Following): the plate inverts, so the state is the plate's own colour and
+     * never a second accent. `edgeStrong` is the hairline of a *primary* door, which is the only difference
+     * between the leading press and a secondary one on paper.
+     */
+    controls: {
+      /** The plate's corner: a squircle on the 56dp cell, the same on every ground. */
+      radius: 18,
+      paper: {
+        plate: 'rgba(250,249,244,0.86)',
+        edge: 'rgba(38,44,46,0.16)',
+        edgeStrong: 'rgba(38,44,46,0.44)',
+        ink: '#2B3134',
+        count: '#3B4245',
+        /**
+         * The **mark** of a press on cream — the glyph itself, and only the glyph.
+         *
+         * Round 30 (owner, 30 October 2026): „iconițele reacțiilor sunt negre" — `ink` above is the
+         * graphite a *door* needs to be found, and at 25dp on `#f4efe2` it read as a black shape
+         * rather than as a mark. The presses of a page of words now wear Mercury in shadow
+         * (`theme/mercury.ts`: 3.5:1, which clears the 3:1 a graphical control owes), while the count
+         * under them keeps `count` (11dp bold text needs its 4.5:1) and every *door* keeps `ink`.
+         */
+        mark: mercury.deep,
+        /**
+         * The **leading door** of a page of words — `Urmărește`, `Editează profilul` — as a solid chunk
+         * of the metal with matte-black words on it (owner, 31 October 2026: „butoanele Editează profilul,
+         * Urmărește, Urmărit să fie argintii, cu text negru"). On cream a silver plate is the one filled
+         * surface that stays quiet, and #101113 on #C4C7CB measures ~10:1.
+         */
+        plateSolid: blackSilver.silver,
+        inkOnPlate: blackSilver.onSilver,
+        plateOn: '#242A2D',
+        edgeOn: 'rgba(36,42,45,0.9)',
+        inkOn: '#F4F3ED',
+      },
+      night: {
+        plate: 'rgba(196,199,203,0.10)',
+        edge: 'rgba(196,199,203,0.26)',
+        edgeStrong: 'rgba(196,199,203,0.55)',
+        /**
+         * The labels and the doors on the dark ground wear the palette's silver (round 31): #C4C7CB reads
+         * at 10:1 on the matte field, and it is the same metal the paper's doors wear in shadow. It used
+         * to be a cool near-white (`#E6EAE8`) that was not in any palette — a fifth grey.
+         */
+        ink: blackSilver.silver,
+        count: blackSilver.silver,
+        /**
+         * The four marks of the reader's rail at night — Like, Comment, Save and Share.
+         *
+         * Round 31 (owner, 31 October 2026 — „inima este încă neagră, comentariu, salvare și share sunt
+         * gri; toate patru trebuie să fie argintii"): all four read this one value, and the empty heart is
+         * now *drawn* in it (`SolidViewerIcon kind="heartLine"`) instead of printed as the 🤍 emoji, whose
+         * own face is a different white on every device. `bright` is the palette's lit silver.
+         */
+        mark: blackSilver.bright,
+        plateOn: blackSilver.bright,
+        edgeOn: 'rgba(225,227,229,0.92)',
+        inkOn: blackSilver.onBright,
+      },
     },
   },
   /** Final Reels cascade: feed-surface.css .clipStage:before and the immersive rail. */
@@ -330,9 +436,10 @@ export const socialTokens = {
     rowBorder: 'rgba(32,45,53,0.55)',
     ink: '#cfe0e4',
     countInk: '#eef8fb',
-    labelInk: '#93a5ae',
-    doorInk: '#7ff0e6',
-    dot: '#2fbdb3',
+    labelInk: blackSilver.muted,
+    /** A reading that is a door: the metal, on the band's dark glass. */
+    doorInk: blackSilver.bright,
+    dot: blackSilver.silver,
     dotOpacity: 0.75,
     fade: 22,
     itemPaddingBlock: 9,
@@ -353,7 +460,7 @@ export const socialTokens = {
      */
     readingHeight: 40,
     /** `.ownerBio a{color:#67f5ed;text-decoration:underline}` — a link in the words the band carries. */
-    linkInk: '#67f5ed',
+    linkInk: blackSilver.silver,
     /**
      * `.ownerTickerRow{display:flex;align-items:center;gap:6px}` with the pencil's own
      * `.ownerHeroActions{flex:0 0 auto;padding-right:10px}`. The row adds no inset of its own - the hero's
@@ -365,11 +472,11 @@ export const socialTokens = {
     /** `.ownerHeroActions .heroIconButton{position:relative;width:44px;height:44px;border-radius:13px}`. */
     editSize: 44,
     editRadius: 13,
-    editInk: '#8fc9c6',
+    editInk: blackSilver.silver,
     /** `.ownerHeroActions .heroIconButton:hover,.ownerHeroActions .heroIconButton:focus-visible` */
-    editBorderOn: '#2fbdb3',
-    editSurfaceOn: '#0d1a22',
-    editInkOn: '#dff9f6',
+    editBorderOn: blackSilver.hairlineStrong,
+    editSurfaceOn: blackSilver.graphite,
+    editInkOn: blackSilver.bright,
   },
   /**
    * `profile-experience.css:210-215`, `:303-307`, `:344-363` — the name line of the hero, and the one
@@ -401,7 +508,7 @@ export const socialTokens = {
     visibilityMarginStart: 6,
     /** `.ownerVisibility i{font-size:13px}`, and the shell's `color:#fff!important` for the whole chip. */
     visibilityGlyphSize: 13,
-    visibilityInk: '#ffffff',
+    visibilityInk: blackSilver.bright,
     /** `.ownerMenuButton{width:44px;height:40px;border-radius:12px}` */
     menuWidth: 44,
     menuHeight: 40,
@@ -411,8 +518,8 @@ export const socialTokens = {
     barsGap: 4,
     barHeight: 2,
     barRadius: 2,
-    /** The bars are painted in the button's own ink, which the shell makes white. */
-    menuInk: '#ffffff',
+    /** The bars are painted in the button's own ink, which is the lit metal. */
+    menuInk: blackSilver.bright,
     /** `.ownerMenuButton[aria-expanded=true]` on the shell: `border-color:rgba(255,255,255,.34);background:#0a0b0d`. */
     menuOpenBorder: 'rgba(255,255,255,0.34)',
     menuOpenSurface: '#0a0b0d',
@@ -436,8 +543,9 @@ export const socialTokens = {
     /** The big circle of the reference: 92dp, with the story ring instead of the old 2dp white edge. */
     avatarSize: 92,
     storyRingWidth: 3,
-    storyRingIdle: 'rgba(255,255,255,0.28)',
-    storyRingUnseen: '#2fbdb3',
+    storyRingIdle: blackSilver.edge,
+    /** A story this reader has not seen: the lit metal. The teal is gone with the rest of the branding. */
+    storyRingUnseen: blackSilver.bright,
     /** The name the reference prints large: ~28sp bold, the handle ~15sp under it. */
     nameSize: 28,
     lineHeightRatio: 1.16,
@@ -446,8 +554,8 @@ export const socialTokens = {
     statCountSize: 20,
     statLabelSize: 14,
     statGap: 22,
-    statCountInk: '#ffffff',
-    statLabelInk: '#96a2ad',
+    statCountInk: blackSilver.bright,
+    statLabelInk: blackSilver.muted,
     /** What the words and the circle keep between them. */
     identityGap: 14,
     wordsTopGap: 6,
@@ -457,9 +565,10 @@ export const socialTokens = {
     bioTopGap: 12,
     bioSize: 13.5,
     bioLines: 3,
-    linkInk: '#67f5ed',
+    /** A link, and the place under the name — the metal, on the profile's dark field. */
+    linkInk: blackSilver.silver,
     metaSize: 13,
-    metaInk: '#96a2ad',
+    metaInk: blackSilver.muted,
     paddingHorizontal: 14,
     /** `.ownerHero{padding:12px 14px 0}` keeps the hero's own top inset, and this header keeps it too. */
     paddingTop: 12,
@@ -482,21 +591,26 @@ export const socialTokens = {
     /** The round entry that holds the menu (block / mute) — 38dp drawn, 44dp aimed. */
     roundSize: 38,
     minTarget: 44,
-    /** `profile-experience.css` accent: `#2fbdb3` for the border, `#67f5ed` for ink that leads somewhere. */
-    accent: '#2fbdb3',
-    accentInk: '#04120f',
-    neutralSurface: '#12181d',
-    neutralBorder: 'rgba(255,255,255,0.17)',
-    neutralInk: '#eef4f7',
-    busyInk: '#9fb2bb',
+    /**
+     * The relation controls, in the one metal (owner, 31 October 2026: „Editează profilul, Urmărește,
+     * Urmărit — argintii"). `accent` is the leading door's plate, `accentInk` the matte-black word on it;
+     * `neutral*` is the second door and the round `⋯`, which wear graphite and the metal's hairline so a
+     * following state is still visibly the quieter of the two.
+     */
+    accent: blackSilver.silver,
+    accentInk: blackSilver.onSilver,
+    neutralSurface: blackSilver.graphite,
+    neutralBorder: blackSilver.hairline,
+    neutralInk: blackSilver.silver,
+    busyInk: blackSilver.muted,
     dangerInk: '#ff8b98',
     labelSize: 14,
     compactHeight: 32,
     compactRadius: 16,
     compactLabelSize: 13,
     compactPaddingInline: 12,
-    menuSurface: '#0b151d',
-    menuBorder: '#26343d',
+    menuSurface: blackSilver.graphite,
+    menuBorder: blackSilver.hairline,
     menuRadius: 16,
     menuWidth: 210,
     menuRowHeight: 44,
@@ -558,19 +672,19 @@ export const socialTokens = {
      * shape on every build.
      */
     tileViewsGlyph: 12,
-    /** `.profileTile.isPinnedFirst{outline:1px solid #2fbdb3;outline-offset:-1px}` */
-    tilePinnedFirstEdge: '#2fbdb3',
+    /** `.profileTile.isPinnedFirst{outline:1px solid #2fbdb3}` — the metal marks the pinned cell. */
+    tilePinnedFirstEdge: blackSilver.bright,
     /** `.ownerTilePinned{top:7px;left:7px;font-size:12px}` */
     tilePinnedSize: 12,
     /** `.ownerPin{top:6px;right:6px;width:30px;height:30px;border-radius:10px}`, border rgba(120,150,170,.35), ink #9fb2bb */
     pinInset: 6,
     pinSize: 30,
     pinRadius: 10,
-    pinBorder: 'rgba(120,150,170,0.35)',
-    pinInk: '#9fb2bb',
-    /** `.profileRepostBadge{top:6px;left:6px;padding:1px 5px;border-radius:9px;background:rgba(11,23,32,.8);color:#8ff5ee;font-size:11px;font-weight:700}` */
+    pinBorder: blackSilver.hairline,
+    pinInk: blackSilver.muted,
+    /** `.profileRepostBadge{…color:#8ff5ee}` — the shared badge, in the metal. */
     repostBadgeSurface: 'rgba(11,23,32,0.8)',
-    repostBadgeInk: '#8ff5ee',
+    repostBadgeInk: blackSilver.bright,
     repostBadgeSize: 11,
     repostBadgePadding: 5,
     repostBadgeRadius: 9,
@@ -578,11 +692,11 @@ export const socialTokens = {
     repostLineGap: 5,
     repostLineMarginBottom: 6,
     repostLineSize: 12,
-    repostLineInk: '#8ff5ee',
+    repostLineInk: blackSilver.bright,
     /** `.postRepostedBy span{color:#8e9ca5}` — the post's author in the shared reply's line. */
-    repostLineMuted: '#8e9ca5',
+    repostLineMuted: blackSilver.muted,
     /** `.postRepostedBy bdi{color:#9fb0ba}` — the handle of whoever shared a whisper of someone else's. */
-    repostLineHandle: '#9fb0ba',
+    repostLineHandle: blackSilver.muted,
     /** `.ownerWhisperList{gap:10px;padding:12px 12px 0;background:#060b11}` */
     listGap: 10,
     listPaddingTop: 12,
@@ -590,30 +704,30 @@ export const socialTokens = {
     /** `.ownerWhisperCard{gap:8px;padding:12px;border:1px solid #22323b;border-left:2px solid rgba(33,234,220,.42);border-radius:16px;color:#eef8fb}` */
     cardGap: 8,
     cardPadding: 12,
-    cardBorder: '#22323b',
-    cardEdge: 'rgba(33,234,220,0.42)',
+    cardBorder: blackSilver.hairline,
+    cardEdge: blackSilver.hairlineStrong,
     cardRadius: 16,
     /** `background:linear-gradient(160deg,#0b141c,#081019)` — the first stop is the card's surface. */
-    cardSurface: '#0b141c',
-    cardInk: '#eef8fb',
+    cardSurface: blackSilver.graphite,
+    cardInk: blackSilver.text,
     /** `.ownerFlowStream>.ownerWhisperCard{margin:6px 10px}` once a row of tiles was woven above it. */
     cardFlowMarginTop: 6,
     cardFlowMarginHorizontal: 10,
     /** `.ownerSharedReplyCard{border-left-color:#2a4a53}` — the share's edge is quieter than a whisper's. */
-    cardShareEdge: '#2a4a53',
+    cardShareEdge: blackSilver.hairline,
     /** `.ownerWhisperHead i{width:38px;height:38px;border-radius:19px;border:1px solid rgba(33,234,220,.5)}` */
     miniAvatar: 38,
     miniAvatarRadius: 19,
-    miniAvatarBorder: 'rgba(33,234,220,0.5)',
-    miniAvatarSurface: '#09131c',
-    miniAvatarInk: '#ddffff',
+    miniAvatarBorder: blackSilver.hairline,
+    miniAvatarSurface: mercuryAvatar.plate,
+    miniAvatarInk: mercuryAvatar.ink,
     miniAvatarSize: 13,
     /** `.ownerWhisperHead b{font-size:14px;line-height:1.2}` with its `small{color:#93a5ae;font-size:11.5px}`. */
     cardNameSize: 14,
-    cardMetaInk: '#93a5ae',
+    cardMetaInk: blackSilver.muted,
     cardMetaSize: 11.5,
     /** `.ownerWhisperBody{color:#dbe7ec;font-size:15px;line-height:1.45}` */
-    cardBodyInk: '#dbe7ec',
+    cardBodyInk: blackSilver.text,
     cardBodySize: 15,
     cardBodyLineHeight: 21.75,
     /** `.ownerWhisperActions{gap:6px}` with `button{min-height:38px;padding:0 10px;border-radius:11px;font-size:12px}` */
@@ -622,18 +736,18 @@ export const socialTokens = {
     actionPaddingHorizontal: 10,
     actionRadius: 11,
     actionSurface: 'rgba(15,30,49,0.5)',
-    actionInk: '#9fb2bc',
+    actionInk: blackSilver.muted,
     actionSize: 12,
-    /** `button[aria-pressed=true]{border-color:#27dccc;color:#6eecdf}` */
-    actionOnBorder: '#27dccc',
-    actionOnInk: '#6eecdf',
+    /** `button[aria-pressed=true]{border-color:#27dccc;color:#6eecdf}` — a taken press, in the metal. */
+    actionOnBorder: blackSilver.bright,
+    actionOnInk: blackSilver.bright,
     /** `.ownerWhisperAction i{font-size:14px}` — the mark of the comment and the repost presses. */
     actionGlyphSize: 14,
     /** `.ownerWhisperAction small{font-size:12px;color:#c7d5dc}` — the two counts beside those marks. */
     actionCountSize: 12,
-    actionCountInk: '#c7d5dc',
+    actionCountInk: blackSilver.muted,
     /** `.ownerWhisperAction.on small{color:#6eecdf}` — a repost already done reads in the row's own ink. */
-    actionCountOnInk: '#6eecdf',
+    actionCountOnInk: blackSilver.bright,
     /**
      * `.ownerWhisperAction .reactionSummaryGlyphs .reactionMetric b{font-size:15px}` and `em{font-size:12px}`,
      * both `color:inherit`: the same summary a card's action row prints, one step quieter, in the plate's
@@ -650,15 +764,15 @@ export const socialTokens = {
     reasonMarginBottom: 7,
     reasonSize: 11,
     reasonLineHeight: 14.85,
-    reasonInk: '#9fb4bd',
-    reasonLabelInk: '#7fd8cf',
-    /** `.ownerOpenReply{min-height:36px;padding:0 12px;border:1px solid #2c4d55;border-radius:12px;background:#0e1c25;color:#8ff5ee;font-size:12px}` */
+    reasonInk: blackSilver.muted,
+    reasonLabelInk: blackSilver.silver,
+    /** `.ownerOpenReply{min-height:36px;padding:0 12px;border-radius:12px;font-size:12px}` */
     openReplyMinHeight: 36,
     openReplyPaddingHorizontal: 12,
-    openReplyBorder: '#2c4d55',
+    openReplyBorder: blackSilver.hairline,
     openReplyRadius: 12,
-    openReplySurface: '#0e1c25',
-    openReplyInk: '#8ff5ee',
+    openReplySurface: blackSilver.graphite,
+    openReplyInk: blackSilver.bright,
     openReplySize: 12,
     /** `.ownerMomentsPanel{padding:6px 0 10px}` with `header{padding:0 14px 6px}` and a row `{gap:12px;padding:2px 14px}`. */
     momentsPaddingTop: 6,
@@ -672,9 +786,9 @@ export const socialTokens = {
     /** `.ownerMoment{flex:0 0 54px}` with `.ownerMomentCircle{width:50px;height:50px;border:2px solid #27ded2}`. */
     momentWidth: 54,
     momentCircle: 50,
-    momentCircleBorder: '#27ded2',
-    momentCircleSurface: '#0b1720',
-    momentCircleInk: '#2ce8dc',
+    momentCircleBorder: blackSilver.bright,
+    momentCircleSurface: blackSilver.graphite,
+    momentCircleInk: blackSilver.bright,
     momentCircleSize: 20,
     momentTitleMarginTop: 4,
     momentTitleSize: 10,
@@ -683,23 +797,23 @@ export const socialTokens = {
      * shell's ink (`color:#f7f7f7` on the phone shell, `feed-surface.css`), because the panel never
      * overrides it.
      */
-    momentTitleInk: '#aebac1',
-    momentHeaderInk: '#f7f7f7',
+    momentTitleInk: blackSilver.muted,
+    momentHeaderInk: blackSilver.bright,
     /** `.ownerEmpty{min-height:208px;padding:24px 24px 34px;gap:6px;color:#93a6b0}` */
     emptyMinHeight: 208,
     emptyPaddingTop: 24,
     emptyPaddingHorizontal: 24,
     emptyPaddingBottom: 34,
     emptyGap: 6,
-    emptyInk: '#93a6b0',
-    /** `.ownerEmpty b{color:#e7f2f6;font-size:15px;font-weight:600}` with its `span{font-size:14px;line-height:1.4}`. */
-    emptyTitleInk: '#e7f2f6',
+    emptyInk: blackSilver.muted,
+    /** `.ownerEmpty b{font-size:15px;font-weight:600}` with its `span{font-size:14px;line-height:1.4}`. */
+    emptyTitleInk: blackSilver.bright,
     emptyTitleSize: 15,
     emptyDetailSize: 14,
     emptyDetailLineHeight: 19.6,
-    /** `.ownerEmpty svg{width:34px;height:34px;color:#4fd9d0}` */
+    /** `.ownerEmpty svg{width:34px;height:34px}` — the mark of an empty shelf, in the metal. */
     emptyIconSize: 34,
-    emptyIconInk: '#4fd9d0',
+    emptyIconInk: blackSilver.silver,
   },
   /**
    * A text post's cell reads as a page, not as a coloured tile (owner's rule, 26 October 2026): warm
@@ -742,18 +856,18 @@ export const socialTokens = {
    * opens borrows the editor sheet's own surface (`#08131c`, `#23414c`) so the two panels read as one.
    */
   band: {
-    surface: 'rgba(8,18,24,0.9)',
-    border: 'rgba(38,58,68,0.9)',
-    ink: '#dff2f6',
-    iconInk: '#8fe9e0',
-    separator: '#2fbdb3',
+    surface: 'rgba(16,17,19,0.9)',
+    border: blackSilver.hairline,
+    ink: blackSilver.text,
+    iconInk: blackSilver.silver,
+    separator: blackSilver.bright,
     fade: 26,
-    /** The gradient under the `ⓘ`, and the colour the band's own surface resolves to on black. */
+    /** The gradient under the `ⓘ`, and the colour the band's own surface resolves to on the field. */
     fadeWidth: 76,
-    fadeInk: '#071016',
+    fadeInk: blackSilver.matteBlack,
     /** The door to the details sheet: a 44dp target, the smallest a finger can be asked for. */
     infoSize: 44,
-    infoInk: '#bfe9e4',
+    infoInk: blackSilver.silver,
     /** One line of text plus its padding, tall enough that the `ⓘ` inside it is a 44dp target. */
     minHeight: 48,
     paddingInline: 14,
@@ -763,10 +877,10 @@ export const socialTokens = {
     gap: 8,
     edgeWidth: 1,
     radius: 12,
-    sheetSurface: '#08131c',
-    sheetBorder: '#23414c',
-    sheetInk: '#eef8fb',
-    sheetLabelInk: '#9fb2bb',
+    sheetSurface: blackSilver.graphite,
+    sheetBorder: blackSilver.hairline,
+    sheetInk: blackSilver.bright,
+    sheetLabelInk: blackSilver.muted,
     sheetRadius: 22,
     sheetPaddingInline: 16,
     sheetPaddingTop: 10,
@@ -779,13 +893,27 @@ export const socialTokens = {
   },
 } as const;
 
-/** The five profiles of the account, as the rail and the drawer already print them. */
+/**
+ * The two grounds a reader's control can stand on: the paper of a page of words, and the night of a
+ * photograph, a clip or the profile's field. Both are read from `socialTokens.post.controls`, so a press
+ * can never wear one ground's plate in the other ground's ink.
+ */
+export type ControlTone = 'night' | 'paper';
+
+/**
+ * The five profiles of the account, as the rail and the drawer already print them.
+ *
+ * Round 31: Travel's teal (`#32d6d0`) and Market's amber (`#ffb94e`) were the last two branded accents
+ * left in this table; they are the metal now. Social, Work and Dating keep the colours they were given
+ * because those are *identities* of a vertical, not the product's field — and none of the three is green,
+ * teal or yellow.
+ */
 export const profileModules = [
   { id: 'social', title: 'Social', glyph: 'SK', color: '#9a61ff' },
   { id: 'work', title: 'Work', glyph: 'WK', color: '#2fb7ff' },
   { id: 'dating', title: 'Dating', glyph: '♥', color: '#ff4f7d' },
-  { id: 'travel', title: 'Travel', glyph: '✈', color: '#32d6d0' },
-  { id: 'market', title: 'Market', glyph: '◇', color: '#ffb94e' },
+  { id: 'travel', title: 'Travel', glyph: '✈', color: blackSilver.silver },
+  { id: 'market', title: 'Market', glyph: '◇', color: blackSilver.silver },
 ] as const;
 
 /** The drawer prints ▶ for Social and ▣ for Work instead of their initials. */

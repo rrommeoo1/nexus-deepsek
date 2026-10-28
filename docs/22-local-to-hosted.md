@@ -26,8 +26,10 @@ read from one place — the environment — and no address, path or secret is wr
 
 The app side has its own single switch: `apps/nexus-mobile/.env` →
 `EXPO_PUBLIC_NEXUS_API_URL`. It is inlined at bundle time, so a change means restarting Metro with
-`--clear`. When it is absent, `lib/apiOrigin.ts` uses the host that served the bundle (the PC), and only
-a build with neither value falls back to the hosted deployment — and it says so on the console.
+`--clear`. When it is absent, `lib/apiOrigin.ts` uses the host that served the bundle (the PC), and with
+neither value it uses the phone's own loopback through `adb reverse tcp:5000`, saying so on the console.
+There is no remote fallback: a build that cannot name a backend fails visibly instead of talking to a
+server the owner did not choose (`JUNGLE_BOOK_PROGRESS.md` §34.2).
 
 ## What has to change besides the environment
 

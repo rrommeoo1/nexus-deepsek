@@ -6,7 +6,8 @@ import { RemoteImageSource } from './PostMedia';
 import { openCommentsPage, openReplyThread } from '../lib/commentNavigation';
 import { setPostReaction, setPostRepost } from '../lib/postInteractions';
 import { whySignals, type ArchivePost, type SharedReplyCard } from '../lib/profileContent';
-import { initialsFor, mediaSourceForPath, relativeTime, type ReactionSummary } from '../lib/socialTypes';
+import { mediaSourceForPath, relativeTime, type ReactionSummary } from '../lib/socialTypes';
+import { BrandAvatar } from './BrandAvatar';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -221,7 +222,7 @@ function WhisperHead({ author, at }: {
     <View style={styles.head}>
       <View accessible={false} style={styles.miniAvatar}>
         {avatar ? <RemoteImageSource source={avatar} fit="cover" style={styles.miniAvatarImage} /> : null}
-        {!avatar ? <Text style={styles.miniAvatarInitials}>{initialsFor(author.name, author.handle)}</Text> : null}
+        {!avatar ? <BrandAvatar size={socialTokens.archive.miniAvatar - 2} /> : null}
       </View>
       <View style={styles.who}>
         <Text style={styles.name} numberOfLines={1}>{author.name}</Text>

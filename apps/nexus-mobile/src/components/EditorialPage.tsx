@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  FlatList, Image, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View,
+  BackHandler, FlatList, Image, Keyboard, PanResponder, Platform, Pressable, StyleSheet, Text, TextInput, View,
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { RemoteImage, RemoteVideo } from './PostMedia';
@@ -15,28 +15,37 @@ import {
   type EditorialLine, type EditorialMediaBox, type EditorialPage as EditorialFlowPage,
 } from '../lib/editorialFlow';
 import {
-  applyPlainText, editorialTextMap, placeMediaBlockAt, setMediaPlacement, setMediaWidth, setMediaWrap,
+  placeMediaBlockAt, setBlockText, setMediaPlacement, setMediaWidth, setMediaWrap,
   MAX_MEDIA_WIDTH_FRACTION, MIN_MEDIA_WIDTH_FRACTION,
   type EditorialDocument, TEXT_MAX_CHARS,
 } from '../lib/editorialDocument';
 import { editorialSizeFor, type EditorialMediaSource } from '../lib/editorialPost';
 import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
-import { fontFamilyFor, pagePaletteOf, sizeOf, type TextStyle } from '../lib/textStyle';
-import type { RailReserve } from '../lib/textPage';
+import { fontFamilyFor, metricFaceFor, pagePaletteOf, sizeOf, TEXT_SELECTION_COLOR, type TextStyle } from '../lib/textStyle';
+import { insertAtSelection, snapSelection, type TextSelection } from '../lib/textInsert';
+import { RAIL_LINE_AIR, PAGE_FOLIO, folioLabel, pageFolioBand, type RailReserve } from '../lib/textPage';
+import { editorialType } from '../theme/editorial';
 
 /**
  * One editorial page, drawn as the article it will publish.
  *
  * The page is a real flow (`editorialFlow`): words wrap around a left or right picture and continue
  * across the full measure after it, while a full-width picture is a block above and below the words.
- * The same component draws the composer and the published reader; `editable` only adds the hidden
- * keyboard input, the caret and the media handles.
+ * The same component draws the composer and the published reader; `editable` adds the paper's tap
+ * target, the field and the media handles.
  *
- * Editing is direct. A tap on a line places the caret at the tapped character; the actual typing
- * happens in one invisible `TextInput` that holds the article's plain words, and the visible page is
- * re-flowed on every keystroke. That keeps the native IME, selection and keyboard behaviour without a
- * second editor screen or a preview.
+ * Editing is one native field, never a hidden one. The page is drawn by the flow as absolutely placed
+ * lines, so it holds no editable view under the finger — Android would have nothing to select in and no
+ * clipboard menu to show. A tap *anywhere* on the paper (a word, the gap between two paragraphs, the
+ * margin) therefore opens the field: a real, visible, focused multiline `TextInput` carrying the
+ * paragraph the finger pointed at, in the page's own face and ink. Typing, the caret, the selection
+ * handles and Android's own text toolbar (Copy, Paste, Select all) all belong to that field, and "Gata"
+ * writes it back through `setBlockText` and returns to the flow-rendered page.
+ *
+ * Owner, 29 October 2026: „apăs lung pe text și nu se întâmplă nimic”. The invisible 1×1 input that
+ * used to hold the words is gone: a phone cannot select text it cannot see, and a press that has to be
+ * held on an exact line before anything appears reads as a dead page.
  */
 
 export type EditorialSelection = { blockId: string; kind: 'text' | 'media' };
@@ -50,9 +59,17 @@ export type EditorialSelection = { blockId: string; kind: 'text' | 'media' };
  */
 const WRAP_WIDTH_LIMIT = 0.62;
 
+/**
+ * How long a finger rests on a line before the field opens — 420ms, a little shorter than Android's own
+ * long-press threshold (500ms), because the page is a *reading* surface: a press that lasts long enough to be
+ * a selection should feel like a selection, not like waiting for the system.
+ */
+const FIELD_HOLD_MS = 420;
+
 export function EditorialPage({
   document, style, media, width, height, editable = false, active = true,
-  selectedMediaId = null, railReserve, onSelectBlock, onChangeDocument, accessibilityLabel,
+  selectedMediaId = null, railReserve, onSelectBlock, onChangeDocument, onFieldChange, insertRequest,
+  focusRequest, accessibilityLabel, folio,
 }: {
   document: EditorialDocument;
   style: TextStyle;
@@ -73,7 +90,46 @@ export function EditorialPage({
   onSelectBlock?: (selection: EditorialSelection | null) => void;
   /** `remember` asks the composer to keep an undo snapshot for a layout gesture. */
   onChangeDocument?: (document: EditorialDocument, remember?: boolean) => void;
+  /**
+   * The paragraph the field holds, reported on every change and `null` once it closes.
+   *
+   * The composer needs this because the field is a *second* source of words beside `document`: while it is
+   * open, the committed page is missing whatever has been typed or pasted into it. Handing the words up
+   * lets the composer derive the exact page (`setBlockText`) for the character counter, for `Publică` and
+   * for the draft it saves — instead of publishing the page as it was *before* the field was opened, which
+   * is what the owner saw as „publică textul vechi" (round 29).
+   */
+  onFieldChange?: (field: { blockId: string | null; text: string } | null) => void;
+  /**
+   * An emoji (or any short text) the composer wants typed into the paragraph being written.
+   *
+   * The composer used to rebuild the *whole* article from `body` when an emoji was pressed, which silently
+   * threw away whatever the open field held — the paste was replaced by the old words. An insert request is
+   * applied here, in the field, where the author is actually writing; the nonce makes the same emoji twice
+   * two inserts.
+   */
+  insertRequest?: { text: string; nonce: number } | null;
+  /**
+   * A request to open the field and put the caret in it, spent once per change of the number.
+   *
+   * The composer's toolbar keeps a „Tastatură" door: while a panel (emoji, face, measure) is open the
+   * keyboard is away, and choosing to go back to writing has to bring it back — the author pressed a door
+   * that says *keyboard*, and finding the paper inert under the thumb would read as a broken button. The
+   * field is opened here (a paragraph of its own, as a tap does) and focused after the sheet has mounted.
+   */
+  focusRequest?: number;
   accessibilityLabel?: string;
+  /**
+   * The row this page prints its folio in (`lib/textPage.ts::folioRow`).
+   *
+   * `undefined` — the composer, the feed, the composer's receipt — keeps `PAGE_FOLIO`: the digits at
+   * `PAGE_FOLIO.inset` and the flow keeping `pageFolioBand()` above them. The reader opened from a profile
+   * passes `PROFILE_FOLIO` (round 32): the digits stand 9dp closer to the foot, in the paper the page got
+   * back when its foot door was removed. The *flow* is deliberately left on the same `max(band, 6.4%)`
+   * margin, so the line breaks of an authored article — and therefore its page count — cannot move with
+   * the number's position.
+   */
+  folio?: { band: number; inset: number };
 }) {
   /**
    * The page is painted from `pagePaletteOf`, not from the theme of the stored style: warm paper under
@@ -85,14 +141,60 @@ export function EditorialPage({
   const palette = pagePaletteOf(style);
   const measure = sizeOf(editorialSizeFor(document, style));
   const bodyFont = fontFamilyFor(style.font, Platform.OS) ?? 'serif';
+  /**
+   * The face the flow *measures* with, which is not the face the page is *drawn* in: the metric tables come
+   * from three font files (`lib/fontMetrics.ts`), while the six faces the author can choose are drawn by the
+   * system. `metricFaceFor` pairs each authored face with the table that can only over-estimate it, so a line
+   * the flow thinks fits is a line React Native can draw without cutting its last word.
+   */
+  const metricFont = metricFaceFor(style.font);
   const [aspectRatios, setAspectRatios] = useState<Record<number, number>>({});
   const mediaKey = media.map((entry) => `${entry.mediaIndex}:${entry.uri}`).join('|');
   const [page, setPage] = useState(0);
-  const [caret, setCaret] = useState({ start: 0, end: 0 });
-  const [focusNonce, setFocusNonce] = useState(0);
-  const inputRef = useRef<TextInput>(null);
+  /**
+   * The paragraph being edited in the *field* — a real, visible, native `TextInput` that a tap anywhere on
+   * the paper opens (owner, 29 October 2026: „nu pot să lipesc text din browser").
+   *
+   * A page of words is drawn by the flow as absolutely placed lines, so there is no native editable view
+   * under the finger: the old implementation kept the words in a 1×1 field that only the keyboard talked
+   * to, and a line under the finger was just a `Pressable` — no selection, no handles, no Paste. The sheet
+   * below is a genuine field for the one paragraph the author is writing in, so Android's own text menu
+   * (Copy, Paste, Select all) works where the words are, while the page's composition stays the flow's.
+   *
+   * `caret` is the offset a tap asked for, spent once: it pins the selection for the first frame so the
+   * cursor lands where the finger did, and the first `onSelectionChange` releases it, because a controlled
+   * selection that outlives the tap would drag the caret back on every re-render.
+   */
+  const [field, setField] = useState<{
+    blockId: string | null;
+    text: string;
+    /**
+     * The tap's place, spent once (see `openField`): a one-shot pin for the first frame of the sheet.
+     */
+    caret: number | null;
+    /**
+     * The range the phone last reported for this field, in offsets of `text`.
+     *
+     * This is what the emoji panel types into. It used to be thrown away — `onSelectionChange` spent
+     * the event on releasing the pin and nothing kept the range — so a pressed emoji could only be
+     * appended to the end of the paragraph (`JUNGLE_BOOK_PROGRESS.md` §33.2). `null` means the field
+     * has not reported a selection since it was opened.
+     */
+    selection: TextSelection | null;
+  } | null>(null);
+  const fieldRef = useRef<TextInput>(null);
+  /**
+   * Unde era cursorul când s-a închis câmpul.
+   *
+   * „Gata” (și butonul Înapoi al telefonului) aruncă foaia, și cu ea intervalul pe care autorul îl
+   * așezase. Bara compozitorului — deci și „Emoji” — stă sub tastatură cât timp foaia e deschisă, iar
+   * butonul Înapoi al telefonului închide foaia (nu doar tastatura), deci pe un telefon real drumul spre
+   * panoul de emoji trece *după* închiderea câmpului. Fără acest ref, fiecare emoji ajungea la sfârșitul
+   * paragrafului, exact raportul din 28 octombrie 2026 (§33.2), fiindcă `else`-ul din efectul de inserare
+   * nu avea ce cursor să folosească. Este un ref, nu o stare: nu are voie să re-randeze pagina.
+   */
+  const lastCaretRef = useRef<{ blockId: string | null; offset: number } | null>(null);
   const listRef = useRef<FlatList<number>>(null);
-  const map = useMemo(() => editorialTextMap(document), [document]);
 
   /**
    * The reader opens the photographs of the article in the same full-screen viewer the legacy lead
@@ -164,18 +266,45 @@ export function EditorialPage({
   const reserveHeight = Math.max(0, railReserve?.height ?? 0);
   const reserveBottom = Math.max(0, railReserve?.bottom ?? 0);
 
+  /**
+   * The two margins of the measure (owner, 28 October 2026: „textul nu folosește lățimea ecranului, deși are
+   * loc până la butoane").
+   *
+   * A page that carries the rail gives the words everything the buttons do not stand on: a modest reading
+   * margin on the left, and on the right only `RAIL_LINE_AIR` — the same six points that separate a line
+   * from the buttons when a line reaches their height. The rail's own rectangle (`reserve` below) is what
+   * keeps the lower right clear, so a second, symmetric margin there would be paper given away twice: the
+   * page used to stand `max(18, 7.2 %)` on *both* sides — 46dp of empty paper on a 469dp phone, measured on
+   * the owner's Xiaomi — above buttons that only stand in the corner.
+   *
+   * A page with no rail (the composer's preview) keeps the symmetric margin it has always composed with.
+   */
+  const margins = useMemo(() => {
+    const symmetric = Math.max(18, Math.round(width * 0.072));
+    if (!(reserveWidth > 0)) return { left: symmetric, right: symmetric };
+    return { left: Math.max(12, Math.round(width * 0.032)), right: RAIL_LINE_AIR };
+  }, [width, reserveWidth]);
+
   const flow = useMemo(() => flowEditorialDocument(document, {
     pageWidth: width,
     pageHeight: height,
     fontSize: measure.fontSize,
     lineHeight: measure.lineHeight,
-    font: style.font,
+    font: metricFont,
     align: style.align,
     headingSize: Math.round(measure.fontSize * 1.42),
     headingLine: Math.round(measure.lineHeight * 1.3),
-    marginX: Math.max(18, Math.round(width * 0.072)),
+    marginLeft: margins.left,
+    marginRight: margins.right,
     marginTop: Math.max(20, Math.round(height * 0.052)),
-    marginBottom: Math.max(22, Math.round(height * 0.064)),
+    /**
+     * The folio's band, taken from the foot of every page (owner, 30 October 2026: „numerotarea să fie
+     * jos, ca într-o carte"). The flow is told the margin is never smaller than `PAGE_FOLIO.band`, so no
+     * line can ever be laid out under the number — and because the number is *inside* the paper's own
+     * margin rather than floating over it, the measure the author sees in the composer is the measure the
+     * reader gets: the same `1/22` breaks in both.
+     */
+    marginBottom: Math.max(pageFolioBand(), Math.round(height * 0.064)),
     paragraphGap: Math.round(measure.lineHeight * 0.52),
     mediaGap: Math.round(measure.lineHeight * 0.55),
     aspectRatios,
@@ -189,8 +318,8 @@ export function EditorialPage({
       }]
       : [],
     maxPages: 160,
-  }), [document, width, height, measure.fontSize, measure.lineHeight, style.font, style.align, aspectRatios,
-    reserveWidth, reserveHeight, reserveBottom]);
+  }), [document, width, height, measure.fontSize, measure.lineHeight, metricFont, style.align, aspectRatios,
+    margins, reserveWidth, reserveHeight, reserveBottom]);
 
   const total = Math.max(1, flow.pageCount);
   const current = Math.min(page, total - 1);
@@ -242,30 +371,6 @@ export function EditorialPage({
   }, [gesture.edge, gesture.page, gesture.state, total]);
 
   /**
-   * The page the caret sits on, as a plain number.
-   *
-   * The composer follows the author only when the *words* carry the caret onto another page. Watching
-   * the current page here instead would call the pager back on every flip - a picture parked on a page
-   * the caret is not on could never be reached, so it could never be selected or dragged.
-   */
-  const caretPage = useMemo(() => {
-    if (!editable || caret.start !== caret.end) return null;
-    const block = map.blocks.find((entry) => caret.start >= entry.start && caret.start <= entry.end);
-    if (!block) return null;
-    const local = caret.start - block.start;
-    const line = flow.pages.flatMap((entry) => entry.lines).find((entry) => (
-      entry.blockId === block.id && local >= entry.start && local <= entry.end
-    ));
-    return line ? line.page : null;
-  }, [caret, editable, flow.pages, map.blocks]);
-
-  useEffect(() => {
-    if (caretPage === null) return;
-    listRef.current?.scrollToIndex({ index: caretPage, animated: false });
-    setPage(caretPage);
-  }, [caretPage]);
-
-  /**
    * A shorter article must not leave the pager parked past its last page.
    *
    * Arranging a picture can make the article shorter (words move up beside it) while the author is
@@ -277,32 +382,6 @@ export function EditorialPage({
     setPage(total - 1);
     listRef.current?.scrollToOffset({ offset: (total - 1) * width, animated: false });
   }, [page, total, width]);
-
-  const selectAt = useCallback((blockId: string, offset: number, requestFocus = true) => {
-    setCaret({ start: offset, end: offset });
-    if (requestFocus) setFocusNonce((value) => value + 1);
-    const block = document.blocks.find((entry) => entry.id === blockId);
-    onSelectBlock?.({ blockId, kind: block?.type === 'media' ? 'media' : 'text' });
-  }, [document.blocks, onSelectBlock]);
-
-  const onSelectionChange = useCallback((event: NativeSyntheticEvent<{ selection: { start: number; end: number } }>) => {
-    const selection = event.nativeEvent.selection;
-    setCaret({ start: selection.start, end: selection.end });
-    const block = map.blocks.find((entry) => selection.start >= entry.start && selection.start <= entry.end);
-    if (block) {
-      const source = document.blocks.find((entry) => entry.id === block.id);
-      onSelectBlock?.({ blockId: block.id, kind: source?.type === 'media' ? 'media' : 'text' });
-    }
-  }, [document.blocks, map.blocks, onSelectBlock]);
-
-  const onChangeText = useCallback((value: string) => {
-    if (!onChangeDocument) return;
-    onChangeDocument(applyPlainText(document, value.slice(0, TEXT_MAX_CHARS)));
-  }, [document, onChangeDocument]);
-
-  useEffect(() => {
-    if (focusNonce > 0) inputRef.current?.focus();
-  }, [focusNonce]);
 
   /**
    * Where the author let go of a picture.
@@ -369,32 +448,172 @@ export function EditorialPage({
     onChangeDocument(next, true);
   }, [document, onChangeDocument]);
 
-  const caretLine = useMemo(() => {
-    if (!editable || caret.start !== caret.end) return null;
-    const block = map.blocks.find((entry) => caret.start >= entry.start && caret.start <= entry.end);
-    if (!block) return null;
-    const local = caret.start - block.start;
-    const lines = flow.pages.flatMap((entry) => entry.lines).filter((entry) => entry.blockId === block.id);
-    const line = lines.find((entry) => local >= entry.start && local <= entry.end) ?? lines[lines.length - 1];
-    if (!line) return null;
-    const prefix = line.text.slice(0, Math.max(0, Math.min(line.text.length, local - line.start)));
-    const textWidth = measureTextWidth(line.text, line.fontSize, style.font, line.heading);
-    const centered = line.align === 'center' ? Math.max(0, (line.width - textWidth) / 2) : 0;
-    return {
-      page: line.page,
-      x: line.x + centered + measureTextWidth(prefix, line.fontSize, style.font, line.heading),
-      y: line.y,
-      height: line.lineHeight,
-    };
-  }, [caret, editable, flow.pages, map.blocks, style.font]);
-
   const hasText = document.blocks.some((block) => block.type === 'paragraph' || block.type === 'heading');
-  const focusEditor = useCallback(() => {
-    const end = map.text.length;
-    setCaret({ start: end, end });
-    setFocusNonce((value) => value + 1);
+
+  /**
+   * Open the field for one paragraph — the only road to the phone's own selection menu and clipboard.
+   *
+   * A paragraph written before opens with its own words and, when the finger asked for a place, with the
+   * caret already there. A page with no words yet opens with no block at all: whatever is typed becomes the
+   * article's first paragraphs when the field closes.
+   */
+  const openField = useCallback((blockId: string | null, caret: number | null = null) => {
+    if (!editable) return;
+    const block = blockId === null ? null : document.blocks.find((entry) => entry.id === blockId);
+    const words = block && (block.type === 'paragraph' || block.type === 'heading') ? block : null;
+    const at = words && caret !== null ? Math.max(0, Math.min(words.text.length, caret)) : null;
+    setField({
+      blockId: words ? words.id : null,
+      text: words ? words.text : '',
+      caret: at,
+      // The tap is also the first range: an emoji pressed before the phone reports a selection lands
+      // under the finger, not at the end of the paragraph.
+      selection: at === null ? null : { start: at, end: at },
+    });
+    // Degetul a spus unde: acesta este cursorul, până când altcineva îl mută.
+    lastCaretRef.current = { blockId: words ? words.id : null, offset: at ?? (words ? words.text.length : 0) };
     onSelectBlock?.(null);
-  }, [map.text.length, onSelectBlock]);
+  }, [document.blocks, editable, onSelectBlock]);
+
+  /**
+   * Which paragraph the finger pointed at, and where in it.
+   *
+   * The flow already knows the line under a point, so the page does not guess: `lines` are the drawn rows of
+   * this page, each carrying its block, its own slice of the paragraph and its measured width. A press in the
+   * gap between two paragraphs (or on the paper under the last word) has no line and takes the nearest one
+   * above it, so the finger always lands in *some* paragraph instead of in nothing.
+   */
+  const paragraphAt = useCallback((pointX: number, pointY: number) => {
+    const sheet = flow.pages[current];
+    if (!sheet || !sheet.lines.length) return { blockId: null as string | null, caret: null as number | null };
+    const above = sheet.lines.filter((line) => line.y <= pointY);
+    const under = above.length ? above[above.length - 1] : sheet.lines[0];
+    const inside = pointY >= under.y && pointY <= under.y + under.lineHeight ? under : above[above.length - 1] ?? under;
+    const localX = Math.max(0, Math.min(inside.width, pointX - inside.x));
+    const textWidth = measureTextWidth(inside.text, inside.fontSize, metricFont, inside.heading);
+    const centered = inside.align === 'center' ? Math.max(0, (inside.width - textWidth) / 2) : 0;
+    const relative = Math.max(0, localX - centered);
+    let offset = inside.text.length;
+    for (let cursor = 0; cursor <= inside.text.length; cursor++) {
+      if (measureTextWidth(inside.text.slice(0, cursor), inside.fontSize, metricFont, inside.heading) >= relative) {
+        offset = cursor;
+        break;
+      }
+    }
+    return { blockId: inside.blockId, caret: inside.start + offset };
+  }, [current, flow.pages, metricFont]);
+
+  /**
+   * Close the field and write its paragraph back.
+   *
+   * The words travel through `setBlockText` (`lib/editorialDocument.ts`): blank lines become paragraphs,
+   * media and page breaks stay where they were arranged, and a paragraph emptied to nothing is removed
+   * rather than stored blank (the server refuses a document with a blank paragraph, and a draft carrying one
+   * would fail to publish a week later, for a reason nobody could see).
+   */
+  const closeField = useCallback(() => {
+    const open = field;
+    if (open) {
+      // Cursorul supraviețuiește închiderii: bara cu „Emoji" este sub tastatură, deci emoji-ul se apasă
+      // după „Gata", iar inserarea trebuie să știe unde stătea autorul (`lastCaretRef`).
+      const range = open.selection ?? open.caret ?? open.text.length;
+      lastCaretRef.current = { blockId: open.blockId, offset: typeof range === 'number' ? range : range.end };
+    }
+    setField(null);
+    Keyboard.dismiss();
+    if (!open || !onChangeDocument) return;
+    const next = setBlockText(document, open.blockId, open.text);
+    if (next !== document) onChangeDocument(next, false);
+  }, [document, field, onChangeDocument]);
+
+  /**
+   * The words in the field, told to the composer (`onFieldChange`). Every character the author types is a
+   * fact the caption depends on, and the composer cannot read it from `document`: the page is only written
+   * on `Gata`.
+   */
+  useEffect(() => {
+    onFieldChange?.(field ? { blockId: field.blockId, text: field.text } : null);
+  }, [field, onFieldChange]);
+
+  /**
+   * An insert request lands at the caret.
+   *
+   * With the field open the emoji goes where the phone last reported the selection — replacing it if the
+   * author had dragged over a range — and the caret is left right after it, so a second emoji pressed
+   * without touching the field follows the first instead of jumping to the end (the report of 28 October
+   * 2026: `JUNGLE_BOOK_PROGRESS.md` §33.2). With no field open it opens the last paragraph of the page
+   * with the emoji already at its end (an empty page opens with just the emoji, and the first word typed
+   * after it becomes the article). The request is spent once, by nonce — an effect that re-ran on a fresh
+   * `field` object would type the emoji again on every keystroke.
+   */
+  const insertNonce = insertRequest?.nonce ?? 0;
+  useEffect(() => {
+    if (!insertRequest || !editable) return;
+    const addition = insertRequest.text;
+    setField((current) => {
+      if (current) {
+        // No range reported since the field opened and no tap place either: the end of the paragraph,
+        // which is what "the author has not put the cursor anywhere" means.
+        const range = current.selection ?? current.caret ?? current.text.length;
+        const typed = insertAtSelection(current.text, addition, typeof range === 'number' ? { start: range, end: range } : range);
+        return { ...current, text: typed.text, caret: typed.caret, selection: { start: typed.caret, end: typed.caret } };
+      }
+      /**
+       * Foaia este închisă. „Gata" și butonul Înapoi al telefonului o închid, iar bara compozitorului
+       * (deci „Emoji") stă sub tastatură cât timp e deschisă, așa că pe un telefon real acesta este
+       * drumul pe care merge fiecare emoji. Cursorul lăsat de autor se respectă atâta timp cât
+       * paragraful lui mai există; numai fără niciun cursor emoji-ul merge la sfârșitul ultimului
+       * paragraf, care este ce are nevoie o pagină goală.
+       */
+      const retained = lastCaretRef.current;
+      const remembered = retained && retained.blockId
+        ? document.blocks.find((block) => block.id === retained.blockId)
+        : null;
+      const target = remembered && (remembered.type === 'paragraph' || remembered.type === 'heading') ? remembered : null;
+      if (target) {
+        const offset = Math.max(0, Math.min(target.text.length, retained!.offset));
+        const typed = insertAtSelection(target.text, addition, { start: offset, end: offset });
+        return { blockId: target.id, text: typed.text, caret: typed.caret, selection: { start: typed.caret, end: typed.caret } };
+      }
+      const last = [...document.blocks].reverse().find((block) => block.type === 'paragraph' || block.type === 'heading');
+      const words = last && (last.type === 'paragraph' || last.type === 'heading') ? last : null;
+      const typed = `${words ? words.text : ''}${addition}`;
+      return { blockId: words ? words.id : null, text: typed, caret: typed.length, selection: { start: typed.length, end: typed.length } };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [insertNonce]);
+
+  /**
+   * A focus request opens the field (if it is closed) and puts the caret in it.
+   *
+   * `autoFocus` covers the frame the sheet mounts on; the timer covers the other case — the sheet was already
+   * open and only the keyboard was away (the author dismissed it with the system's back gesture) — where the
+   * `TextInput` is mounted and merely unfocused. The timer is cleared on the next request so two presses of
+   * „Tastatură" cannot focus a field that has been closed in between.
+   */
+  const focusNonce = focusRequest ?? 0;
+  useEffect(() => {
+    if (!editable || focusNonce === 0) return;
+    setField((current) => {
+      if (current) return current;
+      const last = [...document.blocks].reverse().find((block) => block.type === 'paragraph' || block.type === 'heading');
+      const words = last && (last.type === 'paragraph' || last.type === 'heading') ? last : null;
+      return { blockId: words ? words.id : null, text: words ? words.text : '', caret: null, selection: null };
+    });
+    const timer = setTimeout(() => fieldRef.current?.focus(), 60);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusNonce]);
+
+  /**
+   * The phone's own Back closes the field before it closes the composer, so a paragraph being pasted is
+   * never lost to a thumb that meant "one step back".
+   */
+  useEffect(() => {
+    if (!editable || !field) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { closeField(); return true; });
+    return () => subscription.remove();
+  }, [closeField, editable, field]);
 
   return (
     <View
@@ -431,11 +650,29 @@ export function EditorialPage({
                * the same accent the wall's cell draws above its title. It decorates, it never spells.
                */}
               <View style={[styles.accent, { backgroundColor: palette.accent }]} />
-              {editable && !hasText ? (
+              {editable ? (
+                /**
+                 * The paper itself is the door to the field.
+                 *
+                 * It sits *under* the lines and the pictures, so a word keeps its own, more exact handler and a
+                 * photograph keeps its drag; everything else on the page — the gap between two paragraphs, the
+                 * margin, the empty paper of a page with no words yet — opens the field for the nearest
+                 * paragraph. Before this, only a press that landed exactly on a drawn line did anything, which
+                 * on a phone reads as a page that ignores the finger (owner, 29 October 2026).
+                 */
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Începe textul paginii"
-                  onPress={focusEditor}
+                  accessibilityLabel={hasText ? 'Scrie în pagină' : 'Începe textul paginii'}
+                  accessibilityHint="Deschide câmpul de scriere. Ține apăsat în câmp pentru a lipi text."
+                  onPress={(event) => {
+                    const point = paragraphAt(event.nativeEvent.locationX, event.nativeEvent.locationY);
+                    openField(point.blockId, point.caret);
+                  }}
+                  onLongPress={(event) => {
+                    const point = paragraphAt(event.nativeEvent.locationX, event.nativeEvent.locationY);
+                    openField(point.blockId, point.caret);
+                  }}
+                  delayLongPress={FIELD_HOLD_MS}
                   style={StyleSheet.absoluteFill}
                 />
               ) : null}
@@ -468,6 +705,7 @@ export function EditorialPage({
                         text={line.text}
                         numberOfLines={1}
                         ellipsizeMode="clip"
+                        allowFontScaling={false}
                         style={type}
                         hashtagStyle={[styles.mark, { color: palette.mark }]}
                         mentionStyle={[styles.mark, { color: palette.mark }]}
@@ -476,24 +714,39 @@ export function EditorialPage({
                     </View>
                   );
                 }
+                /**
+                 * A word is the most exact door there is: the press is measured against this line's own
+                 * advances, so the caret lands on the character the finger is pointing at.
+                 */
+                const caretAt = (locationX: number) => {
+                  const localX = Math.max(0, Math.min(line.width, locationX));
+                  const textWidth = measureTextWidth(line.text, line.fontSize, metricFont, line.heading);
+                  const centered = line.align === 'center' ? Math.max(0, (line.width - textWidth) / 2) : 0;
+                  const relative = Math.max(0, localX - centered);
+                  let offset = line.text.length;
+                  for (let cursor = 0; cursor <= line.text.length; cursor++) {
+                    if (measureTextWidth(line.text.slice(0, cursor), line.fontSize, metricFont, line.heading) >= relative) {
+                      offset = cursor;
+                      break;
+                    }
+                  }
+                  return line.start + offset;
+                };
                 return (
                   <Pressable
                     key={`${line.blockId}-${line.start}-${line.page}`}
-                    onPress={(event) => {
-                      const localX = Math.max(0, Math.min(line.width, event.nativeEvent.locationX));
-                      const textWidth = measureTextWidth(line.text, line.fontSize, style.font, line.heading);
-                      const centered = line.align === 'center' ? Math.max(0, (line.width - textWidth) / 2) : 0;
-                      const relative = Math.max(0, localX - centered);
-                      let offset = line.text.length;
-                      for (let cursor = 0; cursor <= line.text.length; cursor++) {
-                        if (measureTextWidth(line.text.slice(0, cursor), line.fontSize, style.font, line.heading) >= relative) {
-                          offset = cursor;
-                          break;
-                        }
-                      }
-                      const block = map.blocks.find((candidate) => candidate.id === line.blockId);
-                      selectAt(line.blockId, (block?.start ?? 0) + line.start + offset);
-                    }}
+                    onPress={(event) => openField(line.blockId, caretAt(event.nativeEvent.locationX))}
+                    /**
+                     * Held, this line opens the field of *its own* paragraph at the same place: the same words,
+                     * in a native editable view, with Android's selection menu (Paste included) on top of
+                     * them. The hold is 420 ms — shorter than Android's own 500 ms — so the page answers the
+                     * finger before the system does.
+                     */
+                    onLongPress={(event) => openField(line.blockId, caretAt(event.nativeEvent.locationX))}
+                    delayLongPress={FIELD_HOLD_MS}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Editează paragraful: ${line.text}`}
+                    accessibilityHint="Deschide câmpul de scriere, cu meniul telefonului pentru lipire și copiere."
                     style={place}
                   >
                     <Text allowFontScaling={false} numberOfLines={1} ellipsizeMode="clip" style={type}>
@@ -520,18 +773,6 @@ export function EditorialPage({
                   onOpenPhoto={photoItems.length ? openPhoto : undefined}
                 />
               ))}
-              {editable && caretLine && caretLine.page === index ? (
-                <View
-                  pointerEvents="none"
-                  style={[styles.caret, {
-                    left: caretLine.x,
-                    top: caretLine.y,
-                    height: caretLine.height,
-                    // A caret is read, not decorated: it takes the paper's mark, never the theme accent.
-                    backgroundColor: palette.mark,
-                  }]}
-                />
-              ) : null}
               {!hasText && !entry.media.length && editable ? (
                 <Text
                   pointerEvents="none"
@@ -549,27 +790,97 @@ export function EditorialPage({
           );
         }}
       />
+      {/**
+        * The folio: the page's number, centred at the foot of the paper like a book's.
+        *
+        * It used to be a dark chip in the corner (`styles.badge`) — a black rectangle with white digits
+        * over a cream page, standing on top of whatever the page had there. Now it is set type at the
+        * foot, in the page's own ink at `PAGE_FOLIO.ink` of its strength, and the flow keeps
+        * `PAGE_FOLIO.band` clear above it (`marginBottom`), so it is never printed over a word.
+        */}
       {total > 1 ? (
-        <View pointerEvents="none" style={styles.badge} accessibilityLabel={`Pagina ${current + 1} din ${total}`}>
-          <Text allowFontScaling={false} style={styles.badgeText}>{`${current + 1}/${total}`}</Text>
+        <View
+          pointerEvents="none"
+          style={[styles.folio, folio ? { bottom: folio.inset } : null]}
+          accessibilityLabel={`Pagina ${current + 1} din ${total}`}
+        >
+          <Text
+            allowFontScaling={false}
+            style={[styles.folioText, { color: palette.text }]}
+          >
+            {folioLabel(current, total)}
+          </Text>
         </View>
       ) : null}
-      {editable ? (
-        <TextInput
-          ref={inputRef}
-          value={map.text}
-          onChangeText={onChangeText}
-          onSelectionChange={onSelectionChange}
-          selection={caret}
-          multiline
-          maxLength={TEXT_MAX_CHARS}
-          editable
-          caretHidden
-          autoCorrect={false}
-          autoCapitalize="sentences"
-          accessibilityLabel="Textul postării"
-          style={styles.hiddenInput}
-        />
+      {/**
+       * The field: one paragraph, in a native editable view, over the paper it belongs to.
+       *
+       * This is where Android's own text menu lives (`Paste`, `Copy`, `Select all`) and where the selection
+       * handles and the keyboard behave as they do in any other field — the page behind it is the flow's
+       * composition, not an input. It is deliberately *visible* and deliberately *paper*: the author has to
+       * see the words they are selecting, and the sheet has to read as the same page, not as a dialog. The
+       * words are written back on `Gata` (and by anything else that closes it), never on every keystroke,
+       * because re-flowing the article under every character of a pasted page would be work nobody sees.
+       *
+       * Nothing sits above it: the sheet is the last child of the page frame and the field fills the sheet, so
+       * the finger that comes down on a word is touching a real `EditText` — which is the whole point, because
+       * a selection toolbar belongs to the text view and to nothing else on the screen.
+       */}
+      {editable && field ? (
+        <View style={[StyleSheet.absoluteFill, styles.fieldSheet, { backgroundColor: palette.background }]}>
+          <View style={styles.fieldHead}>
+            <Text style={[styles.fieldTitle, { color: palette.mark }]}>PARAGRAFUL</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Gata"
+              accessibilityHint="Salvează paragraful în pagină."
+              onPress={closeField}
+              style={styles.fieldDone}
+              hitSlop={10}
+            >
+              <Text style={[styles.fieldDoneText, { color: palette.mark }]}>Gata</Text>
+            </Pressable>
+          </View>
+          <Text style={[styles.fieldHint, { color: `${palette.text}99` }]}>
+            Ține apăsat pe un cuvânt ca să copiezi, lipești sau selectezi tot.
+          </Text>
+          <TextInput
+            ref={fieldRef}
+            value={field.text}
+            onChangeText={(text) => setField((current) => (current ? { ...current, text } : current))}
+            /** The tap's place, spent once: the first selection change releases the pin. */
+            selection={field.caret === null ? undefined : { start: field.caret, end: field.caret }}
+            /**
+             * The range the phone reports is the caret the emoji panel types at — kept, not just spent on
+             * releasing the pin (`lib/textInsert.ts`). It is snapped on use, so a range that arrived
+             * before a paste, or that points inside an emoji, cannot cut a character in half.
+             */
+            onSelectionChange={(event) => {
+              const reported = snapSelection(field.text, event.nativeEvent.selection);
+              // Ultimul cursor cunoscut, chiar dacă foaia se închide imediat după aceea.
+              lastCaretRef.current = { blockId: field.blockId, offset: reported.end };
+              setField((current) => (current ? { ...current, caret: null, selection: reported } : current));
+            }}
+            multiline
+            autoFocus
+            maxLength={TEXT_MAX_CHARS}
+            allowFontScaling={false}
+            textAlignVertical="top"
+            selectionColor={TEXT_SELECTION_COLOR}
+            autoCorrect={false}
+            autoCapitalize="sentences"
+            accessibilityLabel="Paragraful paginii"
+            accessibilityHint="Câmpul de scriere. Ține apăsat pentru meniul telefonului: Lipire, Copiere, Selectează tot."
+            placeholder="Scrie sau lipește textul paragrafului."
+            placeholderTextColor={`${palette.text}66`}
+            style={[styles.fieldInput, {
+              color: palette.text,
+              fontFamily: bodyFont,
+              fontSize: measure.fontSize,
+              lineHeight: measure.lineHeight,
+            }]}
+          />
+        </View>
       ) : null}
       {photoItems.length ? (
         <PhotoViewer
@@ -784,7 +1095,6 @@ const styles = StyleSheet.create({
   frame: { overflow: 'hidden' },
   fill: { width: '100%', height: '100%' },
   accent: { position: 'absolute', left: 26, top: 20, width: 34, height: 3, borderRadius: 2 },
-  caret: { position: 'absolute', width: 2, borderRadius: 1 },
   placeholder: {
     position: 'absolute', left: 26, right: 26, top: 52, lineHeight: 32, opacity: 0.9,
   },
@@ -804,13 +1114,37 @@ const styles = StyleSheet.create({
   mark: { fontWeight: '400' },
   clipPlate: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0a0b0e' },
   clipText: { color: '#f6f8fb', fontSize: 11, fontWeight: '800', letterSpacing: 2.4 },
-  badge: {
-    position: 'absolute', right: 10, bottom: 8, paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 10, backgroundColor: 'rgba(8,10,13,0.72)',
+  /**
+   * The page indicator of a page written in the composer, and the same folio the reader prints.
+   *
+   * Centred across the paper, sitting `PAGE_FOLIO.inset` above its foot — never in a corner and never on
+   * a plate. `alignItems: 'center'` with both edges pinned is what makes it the *middle* of the page on
+   * every width, from a narrow phone to a tablet, without a measured offset.
+   */
+  folio: { position: 'absolute', left: 0, right: 0, bottom: PAGE_FOLIO.inset, alignItems: 'center' },
+  folioText: {
+    fontFamily: editorialType.serif,
+    fontSize: PAGE_FOLIO.size,
+    letterSpacing: PAGE_FOLIO.tracking,
+    opacity: PAGE_FOLIO.ink,
+    textAlign: 'center',
+    fontVariant: ['tabular-nums'],
   },
-  badgeText: { color: 'rgba(255,255,255,0.86)', fontSize: 11, fontWeight: '700' },
-  hiddenInput: {
-    position: 'absolute', left: 0, top: 0, width: 1, height: 1, opacity: 0.01,
-    color: 'transparent', backgroundColor: 'transparent', padding: 0,
-  },
+  /** The field a long press opens: the page's own paper, page margin and page type, with a head that says what
+   * is being edited and one door out of it.
+   *
+   * It covers the page instead of floating over it (no border, no shadow, no scrim): what the author is
+   * selecting must be the same words in the same ink as the page, and the only new thing on the screen is the
+   * row at its top.
+   */
+  fieldSheet: { paddingHorizontal: 18, paddingTop: 14, paddingBottom: 14, gap: 10 },
+  fieldHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  fieldTitle: { fontSize: 11, fontWeight: '800', letterSpacing: 1.4 },
+  /** One line of instruction, because Android's own toolbar has to be found by a thumb, not by a manual. */
+  fieldHint: { fontSize: 11, lineHeight: 15 },
+  /** A 44dp target for a word: the door is read, the finger has to hit it. */
+  fieldDone: { minHeight: 44, minWidth: 64, alignItems: 'flex-end', justifyContent: 'center' },
+  fieldDoneText: { fontSize: 15, fontWeight: '800' },
+  /** The field itself: the page's face and measure, so the printed page and the typed one read alike. */
+  fieldInput: { flex: 1, padding: 0, margin: 0 },
 });

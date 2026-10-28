@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { Linking, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   confirmLabel, failureCode, intentFromFailure, intentIsPaid, paymentBlockers, paymentKeyRotates,
@@ -219,7 +220,7 @@ const styles = StyleSheet.create({
   muted: { marginTop: 4, color: '#8fa3b4', fontSize: 12, lineHeight: 17 },
   error: { marginTop: 4, color: '#ff9a9a', fontSize: 12, lineHeight: 17 },
   link: { marginTop: 6, color: jungle.primary, fontSize: 12, fontWeight: '800' },
-  receipt: { marginTop: 8, gap: 4, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(139,208,74,0.35)' },
+  receipt: { marginTop: 8, gap: 4, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: blackSilver.hairlineStrong },
   receiptLabel: { color: jungle.primary, fontSize: 13, fontWeight: '800' },
   /** A transaction hash is 64 hex characters: one line, cut in the middle, never wrapped into noise. */
   hash: { color: '#cfe0ee', fontSize: 11, fontFamily: 'monospace' },

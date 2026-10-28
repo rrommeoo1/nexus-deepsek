@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 import type { Conversation, StoryView } from '../lib/socialTypes';
-import { initialsFor, mediaSourceForPath } from '../lib/socialTypes';
+import { mediaSourceForPath } from '../lib/socialTypes';
+import { BrandAvatar } from './BrandAvatar';
 import { fetchContactStories } from '../lib/stories';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
@@ -139,7 +141,7 @@ export function ContactCard({ conversation, viewerId, onClose, onOpenThread, onS
 
           <Pressable accessibilityRole="button" accessibilityLabel={`Profilul lui @${peer?.handle || title}`} onPress={() => openSocialProfile(peer?.handle, onClose)} style={styles.photo}>
             <RemoteImageSource source={avatar} fit="cover" style={styles.photoImage} />
-            {!avatar ? <Text style={styles.photoInitials}>{initialsFor(title, peer?.handle)}</Text> : null}
+            {!avatar ? <BrandAvatar size={126} /> : null}
             {stories?.length ? (
               <Pressable
                 accessibilityRole="button"
@@ -203,16 +205,16 @@ const styles = StyleSheet.create({
   close: { position: 'absolute', right: 8, top: 8, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: '#13283b' },
   closeMark: { color: '#ffffff', fontSize: 28, lineHeight: 30 },
   /** `.contactPhoto{width:132px;height:132px;border-radius:16px;background:#244154;font-size:32px}` */
-  photo: { width: 132, height: 132, borderRadius: 16, overflow: 'hidden', backgroundColor: '#244154', alignItems: 'center', justifyContent: 'center' },
+  photo: { width: 132, height: 132, borderRadius: 16, overflow: 'hidden', backgroundColor: blackSilver.graphite, alignItems: 'center', justifyContent: 'center' },
   photoImage: { width: '100%', height: '100%' },
   photoInitials: { color: '#eef7fc', fontSize: 32 },
   /** `.contactStory{position:absolute;inset-inline:0;bottom:0;min-height:44px;background:#071b28e8;color:#73fff0;font-size:15px}` */
   story: { position: 'absolute', left: 0, right: 0, bottom: 0, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(7,27,40,0.91)' },
-  storyText: { color: '#73fff0', fontSize: 15 },
+  storyText: { color: blackSilver.bright, fontSize: 15 },
   /** `.messengerContact h2{font-size:22px;margin:12px 0 6px}` */
   name: { color: '#eef7fc', fontSize: 22, fontWeight: '700', marginTop: 12, marginBottom: 6, textAlign: 'center' },
   /** `.conversationPersona` — the pill the row and the card both print. */
-  persona: { color: '#8fd6cf', fontSize: 12, fontWeight: '600' },
+  persona: { color: blackSilver.muted, fontSize: 12, fontWeight: '600' },
   /** The relation chip sits between the persona line and the four quick actions, centred like both. */
   relation: { alignSelf: 'center', marginTop: 10 },
   /** `.contactQuickActions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:20px}` */

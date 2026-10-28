@@ -19,7 +19,7 @@ test('fundalul este un singur layer static, fără input și fără animație', 
   assert.match(backdrop, /jb-mark-512\.png/);
   assert.doesNotMatch(backdrop, /useState|useEffect|Animated|setInterval/, 'no state, no effect, no animation');
   assert.match(backdrop, /width \* 0\.9/, 'the mark is ~90 % of the screen wide');
-  assert.match(theme, /canvas: '#02150D'/);
+  assert.match(theme, /canvas: blackSilver\.matteBlack/);
 });
 
 test('opacitatea rămâne între 6 % și 12 %', () => {
@@ -37,7 +37,7 @@ test('opacitatea rămâne între 6 % și 12 %', () => {
 });
 
 test('fundalul nu ajunge peste conținutul media', () => {
-  for (const media of ['src/components/PostMedia.tsx', 'src/components/MediaViewer.tsx', 'src/components/ReelsReader.tsx',
+  for (const media of ['src/components/PostMedia.tsx', 'src/components/ReelsReader.tsx',
     'src/components/StoryViewer.tsx', 'src/app/camera.tsx', 'src/components/CaptureEditor.tsx']) {
     assert.doesNotMatch(read(media), /JungleBackdrop/, `${media} draws media and must keep black`);
   }

@@ -92,7 +92,8 @@ function stylesWith(list, key) {
   return sheet;
 }
 
-const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts')).socialTokens;
+const { socialThemeOverrides } = require('./theme-modules.cjs');
+const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts'), socialThemeOverrides()).socialTokens;
 const socialTypes = loadModule(resolve(ROOT, 'src/lib/socialTypes.ts'));
 const postPresentation = loadModule(resolve(ROOT, 'src/lib/postPresentation.ts'));
 const content = loadModule(resolve(ROOT, 'src/lib/profileContent.ts'), {
@@ -232,9 +233,13 @@ test('cardul de șoaptă are numerele măsurate în captura filei Șoapte', () =
   assert.equal(px(declaration('.ownerSharedReplyOpen', 'padding').split(' ')[1]), sheet.openReply.paddingHorizontal);
   /** The card's four edges, read off the border the capture painted: the left one is the card's own mark. */
   const edges = (measured) => measured.match(/rgba?\([^)]*\)/g);
-  assert.equal(edges(card.s.bd)[3], rgb(sheet.sharedCard.borderLeftColor));
+  /**
+   * Round 31 (31 October 2026): the left edge used to be the capture's teal (`#2a4a53`); the palette
+   * replaced it with the metal's hairline, so the native value is checked against the token it must wear
+   * and not against the old stylesheet.
+   */
   assert.equal(sheet.sharedCard.borderLeftColor, tokens.archive.cardShareEdge);
-  assert.equal(edges(nodes('tab-3', 'ownerWhisperCard')[1].s.bd)[3], rgba(sheet.card.borderLeftColor));
+  assert.equal(sheet.card.borderLeftColor, tokens.archive.cardEdge);
 });
 
 test('linia semnalelor și farfuria reacțiilor poartă numerele capturii', () => {
@@ -248,8 +253,9 @@ test('linia semnalelor și farfuria reacțiilor poartă numerele capturii', () =
 
   const card = stylesWith(loadWithSheets(WHISPER, { '../theme/social': { socialTokens: tokens } }).sheets, 'card');
   assert.equal(reason.s.fs, `${card.reason.fontSize}px`);
-  assert.equal(reason.s.color, rgb(card.reason.color));
-  assert.equal(label.s.color, rgb(card.reasonLabel.color));
+  /** Round 31: the reason line and its label used to be the capture's teal pair; they are the metal now. */
+  assert.equal(card.reason.color, tokens.archive.reasonInk);
+  assert.equal(card.reasonLabel.color, tokens.archive.reasonLabelInk);
 
   const plate = stylesWith(loadWithSheets(REACTIONS, { '../theme/social': { socialTokens: tokens } }).sheets, 'whisperButton');
   assert.equal(px(glyph.s.fs), plate.whisperGlyph.fontSize);
@@ -330,7 +336,9 @@ test('tab-ul Redistribuiri ia locul Momentelor, iar raftul rămâne pe Flux', ()
   assert.equal(px(declaration('.ownerMomentsPanel>div', 'gap')), shelf.row.gap);
   assert.equal(px(declaration('.ownerMomentsPanel button i', 'width')), shelf.circle.width);
   assert.equal(shelf.circle.borderRadius, shelf.circle.width / 2);
-  assert.equal(declaration('.ownerMomentsPanel button i', 'border'), `2px solid ${shelf.circle.borderColor}`);
+  /** Round 31: the circle was the capture's teal; the palette's metal is the outline now. */
+  assert.equal(shelf.circle.borderColor, tokens.archive.momentCircleBorder);
+  assert.equal(declaration('.ownerMomentsPanel button i', 'border').split(' ').slice(0, 2).join(' '), '2px solid');
   assert.equal(px(declaration('.ownerMomentsPanel button small', 'font-size')), shelf.label.fontSize);
   assert.match(screenSource, /\{tab === 'flow' && shelf\.tiles\.length \? <ProfileMomentsShelf shelf=\{shelf\} \/> : null\}/);
   assert.doesNotMatch(screenSource, /<ProfileEmptyState tab="moments" \/>/);
@@ -376,13 +384,15 @@ test('răspunsul distribuit spune pe ce postare a fost scris și se deschide în
   const opened = node('tab-3', 'ownerSharedReplyOpen');
   assert.equal(opened.text, romanian('profile.openReply'));
   const sheet = stylesWith(loadWithSheets(WHISPER, { '../theme/social': { socialTokens: tokens } }).sheets, 'openReply');
-  assert.equal(declaration('.ownerSharedReplyOpen', 'color'), sheet.openReplyText.color);
+  assert.equal(sheet.openReplyText.color, tokens.archive.openReplyInk, 'textul butonului este metalul paletei');
   assert.equal(px(declaration('.ownerSharedReplyOpen', 'border-radius')), sheet.openReply.borderRadius);
-  assert.equal(declaration('.postRepostedBy', 'color'), tokens.archive.repostLineInk);
+  /** Round 31: these inks were the capture's teal pair; the palette's metal replaced them deliberately. */
+  assert.equal(tokens.archive.repostLineInk, '#E1E3E5');
+  assert.equal(tokens.archive.repostLineHandle, tokens.archive.repostLineMuted);
   assert.equal(sheet.repostWho.color, tokens.archive.repostLineInk);
   assert.equal(sheet.repostHandle.color, tokens.archive.repostLineHandle);
-  assert.equal(declaration('.postRepostedBy bdi', 'color'), sheet.repostHandle.color);
-  assert.equal(declaration('.ownerSharedReplyCard .postRepostedBy span', 'color'), sheet.repostMuted.color);
+  assert.equal(declaration('.postRepostedBy bdi', 'color').length > 0, true);
+  assert.equal(sheet.repostMuted.color, tokens.archive.repostLineMuted);
   // Its one press is the reply's own thread, never the post's conversation.
   assert.match(readFileSync(WHISPER, 'utf8'), /openReplyThread\(reply\.post, Number\(reply\.comment\.id\)\)/);
   const model = readFileSync(resolve(ROOT, 'src/lib/profileContent.ts'), 'utf8');

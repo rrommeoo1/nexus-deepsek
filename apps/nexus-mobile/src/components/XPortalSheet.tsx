@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import { AppState, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
@@ -51,6 +52,39 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
   const handed = useRef(false);
   const opened = useRef('');
   const pairingRef = useRef<{ uri: string; deepLink: string } | null>(null);
+  /** The approval already brought xPortal back once; a second window cannot re-open it again. */
+  const autoReopened = useRef(false);
+  /**
+   * The reader came back while xPortal was still the only one that could act — the shape of a frozen
+   * xPortal (its splash never finishes, so the approval never arrives and the sheet can only count
+   * down). One re-open is the recovery this app owns; a second one is the reader's explicit tap.
+   */
+  const unstuckReopened = useRef(false);
+  const reopenTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const unstuckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** When xPortal was last put in front, so a re-open never fires at a wallet that is already up. */
+  const openedAt = useRef(0);
+
+  /** A pending auto-reopen belongs to one attempt only: closing the sheet must cancel it. */
+  const cancelReopen = useCallback(() => {
+    if (reopenTimer.current) {
+      clearTimeout(reopenTimer.current);
+      reopenTimer.current = null;
+    }
+  }, []);
+
+  /** The unstuck re-open is cancelled the moment the reader goes back to xPortal on their own. */
+  const cancelUnstuck = useCallback(() => {
+    if (unstuckTimer.current) {
+      clearTimeout(unstuckTimer.current);
+      unstuckTimer.current = null;
+    }
+  }, []);
+
+  useEffect(() => () => {
+    cancelReopen();
+    cancelUnstuck();
+  }, [cancelReopen, cancelUnstuck]);
 
   /**
    * `nexusdev://` (from `app.json`'s `scheme`) is the address xPortal is given so an approval can
@@ -77,11 +111,18 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
   useEffect(() => {
     if (!visible) {
       // Nothing from a closed sheet may be rendered as a live attempt.
+      cancelReopen();
+      cancelUnstuck();
       dispatch({ type: 'close' });
       return;
     }
     handed.current = false;
     opened.current = '';
+    autoReopened.current = false;
+    unstuckReopened.current = false;
+    openedAt.current = 0;
+    cancelReopen();
+    cancelUnstuck();
     setError('');
     setNotice('');
     setStatus('Pregătesc conexiunea cu xPortal…');
@@ -102,7 +143,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       clearXPortalAttempt();
     }
     logXPortal('sheet-open', { redirectNative: redirectNative || 'none' });
-  }, [visible, redirectNative]);
+  }, [visible, redirectNative, cancelReopen, cancelUnstuck]);
 
   /** One tick per second while the attempt is waiting; the reducer decides when it expired. */
   useEffect(() => {
@@ -130,6 +171,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
         await Linking.openURL(link);
         setError('');
         setNotice('');
+        openedAt.current = Date.now();
         logXPortal('xportal-opened', { topic: xPortalPairingTopic(uri), via: link.slice(0, 8) });
         return;
       } catch (cause) {
@@ -139,6 +181,62 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     logXPortal('xportal-open-failed');
     setError(`Nu am putut deschide xPortal. ${lastError}`.trim());
   }, []);
+
+  /**
+   * xPortal approves the session on its own screen and stays there; the login-signature request
+   * reaches it only when it is in front again. So every approval re-opens the wallet once, by
+   * itself: the second window ("Connection established. Proceed to log in?") is then on screen in
+   * about a second, instead of leaving the reader to guess whether to stay in xPortal or switch back
+   * to Jungle Book. `autoReopened` keeps it to one re-open per attempt, so an approval loop cannot
+   * bounce the reader between the two apps.
+   */
+  const scheduleReopen = useCallback(() => {
+    if (autoReopened.current) return;
+    autoReopened.current = true;
+    // The approval makes the unstuck path pointless: this re-open is the one that shows the second
+    // window, and two timers would send xPortal two intents a second apart.
+    cancelUnstuck();
+    cancelReopen();
+    reopenTimer.current = setTimeout(() => {
+      reopenTimer.current = null;
+      const current = pairingRef.current;
+      if (!current) return;
+      // xPortal is already the screen in front (it was put there a moment ago): the second window
+      // appears on its own, and a second intent would only flash the app switcher.
+      if (Date.now() - openedAt.current < 4000) {
+        logXPortal('auto-reopen-skipped');
+        return;
+      }
+      dispatch({ type: 'reopen' });
+      setNotice('xPortal e din nou în față: Connect, amprenta, apoi revii în Jungle Book.');
+      logXPortal('auto-reopen');
+      void openXPortal(current.uri);
+    }, 1200);
+  }, [cancelReopen, cancelUnstuck, openXPortal]);
+
+  /**
+   * A frozen xPortal never sends `signature`: the reader comes back to a sheet that can only count
+   * down, and the only recovery the app owns is putting xPortal in front again with the same request.
+   * It fires only if the reader *stays* here — going back to xPortal cancels it, because then the
+   * wallet is doing its job and another intent would steal the screen. One shot per attempt; the
+   * "Deschide xPortal din nou" link stays available for the case where xPortal has to be closed first.
+   */
+  const scheduleUnstuck = useCallback(() => {
+    if (unstuckReopened.current || unstuckTimer.current) return;
+    if (!pairingRef.current) return;
+    unstuckTimer.current = setTimeout(() => {
+      unstuckTimer.current = null;
+      const current = pairingRef.current;
+      // An approval that landed meanwhile owns the re-open: this one would race it.
+      if (!current || autoReopened.current) return;
+      unstuckReopened.current = true;
+      cancelReopen();
+      dispatch({ type: 'reopen' });
+      setNotice('xPortal nu a răspuns: îl redeschid cu aceeași cerere. Dacă ecranul lui rămâne înghețat, închide-l din Recents și apasă „Deschide xPortal din nou”.');
+      logXPortal('unstuck-reopen');
+      void openXPortal(current.uri);
+    }, 10000);
+  }, [cancelReopen, openXPortal]);
 
   /** The page owns the clipboard context; the app only asks it to copy the pairing it holds. */
   const copyPairing = useCallback((uri: string) => {
@@ -156,6 +254,8 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       if (parsed.phase === 'failed') setBusy(false);
       // The attempt is over: a later open must not report it as interrupted.
       if (isXPortalAttemptFinished(parsed.phase)) clearXPortalAttempt();
+      // `signature` is the bridge's own word for "xPortal approved; the login message is next".
+      if (parsed.phase === 'signature') scheduleReopen();
       return;
     }
     if (parsed.kind === 'relay') {
@@ -171,6 +271,8 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     }
     if (parsed.kind === 'error') {
       setBusy(false);
+      cancelReopen();
+      cancelUnstuck();
       dispatch({ type: 'error' });
       setError(xPortalFailureSentence(parsed.message));
       clearXPortalAttempt();
@@ -181,7 +283,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       pairingRef.current = { uri: parsed.uri, deepLink: parsed.deepLink };
       setPairing(pairingRef.current);
       dispatch({ type: 'pairing' });
-      setStatus('Deschide xPortal, aprobă conectarea, apoi semnează loginul.');
+      setStatus('În xPortal: Connect, apoi revii în Jungle Book. xPortal se redeschide singur: Connect + amprenta, apoi revii în Jungle Book.');
       // Remember that a pairing is live, so a process kill is reported instead of swallowed. Only the
       // topic is written: the URI carries the symmetric key and never leaves the page.
       writeXPortalAttempt(xPortalAttemptRecord(xPortalPairingTopic(parsed.uri), 'pairing'));
@@ -195,6 +297,8 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     if (handed.current) return;
     handed.current = true;
     setBusy(true);
+    cancelReopen();
+    cancelUnstuck();
     dispatch({ type: 'token' });
     setStatus('Semnătură primită. Deschid sesiunea Jungle Book…');
     logXPortal('token-received');
@@ -206,7 +310,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
         setBusy(false);
         setError(cause instanceof Error ? cause.message : 'Sesiunea nu a putut fi deschisă.');
       });
-  }, [onAuthenticated, openXPortal]);
+  }, [onAuthenticated, openXPortal, scheduleReopen, cancelReopen, cancelUnstuck]);
 
   /**
    * The relay websocket sleeps while xPortal is in front. Every return to this app asks the bridge
@@ -217,13 +321,31 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
   useEffect(() => {
     if (!visible) return;
     const subscription = AppState.addEventListener('change', (state) => {
-      if (state !== 'active') return;
+      if (state !== 'active') {
+        // The reader went back to xPortal: a pending unstuck re-open must not steal the screen.
+        cancelUnstuck();
+        return;
+      }
       logXPortal('app-active', { stage: attempt.stage, waitedSeconds: XPORTAL_WAIT_SECONDS - attempt.seconds });
       dispatch({ type: 'active' });
       webview.current?.injectJavaScript('window.__nexusResume && window.__nexusResume(); true;');
+      // Coming back after an approval means xPortal is one tap away from the login signature. The
+      // page confirms the approval with `phase: signature`; if that arrived while the app was in
+      // the background, this is the moment the second window can be put in front of the reader.
+      if (attempt.stage === 'signature') {
+        scheduleReopen();
+        return;
+      }
+      // Still `pairing`: xPortal has not been approved at all. Either the reader is early, or its screen
+      // froze and no approval is coming — so give it time to be interacted with in the background, then
+      // put it back in front once (`scheduleUnstuck` cancels on a switch back). The 5 s floor keeps a
+      // cold start (xPortal's splash can take ~10 s on this phone) from being interrupted.
+      if (attempt.stage === 'pairing' && openedAt.current && Date.now() - openedAt.current >= 5000) {
+        scheduleUnstuck();
+      }
     });
     return () => subscription.remove();
-  }, [visible, attempt.stage, attempt.seconds]);
+  }, [visible, attempt.stage, attempt.seconds, scheduleReopen, scheduleUnstuck, cancelUnstuck]);
 
   const waitLabel = xPortalWaitLabel(attempt);
 
@@ -247,7 +369,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
                 <Pressable
                   accessibilityRole="link"
                   accessibilityLabel="Deschide aplicația xPortal din nou"
-                  onPress={() => { dispatch({ type: 'reopen' }); void openXPortal(pairing.uri); }}
+                  onPress={() => { cancelUnstuck(); dispatch({ type: 'reopen' }); void openXPortal(pairing.uri); }}
                 >
                   <Text style={styles.link}>Deschide xPortal din nou</Text>
                 </Pressable>
@@ -326,6 +448,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
   /** The bridge page, visible: it prints the pairing steps and the QR the reader is waiting on. */
-  frame: { marginHorizontal: 18, marginTop: 4, height: 210, borderRadius: 14, overflow: 'hidden', backgroundColor: '#04120b' },
+  frame: { marginHorizontal: 18, marginTop: 4, height: 210, borderRadius: 14, overflow: 'hidden', backgroundColor: blackSilver.deepBlack },
 });
 

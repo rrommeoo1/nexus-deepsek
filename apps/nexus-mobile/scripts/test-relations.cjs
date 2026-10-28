@@ -77,7 +77,8 @@ function loadModule(file, overrides = {}) {
 }
 
 const relations = loadModule(RELATIONS, { './nexusApi': apiStub, react: reactStub });
-const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts')).socialTokens;
+const { socialThemeOverrides } = require('./theme-modules.cjs');
+const tokens = loadModule(resolve(ROOT, 'src/theme/social.ts'), socialThemeOverrides()).socialTokens;
 const localeSource = readFileSync(LOCALE, 'utf8');
 const apiSource = readFileSync(API, 'utf8');
 const repoSource = readFileSync(REPO_SOURCE, 'utf8');
@@ -629,6 +630,58 @@ test('every screen that prints a face prints the same relation button (§19.4)',
   assert.match(route, /onBack=\{\(\) => router\.back\(\)\}/);
   assert.doesNotMatch(route, /styles\.back\b/, 'the floating back button is gone: the header draws one header');
 });
+/**
+ * The loop the owner's phone found on 26 October 2026: the profile screen hands its payload to this store,
+ * the store told every listener about it, the host reloaded the profile on any relation change, and the
+ * reload was the same payload again — about forty requests in six seconds, all `200`. These tests keep the
+ * one rule that ends it: a patch that says nothing new wakes nobody.
+ */
+test('a payload that says the same thing twice wakes nobody the second time', () => {
+  reset();
+  let woke = 0;
+  const unsubscribe = relations.subscribeRelations(() => { woke += 1; });
+  const first = relations.remember({ userId: 7, following: true, followingKnown: true, counts: { followers: 10 } });
+  const versionAfterFirst = relations.relationsVersion();
+  const second = relations.remember({ userId: 7, following: true, followingKnown: true, counts: { followers: 10 } });
+  unsubscribe();
+  assert.equal(woke, 1, 'un singur anunț pentru o singură schimbare');
+  assert.equal(relations.relationsVersion(), versionAfterFirst, 'versiunea nu se mișcă dacă nimic nu s-a schimbat');
+  assert.equal(second.at, first.at, 'un payload identic nu rescrie nici măcar momentul citirii');
+  assert.deepEqual(second.counts, { followers: 10 });
+});
+
+test('a fact that really moves still wakes the screens', () => {
+  reset();
+  relations.remember({ userId: 7, following: false, followingKnown: true });
+  let woke = 0;
+  const unsubscribe = relations.subscribeRelations(() => { woke += 1; });
+  relations.remember({ userId: 7, following: true });
+  relations.remember({ userId: 7, counts: { followers: 11 } });
+  unsubscribe();
+  assert.equal(woke, 2, 'urmărirea și un contor schimbat sunt două știri');
+  assert.equal(relations.relationOf(7).following, true);
+  assert.equal(relations.relationOf(7).counts.followers, 11);
+});
+
+test('the whole profile envelope, read twice, notifies once — the reload loop cannot restart', () => {
+  reset();
+  const envelope = {
+    profile: { user_id: 20, handle: 'wallet4e8gv6', is_following: false, following_me: false, visibility: 'public', counts: { followers: 3, posts: 10 } },
+    posts: [
+      { id: 38, user_id: 20, author: { id: 20 }, muted_by_me: false },
+      { id: 34, user_id: 20, author: { id: 20 }, muted_by_me: false },
+    ],
+  };
+  let woke = 0;
+  const unsubscribe = relations.subscribeRelations(() => { woke += 1; });
+  relations.rememberPayload(envelope);
+  const afterFirstRead = woke;
+  relations.rememberPayload(JSON.parse(JSON.stringify(envelope)));
+  unsubscribe();
+  assert.ok(afterFirstRead >= 1, 'prima citire învață ceva');
+  assert.equal(woke, afterFirstRead, 'a doua citire identică nu mai anunță nimic, deci nu mai reîncarcă profilul');
+});
+
 
 
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import {
   ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
 } from 'react-native';
@@ -109,7 +110,7 @@ export function WalletScreen({ onClose, initialSheet = 'income' }: {
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        {loading ? <ActivityIndicator color="#5cf6e7" style={styles.spinner} /> : null}
+        {loading ? <ActivityIndicator color={blackSilver.silver} style={styles.spinner} /> : null}
         {error ? (
           <View style={styles.errorRow}>
             <Text style={styles.error}>{error}</Text>
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
     backgroundColor: jungle.surfaceRaised,
   },
   retryLabel: { color: '#eaf6ff', fontSize: 13, fontWeight: '800' },
-  notice: { color: '#5cf6e7', fontSize: 13, lineHeight: 18 },
+  notice: { color: blackSilver.silver, fontSize: 13, lineHeight: 18 },
   hero: { padding: 16, borderRadius: 18, backgroundColor: jungle.surface, borderWidth: 1, borderColor: jungle.border, gap: 4 },
   heroLabel: { color: '#8fa3b4', fontSize: 12, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
   heroValue: { color: jungle.text, fontSize: 28, fontWeight: '900' },

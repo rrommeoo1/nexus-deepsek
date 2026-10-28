@@ -13,7 +13,19 @@ const PATHS = {
   views: 'M3.1 17.7h2.5V12H3.1v5.7Zm5.1 0h2.5V8.6H8.2v9.1Zm5.1 0h2.5V5.2h-2.5v12.5Zm5.1 0h2.5V2.5h-2.5v15.2Z',
 } as const;
 
-export type SolidViewerIconKind = keyof typeof PATHS | 'more' | 'back';
+/**
+ * The **empty** heart of the reaction press, drawn instead of printed.
+ *
+ * Round 31 (owner, 31 October 2026): „inima este încă neagră". The untouched press printed an emoji —
+ * 🤍 at night, 🖤 on a page of words — and the black one was exactly the defect: three marks in the
+ * palette's silver, and a fourth in the platform's own black-hearted emoji. A glyph that has to match its
+ * neighbours cannot be an emoji, because an emoji is a different drawing on every device and paints
+ * itself. This is the same heart `PATHS.heart` traced as an outline, stroked in the caller's ink, so the
+ * Like press is a *mark* like Comment, Save and Share, at the same weight and in the same colour.
+ */
+const HEART_LINE = 'M12 20.4 4.95 13.5a4.75 4.75 0 0 1 6.72-6.72l.33.33.33-.33a4.75 4.75 0 0 1 6.72 6.72Z';
+
+export type SolidViewerIconKind = keyof typeof PATHS | 'more' | 'back' | 'heartLine';
 
 export function SolidViewerIcon({ kind, size = 29, color = '#ffffff' }: {
   kind: SolidViewerIconKind;
@@ -24,7 +36,8 @@ export function SolidViewerIcon({ kind, size = 29, color = '#ffffff' }: {
     <Svg width={size} height={size} viewBox="0 0 24 24" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       {kind === 'more' ? <><Circle cx={5} cy={12} r={2.1} fill={color} /><Circle cx={12} cy={12} r={2.1} fill={color} /><Circle cx={19} cy={12} r={2.1} fill={color} /></>
         : kind === 'back' ? <Path d="M14.8 4.7 7.5 12l7.3 7.3M7.8 12H21" fill="none" stroke={color} strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" />
-          : <Path d={PATHS[kind]} fill={color} />}
+          : kind === 'heartLine' ? <Path d={HEART_LINE} fill="none" stroke={color} strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" />
+            : <Path d={PATHS[kind]} fill={color} />}
     </Svg>
   );
 }

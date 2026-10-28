@@ -8,3 +8,9 @@ docs/design-refs/
 
 # Orice fișier pe care validate-images.ps1 l-a declarat corupt.
 **/*.bad
+
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif

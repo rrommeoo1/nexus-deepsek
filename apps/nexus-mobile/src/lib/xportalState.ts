@@ -10,7 +10,13 @@
  * two the phone owns: `idle` before the page speaks, and `expired` when nothing came back in
  * `XPORTAL_WAIT_SECONDS`.
  */
-export const XPORTAL_WAIT_SECONDS = 120;
+/**
+ * The same window the server and the bridge page use (`apps/nexus-web/public/xportal-bridge.js`,
+ * `wc-client.js`: `PROVIDER_TIMEOUT_MS = 300_000`). A shorter one here made the sheet announce
+ * "nu a confirmat în 2 minute" while the request was still alive on the relay, and a real approval
+ * took up to 184 s in measurement — so the countdown has to outlast the slowest delivery.
+ */
+export const XPORTAL_WAIT_SECONDS = 300;
 
 export type XPortalStage =
   /** Nothing started (sheet closed or not shown yet). */

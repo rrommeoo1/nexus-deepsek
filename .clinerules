@@ -5,21 +5,49 @@ capturi de ecran, paritate vizuală sau telefonul.
 
 ## Imagini (regula care a blocat deja un task)
 
-a. Se citesc imagini **numai** din `docs/vision/`, după ce au trecut prin
-   `tools/images/validate-images.ps1`. `docs/screens/`, `docs/parity-report/`,
-   `docs/web-ref/` și `docs/design-refs/` sunt în `.clineignore` și nu se deschid niciodată.
-b. Niciodată o imagine nevalidată. Un fișier `.bad` nu se citește, nu se redenumește înapoi
-   și nu se „încearcă o dată, poate merge”. Un singur fișier invalid citit blochează task-ul.
-c. Cel mult **o imagine pe rând**. După fiecare imagine se scrie observația, apoi se trece la
+a. Se citesc imagini **numai** din `JUNGLE_BOOK_VERIFICATION/final_jpg/` (dovezile publicate) și
+   din `docs/vision/`, după ce au trecut prin `tools/images/validate-images.ps1`. `docs/screens/`,
+   `docs/parity-report/`, `docs/web-ref/` și `docs/design-refs/` sunt în `.clineignore` și nu se
+   deschid niciodată.
+b. Niciodată o imagine nevalidată. Un fișier `.bad` nu se citește și nu se „încearcă o dată, poate
+   merge”. Un singur fișier invalid citit blochează task-ul.
+c. **Un sufix `.bad` nu este dovadă de corupție.** Dintre cele 832 de fișiere `.bad` găsite în repo,
+   805 erau PNG-uri complete, care se decodesc; fuseseră carantinate pe un eșec tranzitoriu. De
+   aceea: carantina se anulează numai prin `tools/images/validate-images.ps1 -Path <dir> -RestoreBad`
+   (re-decodează fișierul și îi dă numele înapoi doar dacă trece); nu se redenumește manual și nu
+   se șterge nimic. `validate-images.ps1` nu mai carantinează fișierele **ocupate** (scrise chiar
+   acum de alt proces). `-RestoreBad` repară și capturile cu text în față: dacă semnătura PNG
+   apare după linia `[Warning] Multiple displays…`, prefixul se taie și fișierul se păstrează
+   numai dacă restul se decodează complet (verificat pe `builds` și pe un folder de test).
+d. Cel mult **o imagine pe rând**. După fiecare imagine se scrie observația, apoi se trece la
    următoarea. Niciodată două capturi în același mesaj.
-d. Dacă apare eroarea de imagine („unsupported image”, „could not process image” etc.):
+e. Dacă apare eroarea de imagine („unsupported image”, „could not process image” etc.):
    **oprește-te imediat**. Nu mai încerca altă imagine în același task. Scrie în `HANDOFF.md`
    ce s-a întâmplat, ce era de verificat și ce urmează, apoi cere owner-ului un task nou.
-e. Nu se folosește `>` pentru fișiere binare în PowerShell. Capturile se fac exclusiv cu
-   `tools/images/safe-screencap.ps1 -Name <nume>` (screencap pe telefon → `adb pull` →
-   validare → JPEG 900 px în `docs/vision/`).
-f. `HANDOFF.md` se actualizează după fiecare lot de lucru (înainte de commit), ca o sesiune
+f. Nu se folosește `>` pentru fișiere binare în PowerShell. Capturile se fac exclusiv cu
+   `scripts/capture-android-screen.ps1` (screencap `-d <id>` cu flux brut → validare structură PNG
+   → decodare completă → gardă anti-cadru-negru → JPG → publicare fără suprascriere).
+   `tools/images/safe-screencap.ps1` și `apps/nexus-mobile/scripts/capture-screen.ps1` sunt doar
+   wrappere peste el, pentru apelurile vechi; nu li se adaugă logică.
+g. `HANDOFF.md` se actualizează după fiecare lot de lucru (înainte de commit), ca o sesiune
    nouă să poată continua fără să recitească tot istoricul.
+
+## Flux obligatoriu pentru orice schimbare de UI
+
+CODE → BUILD → DEVICE TEST → JPG CAPTURE → VALIDATE → VISUAL INSPECT → REPORT.
+Fiecare pas lasă o dovadă; lipsa dovezii înseamnă pas neexecutat.
+
+- **JPG ≠ dovadă de UI.** Un fișier JPG valid dovedește doar că s-a capturat un ecran. Dovada e
+  JPG-ul **citit** și descris (ce text, ce poziții, ce elemente lipsesc), nu existența fișierului.
+- Un cadru **negru** sau un **spinner** nu este dovadă. Unealta iese cu codul 10 și nu publică
+  nimic; se reia cu `-Wake -SettleSeconds <n>` după ce ecranul chiar s-a încărcat.
+- Telefonul expune **două display-uri** (1220x2656 intern + 904x572 subscreen). `screencap` fără
+  `-d` scrie „[Warning] Multiple displays were found…” pe stdout, în fața octeților PNG: aceea este
+  cauza istorică a capturilor „corupte”, nu un bug de conversie. Nu se rulează `screencap` manual.
+- Rezultatul fiecărei capturi se citește din `RESULT_JSON:` (sau din
+  `JUNGLE_BOOK_VERIFICATION/diagnostics/logs/`), împreună cu codul de ieșire: 0 ok, 2 adb,
+  3 niciun dispozitiv, 4 captură, 5 PNG invalid, 6 JPG invalid, 7 altă captură rulează,
+  8 eroare neașteptată, 9 focus greșit, 10 cadru gol.
 
 ## Verificări vizuale
 
@@ -28,8 +56,11 @@ f. `HANDOFF.md` se actualizează după fiecare lot de lucru (înainte de commit)
 
 - O verificare vizuală înseamnă o imagine din `docs/vision/` citită o singură dată, apoi
   numerele măsurate (px fizici ÷ 2.6, `uiautomator dump`) scrise în raport.
-- Capturile noi se fac numai cu aplicația în prim-plan: `app.nexus.mobile.dev`. Focusul se
-  verifică înainte de fiecare input (`dumpsys window | findstr mCurrentFocus`).
+- Capturile noi se fac numai cu aplicația în prim-plan: `app.nexus.mobile.dev`, cu
+  `scripts/capture-android-screen.ps1 -Wake -StrictFocus` (focusul se verifică și înainte de
+  fiecare input: `dumpsys window | findstr mCurrentFocus`). Dovezile publicate stau în
+  `JUNGLE_BOOK_VERIFICATION/final_jpg/`, iar eșecurile, cu motivul lor în clar, în
+  `JUNGLE_BOOK_VERIFICATION/diagnostics/`.
 - Fără cortina de notificări, fără Home, fără Back, fără modificarea setărilor telefonului.
 - `uiautomator dump` cere `idle`; pe ecranele cu animație continuă se folosește
   `device-batch.ps1 -ReduceMotion`, care pune scalele la loc în `finally`.

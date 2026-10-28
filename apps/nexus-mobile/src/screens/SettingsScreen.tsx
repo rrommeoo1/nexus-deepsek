@@ -21,7 +21,7 @@ export function SettingsScreen({
   server = '',
 }: {
   onClose: () => void;
-  /** `Android 0.1.0 · API: Railway`, the same line the menu's foot prints. */
+  /** `Android 0.1.0 · API: local`, the same line the menu's foot prints. */
   version: string;
   /** The version of the web build serving this account, when the server answers with one. */
   server?: string;

@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { blackSilver } from '../theme/blackSilver';
 import type { GestureResponderHandlers } from 'react-native';
 import { router } from 'expo-router';
 import { RemoteImage } from './PostMedia';
@@ -319,7 +320,7 @@ const styles = StyleSheet.create({
     borderRadius: socialTokens.archive.tilePlayRadius, backgroundColor: 'rgba(6,11,17,0.78)',
     borderWidth: 1, borderColor: 'rgba(255,255,255,0.22)',
   },
-  manageChipOn: { borderColor: socialTokens.archive.tilePinnedFirstEdge, backgroundColor: 'rgba(13,42,44,0.9)' },
+  manageChipOn: { borderColor: socialTokens.archive.tilePinnedFirstEdge, backgroundColor: blackSilver.graphite },
   manageChipOff: { opacity: 0.45 },
   manageChipDelete: { borderColor: 'rgba(255,90,110,0.5)' },
   manageChipGlyph: { fontSize: 16, lineHeight: 18 },
@@ -346,7 +347,7 @@ const styles = StyleSheet.create({
    * cells when the target changes.
    */
   tileHole: {
-    backgroundColor: 'rgba(13,42,44,0.55)',
+    backgroundColor: 'rgba(28,30,32,0.55)',
     borderWidth: 2, borderStyle: 'dashed', borderColor: socialTokens.archive.tilePinnedFirstEdge,
   },
 });

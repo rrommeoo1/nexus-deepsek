@@ -1,24 +1,46 @@
+import { blackSilver } from './blackSilver';
+
 /**
- * The "jungle" palette, in one place.
+ * The field the app sits on — now Matte Black + Silver, and no longer a fruit bowl.
  *
- * Every colour here is derived from the mark itself, measured — not guessed — by
- * `tools/brand/sample-palette.ps1`, which buckets the opaque pixels of `jb-mark-1024.png` and assigns
- * them to the eight fruits of the book. The run of 17 October 2026 gave:
+ * This module used to be the *measured* jungle (round 16): the field was a leaf green (`#02150D`) sampled
+ * from the JB logo, the primary action was kiwi (`#8BD04A`), the open tab was banana (`#F5D33C`) and the
+ * top corners wore eight fruit rings. Every one of those values was derived from the artwork, which is
+ * exactly why they were right as artwork and wrong as UI: the logo is a drawing, the interface is chrome.
  *
- *   leaf 38,4 % · mango 23,6 % · raspberry 14,7 % · kiwi 9,5 % · banana 7,5 % · papaya 6,2 %
- *   blueberry 0,1 % · passionfruit 0,04 %
+ * Round 31 (owner, 31 October 2026) asked for one identity — „MATTE BLACK + SILVER" — and for the green,
+ * teal and yellow branding to go. Rather than teach forty screens a new vocabulary, the jungle keeps its
+ * names and reads its values from `theme/blackSilver.ts`; the table below is the whole migration:
  *
- * and the dominant buckets were `#E47424` (mango), `#EC7424` (papaya), `#F4AC04`/`#FCB404` (banana) and
- * the deep greens `#1C3404`, `#243C04`. So the field the app sits on is a dark leaf green (not pure
- * black), the primary action is kiwi, and the fruits are accents with reduced saturation — a fruit bowl,
- * not a carnival. Media surfaces stay black: a video is not tinted by a theme.
+ *   canvas          #02150D  leaf green        →  matteBlack  #101113
+ *   surface         #04201A  leaf              →  graphite    #1C1E20
+ *   surfaceRaised   #062A22  leaf              →  elevated    #242629
+ *   sheet           #062A22  leaf              →  graphite    #1C1E20
+ *   border          green 22 %                 →  silver 22 %
+ *   borderStrong    kiwi 34 %                  →  silver 42 %
+ *   primary         #8BD04A  kiwi              →  silver      #C4C7CB
+ *   primaryPressed  #7CC03D  kiwi              →  bright      #E1E3E5
+ *   primaryInk      #04160B  leaf-black        →  onSilver    #101113
+ *   text            #F2FBF5  mint white        →  bright      #E1E3E5
+ *   textMuted       #9FB8AB  sage              →  silver      #C4C7CB
+ *   textQuiet       #7E9C8D  sage              →  muted       #A5A5A5
+ *   navActive       #F5D33C  banana            →  bright      #E1E3E5
+ *   navIdle         #8FA79A  sage              →  muted       #A5A5A5
  *
- * Numeric rule that `scripts/test-theme-contrast.cjs` enforces: every text-on-surface pair below is at
- * least 4.5:1 (WCAG AA for normal text). The test computes them; this comment is the promise.
+ * What stays: `FRUIT` — the measured pigments of the fruit logo itself. They are the *drawing's* colours,
+ * not a branding accent, so the artwork is preserved exactly as the owner asked; no surface paints with
+ * them any more (`fruitRing`/`fruitWash` below are the metal now). `media` stays black, because a
+ * photograph is never tinted by a theme, and `dangerInk` stays the lifted raspberry, because a refusal is
+ * meaning and not decoration.
  */
 export type JungleFruit = 'banana' | 'mango' | 'papaya' | 'kiwi' | 'leaf' | 'raspberry' | 'blueberry' | 'passionfruit';
 
-/** The measured references, kept as the source of the accents (no alpha; see `ring` for tints). */
+/**
+ * The measured references of the artwork (`tools/brand/sample-palette.ps1`, run of 17 October 2026).
+ *
+ * Kept verbatim and **never painted as chrome**: these are the pigments of `jb-mark-1024.png` — the logo
+ * the owner asked to keep. A surface that wants a colour takes it from `blackSilver`.
+ */
 export const FRUIT: Record<JungleFruit, string> = {
   banana: '#F5D33C',
   mango: '#F59B2E',
@@ -31,72 +53,62 @@ export const FRUIT: Record<JungleFruit, string> = {
 };
 
 export const jungle = {
-  /** The field: a leaf green so dark it reads as black at a glance, but is not black. */
-  canvas: '#02150D',
-  /** Surfaces that sit on the field: one step lighter, never pure grey. */
-  surface: '#04201A',
-  surfaceRaised: '#062A22',
+  /** The field: matte black. */
+  canvas: blackSilver.matteBlack,
+  /** Surfaces that sit on the field: graphite, one step up. */
+  surface: blackSilver.graphite,
+  surfaceRaised: blackSilver.elevated,
   /** The sheet and dialog surface (the drawer, the menus, the bottom sheets). */
-  sheet: '#062A22',
-  /** Hairlines: green, attenuated — never a white rule. */
-  border: 'rgba(112,164,130,0.22)',
-  borderStrong: 'rgba(139,208,74,0.34)',
-  /** The primary action: kiwi, filled, with the field as its ink. */
-  primary: '#8BD04A',
-  primaryPressed: '#7CC03D',
-  primaryInk: '#04160B',
+  sheet: blackSilver.graphite,
+  /** Hairlines: the metal, attenuated — never a white rule. */
+  border: blackSilver.hairline,
+  borderStrong: blackSilver.hairlineStrong,
+  /** The primary action: silver, with the field as its ink. */
+  primary: blackSilver.silver,
+  primaryPressed: blackSilver.bright,
+  primaryInk: blackSilver.onSilver,
   /** Secondary ink and words. */
-  text: '#F2FBF5',
-  textMuted: '#9FB8AB',
-  textQuiet: '#7E9C8D',
-  /** The bottom bar: the open mark is banana, the rest is a green-grey. */
-  navActive: '#F5D33C',
-  navIdle: '#8FA79A',
-  /** Words that warn (a refused payout, a blocked action) — the raspberry lifted until it reads at 4.5:1. */
+  text: blackSilver.text,
+  textMuted: blackSilver.textMuted,
+  textQuiet: blackSilver.textQuiet,
+  /** The bottom bar: the open mark is bright silver, the rest is muted silver. */
+  navActive: blackSilver.bright,
+  navIdle: blackSilver.muted,
+  /** Words that warn (a refused payout, a blocked action) — meaning, kept. */
   dangerInk: '#FF6B8A',
   /** Media is not part of the theme: video, photo, story, camera and viewers keep black. */
-  media: '#000000',
+  media: blackSilver.media,
 } as const;
 
 /**
- * The discreet fruit ring: a 1 px edge on the round entries of the top corners, one fruit per door and
- * each at low saturation, so the row reads as one family instead of five colours.
+ * The five doors of the top corners. They used to wear one fruit each (a kiwi here, a mango there); with
+ * the identity unified they wear the metal instead — a quiet hairline and a wash of the same, so the row
+ * still reads as one family and no door is greener than its neighbour.
  */
 export const fruitRing: Record<'module' | 'menu' | 'share' | 'bell' | 'logout', string> = {
-  module: 'rgba(245,211,60,0.34)',
-  menu: 'rgba(139,208,74,0.34)',
-  share: 'rgba(245,122,74,0.32)',
-  bell: 'rgba(245,155,46,0.32)',
-  logout: 'rgba(214,51,87,0.34)',
+  module: blackSilver.hairlineStrong,
+  menu: blackSilver.hairlineStrong,
+  share: blackSilver.hairline,
+  bell: blackSilver.hairline,
+  logout: blackSilver.hairline,
 };
 
-/** The same five doors, as surfaces: the ring's fruit, mixed into the field at 8–12 %. */
+/** The same five doors, as surfaces: the metal washed into the field at 8 %. */
 export const fruitWash: Record<'module' | 'menu' | 'share' | 'bell' | 'logout', string> = {
-  module: 'rgba(245,211,60,0.08)',
-  menu: 'rgba(139,208,74,0.08)',
-  share: 'rgba(245,122,74,0.08)',
-  bell: 'rgba(245,155,46,0.08)',
-  logout: 'rgba(214,51,87,0.08)',
+  module: blackSilver.wash,
+  menu: blackSilver.wash,
+  share: blackSilver.wash,
+  bell: blackSilver.wash,
+  logout: blackSilver.wash,
 };
 
-/** WCAG relative luminance of `#rrggbb`, for the contrast test and for anything that needs to check. */
-export function luminance(hex: string): number {
-  const value = hex.replace('#', '');
-  const channels = [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16) / 255);
-  const linear = channels.map((channel) => (channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-}
+/**
+ * WCAG relative luminance and contrast. Re-exported from `blackSilver` so the contrast arithmetic lives
+ * with the palette it measures, while `test-theme-contrast.cjs` keeps reading it from here.
+ */
+export { contrast, luminance } from './blackSilver';
 
-/** The contrast ratio between two `#rrggbb` colours, as WCAG defines it. */
-export function contrast(a: string, b: string): number {
-  const first = luminance(a);
-  const second = luminance(b);
-  const light = Math.max(first, second);
-  const dark = Math.min(first, second);
-  return (light + 0.05) / (dark + 0.05);
-}
-
-/** Every text-on-surface pair the theme actually paints. The contrast test walks this list. */
+/** Every text-on-surface pair this palette paints. `scripts/test-theme-contrast.cjs` walks the list. */
 export const TEXT_PAIRS: ReadonlyArray<{ name: string; ink: string; surface: string }> = [
   { name: 'text pe canvas', ink: jungle.text, surface: jungle.canvas },
   { name: 'text pe surface', ink: jungle.text, surface: jungle.surface },
@@ -107,9 +119,7 @@ export const TEXT_PAIRS: ReadonlyArray<{ name: string; ink: string; surface: str
   { name: 'textMuted pe sheet', ink: jungle.textMuted, surface: jungle.sheet },
   { name: 'textQuiet pe canvas', ink: jungle.textQuiet, surface: jungle.canvas },
   { name: 'ink pe primary', ink: jungle.primaryInk, surface: jungle.primary },
-  { name: 'canvas pe banana', ink: jungle.canvas, surface: FRUIT.banana },
   { name: 'navActive pe canvas', ink: jungle.navActive, surface: jungle.canvas },
   { name: 'navIdle pe canvas', ink: jungle.navIdle, surface: jungle.canvas },
-  { name: 'leaf pe canvas', ink: FRUIT.leaf, surface: jungle.canvas },
   { name: 'dangerInk pe canvas', ink: jungle.dangerInk, surface: jungle.canvas },
 ];

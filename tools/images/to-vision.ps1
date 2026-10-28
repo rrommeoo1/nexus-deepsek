@@ -71,8 +71,10 @@ foreach ($file in $images) {
   $relative = $file.FullName.Substring($root.Length).TrimStart('\')
 
   if (-not $check.Ok) {
-    $skipped.Add([pscustomobject]@{ Path = $relative; Why = $check.Why })
-    Write-Host ("[vision] SĂRIT {0}: {1}" -f $relative, $check.Why)
+    # WebP fără codec are antet bun dar nu se poate desena: `Why` e gol, motivul stă în `Note`.
+    $reason = if ($check.Why) { $check.Why } else { $check.Note }
+    $skipped.Add([pscustomobject]@{ Path = $relative; Why = $reason })
+    Write-Host ("[vision] SĂRIT {0}: {1}" -f $relative, $reason)
     continue
   }
   if (-not $check.Decoded) {

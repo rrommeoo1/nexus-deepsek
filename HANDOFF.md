@@ -1,9 +1,706 @@
+## 0.34 Totul local: implicitul remote scos, cele șase fețe pe backend-ul PC-ului, emoji la cursor (28 octombrie 2026)
+
+**Decizia owner-ului:** Jungle Book rulează în întregime pe PC. Railway nu este backendul dorit și nu se
+face niciun deployment acolo. Telefonul vorbește cu PC-ul.
+
+**Starea, într-o propoziție:** aplicația era deja locală în fapt (serviciu `tools/local-backend`, port
+5000, `C:\Nexus\data`, media conținut-adresată), dar mai avea două **implicituri** care puteau trimite un
+build pe un host remote — `apiOrigin.ts` și `tools/dev-start.ps1` — iar emoji-ul „la cursor" nu putea fi
+atins de pe telefon. Amândouă sunt închise și dovedite.
+
+### Ce s-a schimbat
+
+| fișier | schimbare |
+| --- | --- |
+| `apps/nexus-mobile/src/lib/apiOrigin.ts` | `HOSTED_ORIGIN` (Railway) **scos**; treapta a treia este `http://localhost:5000` prin `adb reverse tcp:5000`, anunțată pe consolă; `apiOriginLabel` nu mai are nume special pentru un host străin |
+| `apps/nexus-mobile/scripts/test-api-origin.cjs` | rescris: 8 teste, inclusiv „niciun host remote în surse" și „singurele URL-uri din rezolvare sunt locale" |
+| `tools/dev-start.ps1` | originea API derivată local (env → LAN → loopback), `adb reverse tcp:5000` când e loopback, rezumatul tipărește originea; verificat cu `Parser::ParseFile` |
+| `apps/nexus-mobile/builds/metro-railway.cmd` | retras (întoarce codul 3 și trimite la `builds\metro-local.cmd`, care citește `.env`) |
+| `CommentsSheet.tsx`, `CaptureEditor.tsx` | textele vizibile nu mai numesc Railway („serverul", „selecția semnată de server") |
+| comentarii `publishClient`, `capturePublish`, `commentNavigation`, `postInteractions`, `ProfileMenuSheet`, `SettingsScreen` | rescrise la „server" |
+| `apps/nexus-mobile/src/lib/postOrigin.ts` | **doar AI** primește etichetă: „Asistat de AI" / „Generat cu AI"; cameră, autor obișnuit și nedeclarat nu tipăresc nimic; prefixul „Declarat:" scos; valoarea salvată și validarea neatinse |
+| `apps/nexus-mobile/scripts/test-post-origin.cjs` | rescris: 5 teste, ține regula de mai sus |
+| `apps/nexus-mobile/src/components/EditorialPage.tsx` | **`lastCaretRef`**: cursorul supraviețuiește închiderii câmpului, deci emoji-ul apăsat după „Gata" intră la cursor, nu la coada paragrafului |
+| `apps/nexus-mobile/scripts/test-text-field.cjs` | al zecelea test: contractul cursorului reținut |
+| `apps/nexus-web/scripts/text-faces-http-e2e.mjs` + `npm run test:text-faces` | **nou**: 144 de publicări (6 fețe × 4 mărimi × 6 teme) prin HTTP real, pe un director temporar, plus citire, arhivă și rândul din SQLite |
+| `tools/local-backend/audit-local.mjs` | **nou**: audit read-only al instanței vii (health, version, bază, hash-uri de media, HTTP de media, citiri autentificate opționale) |
+| `tools/remote-access/start-quick-tunnel.ps1` | reparat: `?.Source` nu există în PowerShell 5.1 (scriptul nu pornea deloc) |
+| `docs/DEV-WORKFLOW.md`, `docs/22-local-to-hosted.md`, `apps/nexus-mobile/README.md`, `apps/nexus-mobile/.env.example` | descriu noul implicit local, fără să șteargă istoricul |
+
+### Dovezi
+
+* `apps/nexus-web`: `node --test test/*.test.js` — **862 teste, 0 eșecuri**.
+* `apps/nexus-mobile`: `npm test` — **58 de fișiere, 0 eșecuri**; `tsc --noEmit` exit 0.
+* `npm run test:text-faces`: **PASS** — 144/144 acceptate și întoarse identic, toate cele șase fețe la
+  `xlarge`, `144/144` rânduri identice în bază, pagina în arhivă.
+* `audit-local.mjs --handle wallet4e8gv6` pe instanța vie: **toate PASS** — `/health` și
+  `SELECT COUNT(*)` egale (9 conturi, 48 de postări), 24 de fișiere media cu hash și dimensiune corecte,
+  media prin HTTP, `/api/me`, feed (20), arhivă (21: text 7, image 13, video 1), detaliu postare.
+* Repornire controlată: `stop-backend.ps1` → „backend stopped cleanly" → `start-backend.ps1` → supervisor
+  nou, `healthy: true`, `data dir C:\Nexus\data`; auditul a trecut din nou; telefonul a reîncărcat și a
+  arătat aceeași postare.
+* Pe telefon (MIX Flip, `focusOk: true`, fiecare captură citită):
+  `r34_feed_after_origin_change.jpg` (postarea #52, `CAMERA_CAPTURED_DECLARED`, **fără** linie de origine),
+  `r34_emoji_at_caret.jpg` (`A😀na are mere.` — emoji la offset 1), `r34_emoji_mid_sentence.jpg`
+  (`A😀na are mer😀e.` — cursorul vizibil după al doilea emoji), `r34_after_restart.jpg` (aceeași postare
+  după repornirea serviciului).
+* Dinspre server (`C:\Nexus\logs\server-2026-10-28.log`, `NEXUS_REQUEST_LOG=1`): **47 de cereri de la
+  `192.168.1.184` cu `okhttp/4.12.0`**, pe 9 rute, toate `200`/`202` — telefonul vorbește cu PC-ul.
+
+### Ce rămâne deschis
+
+1. **Retragerea Railway** este documentată, nu executată: fără CLI/`~/.railway`/`RAILWAY_TOKEN` pe acest
+   PC, inventarul platformei (servicii, volum, domenii, backup-uri) cere dashboard-ul owner-ului. Datele și
+   media sunt locale (exportul din 27 octombrie: 8 conturi, 36 de postări, 20 de fișiere, 0 eșuate; importul
+   a raportat `integrity: ok`), dar „oprește/șterge" cere confirmare separată. Nimic remote nu a fost atins.
+2. **O pagină „Mașină" publicată de owner** — serverul local o acceptă (matricea de 144), publicarea reală
+   este a lui.
+3. **Eticheta „Asistat de AI" pe ecran** — nu există nicio postare cu acea valoare; a crea una ar însemna
+   conținut publicat sau provenance modificat fără aprobare. Regula e ținută de 5 teste.
+4. **Scrieri sociale pe datele reale** (comentariu, reacție, salvare, follow, editare profil, upload) —
+   NEVERIFICATE pe instanța vie, acoperite de suita backend și de e2e-urile temporare.
+5. **Emoji**: înlocuirea unui interval selectat și emoji lângă rând nou sunt doar în teste pure.
+6. **Webul** (`apps/nexus-web`) nu are nici eticheta de origine, nici poarta de contract (§31.5.6).
+7. **O sesiune de audit** a fost scrisă în `sessions` (`device_id = "audit"`, „audit runda 34") de
+   `audit-local.mjs --handle`; se poate închide ca orice sesiune.
+8. **Rundele 20–34 sunt necomise** pe `codex/camera-draft-stability`; commitul cere aprobarea owner-ului.
+
+
+## 0.33 „Mașină" refuzată la publicare, emoji la cursor, originea conținutului pe pagină (28 octombrie 2026)
+
+*Jurnalul complet al rundei este în `JUNGLE_BOOK_PROGRESS.md` §33. Runda 32 rămâne imediat sub ea (§0.32).*
+
+**Ce s-a cerut.** Trei defecte: (1) o pagină scrisă în litera **Mașină** (`slab`) — și în `casual`,
+`condensed`, `xlarge` — e refuzată la `Publică` cu „Alege o temă din listă", deși tema era aleasă; (2) un emoji
+apăsat cu cursorul la mijlocul frazei apare **la sfârșitul** paragrafului; (3) originea conținutului
+(declarația autorului: cameră / asistat de AI / generat cu AI) nu se vede pe postarea publicată, nici în feed,
+nici în profil.
+
+**Cauza refuzului (nu era în client).** `apps/nexus-web/lib/post-text-style.js` are șase fețe **în arborele de
+lucru**; deployment-ul Railway (`e74f8ff`) are allowlist-ul de trei fețe. `normalizeTextStyle` întoarce `null`
+pentru `slab`, ruta răspunde `TEXT_STYLE_INVALID`, iar editorul nu poate tipări altceva decât mesajul generic
+al câmpului. Telefonul nu avea cum să afle allowlist-ul: `GET /api/version` publica `text_style: 1` pentru
+ambele servere. Reparația este contractul, nu o constantă în client.
+
+**Ce s-a schimbat.**
+
+- `apps/nexus-web/lib/build-info.js` — `text_style: 2`, cu comentariul celor două înțelegeri (`1` = trei fețe
+  și trei mărimi; `2` = șase fețe și `xlarge`); un client care cere `1` trece pe un server `2`.
+- `apps/nexus-mobile/src/lib/backendVersion.ts` — `TEXT_STYLE_CAPABILITY_V2`, `TEXT_STYLE_V2_FONTS`,
+  `TEXT_STYLE_V2_SIZES`, `BACKEND_TEXT_STYLE_OLDER` + mesaj, `textStyleNeedsV2`, `textStyleV2Refusal` (numește
+  litera: „litera «Mașină» (slab)") și `requireTextStyleContract(style)`: server `>=2` ⇒ trimite; server `1`
+  ⇒ refuz înainte de POST, cu propoziția că textul rămâne pe telefon; server mut ⇒ `null` (nu blochează);
+  pagină în fețele vechi ⇒ nicio cerere.
+- `apps/nexus-mobile/src/app/text.tsx` — `await requireTextStyleContract(draft.style)` înaintea lui
+  `requirePageCapabilities()` și a încărcării fișierelor; `PUBLISH_TEXT_STYLE` spune acum „temă, literă, mărime
+  sau așezare" (nu doar „temă").
+- `apps/nexus-mobile/src/lib/textInsert.ts` (nou, pur) — `snapOffset`/`snapSelection` (taie la pagină, ordonă,
+  scoate cursorul din mijlocul perechii surrogate) și `insertAtSelection(text, addition, selection)` →
+  `{ text, caret }`; cursorul întors hrănește inserarea următoare.
+- `apps/nexus-mobile/src/components/EditorialPage.tsx` — `field` = `{ blockId, text, caret, selection }`;
+  `onSelectionChange` **păstrează** intervalul (`snapSelection`) în loc să-l arunce; `openField` ține locul
+  atingerii și ca prim interval; efectul de inserare scrie la `selection ?? caret ?? text.length` și lasă
+  cursorul după emoji.
+- `apps/nexus-mobile/src/lib/socialTypes.ts` + `src/lib/postOrigin.ts` (nou) — `SocialPost.provenance`;
+  `POST_ORIGIN_LABELS` („Declarat: cameră" / „Declarat: asistat de AI" / „Declarat: generat cu AI"),
+  `POST_ORIGIN_HINT`, `originOf(post)`: `NOT_DECLARED`, absent sau necunoscut ⇒ `''` (nimic desenat, nicio
+  re-etichetare „creat de autor").
+- `apps/nexus-mobile/src/components/PostCanvas.tsx` + `src/lib/postChrome.ts` — a treia linie din antet, sub
+  loc, aliniată cu numele (`marginLeft: head.disc + 8`), **în afara** `Pressable`-ului de profil, `numberOfLines`
+  = `POST_HEAD.originLines` (2), `accessibilityLabel` = eticheta + `POST_ORIGIN_HINT`; celula de arhivă
+  (`tile`) nu o desenează.
+- Teste noi: `apps/nexus-web/test/post-text-faces.test.js` (5 cazuri, matrice 144), `apps/nexus-web/test/
+  post-content-origin.test.js` (4), `apps/nexus-mobile/scripts/test-text-insert.cjs` (11),
+  `scripts/test-post-origin.cjs` (5); `test-backend-version.cjs` (+4 cazuri v2 și aserțiunea `text_style: 2`),
+  iar `test-text-field.cjs` / `test-text-integrity.cjs` au fost aduse la adevărul nou. Ambele fișiere noi de
+  test sunt în lanțurile `npm test` / `node --test`.
+
+**Dovezi.** `apps/nexus-web`: **862 teste, 0 eșecuri**. `apps/nexus-mobile`: **58 de fișiere, 0 eșecuri**;
+`tsc --noEmit` exit 0. Backend local repornit (rula din 27 octombrie cu amprenta în memorie): `/api/version`
+dă acum `text_style: 2`, `source_fingerprint c34cf0d2…`, iar poarta telefonului, întrebată pe viu, acceptă
+`slab`, `casual`+`xlarge`, `condensed` și lasă `serif` fără poartă. Pe telefon (Xiaomi MIX Flip, 2,6 px/dp):
+`JUNGLE_BOOK_VERIFICATION/final_jpg/r33_reader_after_reload.jpg` arată pagina de text din profil cu linia
+**„Declarat: cameră"** sub loc; `uiautomator dump` dă bounds `[197,307][839,353]` (x 75,8 dp — exact coloana
+numelui și a locului; y 118,1…135,8 dp, un rând), `content-desc` cu toată propoziția, `clickable="false"`.
+
+**Ce rămâne de făcut (nu se poate de aici).**
+
+1. **Publicarea deployment-ului Railway** cu `text_style: 2` — fără ea, „Mașină" se publică doar pe backend-ul
+   local. Refuzul actual este corect și explicat, dar nu este succesul cerut; nu raporta runda ca rezolvată în
+   producție până la acel deploy (cere aprobarea owner-ului, conform `AGENTS.md`).
+2. **Emoji-ul la cursor pe ecran**: compozitorul deschis, o atingere la mijlocul frazei, o apăsare în panoul de
+   emoji, două capturi (înainte/după). Regula e testată; gestul nu a fost executat pe telefon.
+3. **Un post nedeclarat fotografiat** (dovada părții „fără etichetă"). Cere o navigare în feed; regula rundelor
+   interzice Back/Home în timpul capturilor, deci a rămas pe test.
+4. Webul are propriul cititor și nu are nici eticheta de origine, nici poarta de contract (neschimbat de la
+   §31.5.6).
+
+---
+
+## 0.32 Pagina de text deschisă din profil: fără ușă în pagină, folio mai jos, butoanele telefonului pe argint (31 octombrie 2026)
+
+*Jurnalul complet al rundei este în `JUNGLE_BOOK_PROGRESS.md` §32. Runda 31 rămâne imediat sub ea (§0.31).*
+
+**Ce s-a cerut.** Trei lucruri despre aceeași pagină — un text deschis **din profil**: Back-ul din pagina de jos
+e de prisos (aplicația are deja Back în bara de jos); contorul `1/3` să coboare în spațiul de deasupra barei,
+cu textul după el; iar butoanele telefonului (Back/Home/recente), albe pe cremă, să primească un argint discret
+— **numai aici**. Feed-ul, compozitorul, pozele, clipurile și Reels-urile rămân neatinse.
+
+**Cum e legată schimbarea de origine.** `profileOrigin = handle.length > 0`: parametrul `profile` pe care îl
+trimite doar `ProfileTile` (peretele). Recepția compozitorului (`src/app/text.tsx`) trimite doar `id`; feed-ul nu
+intră în rută deloc (`FeedScreen` montează `PostCard` direct). `walkMode` a devenit aliasul lui, ca nimic din
+runda 30–31 să nu-și schimbe numele.
+
+**Ce s-a schimbat.**
+
+- `src/lib/readerBar.ts` — `PROFILE_READER_FOOT.air = 10` + `profileReaderBottomInset(inset)` (insetul telefonului
+  + 10dp de hârtie, fără banda de 48dp a ușii) și `readerDoorShown({ wordPage, profileOrigin, canGoBack })` —
+  regula ușii într-un singur loc, cu excepția intenționată pentru intrările fără istoric (`nexusdev://post/<id>`).
+- `src/lib/textPage.ts` — `PROFILE_FOLIO = { band: 16, inset: 3 }` + `folioRow(profileReader)`: același folio,
+  tipărit mai jos, cuvuntele coboară cu el; `size`/`tracking`/`ink` neschimbate; `folioRow(false)` = `PAGE_FOLIO`.
+- `src/components/SystemNavBand.tsx` (nou) — placa de `blackSilver.silver` (`#C4C7CB`) de înălțimea exactă a
+  insetului, cu `borderTop` de `deepMercury`, `pointerEvents="none"`, și `<NavigationBar style="dark" />` din
+  `expo-navigation-bar`: modulul ține un stack, deci stilul aplicației (`app.json: light`) se întoarce singur la
+  demontare. Fără `setBackgroundColorAsync` (nu mai există în edge-to-edge) și fără nicio schimbare globală.
+- `src/app/post/[id].tsx` — `bottomInsetFor` alege `profileReaderBottomInset` doar pentru pagina de cuvinte din
+  profil, `folioFor` dă rândul folio-ului, ușa e desenată numai când `readerDoorShown` o cere, iar
+  `<SystemNavBand>` se montează după pagină și ușă. Sonda `__POST_ROUTE` raportează `profileOrigin`, `wordPage`,
+  `door`, `navPlate` (mutată sub deciziile piciorului — altfel `const`-ul se citea în TDZ din lista de dependențe).
+- `PostCard` → `PostCanvas` → `EditorialArticle`/`EditorialPage` + `PostTextReading` — un prop nou
+  `folio?: { band, inset }`, implicit `PAGE_FOLIO`; marginea fluxului din `EditorialPage` rămâne
+  `max(pageFolioBand(), 6,4%)`, ca numărul de pagini al unui articol să nu se poată mișca din poziția cifrelor.
+- `scripts/test-reader-page.cjs` — 15 cazuri (7 noi); `test-text-page.cjs` și `test-profile-grid.cjs`
+  actualizate pentru adevărul nou (JSX pe mai multe linii, `profileOrigin`).
+
+**Dovezi.** Pe calculator: `npm test` verde (56 de scripturi, 0 eșecuri), `tsc --noEmit` exit 0. Pe telefon
+(Xiaomi MIX Flip, 2,6 px/dp, inset de jos 47,7 dp, bară cu trei butoane): pagina 50 deschisă din profil nu mai
+are niciun nod de ușă; cifrele folio-ului coboară de la 128,5 dp la **81,9 dp** peste marginea de jos (măsurat în
+arborele de accesibilitate: 2407…2443 px, centrate 586…633 din 1220); piciorul paginii e la 942,7 dp; paginarea
+rămâne `1/3 → 2/3 → 3/3`, iar un gest în plus rămâne `3/3`; reintrarea pornește de la `1/3`. Placa de argint
+începe la y = 2535 px (975 dp), e înaltă de 46,5 dp și măsoară (196,199,204) ≈ `#C4C7CC`; cea mai închisă urmă a
+glifelor sistemului în ea este (93,94,96) ⇒ **3,83:1** (înainte ~1,05:1 alb pe crem). Back-ul telefonului a
+adus peretele la aceeași derulare și a **readus bara neagră cu glife albe**. Poza 33 din profil: antet + ușă de
+10…54 dp, fără folio, fără placă. Textul din feed (`1/2`): neschimbat, bara de tab-uri sub pagină.
+Capturi citite: `r32_profile_wall_before_tile.jpg`, `r32_text_reader_from_profile.jpg` (înainte, bundle 31),
+`r32_profile_text_reader_low_folio.jpg`, `r32_system_back_returns_to_profile.jpg`, `r32_profile_media_unchanged.jpg`,
+`r32_feed_text_page_unchanged.jpg`. (`r32_text_reader_walk_page2.jpg` are un nume greșit: conține pagina de text
+din feed, capturată după o reîncărcare.)
+
+**Ce urmează.**
+
+1. Compozitorul pe telefon (rămâne și din §0.31): `EditorialPage` primește `folio`, dar compozitorul nu trimite
+   niciunul — deci își păstrează rândul; de verificat pe ecran după o re-liniere.
+2. Un clip (Reel) deschis din profil, ca să se vadă pe `ReelPage` că antetul rămâne și placa nu apare.
+3. Intrarea fără istoric (`nexusdev://post/<id>`), unde ușa trebuie să rămână — acoperită de test, nu de ecran.
+4. Decizia de design rămasă din §0.31.5: discul de la picior (acum inutil în profil, fiindcă ușa nu se mai
+   desenează acolo) rămâne negru mat pentru recepția compozitorului.
+5. Discul cu roată dințată care se vede pe paginile de text (x≈40…170 px) — de identificat și scos înainte de o
+   demonstrație; nu a fost atins de rundă.
+6. Portarea în web (`apps/nexus-web`) — rundă separată.
+
+
+
+
+*Jurnalul detaliat al rundelor 20–31 este în `JUNGLE_BOOK_PROGRESS.md` §20–§31. Fișierul de față sare de la
+0.19 direct la 0.31, fiindcă rundele de la 20 la 30 s-au scris acolo.*
+
+**Ce s-a cerut.** Două propoziții de la owner, despre aceeași postare de text deschisă din grilă: numele
+autorului apare de două ori, unul sub altul; iar sus scrie `1/22` (a câta postare din profil) deși pagina
+spune `1/3` — numărul trebuie să fie al documentului, iar Back nu are voie să stea peste text.
+
+**Ce era stricat.** Ruta `src/app/post/[id].tsx` desena un antet propriu peste *orice* pagină (nume +
+`@handle` + disc de Back de 34dp + contorul `` `${at + 1}/${list.length}` ``), iar o pagină de cuvinte își
+tipărește singură capul (`TEXT_PAGE_HEAD`, disc de 54dp) și folio-ul: pe același ecran, două anteturi, două
+numere, fiecare cu alt înțeles. Scoaterea antetului lua însă cu ea singura ieșire a paginii.
+
+**Ce s-a schimbat.**
+
+- `src/lib/postPresentation.ts::readsAsPage` — contractul nou, `stageFor(post) ∈ {text, article}`; îl întreabă
+  și canvasul (`wordPage`), și ruta.
+- `src/lib/readerBar.ts` (nou) — `READER_BAR` (bandă 48, țintă 44, disc 36, glif 26, margine 10),
+  `readerBarHeight(inset)` care **adună** insetul, `readerPageTopInset` = `insets.top` (o pagină de cuvinte
+  pornește direct sub ceas, fără cele 52 de puncte de antet).
+- `src/app/post/[id].tsx` — antetul numai peste paginile fără cap propriu (`!wordPage`); contorul plimbării a
+  plecat complet; pe o pagină de cuvinte, o bandă la picior cu o ușă de 44dp care apasă același `close`
+  (istoric → profilul plimbării → feed); insets-urile se decid per pagină.
+- `src/lib/textPage.ts::folioLabel` — singurul număr de pe ecran, pentru ambele cititoare (`PostReading`,
+  `EditorialPage`); `''` pentru o singură pagină, ultima pagină reală pentru un index rămas în urmă.
+- `PostCanvas` / `PostCard` — banda este cedată **înainte** de desenare (`padB + bottomInset`,
+  `RAIL_FOOT + bottomInset`, `214 + bottomInset`).
+- `scripts/test-reader-page.cjs` (nou, 8 cazuri) + intrare în lanțul `npm test` după `test-post-chrome.cjs`.
+
+**Dovezi.** Pe calculator: `npm test` verde (56 de scripturi, 0 eșecuri), `tsc --noEmit` exit 0. Pe telefon
+(Xiaomi MIX Flip, 1220×2656 @416dpi ⇒ 2,6 px/dp): capul paginii începe la 58 dp (fără antet); un singur nod de
+autor; folio `1/3` → `2/3` → `3/3`, iar un gest în plus rămâne `3/3`; reintrarea repornește de la `1/3`; o
+pagină singură nu are număr; ușa din picior măsoară 44×44 dp la 10…54 dp × 928,5…972,3 dp, sub hârtie (care se
+termină la 925,5 dp) și deasupra barei de gesturi; ușa apăsată din grila profilului a adus profilul înapoi, la
+aceeași derulare. Pozele citite: `final_jpg/r31_text_reader_foot.jpg`,
+`r31_foot_door_returns_to_profile.jpg`, `r31_foot_door_lands_on_profile.jpg`,
+`r31_profile_wall_before_tile.jpg`.
+
+**Ce urmează (în ordinea în care are sens).**
+
+1. Compozitorul de text pe telefon: `EditorialPage` tipărește acum `folioLabel`, dar nu a fost redeschis pe
+   ecran în runda asta (§31.5.1).
+2. Un clip (Reel) deschis din grilă, ca să se vadă că antetul rutei rămâne pe `ReelPage` (§31.5.2).
+3. Decizia ownerului pe discul de la picior: negru mat acum, argintiu Mercury sau cu etichetă — o linie în
+   `styles.readerDisc` (§31.5.5).
+4. Portarea regulii în web (`apps/nexus-web`), unde pagina de postare își tipărește singură antetul și numărul
+   (§31.5.6).
+
+
+## 0.19 Bara de tab-uri rămâne pe ecran, discul de platină la loc, mușchi sub cuvinte (20 octombrie 2026)
+
+**Ce s-a cerut.** Bara de jos să fie permanentă — să nu se mai ascundă la derulare; niciun conținut să nu rămână
+sub ea; butonul de creare să fie din nou discul de platină; iar pe postările fără media, în spatele cuvintelor,
+un fundal discret de mușchi/frunze de junglă, care să nu concureze cu textul și nici cu ochiul.
+
+**Bara nu se mai mișcă deloc.** `AppNav` desenează bara într-un `View` simplu, nu într-un `Animated.View` legat
+de o poziție de scroll: au plecat `navHidden`, `onBrowse`, `chromeHidden`, `CHROME_SLIDE_MS` și cele două
+proprietăți care le hrăneau, `bottomShift` / `shift`. Toate paginile care le mai purtau (`FeedScreen`,
+`PostCard`, `ReelsReader`, `PostRail`) au trecut de la `Animated.View` la `View` — o bară care nu se ascunde
+n-are nevoie de o valoare animată ca să fie unde este. Bara a rămas montată o singură dată, în shell.
+
+**Rezerva de nav, scrisă o singură dată.** `AppNav` exportă `useNavReserve()`, care întoarce exact
+`appNavHeight(insets.bottom)` — înălțimea pe care bara o ocupă pe telefonul de față, nu o constantă ghicită.
+Fiecare pagină care derulează o adaugă la propriul ei spațiu de respirație, prin `contentContainerStyle`, ca
+ultimul rând să poată fi dus *deasupra* barei, nu sub ea: căutare `+24`, tag `+28`, prieteni `+10`, live `+14`,
+profil `+18`, inbox `+16`. Firul de conversație își ridică și composerul: `paddingBottom: 10 + navReserve`
+(`MessagesScreen.tsx:602`), fiindcă acolo nu e o listă care se termină, ci un câmp lipit de marginea de jos.
+Feedul paginat nu are nevoie de rezervă: fiecare pagină e ecranul întreg, iar railul ei se oprește la `RAIL_FOOT`
+deasupra zonei barei.
+
+**Discul de creare e iar platină.** `CreateDisc` din `AppNav.tsx` desenează cercul dintr-un gradient radial cu
+patru opriri (`socialTokens.nav.create.polish`), peste care trece un arc specular subțire pe stânga-sus
+(`specular`) — luciul pe care un disc polisat îl are și un cerc gri plat nu. Plusul e un `Path` cu `glyphStroke`
+gros, nu un glif de font, ca să nu-și schimbe forma cu fontul sistemului. Câmpurile noi din temă: `polish`,
+`polishCenter`, `specular`, `glowRadius`, `glyphStroke`.
+
+**Mușchiul din spatele cuvintelor: `JungleGrove.tsx`.** Un `Svg` memoizat, un singur desen pe pagină — lumina
+canopiei în colțul din dreapta-sus, un coronament îndepărtat, două raze de soare, un bolovan cu mușchi, două
+frunze de palmier tăiate de margine, o ferigă, un pat de mușchi la picior, șase orhidee în colțurile de jos și o
+vignetă. Trei reguli, scrise în capul fișierului, sunt tot designul:
+- **discret**: cel mai puternic pigment e mușchiul de pe bolovan la 34 % din `#6fb377` și petala de orhidee la
+  44 % din `#b195e6` peste `#0d1210` — un pas de culoare deasupra cardului, nu o poză; niciun `stopOpacity`
+  nu trece de 0.5, iar testul o impune;
+- **nu peste cuvinte**: lumina și frunzele stau la *margini*, bolovanul stă sub blocul de cuvinte, iar peste
+  mijloc se lasă un „well” întunecat (`dim`: 0.36 pentru text obișnuit, 0.28 pentru un statement) înainte ca
+  textul să fie așezat deasupra;
+- **nu în ochi**: nimic alb, nimic saturat, nimic atât de fin încât să shimmera când pagina se mișcă —
+  orhideele au cinci petale late, fără nervuri.
+
+`PostCanvas` îl montează numai pentru un post fără media (`!hasMedia`), înaintea vălului, iar vălul scade la
+`opacity={hasMedia ? 1 : 0.4}` ca să nu acopere exact ce trebuie văzut. Semnătura e seed-uită cu `post.id`, deci
+aceeași postare crește mereu aceeași pădure, iar o coloană de postări de text nu e o coloană de frunze identice.
+`pointerEvents="none"` și `accessible={false}`: e decor, nu conținut. Discul de redare al unui clip care nu a
+pornit rămâne cum era — pe pagina de text nu există clip, deci nu se suprapune cu nimic.
+
+**A doua cerere a aceleiași zile: bolovanul, mușchiul și orhideele.** „Un peisaj de junglă vibrant, cu un
+bolovan mare acoperit de un covor gros de mușchi, orhidee mov în colțurile de jos, pădure tropicală densă în
+spate și soare strecurat prin coronament — discret, plăcut, fără să deranjeze cititul.” Desenul a fost refăcut
+pe cerință, cu aceleași trei reguli:
+- **coronamentul** — un singur `Path` cu vârfuri de copaci peste toată lățimea, umplut cu un gradient care moare
+  spre bază; e singurul strat mai *închis* decât cardul, și exact asta dă adâncime fără să adauge lumină;
+- **soarele** — două raze late (9 % alb-verde sus, topite în jos), în spatele bolovanului;
+- **bolovanul** — un `Path` bombat (`x 86..254`, `y 420..564`) umplut cu un gradient de la `#4b5548` la
+  `#080d09`: stâncă în umbră, nu piatră gri. Peste coroană un singur `Path` de mușchi, cu marginea de jos
+  atârnată în lobi inegali, plus trei smocuri care se suprapun — un strat, nu forme detașate (formele detașate
+  arată ca niște ouă pe stâncă, exact ce a ieșit la prima încercare);
+- **orhideele** — o tabelă `BLOOMS` (două ciorchini × trei flori: cea mare jos, una mai mică în spate, un boboc
+  sus) plus `orchid()`, care desenează trei sepale, două petale late și un label; două tulpini scurte urcă din
+  mușchi. Sunt singura violetă din feedul de text.
+Trei constrângeri de geometrie, fiecare măsurată pe captură, nu ghicită:
+1. `preserveAspectRatio="xMidYMid slice"` taie lateral un telefon mai înalt decât 360×640 — vizibil e `x 33..327`,
+   deci nicio floare nu iese din intervalul ăsta (o floare tăiată e o floare plătită și nevăzută);
+2. bara acoperă ultimele 63 de unități (`y > 577`), deci nicio floare nu coboară sub `y 540`; la prima versiune
+   florile mari stăteau la `y 556..610` și se vedeau doar bobocii;
+3. coloana `x 230..300` e a railului — o violetă sub semnul de carte ar fi o greșeală, nu un cadru; ciorchinelui
+   din dreapta i s-a dat locul de lângă piciorul bolovanului, nu colțul ecranului.
+
+Testul pădurii a crescut de la două la nouă verificări de design: dintre cele șase gradiente noi, trei sunt cerute
+pe nume (`-rock`, `-carpet`, `-shaft`), tabela `BLOOMS` e citită și i se verifică pozițiile (o floare pe fiecare
+latură, niciuna în coloana railului), iar „well"-ul trebuie să fie desenat *după* orhidee.
+
+**Footerul nu mai are urmă în cod.** `src/lib/feedFoot.ts` și `scripts/test-feed-foot.cjs` au fost șterse;
+`package.json` rulează în locul lor `scripts/test-nav-band.cjs` (nou, 9 verificări: bara statică, feedul fără
+proprietăți de bară, rezerva fiecărei pagini, composerul inboxului, banda măsurată în feedul paginat, golul
+vechiului footer, constrângerile pădurii — inclusiv bolovanul, mușchiul și orhideele —, locul ei, numai pe
+postul fără media, și discul de platină).
+`scripts/test-feed-rail.cjs` a fost rescris pe railul de azi (pagina imersivă condusă de media, `RAIL_FOOT`
+comun, fără variantă de bară), iar `test-brand-paint.cjs`, `test-no-fullscreen-post.cjs`,
+`test-fullscreen-feed.cjs` și `test-reaction-palette.cjs` au fost aduse la zi.
+
+**Fișiere atinse:** `src/components/AppNav.tsx`, `JungleGrove.tsx` (nou), `PostCanvas.tsx`, `PostCard.tsx`,
+`ReelsReader.tsx`, `PostRail.tsx`, `src/screens/FeedScreen.tsx`, `SearchScreen.tsx`, `FriendsScreen.tsx`,
+`LiveScreen.tsx`, `ProfileScreen.tsx`, `MessagesScreen.tsx`, `src/app/tag/[tag].tsx`, `src/app/index.tsx`,
+`src/theme/social.ts`,
+`package.json`, `scripts/test-nav-band.cjs` (nou), `scripts/test-feed-rail.cjs`, `test-brand-paint.cjs`,
+`test-no-fullscreen-post.cjs`, `test-fullscreen-feed.cjs`, `test-reaction-palette.cjs`.
+
+**Verificare.**
+- `node node_modules/typescript/bin/tsc --noEmit` → **exit 0**.
+- `npm test` (29 de scripturi `node --test`) → **29/29 trec**, zero `✖` — rulat din nou după ce a doua cerere a
+  schimbat desenul pădurii, nu doar înainte.
+- `node node_modules/eslint/bin/eslint.js` pe fișierele atinse → **curat, exit 0**. Singura eroare veche din zonă,
+  `react-hooks/set-state-in-effect` la `src/app/tag/[tag].tsx:65`, a fost și ea închisă: ruta își montează
+  `TagScreen` cu `key={value}`, deci un tag nou e un component nou, `loading` pornește oricum `true`, iar
+  `setLoading(true)` din efect doar repeta ce făcuse deja prima randare — a plecat, fără nicio schimbare de
+  comportament. Tot aici: `src/app/index.tsx` păstra un `useSafeAreaInsets()` pe care mutarea rezervei în bară
+  îl lăsase fără întrebuințare (avertisment `no-unused-vars`); a fost scos împreună cu importul.
+- Capturi prin `scripts/capture-screen.ps1` (serial `192.168.1.184:35681`), fiecare citită înainte de a fi
+  crezută, în `apps/nexus-mobile/builds/visual/`:
+
+| Fișier | Ce dovedește |
+| --- | --- |
+| `r10_feed_text-20261020-221722.jpg` | feed, pagină cu poză: bara **prezentă** sub rail, discul de platină cu plus, textul se termină înainte de coloană |
+| `r10_feed_next.jpg` | pagină **de text**: frunze la colțuri și ferigă jos, cuvintele pe well-ul întunecat, rail vertical, bara jos |
+| `r10_search_end.jpg` | capătul rezultatelor de căutare: ultima celulă se oprește deasupra barei |
+| `r10_inbox.jpg`, `r10_friends.jpg`, `r10_live.jpg`, `r10_profile_end.jpg` | fiecare pagină cu bara permanentă, conținutul nu trece sub ea |
+| `r10_composer-20261020-222355.jpg` | plusul deschide camera de creare — celula de creare e atingibilă |
+| `r10_new_chat-20261020-222548.jpg` | foaia „Mesaj nou" peste inbox, cu bara rămasă pe loc sub scrim |
+| `r10_final_home.jpg` | după reîncărcarea de la finalul rundei (curățenia de lint): feedul, bara și discul exact ca înainte |
+| `r10_grove_feed.jpg` | prima postare a feedului e un clip — acolo pădurea **nu** se desenează, pagina rămâne neagră |
+| `r10_grove_next13.jpg` | prima versiune a bolovanului: se vede de ce a fost refăcută (mușchiul dispărea, florile mari stăteau sub bară, „picăturile” arătau ca niște ouă) |
+| `r10_text_grove.jpg` | **semnătura vizuală a cererii a doua** (și starea finală): bolovan cu covor de mușchi și smocuri, trei orhidee în colțul din stânga, trei la piciorul din dreapta, raze de soare sus, railul liber, cuvintele perfect lizibile |
+
+- Geometrie măsurată cu `uiautomator dump` pe pagina de text: `navigation [0,2393]-[1220,2656]`, celula de
+  creare `[522,2393]-[698,2502]`, railul `[1048,1727]`→`[1048,2325]` (**68 px** liberi până la bară), capul
+  `[36,150]-[927,259]`, cuvintele se opresc la `x=742` (railul începe la `1048`), „Vezi traducerea" până la
+  `2335`.
+
+**Limite cunoscute (nerezolvate aici).** (1) Butonul „Tools" al Expo (overlay de development) acoperă în
+capturi primul „Urmărește" din Live și colțul dreapta-sus al unei postări — dispare într-un build fără
+dev-client. (2) Composerul firului de conversație a fost verificat în cod (`paddingBottom: 10 + navReserve`) și
+nu pe telefon: contul de test nu are nicio conversație, iar deschiderea uneia doar ca să privesc ar fi lăsat un
+fir gol în inbox. (3) Într-o listă de căutare, celula unui clip care nu a pornit își ține discul de redare în
+mijlocul ei — aproape de butonul de creare când lista e la capăt, dar este semnul celulei, nu al barei.
+(4) Orhideele sunt un desen stilizat, nu botanică: cinci petale late și un label, la 44 % — destul ca să se
+citească „orhidee mov", nu destul ca să pară un decupaj lipit pe ecran. (5) Bolovanul stă în banda de jos, deci
+o postare de text foarte lungă își lasă ultimele rânduri peste piciorul lui; piciorul e cea mai închisă parte a
+pădurii, tocmai ca textul să nu piardă contrast. (6) Dev-clientul a pierdut `adb reverse` după reconectarea
+wireless și a afișat `ECONNREFUSED localhost:8081`; reloadul nu repară asta singur — `adb reverse tcp:8081
+tcp:8081`, apoi `am force-stop` și relansare.
+
+
+## 0.18 Feed: railul vertical pe pagina de text, capul în banda de notificări, footerul scos (20 octombrie 2026)
+
+**Ce a cerut proprietarul, cuvânt cu cuvânt.** „pe feed, la content-ul doar cu text… header-ul trebuie ridicat
+mai sus, până în banda de notificări, și zona cu reacții orizontală de jos, mutată vertical, exact la fel ca
+la reels-uri… același sistem de comentarii, de paletă etc… sistemul este existent, trebuie adăugat la toate
+tipurile de content… nu-mi place cum se vede ca și footer, deci trebuie scos”.
+
+**O singură coloană, nu două.** Coloana de acțiuni a rulului era markup privat în `ReelsReader.tsx`. A devenit
+`src/components/PostRail.tsx`: reaction plate (`ReactionControl variant="rail"`, deci **aceeași** paletă),
+comentarii + număr, salvare, share + număr, spinner de scriere în curs și discul de sunet numai pentru clip
+(`sound`, `null` pentru poză și pentru text). `PostDistributePanel` (`.clipMoreActions`: redistribuire /
+distribuire) a ieșit din același fișier, ca ambele pagini să deschidă exact același meniu. `RAIL_FOOT = 26`
+ține rulul și pagina de text pe aceeași linie.
+
+**Pagina de text.** `PostCard` montează `PostRail` peste canvas (ca rulul: `bottom = RAIL_FOOT + bottomInset`,
+`shift = bottomShift`) și `PostDistributePanel` la `214 + bottomInset`. `PostCanvas` are acum `page`:
+- capul pornește chiar la `topInset` (banda de notificări), nu la `topInset + 22dp` — măsurat pe telefon:
+  rândul autorului `[36,150][927,259]`, cu ceasul la ~110px;
+- cuvintele păstrează pe dreapta `metrics.railGutter` (78), deci railul nu acoperă niciun rând;
+- `bottomActions` a rămas doar pentru **celula** de listă (căutare, 9:16), care nu are rail lângă cuvinte.
+
+**Footerul a fost scos din cod, nu doar din ecran.** `PostActionRow` nu mai are `variant` (doar rândul
+compact al unei celule), `ReactionControl` nu mai are `bar`, iar `socialTokens.post.actionBar` a fost șters.
+Nu mai există variantă pe care să o ceară cineva ca să readucă bara.
+
+**O regulă veche a căzut cu footerul.** `openWithMedia()` („feedul nu se deschide pe o pagină de text, fiindcă
+bara ei stă unde stă meniul”) a fost ștearsă din `lib/postPresentation.ts` și din `FeedScreen`: pagina de text
+își ține presele pe rail, deasupra meniului, deci feedul respectă din nou ordinea serverului. Fiecare pagină
+primește acum `onPanelChange` (paleta oprește pagerul), ca la reel.
+
+**Fișiere atinse:** nou `src/components/PostRail.tsx`; `PostCard.tsx`, `PostCanvas.tsx`, `ReelsReader.tsx`,
+`PostActionRow.tsx`, `ReactionControl.tsx`, `PostReading.tsx` (comentariu), `BrandLogo.tsx` (comentariu),
+`src/lib/postPresentation.ts`, `src/screens/FeedScreen.tsx`, `src/theme/social.ts`.
+
+**Verificare.**
+- `node node_modules/typescript/bin/tsc --noEmit` → **exit 0**.
+- `node node_modules/eslint/bin/eslint.js` pe fișierele atinse → curat, cu **o singură** eroare care exista
+  înainte de rundă: `FeedScreen.tsx:99` `react-hooks/refs` (`useRef(new Animated.Value(0)).current` citit în
+  randare). Nu e introdusă de această schimbare și n-a fost atinsă.
+- Capturi prin `scripts/capture-android-screen.ps1` (serial `192.168.1.184:35681`), toate citite înainte de a
+  fi crezute, în `JUNGLE_BOOK_VERIFICATION/final_jpg/`:
+
+| Fișier | Ce dovedește |
+| --- | --- |
+| `r9_feed_c.jpg` | pagina de text: capul sub ceas, rail vertical în dreapta (like 1, comentariu, salvare, share), **niciun footer** |
+| `r9_next.jpg` | rulul neschimbat după refactor (rail + disc de sunet + ceasul clipului) |
+| `r9_share_panel.jpg` | „Distribuie postarea” se deschide de pe railul paginii de text, ca la reel |
+| `r9_comments.jpg` | foaia de comentarii (`CommentsSheet`, „Comentarii · 0”, composer) se deschide de pe rail |
+
+- Geometrie măsurată cu `uiautomator dump`: railul `[1048,1727]` → `[1048,2325]`, bara de tab-uri începe la
+  `2393` (26 dp liberi sub ultima celulă), autorul `[36,150][927,259]`.
+
+**Limite cunoscute (nerezolvate aici).** (1) Butonul „Tools” al Expo acoperă prima linie a unui statement în
+capturi — e overlay de development, nu produs; dispare într-un build fără dev-client. (2) Panoul de distribuire
+poate acoperi temporar pastila „Vezi traducerea” cât e deschis (la fel se întâmplă pe reel). (3) Eroarea de
+lint din `FeedScreen.tsx:99` rămâne de curățat separat.
+
+
+## 0.17 Capturi de ecran de încredere: o singură unealtă, carantina falsă anulată (20 octombrie 2026)
+
+**Cauza rădăcină, dovedită.** Telefonul expune două display-uri (1220x2656 intern + 904x572
+subscreen), deci `screencap` fără `-d` scrie pe stdout linia `[Warning] Multiple displays were
+found, but no display id specified. Using display 0.` **înaintea** octeților PNG. Orice captură făcută
+cu `adb ... > fisier.png` (redirect PowerShell) avea deci text în față: fișierul nu începea cu
+`89 50 4E 47`, iar validatorul îl număra „corupt”. Nu a fost un bug de conversie JPG.
+
+**O singură unealtă de captură.** `scripts/capture-android-screen.ps1` (nou) citește lista de
+display-uri, alege display-ul aplicației, rulează `screencap -d <id> -p` pe device și scoate fișierul
+cu `adb pull` (byte-exact, fără redirect), apoi validează structura PNG (semnătură, chunk-uri până la
+IEND, lungime exactă, dimensiuni), decodează complet, refuză cadrul gol/negru (exit 10) și publică JPG
+în `JUNGLE_BOOK_VERIFICATION/final_jpg/` fără suprascriere. Coduri de ieșire: 0 ok, 2 adb
+inutilizabil, 3 niciun dispozitiv autorizat, 4 captură eșuată, 5 PNG invalid, 6 JPG invalid,
+7 altă captură rulează, 8 eroare neașteptată, 9 focus greșit (`-StrictFocus`), 10 cadru gol.
+`tools/images/safe-screencap.ps1` și `apps/nexus-mobile/scripts/capture-screen.ps1` au rămas doar
+wrappere subțiri peste el (acceptă parametrii vechi `-Device`, `-Display`, `-Package`, `-Endpoint`).
+
+**Carantina falsă, anulată în trei pași.** Bilanțul măsurat al rundelor de restaurare: **1029** fișiere
+`.bad` la început — **429** restaurate, **2** reparate (prefix de text tăiat), **598** rămase (detaliat
+mai jos). Majoritatea celor restaurate aveau date de imagine valide după prefixul de avertizare.
+- `ImageTools.ps1` — `Test-ImageFile` reîncearcă o dată și compară dimensiunea între citiri: dacă s-a
+  schimbat, fișierul e **ocupat** (se scrie acum), nu corupt, și nu se carantinează niciodată
+  (`Locked`/`Attempts`). WebP fără codec pe Windows (`Image.FromFile` dă „Out of memory”) iese acum
+  `Unsupported`, nu `corrupt`: două `.webp` din `public/` fuseseră redenumite `.bad` degeaba în prima
+  rundă, exact din cauza asta.
+- `ImageTools.ps1` — `Find-ImageSignatureOffset` + `Repair-ImagePrefix`: caută semnătura PNG/JPEG/WebP
+  în primii 8 KB, taie prefixul și păstrează rezultatul **numai** dacă restul se decodează complet
+  (`-DryRun`, `-KeepPrefix`, `-MaxPrefixBytes`). Modulul scrie într-un singur caz controlat, iar
+  antetul fișierului o spune.
+- `validate-images.ps1` — rescris: sare peste `node_modules`, `.git`, `.expo`, `.gradle`, `.cache`,
+  `.next`, `dist`, `chrome-profile*`; `-RestoreBad` re-decodează înainte de a da numele înapoi, repară
+  prefixul de text și întoarce `x.png.20261020-203033.bad` la `x.png`; size-ul raportat e net de
+  prefixul eliminat; căile din afara repo-ului nu mai crapă în `Get-RelativePath`.
+
+**Ce s-a restaurat** (`validate-images.ps1 -RestoreBad`, exit 0 pe fiecare domeniu):
+
+| Domeniu | Restaurate | Reparate (prefix) | Rămân `.bad` |
+| --- | --- | --- | --- |
+| `apps/nexus-mobile/builds` | 32 | 2 (`nf5.png`, `screen-now.png`, 1220x2656) | 2 |
+| `docs` | 318 | 0 | 2 |
+| `planning` (rădăcină + `design/` + `evidence/`) | 19 | 0 | 0 |
+| `planning/evidence/screenshots` | 10 | 0 | 0 |
+| `apps/nexus-web/data/media` | 30 | 0 | 13 |
+| `apps/nexus-mobile/android/app/src/main/res/drawable-*` | 5 (`splashscreen_logo.png`) | 0 | 0 |
+| `apps/nexus-web/public`, `apps/nexus-demo/public` | 9 | 0 | 0 |
+| `apps/nexus-web/test/fixtures/messenger`, `test-labs/messenger/media` | 4 | 0 | 0 |
+| `tools/scrcpy` | 2 | 0 | 0 |
+| **Total** | **429** | **2** | **55** în afara profilelor de Chrome (detaliat mai jos) |
+
+**Starea măsurată la finalul rundei** (`Get-ChildItem -Recurse -Filter *.bad`, 20 oct 21:05): **598**
+fișiere `.bad`, împărțite exact așa — **424** `planning/evidence/screenshots/**/chrome-profile*`,
+**106** `.ephemeral/camera-fill-profile/Default`, **25** `apps/nexus-mobile/.expo`, **13**
+`apps/nexus-web/data`, **13** `.ephemeral/web-ref-oct7/profile`, **7** `apps/nexus-demo/dist`, **5**
+`apps/nexus-mobile/android`, **2** `apps/nexus-mobile/builds`, **1** `_shot1.png.bad` (rădăcină), **1**
+`docs/screens/01-launch.png.bad`, **1** `docs/parity-report/profile-header`. Primele patru grupuri
+(568 din 598) sunt cache-uri de browser/build, excluse intenționat din scanare — nu sunt dovezi. Cele
+**13** din `apps/nexus-web/data` sunt stub-uri de 11–520 octeți scrise de ingestia web (inclusiv
+`b94d27b9…jpg`, care conține textul „hello world”), deci cu adevărat stricate, iar cele **2** din
+`builds` și **2** din `docs` au fost transcodate UTF-16 de redirectul `>` (`f2a-now.png.bad`,
+`nf4.png.bad` e 0 octeți).
+
+**Validarea pe tot repo-ul, citită din log** (`validate-images.ps1 -Path . -FailOnCorrupt`, 734
+imagini): `valide: 729 · corupte: 1 · ocupate: 0 · necodificabile: 4 · antet nepotrivit: 67 ·
+carantinate: 1`, **exit 1**. Exit 1 e corect, nu o regresie: singurul „corupt” e `_shot1.png` din
+rădăcină, adică un transcript PowerShell UTF-16 (`FF FE 5B 00 57 00 61 00 72 00 6E 00`) salvat cu
+extensia `.png` — acum e `_shot1.png.bad`. Cele **4** `NECODIFICABIL` sunt exact cele patru `.webp`
+de demo (`nexus-web` și `nexus-demo`, `demo-creator-v2`, `demo-market-v2`) și **nu** au fost
+carantinate — fixul WebP se vede în log, nu doar în teorie. Cele **67** „antet nepotrivit” sunt
+JPEG-uri cu extensie `.png` (`planning/evidence/**.png`, `res/mipmap-*/ic_launcher*.webp` scrise de
+altă unealtă) — conținutul se decodează, deci nu se carantinează, dar numele mint; de curățat separat.
+- Cel mai important efect secundar: `splashscreen_logo.png` din `res/drawable-*` era carantinat, deci
+  APK-ul se construia fără logo-ul de splash. Acum e la loc în toate cele cinci densități.
+
+**Test pe folder de control** (`%TEMP%\nexus-restore-test`): 5 cazuri, toate corecte — nume cu marcaj
+-> `a.png`; prefix de 87 octeți -> reparat în `b.png`; PNG trunchiat -> rămâne `.bad`; nume ocupat ->
+CONFLICT, nimic suprascris; imagine curată -> neatinsă.
+
+**Reguli scrise.** `.clinerules` și `AGENTS.md`: se citesc doar `JUNGLE_BOOK_VERIFICATION/final_jpg/`
+și `docs/vision/` după validare, o imagine pe mesaj, `.bad` ≠ corupt, iar fluxul obligatoriu rămâne
+CODE → BUILD → DEVICE TEST → JPG CAPTURE → VALIDATE → VISUAL INSPECT → REPORT. Un JPG valid dovedește
+doar că s-a capturat un ecran; dovada e JPG-ul **citit** și descris.
+
+**Rămâne deschis.**
+- Telefonul adoarme în ~10 s și nu se trezește sigur din adb (senzor de proximitate suspectat);
+  `-Wake -SettleSeconds <n>` ajută, dar nu garantează. De încercat `svc power stayon true` și
+  `settings put system screen_off_timeout`.
+- Endpoint-ul wireless e `192.168.1.184:35681`; scriptul are `192.168.1.184:39169` doar ca valoare de
+  rezervă, pentru că portul se schimbă la fiecare reconectare. Când e un singur dispozitiv conectat,
+  unealta îl alege singură — `-Serial <ip:port>` rămâne calea sigură.
+- Ingestia web scrie stub-uri JPEG/PNG stricate în `apps/nexus-web/data/media` (libjpeg: „JPEG
+  datastream contains no image”) — bug separat, nu ține de capturi.
+- Rezolvat în această rundă: capturile Feed / Profil / Live / compozitor / Detalii postare sunt făcute cu unealta nouă, citite și descrise, iar `build-contact-sheet.ps1` a fost regenerat — vezi 0.17.1.
+- Cele **4** `.webp` `NECODIFICABIL` (2 în `apps/nexus-web/public`, 2 în `apps/nexus-demo/public`) nu
+  se mai carantinează, dar nu pot fi nici inspectate pe Windows (`Image.FromFile` dă „Out of memory”);
+  `to-vision.ps1` raportează `Note` când `Why` e gol. Pentru inspecție trebuie un codec WebP sau o
+  conversie offline.
+- **67** fișiere au antet nepotrivit (bytes JPEG în nume `.png`, bytes PNG în nume `.webp`): se
+  decodează, dar numele mint — de redenumit/convertit separat, nu de carantinat.
+- `-FailOnCorrupt` pe tot repo-ul iese **1** din cauza unui singur fișier (`_shot1.png.bad`, transcript
+  UTF-16 din rădăcină). Semnalul e corect; dacă vrei verde în CI, mută transcriptul sau exclude
+  rădăcina.
+- `svc power stayon true` **nu** a fost rulat în această rundă; ecranul a stat treaz doar pentru că
+  tap-urile de navigare au fost dese.
+
+
+## 0.17.1 A doua rundă de capturi: Feed, Profil, Live, compozitor, Detalii postare (20 octombrie 2026)
+
+**Un bug real de focus, găsit de capturi și reparat.** `scripts/capture-android-screen.ps1` raporta
+fereastra focalizată ca `'m'`. Cauza nu era `dumpsys`, ci felul în care PowerShell enumeră rezultatul
+unui bloc `if`: forma `$matched = if (...) { @('app.nexus.mobile.dev/.MainActivity') } else { @() }`
+nu păstrează array-ul, ci îl dezumflă la un singur **string**, iar `$matched[0]` întoarce primul
+**caracter** — `'m'`. Fixul din cod (blocul de focus): `$focusLines` și `$nonNull` se construiesc cu
+`@(...)`, `$matched` e inițializat `@()` și primește tot `@(...)`, deci `.Count` și `[0]` sunt mereu
+corecte; un comentariu de acolo explică de ce nu se mai scrie `if` în dreapta egalului.
+
+**Șase capturi, fiecare citită înainte de a fi crezută** (`exit=0`, cale `via exec-out`, toate în
+`JUNGLE_BOOK_VERIFICATION/final_jpg/`):
+
+| Fișier | Ecran | Ce se vede în JPG |
+| --- | --- | --- |
+| `v_01_feed.jpg` | Feed | card întreg: poză, autor `wallet4e8gv6 (social) @wallet4e8gv6 · 16 min · Bucharest`, text lung cu `Mai puțin` și `Vezi traducerea`, rail de reacții (inimă plină, 1), bară de jos plutitoare |
+| `v_02_profile.jpg` | Profil | `☰`, nume `wallet4e8gv6 (social)`, `@wallet4e8gv6` cu lacăt, `1 Urmărești / 0 Urmăritori / 1 Postări`, `Editează profilul` + `...`, banda de metadate, rând de taburi-iconițe, grilă de postări |
+| `v_03_live.jpg` | Live | taburi `Social` / `Prietni`, banner `Transmisiunea publică nu este configurată pe server (GATED_NO_SFU)`, `ACUM LIVE — Nicio transmisiune activă.`, listă CREATORI cu `Urmărește` / `Urmărești` |
+| `v_04_composer.jpg` | Previzualizare după declanșare | foto 9:16, coloană `Aa Text` / `Stickere` / `Emoji` / `Muzică`, bara `Ascultă What Is Love — Melanie Ungar`, două hint-uri, `Next` sus **și** jos |
+| `v_05_text_post.jpg` | Detalii postare, tastatură sus | `Titlu`, `Descriere` cu text scris, `80/2000 caractere`, tastatura acoperă restul formularului |
+| `v_05b_text_post.jpg` | Detalii postare, formular complet | `Titlu`, `Descriere`, `hashtag sau handle` + `# Adaugă` / `@ Adaugă`, text de ajutor pentru mențiuni, `Locație` + chips `Exactă` / `Zonă` / `Oraș`, `Link`, apoi `Publică` / `Salvează în cont` / `Doar pe telefon` |
+
+**Defecte de produs văzute în capturi** (nu defecte de captură):
+- **Câmpul `Link` nu se randează** (`v_05b`): între eticheta `Link` și butonul `Publică` nu există
+  niciun câmp, iar în `uiautomator` elementul are bounds inversate — `[42,2196][1178,2168]`, iar textul
+  lui de ajutor `[42,2341][1178,2168]` (y de sus > y de jos, adică înălțime negativă). Secțiunea e
+  împinsă sub marginea de jos și strivită; de verificat stilul secțiunii `Link` din ecranul de detalii.
+- **Butonul de dezvoltare Expo** (`App Icon`, rotița din stânga, `[62,1124][176,1238]`) apare peste
+  conținut în toate cele șase capturi: acoperă rândul „Această captură nu are încă o copie în cont.”,
+  începutul descrierii și avatarul din lista de creatori. Nu e UI de produs; pentru dovezi curate,
+  build-ul de test trebuie pornit fără dev menu.
+- **Două `Next`** în compozitor (pill sus-dreapta `[1001,182][1173,284]` și bară jos
+  `[52,2365][1168,2497]`) și amestec de limbi în același ecran (`Next` lângă `Previzualizare`, `Text`,
+  `Stickere`, `Muzică`).
+- **Nu există compunere text-only**: și `Postare nouă` din meniul `☰` (`[60,1696][1160,1832]`), și
+  `Creează` din bara de jos deschid camera; textul se scrie doar ca pas de caption după o fotografie.
+  Dacă produsul promite „Text Post”, fluxul lipsește.
+- **Profil, banda de metadate**: începe cu `tombrie 2026` — text tăiat la început, lipsește „oc” — și
+  repetă informația („Membru din octombrie 2026”); rândul de taburi de sub ea arată doar glife
+  (`☰ ▶ ▢ ❝ ✨ ▾`), fără etichete vizibile.
+- **Profil, grilă**: un singur tile pe coloana din stânga, coloana a doua complet neagră; legenda
+  tile-ului acoperă poza fără scrim (contrast slab), iar al doilea tile e tăiat de bara de navigare —
+  conținutul nu are padding pentru bara plutitoare.
+- **Inițiale de avatar**: cercul arată `w(`, nu `W` — extragerea inițialelor include paranteza.
+- **Live**: tabul scrie `Prietni` (lipsește `e`), `Nexus Test 01` arată `1 următori` (plural greșit),
+  iar tabul activ nu are nicio stare vizuală.
+- **Feed**: nimic rupt în layout; textul mare alb din poză (`sks 100 100 20:56 20.10`) e ars în
+  fotografia postării, nu e UI.
+- Fotografia din compozitor e mișcată (blur de expunere/autofocus) — de verificat pe build-ul dev; nu
+  ține de unealta de captură. `adb shell input text` a produs text cu `%` în loc de spații: e encoding
+  de unealtă, nu bug de aplicație.
+
+**Coordonate confirmate prin `uiautomator dump`** (1220x2656, pentru rundele următoare): bara de jos
+`Acasă [21,2393][185,2523]`, `Mesaje [188,2393][352,2523]`, `Creează [522,2393][698,2502]`, `Live
+[868,2393][1032,2523]`, `Profil [1035,2393][1199,2523]`; `☰` din profil la `(89,232)`; în meniu
+`Postare nouă (610,1764)`, `Setări (610,1612)`, `Portofel (610,1462)`, `Închide meniul (1111,1181)`;
+în compozitor `Tools (109,1162)`, declanșator `(610,2374)`, `Next` de jos `(610,2431)`, `×` din editor
+`(1080,238)`, confirmarea `ȘTERGE CAPTURA (931,1333)`.
+
+**Contact sheet regenerat.** `apps/nexus-mobile/scripts/build-contact-sheet.ps1` a rescris
+`JUNGLE_BOOK_VERIFICATION/contact_sheet.jpg`: 61 de celule, 1809 KB, sortate alfabetic — cele șase
+capturi noi apar la final, ca `v_0*`.
+
+
+## 0.16 Project ID nou, deploy aditiv pe main, ciclul A (18 octombrie 2026)
+
+**Ce s-a schimbat.** `16dfabc0ad133a40f7a3acc23e15fc98` (Reown, al altcuiva, domeniile lui implicite) a fost înlocuit cu proiectul proprietarului `37628068772ce00f33f91f4d51273722` (redenumit Jungle Book, cu `https://nexus-deepsek-production.up.railway.app` în allowlist).
+- `apps/nexus-web/lib/env.js`: valoarea implicită a `WALLETCONNECT_PROJECT_ID` este acum ID-ul proprietarului; comentariul spune de unde vine și că valoarea veche a fost a altcuiva.
+- `apps/nexus-probe`/`builds/wc-relay-probe.cjs`, `test/core.test.js`, `.env.example`, `HANDOFF.md`: aceeași valoare.
+- `NEXUS_ALLOW_ATTESTED_ORIGINS` și `NEXUS_ORIGIN` rămân neschimbate: attested plus originea implicită doar în modul preview, doar pentru `NEXUS_ORIGIN` (verificat în `resolveAllowedOrigins`).
+- `git log -S 37628068` = un singur commit (acesta); `git log -S 16dfabc0` arată commit-ul care a introdus ID-ul străin (vezi mai jos).
+
+**Sonda de releu** (`node builds/wc-relay-probe.cjs`, origine Railway, noul ID): **ALLOWED din prima încercare** — proiectul proprietarului nu e blocat de releu, deci nu a fost nevoie de reîncercările la 60 s.
+
+**Rebuild bundle.** `node scripts/build-wc.mjs` a regenerat `public/wc-bundle.js` (12 KB diff, doar `"Nexus"` -> `"Jungle Book"` în textele foii; ID-ul nu e înglobat, se ia din `/auth/mvx/init`).
+
+**Teste.** web 812/812 (32 fișiere), mobile 821/821 (45 fișiere) pe arborele de lucru.
+
+**Deploy.** Worktree curat `nexus_deepsek-deploy-jb` din `origin/main` + exact fișierele atinse, fără `node_modules`/build-uri. Push aditiv pe `main` (commit `12f7ddf`? vezi `git log`), verificat imediat:
+- `/health` 200;
+- `/xportal-bridge.html` 200;
+- `/wc-bundle.js` 200, zero apariții `Nexus` în textele foii;
+- `/auth/mvx/init` 200 cu `wcProjectId=37628068772ce00f33f91f4d51273722`;
+- `/api/profiles/test` 401 `not signed in` **cu cookie-urile locale din 17 oct** — nu e o regresie de rută: `POST /auth/email/login` cu aceleași conturi răspunde 403 `verifică adresa de email înainte de autentificare`, deci baza și conturile au supraviețuit deploy-ului, iar cookie-urile vechi nu mai trec de `requireAuth` (sesiune semnată înainte de redeploy). Pentru 200 e nevoie de o autentificare proaspătă, iar login-ul pe email e blocat de verificarea adresei.
+
+**Ciclul A (telefon, 18 oct 17:34).** Un singur adb (`platform-tools`, `-s 192.168.1.184:36819`), focus pe `app.nexus.mobile.dev`, tap pe butonul propriu `Conectează xPortal` din ecranul de autentificare (bounds `[144,1345][1074,1484]`).
+- 17:34:56 `bridge-start`, `storage-cleared keys=0`, `provider-ready ms=706`;
+- 17:35:02.343 `pairing topic=e8015…5867 reused=false ms=6088` — **prima creare de pairing din toate rundele**; allowlist-ul era singurul blocaj;
+- 17:35:02.379 `xportal-opened via=wc:e8015…`, xPortal (`com.elrond.maiar.wallet/com.maiar2.MainActivity.MVX`) în față; logcat MIUI arată intentul `VIEW dat=wc:e8015…` în task-ul xPortal;
+- 17:35:10.685 `app-active stage=pairing`, 17:35:10.902 `relay connected=true restarted=true`, `relay-resume connected=true restarted=true wasConnected=false`;
+- 17:35:11.083 `approved ms=14824` — xPortal a aprobat sesiunea;
+- 17:35:31.886 al doilea `xportal-opened` (re-deschidere pentru semnătură);
+- 17:37:56 fereastra de 180 s a paginii a expirat: foaia arată `Aprobat. Semnează loginul NativeAuth în xPortal…` plus `xPortal nu a răspuns la timp. Deschide xPortal și încearcă din nou.` și `xPortal nu a răspuns în 3 minute`. **Nicio semnătură, niciun token.**
+- xPortal rămâne pe un splash (arborele de accesibilitate are doar un `ImageView` full-screen, 1907 bytes, fără text), iar logcat-ul MIUI scrie `exp_nofocuswindowtimeout com.elrond.maiar.wallet`; `uiautomator dump` întoarce alternativ `null root node` pentru fereastra xPortal. Deci nu pot citi ecranul xPortal și, conform regulilor, nu ating nimic în el.
+- Concluzie ciclu A: pairing + aprobare funcționează cu ID-ul proprietarului; lipsește pasul de semnătură NativeAuth, iar ecranul xPortal nu poate fi verificat din adb pe acest telefon.
+
+
 # HANDOFF — Jungle Book nativ (fost Nexus) (branch `codex/camera-draft-stability`)
 
-Ultima actualizare: **18 octombrie 2026** (telefonul e din nou conectat, Metro rulează pe Railway, foaia xPortal
-ajunge până la relay — și se oprește acolo pentru că originea Railway nu este în Allowed Origins; §0.14 are
-cronologia, dovada și exact ce trebuie adăugat. Foaia are o singură mașină de stări, §0.13).
+Ultima actualizare: **18 octombrie 2026** (proiectul WalletConnect al proprietarului, `3762…3722`, are acum
+originea Railway în Allowlist — sonda răspunde **ALLOWED**, deci blocajul din §0.14 a căzut; §0.15 are dovada,
+înlocuirea ID-ului și de unde venea cel vechi. Foaia are o singură mașină de stări, §0.13).
 Scopul fișierului: o sesiune nouă continuă de aici fără să recitească tot istoricul și fără să repete greșeala care a blocat task-urile anterioare.
+
+## 0.15 Proiectul WalletConnect al proprietarului înlocuiește ID-ul străin (18 octombrie 2026)
+
+**Rezultatul, într-o propoziție:** blocajul „Origin not allowed” din §0.14 nu era în cod, ci în faptul că
+serverul publica un Project ID străin; proprietarul are propriul proiect Reown, redenumit **Jungle Book**, cu
+`https://nexus-deepsek-production.up.railway.app` în lista de domenii permise, iar sonda de releu răspunde acum
+**ALLOWED** pentru acea origine.
+
+| Ce | Valoare |
+|---|---|
+| Project ID nou (public, nu e secret) | `37628068772ce00f33f91f4d51273722` |
+| Nume în WalletConnect Cloud | **Jungle Book** |
+| Origine adăugată de proprietar | `https://nexus-deepsek-production.up.railway.app` |
+| Project ID vechi (scos din cod) | `16dfabc0ad133a40f7a3acc23e15fc98` — **nu aparține acestui proprietar** |
+
+### De unde venea ID-ul vechi
+
+`git log -S "16dfabc0ad133a40f7a3acc23e15fc98" --all` întoarce **un singur commit**: `4f44697` (18 oct 2026,
+15:48, „Nexus xPortal: pagina punte si bundle cu redirect.native; proiect WalletConnect implicit in preview”).
+Acolo a fost introdus `PUBLIC_WALLETCONNECT_PROJECT_ID` în `apps/nexus-web/lib/env.js`, ca valoare implicită
+pentru modul `preview`, ca telefonul să poată testa fără să lipească variabile de mediu. Nu a fost verificat
+niciodată în dashboard: sonda din §0.14 a arătat că proiectul nu are nicio origine publică, iar refuzul
+`3000` venea pentru orice origine în afară de `localhost`. A fost, practic, un ID de împrumut ținut în cod.
+
+`git log -S "37628068772ce00f33f91f4d51273722" --all` **nu întoarce nimic**: ID-ul proprietarului nu apare în
+niciun commit anterior acestei runde, deci nu a fost publicat accidental și nu are istoric de curățat.
+
+### Dovada că noul ID chiar e allowlisted (înainte de orice modificare de cod)
+
+`builds\wc-relay-probe.cjs` (acum citește ID-ul din `NEXUS_WC_PROJECT_ID`, cu noul ID ca implicit) semnează un
+JWT de relay și încearcă handshake-ul:
+
+| Proiect | Origine trimisă | Rezultat |
+|---|---|---|
+| `3762…3722` | `https://nexus-deepsek-production.up.railway.app` | **ALLOWED** (niciun mesaj de eroare în 2,5 s) |
+| `3762…3722` | `https://example.com` | **DENIED 3000 Unauthorized: origin not allowed** |
+| `16df…fc98` (runda trecută) | `https://nexus-deepsek-production.up.railway.app` | DENIED 3000 |
+
+Al doilea rând e important: refuzul pe o origine străină arată că proiectul **nu** e deschis tuturor, ci că
+lista conține exact domeniul nostru.
+
+### Ce s-a schimbat în cod
+
+| Fișier | Schimbare |
+|---|---|
+| `apps/nexus-web/lib/env.js` | `PUBLIC_WALLETCONNECT_PROJECT_ID` = noul ID; regulile au rămas aceleași: implicitul se aplică **doar** în `NEXUS_DEPLOYMENT_MODE=preview` și **doar** când originea cerută este exact `NEXUS_ORIGIN`, iar `NEXUS_WC_PROJECT_ID` setat explicit câștigă întotdeauna |
+| `apps/nexus-web/test/core.test.js` | aserțiune explicită: constanta publică este ID-ul proiectului „Jungle Book” (32 hex), ca o revenire la un ID străin să pice testul |
+| `apps/nexus-mobile/builds/wc-relay-probe.cjs` | ID-ul nu mai e lipit în script: `NEXUS_WC_PROJECT_ID` → altfel noul implicit |
+| `HANDOFF.md` | secțiunea de față + referințele operaționale din §0.12/§0.14 |
+
+Bundle-ul nu înglobează ID-ul: `wc-client.js` îl primește la rulare din `/auth/mvx/init` (`wcProjectId`), deci
+nu a fost nevoie de rebuild din cauza ID-ului — doar de rebuild-ul pentru textele Jungle Book (deploy în §0.16).
 
 ## 0.14 Telefonul, primul ciclu xPortal și singurul lucru care lipsește: originea allowlisted (18 octombrie 2026)
 
@@ -53,8 +750,9 @@ nu a fost prins din console, deci clientul a căzut pe propoziția lui de rezerv
 | **fără antet `Origin`** | ALLOWED |
 | `http://localhost:5000`, `http://localhost:8081`, `http://127.0.0.1:5000`, `https://localhost` | ALLOWED |
 
-Deci: proiectul `16df…fc98` nu are nicio origine publică în listă, iar WebView-ul trimite mereu `Origin` —
-pagina punte este servită de `API_ORIGIN`, adică de Railway.
+Deci: proiectul folosit atunci, `16df…fc98` (înlocuit cu proiectul proprietarului în §0.15), nu avea nicio
+origine publică în listă, iar WebView-ul trimite mereu `Origin` — pagina punte este servită de `API_ORIGIN`,
+adică de Railway.
 
 ### Reparația făcută în această rundă
 
@@ -67,12 +765,10 @@ rezumatul e răspunsul cinstit). Test: `test-xportal-login.cjs` are două cazuri
 
 ### Ce lipsește, exact
 
-1. **Una singură, obligatorie:** adaugă în WalletConnect Cloud → proiectul `16df…fc98` → Settings → Allowed
-   origins:
-   `https://nexus-deepsek-production.up.railway.app`
-   (fără cale, fără bară la final; potrivire exactă, cu schemă). Fără ea, relay-ul răspunde 3000 pentru orice
-   pagină servită de Railway, iar fluxul nu poate trece de `createProvider` → niciun URI de pairing nu există,
-   deci xPortal nu are ce aproba și amprenta nu are unde apărea.
+1. ~~**Una singură, obligatorie:** adaugă în WalletConnect Cloud → proiectul `16df…fc98` → Settings → Allowed
+   origins: `https://nexus-deepsek-production.up.railway.app`~~ — **rezolvat în §0.15**: proprietarul are
+   proiectul **Jungle Book** (`3762…3722`), cu originea Railway în listă; sonda de releu răspunde ALLOWED.
+   Ce rămâne de făcut e pe cod (ID-ul implicit, bundle-ul publicat) și pe telefon (ciclurile).
 2. **Dacă vrei să testăm înainte de dashboard**, singura cale care funcționează azi este originea locală, pe
    care relay-ul o acceptă din oficiu: Metro cu `EXPO_PUBLIC_NEXUS_API_URL=http://localhost:5000`,
    `& $adb reverse tcp:5000 tcp:5000`, iar serverul local pornit cu `NEXUS_ORIGIN=http://localhost:5000`
@@ -133,7 +829,8 @@ foaia putea rămâne pe „se așteaptă aprobarea în xPortal”, iar un evenim
    implicit Railway (`https://nexus-deepsek-production.up.railway.app`), deci originea locală apare doar când
    Metro e pornit cu `EXPO_PUBLIC_NEXUS_API_URL=http://192.168.1.153:5000`. Două căi: (a) se pornește Metro
    **fără** acea variabilă (telefonul vorbește cu Railway, a cărei origine trebuie însă confirmată în
-   dashboard), sau (b) se adaugă `http://192.168.1.153:5000` la Allowed Origins (proiectul `16df…fc98`).
+   dashboard), sau (b) se adaugă `http://192.168.1.153:5000` la Allowed Origins (proiectul **Jungle Book**,
+   `3762…3722`, §0.15).
    Vezi §0.12 „Cum comuți între serverul local și Railway”.
 2. **Testul pe telefon nu a fost făcut în această rundă** (fără dispozitiv în sesiune). Secvența: tap pe
    „Conectează”, raport „ACUM: amprenta”, așteptare ≤ 60 s, apoi logcat filtrat + `logEvent` din punte.
@@ -170,16 +867,16 @@ să pornească.
 | `GET /xportal-bridge.html` | **200**, are `id="qr"` și `<script src="/xportal-bridge.js">` |
 | `GET /xportal-bridge.js` | **200**, are `__nexusResume` și `__nexusCopy` |
 | `GET /wc-bundle.js` | **200**, 1 345 879 B, are `walletConnectMetadata` / `wasConnected` |
-| `GET /auth/mvx/init` cu `Origin` corect | **200**, `origin` = originea Railway, `wcProjectId` = `16df…fc98` |
+| `GET /auth/mvx/init` cu `Origin` corect | **200**, `origin` = originea Railway, `wcProjectId` = `16df…fc98` (ID-ul de atunci; din §0.15 serverul publică `3762…3722`) |
 | `GET /api/profiles/test` cu sesiune din `docs/.test-sessions.local` | **200** (câmpuri `ok,profile,posts,reposts,shared_replies,stories`) |
 | `GET /` și `GET /app.js` | 200 / 200 (web-ul servește în continuare) |
 | `POST /auth/email/login` cu parolă greșită | **401** `invalid credentials` (ruta de parolă funcționează) |
 | `POST /auth/email/login` cu conturile de test documentate | **403** „verifică adresa de email înainte de autentificare” — toate conturile din fișier sunt neverificate, deci **loginul cu parolă nu a putut fi dus până la capăt** cu ele; codul acestei rute nu e atins de deploy |
 
-**Neconfirmat de aici:** lista de domenii permise din WalletConnect Cloud (dashboard-ul nu e citibil din repo).
-Dacă pagina punte raportează `Origin … not in allowlist`, singurul pas este adăugarea originii
-`https://nexus-deepsek-production.up.railway.app` în WalletConnect Cloud → proiectul `16df…fc98` → Project
-Settings → Allowlist (potrivire exactă, cu schemă). Serverul nu are nevoie de altceva: `/auth/mvx/init` e 200.
+**Neconfirmat de aici atunci:** lista de domenii permise din WalletConnect Cloud (dashboard-ul nu e citibil din
+repo). Între timp proprietarul a confirmat-o pentru proiectul **Jungle Book** (`3762…3722`), §0.15: originea
+`https://nexus-deepsek-production.up.railway.app` e în listă, iar sonda de releu răspunde ALLOWED. Serverul nu are
+nevoie de altceva: `/auth/mvx/init` e 200 și publică `wcProjectId`.
 
 ### Cum comuți între serverul local și Railway (telefon)
 
@@ -1219,3 +1916,125 @@ Sonda `tools/probe-policy-deploy.mjs`, rulată din `nexus_deepsek` (citește ses
 4. **Conturile ledger separate** pentru fondator/acționari/ardere: cere o migrare aditivă
    (`owner_kind` are azi patru valori).
 
+## 11. Runda 18 octombrie 2026 (seara) — xPortal: al doilea ecran imediat, trei cicluri cap-coadă
+
+**Rezultatul, într-o propoziție:** loginul cu xPortal merge acum de trei ori la rând, cu un singur gest al
+proprietarului (amprenta), iar al doilea ecran din xPortal („Connection established. Proceed to log in?”)
+apare la ~1,2 s după aprobare, fiindcă foaia redeschide singură walletul.
+
+### 11.1 Ce era rupt (trei cauze, nu una)
+
+1. **Chooser-ul de walleturi.** Linkul pornea cu `wc:` gol; pe telefonul de test cinci aplicații declară
+   schema `wc:` (xPortal, Binance, KuCoin, MetaMask, Once), deci Android deschidea „Open with” în loc de
+   xPortal. `pm resolve-activity` arată că `xportal://wc?uri=…` se rezolvă **direct** la xPortal.
+   Fix: `xPortalWalletLinks()` pune `xportal://wc?uri=…` **primul**, apoi `wc:…`, apoi universal link-ul.
+2. **Al doilea ecran venea doar la întoarcere.** xPortal aprobă sesiunea pe ecranul lui și rămâne acolo;
+   cererea de semnătură NativeAuth ajunge la wallet **doar când e din nou în față**, iar socketul
+   aplicației moare cât timp e în fundal (`relay-close code=1006`). Fix: `scheduleReopen()` — pe
+   `phase: signature` (și pe `app-active` cu `stage=signature`) foaia redeschide `xportal://wc?uri=…`
+   după 1,2 s, **o singură dată per încercare** (`autoReopened`), ca aprobarea să nu poată bucla.
+3. **Timeout-urile erau mai scurte decât realitatea.** Latenta măsurată de la deschiderea foii până la
+   `signature-received` a fost **184 s** (runda de la 18:07), peste fereastra de 120 s a providerului și
+   peste cea de 180 s a paginii. Acum **300 s pe ambele capete**: `wc-client.js` `PROVIDER_TIMEOUT_MS =
+   300_000` (bundle reconstruit → `3e5`) și `public/xportal-bridge.js` (`300000`). Commits pe `origin/main`:
+   `e6c4b30`, `88b02ba`. Verificat live azi pe Railway: `/xportal-bridge.js` conține `300000` și nu mai
+   conține „3 minute”; `/wc-bundle.js` conține `3e5` și nu `120000`. Web: **813/813**.
+
+### 11.2 Cele trei cicluri (dovezi din logcat, prefix `[xportal]`)
+
+| Rundă | Foaia deschisă | Aprobare în xPortal | `auto-reopen` | Al 2-lea ecran | Connect + amprenta | `signature-received` | `token-posted` | Logout |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 18:34:26 | 18:35:20.926 (`ms=53545`) | 18:35:22.142 | 18:35:23 | 18:35:42 / beep 18:35:44 | 18:36:41.992 (`ms=134614`) | 18:36:42.005 | 18:39:16 |
+| 2 | 18:39:31 | 18:39:58.486 (`ms=25791`) | 18:39:59.694 | 18:40:00 | 18:40:16 / beep 18:40:18 | 18:40:32.854 (`ms=60169`) | 18:40:32.861 | 18:41:00 |
+| 3 | 18:41:11 | 18:41:33.988 (`ms=21851`) | 18:41:35.187 | 18:41:35 | 18:41:50 / beep 18:41:52 | 18:42:06.811 (`ms=54684`) | 18:42:06.814 | 18:42:37 |
+
+`ms=` este măsurat de la începutul încercării (deschiderea foii). În toate trei rundele semnătura a intrat
+**0,20–0,24 s după** `app-active`, adică imediat ce aplicația a revenit în față: `relay connected=true
+restarted=true` → `relay-resume` → `signature-received` → `token-received` → `token-posted`.
+
+### 11.3 Ce face acum cititorul (și ce spune foaia)
+
+1. „Conectează xPortal” → foaia pornește pairing-ul și **deschide singură** xPortal (`onMessage`, `pairing`).
+2. În xPortal: **Connect**.
+3. Revine **o dată** în Jungle Book → foaia redeschide xPortal automat (~1,2 s), cu al doilea ecran.
+   Dacă întoarcerea se face **înainte** de orice aprobare (xPortal îngheţat), foaia aşteaptă 10 s şi îl
+   redeschide singură o dată (§11.8).
+4. În xPortal: **Connect + amprenta**.
+5. Revine în Jungle Book → `signature-received` în ~0,2 s, sesiunea se deschide.
+
+Textul foii numește ambele întoarceri (test nou: `textul foii spune ambele întoarceri în Jungle Book`):
+„În xPortal: Connect, apoi revii în Jungle Book. xPortal se redeschide singur: Connect + amprenta, apoi
+revii în Jungle Book.” După `auto-reopen`, nota din foaie spune: „xPortal e din nou în față: Connect,
+amprenta, apoi revii în Jungle Book.”
+
+### 11.4 Ce e verificat pe telefon și ce rămâne presupunere
+
+**Verificat:** cele trei cicluri din §11.2 (logcat + dump-uri); fereastra 2 are `package=com.elrond.maiar.wallet`,
+textul „Connection established. Proceed to log in?” și `button-connect`, fără Send/Amount/Transfer/Swap/Stake;
+aprobarile au venit pe `xportal://wc?uri=…` fără chooser (logcat: `xportal-opened via=xportal:`); logout-ul
+a revenit la `AUTENTIFICARE` de fiecare dată; `/xportal-bridge.js` și `/wc-bundle.js` de pe Railway au
+timeout-urile noi.
+
+**Presupunere (nu e implementat):** prima întoarcere ar dispărea cu un **foreground service** care ține
+relay-ul viu cât timp xPortal e în față — atunci cererea de semnătură ar pleca imediat și al doilea ecran ar
+apărea fără nicio întoarcere. Costul: notificare permanentă + baterie, deci nu s-a făcut. A doua întoarcere
+este a walletului (după amprentă), nu a noastră.
+
+### 11.5 Unelte: `uiautomator` se blochează pe ecrane cu animație
+
+Ecranul de profil și foaia xPortal (WebView cu spinner) nu ajung niciodată „idle”: `uiautomator dump` atârnă
+până la timeout (30 s). Workaround folosit azi:
+- dump în **proces separat** + poll `stat -c %s` pe fișierul de pe telefon, apoi `pull` când are conținut;
+- butonul de meniu al profilului: `14 dp + 22 dp` din zona sigură (`socialTokens.identity`) → `(94,293)` pe
+  acest telefon (1220×2656, densitate 416 → 2,6 px/dp); rândul „Ieși din cont” se citește din dump-ul meniului;
+- „Renunță” din foaie: `26 + 210 + 4 + 22 dp` de la baza ecranului → `y=1975`, `x=610`;
+- nu se citesc imagini (regula rundei), deci totul de mai sus vine din arborele de accesibilitate și din logcat.
+
+### 11.6 Railway ca origine implicită
+
+`src/lib/apiOrigin.ts`: `EXPO_PUBLIC_NEXUS_API_URL`, iar în lipsa lui
+`https://nexus-deepsek-production.up.railway.app`. Aplicația de pe telefon a rulat toată runda pe această
+origine (pagina de punte scrie în xPortal exact `https://nexus-deepsek-production.up.railway.app`).
+
+### 11.7 Fișiere atinse (necomise, în arborele de lucru)
+
+- `apps/nexus-mobile/src/lib/xportalLogin.ts` — `xPortalWalletLinks()`: `xportal://` primul;
+- `apps/nexus-mobile/src/components/XPortalSheet.tsx` — `autoReopened` / `reopenTimer` / `cancelReopen` /
+  `scheduleReopen`, legate la `phase: signature` și la `app-active` cu `stage=signature`; `unstuckReopened` /
+  `unstuckTimer` / `cancelUnstuck` / `scheduleUnstuck` (§11.8); textele de mai sus;
+- `apps/nexus-mobile/src/lib/xportalState.ts` — `XPORTAL_WAIT_SECONDS = 300` (§11.8);
+- `apps/nexus-mobile/scripts/test-xportal-login.cjs` — ordinea linkurilor + testul de auto-reopen + testul
+  textului + testul deblocării + comparația de fereastră cu serverul; **24/24 pass**;
+- `apps/nexus-mobile/scripts/test-xportal-state.cjs` — ceasul de 300 s;
+- `tsc --noEmit` curat.
+
+### 11.8 Runda a doua: xPortal îngheţat la prima deschidere (raportat de cititor)
+
+Încercarea manuală din 18:49 a arătat în logcat exact ce lipsea:
+
+| Ora | Eveniment | Ce însemna |
+|---|---|---|
+| 18:49:50.584 | `xportal-opened via=xportal:` | prima fereastră, fără chooser |
+| 18:49:54.723 | `app-active stage=pairing` | cititorul a revenit după 4 s: ecranul xPortal era îngheţat |
+| 18:50:10.234 | `approved ms=25771` | aprobarea a venit doar după ce a închis xPortal din Recents şi l-a redeschis |
+| 18:50:11.443 | `auto-reopen` | a doua fereastră (mecanismul din §11.1, funcţional) |
+| 18:50:58.679 | `signature-received ms=74238` | login reuşit, dar cu trei intervenţii manuale |
+
+Două lucruri s-au reparat:
+
+1. **Fereastra telefonului era 120 s** (`xportalState.ts`), în timp ce serverul şi pagina au 300 s. Foaia
+   anunţa „nu a confirmat în 2 minute” cât timp cererea era încă vie pe relay (aprobarile măsurate au ajuns
+   la 60–184 s). Acum `XPORTAL_WAIT_SECONDS = 300`, iar un test compară direct cu `xportal-bridge.js`
+   (`300_000`) şi `wc-client.js` (`PROVIDER_TIMEOUT_MS = 300_000`), ca să nu mai poată diverge.
+2. **Redeschidere de deblocare** (`scheduleUnstuck`): dacă cititorul se întoarce în app cu `stage=pairing`
+   (nici o aprobare nu a venit, iar xPortal e deschis de cel puţin 5 s) şi **rămâne** aici 10 s, foaia pune
+   xPortal din nou în faţă, o singură dată per încercare (`unstuckReopened`), cu nota „xPortal nu a răspuns:
+   îl redeschid cu aceeaşi cerere…”. Întoarcerea în xPortal anulează redeschiderea (`AppState` →
+   `cancelUnstuck`): cât timp walletul îşi face treaba, nu-i furăm ecranul. Logcat: `unstuck-reopen`.
+   Un al doilea intent nu pleacă niciodată către un xPortal pus în faţă cu mai puţin de 4 s în urmă
+   (`auto-reopen-skipped`), ca aprobarea şi deblocarea să nu se certe pe acelaşi ecran.
+
+Ce **nu** poate face aplicaţia: să închidă din forţă un xPortal îngheţat (sandbox Android). De aceea nota
+spune pasul pe care cititorul l-a făcut manual: închide xPortal din Recents, apoi „Deschide xPortal din nou”.
+Pe MIUI cauza obişnuită a îngheţării e restricţia de pornire în fundal; se ridică per aplicaţie din
+Setări → Aplicaţii → Autostart şi baterie „Fără restricţii” (pentru Jungle Book **şi** xPortal).

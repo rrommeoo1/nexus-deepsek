@@ -107,7 +107,7 @@ export function audioUploadMime(draft: LocalDraft): string | null {
 }
 
 /**
- * A catalog URL without Railway's signed selection token cannot be published. The URL alone is not
+ * A catalog URL without the server's signed selection token cannot be published. The URL alone is not
  * proof of a valid license selection.
  */
 export class CatalogAudioError extends Error {

@@ -1,8 +1,10 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { RemoteImageSource, RemoteVideo } from './PostMedia';
+import { BrandAvatar } from './BrandAvatar';
+import { blackSilver } from '../theme/blackSilver';
 import {
-  initialsFor, mediaKindOf, mediaSourceFor, mediaSourceForPath, type StoryView,
+  mediaKindOf, mediaSourceFor, mediaSourceForPath, type StoryView,
 } from '../lib/socialTypes';
 
 /**
@@ -29,8 +31,6 @@ export function StoryRail({ stories, owner, onOpenStory, onAddStory }: {
   onOpenStory: (index: number) => void;
   onAddStory: () => void;
 }) {
-  const selfName = String(owner.display_name || owner.handle || '').trim();
-  const selfInitials = initialsFor(selfName, owner.handle);
   const selfAvatar = mediaSourceForPath(owner.avatar);
 
   return (
@@ -39,7 +39,7 @@ export function StoryRail({ stories, owner, onOpenStory, onAddStory }: {
       <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
         <Defs>
           <LinearGradient id="nxStoryTray" x1="0" y1="0" x2="1" y2="0">
-            <Stop offset="0" stopColor="#20e0d0" stopOpacity={0.05} />
+            <Stop offset="0" stopColor={blackSilver.silver} stopOpacity={0.05} />
             <Stop offset="0.46" stopColor="#000000" stopOpacity={0} />
             <Stop offset="1" stopColor="#8c62ff" stopOpacity={0.06} />
           </LinearGradient>
@@ -56,7 +56,7 @@ export function StoryRail({ stories, owner, onOpenStory, onAddStory }: {
         >
           <View style={[styles.prism, styles.createPrism]}>
             {selfAvatar ? <RemoteImageSource source={selfAvatar} fit="cover" style={styles.media} /> : null}
-            {!selfAvatar ? <Text style={styles.createInitials}>{selfInitials}</Text> : null}
+            {!selfAvatar ? <BrandAvatar size={72} /> : null}
             <View style={styles.addBadge}><Text style={styles.addBadgeText}>+</Text></View>
           </View>
           <Text style={styles.ownLabel} numberOfLines={1}>Story-ul tău</Text>
@@ -88,7 +88,7 @@ function StoryCard({ story, onPress }: { story: StoryView; onPress: () => void }
         {kind === 'video' ? (
           <RemoteVideo item={item} style={[styles.media, seen && styles.mediaSeen]} active={false} muted loop={false} fit="cover" />
         ) : null}
-        {!item ? <Text style={styles.initials}>{initialsFor(name, story.author?.handle)}</Text> : null}
+        {!item ? <BrandAvatar size={72} /> : null}
         <View style={styles.nameBand}>
           <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
             <Defs>
@@ -121,22 +121,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#0a121c',
+    backgroundColor: blackSilver.graphite,
   },
-  /** `.createPrism{border:1px dashed rgba(36,240,210,.5)!important;background:linear-gradient(160deg,rgba(16,42,49,.9),rgba(12,20,34,.9))!important}` */
-  createPrism: { borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(36,240,210,0.5)', backgroundColor: 'rgba(14,31,41,0.9)' },
+  /**
+   * `.createPrism` — the dashed door to the camera. Round 31: the teal dash and the teal wash became the
+   * metal, and the initials in it became the JB fruit logo (`BrandAvatar`), like every other default face.
+   */
+  createPrism: { borderWidth: 1, borderStyle: 'dashed', borderColor: blackSilver.hairlineStrong, backgroundColor: blackSilver.graphite },
   /** `.storyUnseen .storyPrism` — the accent ring around the picture, drawn as a shadow so the picture keeps its size. */
-  prismUnseen: { boxShadow: '0 0 0 2px rgba(36,240,210,0.85), 0 0 0 4px rgba(9,14,22,0.9), 0 0 22px rgba(36,240,210,0.22)' },
+  prismUnseen: { boxShadow: '0 0 0 2px rgba(196,199,203,0.85), 0 0 0 4px rgba(9,10,11,0.9), 0 0 22px rgba(196,199,203,0.22)' },
   /** `.storyViewed .storyPrism{box-shadow:0 0 0 2px rgba(135,183,220,.16)}` */
   prismSeen: { boxShadow: '0 0 0 2px rgba(135,183,220,0.16)' },
   /** `.inboxScreen .stories .storyPrism img,.storyPrism video{position:relative;z-index:1;width:100%;height:100%;object-fit:cover}` */
   media: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
   /** `filter:saturate(.55) brightness(.8)` — replaced by the same dimming through opacity (documented limit). */
   mediaSeen: { opacity: 0.72 },
-  /** `.storyInitials{...color:#fff;font-size:19px;font-weight:800}` (measured on the live card). */
+  /** `.storyInitials{...color:#fff;font-size:19px;font-weight:800}` — no longer printed: the logo is. */
   initials: { color: '#ffffff', fontSize: 19, fontWeight: '800' },
-  /** `.createPrism>b{color:var(--teal)}` — measured 19px/800 white over the dashed disc. */
-  createInitials: { color: '#20e0d0', fontSize: 19, fontWeight: '800' },
+  /** Superseded by `BrandAvatar` in the create card; kept only so no style key disappears. */
+  createInitials: { color: blackSilver.bright, fontSize: 19, fontWeight: '800' },
   /** `.storyAddBadge{inset-inline-end:6px;bottom:6px;width:26px;height:26px;border:2px solid #0a1119;border-radius:50%}` */
   addBadge: {
     position: 'absolute',
@@ -146,15 +149,15 @@ const styles = StyleSheet.create({
     height: 26,
     borderRadius: 13,
     borderWidth: 2,
-    borderColor: '#0a1119',
-    backgroundColor: '#12bfb4',
+    borderColor: blackSilver.deepBlack,
+    backgroundColor: blackSilver.silver,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  /** `linear-gradient(145deg,#5cf6e7,#12bfb4)` + `+` 17px/900 `#03110f`. */
-  addBadgeText: { color: '#03110f', fontSize: 17, fontWeight: '900', lineHeight: 18 },
+  /** `linear-gradient(145deg,#5cf6e7,#12bfb4)` + `+` 17px/900 — the metal now, with matte-black ink. */
+  addBadgeText: { color: blackSilver.onSilver, fontSize: 17, fontWeight: '900', lineHeight: 18 },
   /** `.feedStoryOwn>span{max-width:98px;color:#cad6da;font-size:11px;text-align:center}` */
-  ownLabel: { maxWidth: 98, color: '#cad6da', fontSize: 11, textAlign: 'center' },
+  ownLabel: { maxWidth: 98, color: blackSilver.textMuted, fontSize: 11, textAlign: 'center' },
   /** `.storyName{position:absolute;left:0;right:0;bottom:0;padding:26px 8px 8px;overflow:hidden}` */
   nameBand: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: 26, paddingHorizontal: 8, paddingBottom: 8 },
   /** `.storyName{color:#fff;font-size:11px;font-weight:800;line-height:1.2;text-shadow:0 1px 8px rgba(0,0,0,.7)}` */

@@ -1,6 +1,10 @@
 # Jungle Book Android — development client (fost Nexus)
 
-> Actualizare 2026-10-06: ecranul principal nu mai este un WebView. Este un client React Native nativ cu login email, feed, profil, cameră, editor local, emoji și căutare/previzualizare Jamendo prin API. URL-ul API implicit este `https://nexus-deepsek-production.up.railway.app`; poate fi schimbat la pornirea Metro prin `EXPO_PUBLIC_NEXUS_API_URL`. Nu mai este necesar `adb reverse tcp:5000` pentru interfața Android. Editorul nu face încă export final sau publicare, iar loginul/walletul și celelalte ecrane nu au paritate completă. Textul istoric de mai jos documentează shell-ul WebView anterior și nu trebuie folosit ca instrucțiune pentru noua interfață.
+> Actualizare 2026-10-28: backend-ul rulează **pe acest PC** (`tools/local-backend`, portul 5000, date în
+> `C:\Nexus\data`). URL-ul API implicit este acum chiar PC-ul: `EXPO_PUBLIC_NEXUS_API_URL` din `.env`,
+> altfel hostul care a servit bundle-ul, altfel `http://localhost:5000` prin `adb reverse tcp:5000`. Nu mai
+> există niciun implicit remote (`JUNGLE_BOOK_PROGRESS.md` §34.2). Textul de mai jos descrie starea din
+> 6 octombrie și rămâne ca istoric.
 
 Pentru iterații Android: `npm run dev:open`, apoi modifică `src/**` și verifică cu `npm run dev:ui`; `npm run typecheck` și `npm run lint` înainte de livrare. Nu dezinstala aplicația, deoarece capturile și drafturile sunt locale. Un nou APK este necesar numai după modificări native/config, nu după fiecare editare de UI.
 

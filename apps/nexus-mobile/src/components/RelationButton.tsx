@@ -9,7 +9,7 @@ import {
   type RelationActionId, type RelationMenuItem, type RelationTarget, type RelationView,
 } from '../lib/relations';
 import { jungle } from '../theme/jungle';
-import { socialTokens } from '../theme/social';
+import { socialTokens, type ControlTone } from '../theme/social';
 
 /**
  * The one relation control of the app. It draws what `deriveRelationUi` says — never a rule of its own — so
@@ -31,12 +31,20 @@ import { socialTokens } from '../theme/social';
 export type RelationButtonVariant = 'wide' | 'compact';
 
 export function RelationButton({
-  target, relation, viewerUserId, variant = 'wide', onEditProfile, style,
+  target, relation, viewerUserId, variant = 'wide', tone = 'night', onEditProfile, style,
 }: {
   target: RelationTarget;
   relation?: RelationView | undefined;
   viewerUserId?: number | null;
   variant?: RelationButtonVariant;
+  /**
+   * Which ground the door stands on (`socialTokens.post.controls`, owner, 28 October 2026). A page of words
+   * is the cream `pagePaletteOf` gives every such page, so its Follow is graphite ink on a silver plate; the
+   * profile's field, a card and a conversation are dark, so the same door is silver ink on a graphite plate
+   * and a leading one is the solid silver chip. `PostCard` tells the page's own Follow which ground it is;
+   * every other mount keeps the night.
+   */
+  tone?: ControlTone;
   /** What the owner's own primary button opens: the editor, exactly as the pencil did. */
   onEditProfile?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -88,7 +96,21 @@ export function RelationButton({
     ]);
   }, [press, target.handle, target.name, ui.primary.confirm, ui.primary.label]);
 
-  const tone = ui.primary.tone === 'accent';
+  /**
+   * The door's own two readings, from the one material (`socialTokens.post.controls`): `accent` is the
+   * leading word (`Urmărește`, the owner's `Editează profilul`), `neutral` the second (`Urmărești`,
+   * `Mesaj`). On paper the two differ only by their hairline — a filled graphite door on cream would be a
+   * black sticker — and at night the leading one is the solid silver chip, which is how a door leads on a
+   * dark field without spending the leaf.
+   */
+  const accent = ui.primary.tone === 'accent';
+  const paper = tone === 'paper';
+  const door = accent
+    ? (paper ? styles.accentPaper : styles.accentNight)
+    : (paper ? styles.secondaryPaper : styles.secondaryNight);
+  const doorLabel = paper
+    ? (accent ? styles.labelPaperAccent : styles.labelPaper)
+    : accent ? styles.labelOnNight : styles.labelNight;
   const disabled = ui.primary.action === 'none' || busy;
 
   return (
@@ -101,17 +123,19 @@ export function RelationButton({
         onPress={compact ? press : confirmAndPress}
         style={({ pressed }) => [
           compact ? styles.compact : styles.wide,
-          tone ? styles.accent : styles.neutral,
+          door,
           disabled && styles.disabled,
           pressed && !disabled && styles.pressed,
         ]}
       >
         {busy ? (
-          <ActivityIndicator size="small" color={tone ? socialTokens.relations.accentInk : socialTokens.relations.busyInk} />
+          <ActivityIndicator size="small" color={accent
+            ? (paper ? socialTokens.post.controls.paper.inkOnPlate : socialTokens.post.controls.night.inkOn)
+            : socialTokens.relations.busyInk} />
         ) : (
           <Text
             numberOfLines={1}
-            style={[compact ? styles.compactLabel : styles.label, tone ? styles.accentLabel : styles.neutralLabel]}
+            style={[compact ? styles.compactLabel : styles.label, doorLabel]}
           >
             {ui.primary.label}
           </Text>
@@ -244,15 +268,38 @@ const styles = StyleSheet.create({
     borderRadius: socialTokens.relations.compactRadius,
     borderWidth: 1,
   },
-  /** The primary action of the product: kiwi green with the field as its ink (`theme/jungle.ts`). */
-  accent: { backgroundColor: jungle.primary, borderColor: jungle.primary },
-  neutral: { backgroundColor: socialTokens.relations.neutralSurface, borderColor: socialTokens.relations.neutralBorder },
+  /**
+   * The two doors, on the two grounds of `socialTokens.post.controls`.
+   *
+   * Round 31 (owner, 31 October 2026 — „butoanele Editează profilul, Urmărește, Urmărit să fie argintii,
+   * cu text negru"): the leading door is a **solid silver chip** on both grounds, with matte-black words;
+   * the second door keeps the quiet material (a hairline and a wash), so a following state is still
+   * visibly the calmer of the two and the relationship can be read at a glance. No green, no yellow:
+   * `socialTokens.relations.accent` was the teal and is the metal now.
+   */
+  accentPaper: { backgroundColor: socialTokens.post.controls.paper.plateSolid, borderColor: socialTokens.post.controls.paper.edgeStrong },
+  secondaryPaper: { backgroundColor: 'transparent', borderColor: socialTokens.post.controls.paper.edge },
+  labelPaper: { color: socialTokens.post.controls.paper.ink },
+  /** The word *on* the silver chip: matte black, ~10:1 against #C4C7CB. */
+  labelPaperAccent: { color: socialTokens.post.controls.paper.inkOnPlate },
+  /** At night the leading door is the solid silver chip and the second is the graphite plate. */
+  accentNight: { backgroundColor: socialTokens.post.controls.night.plateOn, borderColor: socialTokens.post.controls.night.edgeOn },
+  secondaryNight: { backgroundColor: socialTokens.post.controls.night.plate, borderColor: socialTokens.post.controls.night.edge },
+  labelOnNight: { color: socialTokens.post.controls.night.inkOn },
+  labelNight: { color: socialTokens.post.controls.night.ink },
+  /**
+   * The second door (`Mesaj`): the same night plate as the quiet press on the rail, so the row beside the
+   * solid silver Follow prints one material and not a green hairline next to a grey one.
+   */
+  neutral: {
+    backgroundColor: socialTokens.post.controls.night.plate,
+    borderColor: socialTokens.post.controls.night.edge,
+  },
   disabled: { opacity: 0.55 },
   pressed: { opacity: 0.82 },
   label: { fontSize: socialTokens.relations.labelSize, fontWeight: '700' },
   compactLabel: { fontSize: socialTokens.relations.compactLabelSize, fontWeight: '700' },
-  accentLabel: { color: jungle.primaryInk },
-  neutralLabel: { color: socialTokens.relations.neutralInk },
+  neutralLabel: { color: socialTokens.post.controls.night.ink },
   round: {
     width: socialTokens.relations.roundSize,
     height: socialTokens.relations.roundSize,

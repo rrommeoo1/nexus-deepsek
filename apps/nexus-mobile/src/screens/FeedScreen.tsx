@@ -1,91 +1,105 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { blackSilver } from '../theme/blackSilver';
 import {
-  ActivityIndicator, FlatList, Linking, PanResponder, Pressable, RefreshControl, StyleSheet, Text, View,
+  ActivityIndicator, FlatList, Linking, Pressable, RefreshControl, StyleSheet, Text, View,
+  type NativeScrollEvent, type NativeSyntheticEvent, type ViewToken,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
-import { decideSocialGesture } from '../lib/socialGesture';
+import { usePostImpression } from '../lib/impressions';
 import { rememberPayload } from '../lib/relations';
+import { hasVisualMedia, isAuthoredArticle } from '../lib/postPresentation';
 import type { FeedPage, NewsItem, SocialPost } from '../lib/socialTypes';
-import { postMediaItems, relativeTime } from '../lib/socialTypes';
+import { appNavHeight } from '../components/AppNav';
 import { PostCard } from '../components/PostCard';
-import { MediaViewer } from '../components/MediaViewer';
-import { ReelsReader } from '../components/ReelsReader';
-import { socialTokens } from '../theme/social';
-import { openCommentsPage } from '../lib/commentNavigation';
+import { ReelPage } from '../components/ReelsReader';
+import { editorial } from '../theme/editorial';
 
 const PAGE_SIZE = 30;
 
-/** How far a flick has to move before the feed takes it over: well under the 72px that decides it. */
-const CLAIM_TRAVEL = 24;
-
-/** Whether a move is clearly horizontal, the way `decideSocialGesture` reads a finished gesture. */
-function horizontalIntent(dx: number, dy: number): boolean {
-  return Math.abs(dx) >= CLAIM_TRAVEL && Math.abs(dx) > Math.abs(dy) * 1.2;
-}
-
-export type FeedModeId = 'reels' | 'whispers' | 'news';
+/**
+ * `t("feed.breakingDisabled")` and `t("feed.breakingDisabledDetail")` of the web, Romanian voice
+ * (interface-locale.js:84), with the product's own name in the sentence (`test-brand.cjs`: no visible
+ * string may still say "Nexus"). Kept — together with `NewsBlock` below — because the owner removed the
+ * *button* that opened the news reading, not the news itself: the endpoint, the notice and its two
+ * sentences stay in the app for the surface that will read them next.
+ */
+export const NEWS_DISABLED_TITLE = 'Știrile sunt pregătite, dar oprite';
+export const NEWS_DISABLED_DETAIL = 'Nicio sursă nu a fost aprobată încă. Fără o decizie de owner pentru un agregator din lista aprobată, Jungle Book nu are de unde lua titluri reale — și nu inventează niciunul.';
 
 /**
- * The Social feed. It reads the same endpoint the web reads (`GET /api/social/feed`) with the same
- * mode contract (`FEED_MODE_CONTRACT` in feed-surface.js), keeps the cursor for paging, and answers
- * every state honestly: a skeleton while the first page is in flight, an error with a retry that
- * never doubles a post, an empty line when the server really has nothing, and the provider's own
- * reason when Breaking News has no configured source.
+ * The Universal feed: one full-screen page per post.
+ *
+ * One request (`GET /api/social/feed?format=all`), one list, one decision per item taken by the one
+ * classifier every surface shares (`hasVisualMedia` / `isAuthoredArticle`): a page that carries a
+ * picture or a clip is the reader's immersive page (`ReelPage` — media edge to edge, actions up the
+ * right rail), unless it is an authored article with photographs, which stays the editorial
+ * composition (`PostCard`). A page of words is the editorial composition too. Both are
+ * drawn by `PostCanvas`, and both own the *whole* viewport — the page is the post, so a swipe is one
+ * uniform page of one size.
+ *
+ * Round 8 changed the page, on the owner's word:
+ *
+ *   no filter      the Toate · Postări · Reel-uri toggle is gone; the feed carries every type together;
+ *   no bands       the page starts under the status clock and ends at the gesture bar, so a 9:16 post is
+ *                  never fitted into a smaller 9:16 box inside a black page;
+ *   no resize      the page height is the viewport, not `viewport − chrome`. The old code removed the tab
+ *                  bar's band while a swipe was in flight, which resized every card mid-gesture: the
+ *                  "content shrinks or grows" the owner saw. The band is now constant, and only the
+ *                  words keep clear of it (`bottomInset`), so a post never moves when the bar leaves.
+ *
+ * Round 8, item 2 added a rule of the owner: a picture is read with the rail, exactly as a clip is — so the
+ * immersive page is asked for by the *media*, not by the content type.
+ *
+ * Round 9 (20 October 2026) gave a page of words that same rail. The owner asked for the horizontal bar at
+ * its foot to climb the right of the page — „zona cu reacții orizontală de jos, mutată vertical, exact la
+ * fel ca la reels… același sistem de comentarii, de paletă" — and for the head of such a page to sit in the
+ * notification band. Two consequences live here: every page now takes `onPanelChange` (the reaction panel
+ * stops the pager, as on a reel), and the feed opens on the server's own first post again — the rule that
+ * lifted a picture to the front (`openWithMedia`) existed only because a page of words had a bar where the
+ * menu stands, and that bar is gone.
+ *
+ * Round 10 (20 October 2026) closed that band for good. The owner asked for the tab bar to stop
+ * sliding away — "vreau sa faci footer ul sa nu mia dispara la scroll..va ramane permananet" — so there is
+ * no vacated band to descend into, no clock to follow, and no `chromeHidden` to react to. Every page keeps
+ * the same foot, the bar stands over it, and the words end above it (`bottomInset`): the feed takes no
+ * props any more, because it has no chrome of its own left to move.
  */
-export function FeedScreen({ mode, onModeChange }: {
-  mode: FeedModeId;
-  onModeChange: (mode: FeedModeId) => void;
-}) {
-  const contract = socialTokens.feedModes.find((entry) => entry.id === mode) ?? socialTokens.feedModes[0];
+export function FeedScreen() {
+  const insets = useSafeAreaInsets();
+  /**
+   * The band the floating tab bar owns at the foot of the page — a constant, because the bar is constant
+   * (round 10). The media still runs under it, and the words, the actions and the rail end above it, so
+   * nothing of a post is ever behind the glass and no page changes size for a swipe.
+   */
+  const navReserve = appNavHeight(insets.bottom);
+
   const url = useMemo(() => {
-    const params = new URLSearchParams({ format: contract.format, limit: String(PAGE_SIZE) });
-    if (contract.lens) params.set('lens', contract.lens);
+    const params = new URLSearchParams({ format: 'all', lens: 'for-you', limit: String(PAGE_SIZE) });
     return `/api/social/feed?${params.toString()}`;
-  }, [contract.format, contract.lens]);
+  }, []);
 
   const [posts, setPosts] = useState<SocialPost[]>([]);
-  const [news, setNews] = useState<NewsItem[] | null>(null);
-  const [newsNotice, setNewsNotice] = useState('');
   const [cursor, setCursor] = useState<string | null>(null);
-  const [emptyNote, setEmptyNote] = useState('');
   const [loadedUrl, setLoadedUrl] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState('');
   const [reloadNonce, setReloadNonce] = useState(0);
   const requestId = useRef(0);
-  /** Where the column stands, so the swipe decides with the same number the web hands its decision. */
-  const scrollTop = useRef(0);
-  /** The posts a card would open the full-screen reader with (app.js:4913): the ones that carry media. */
-  const gallery = useMemo(() => posts.filter((post) => postMediaItems(post).length > 0), [posts]);
   /**
-   * The end of a horizontal flick on the feed (app.js:2960-3030 `wireSocialChannelSwipe`). The decision is
-   * the web's, taken with the same 72px threshold and the same scroll position, and the walk it takes is
-   * `nextMode`: the order the rail prints, wrapping at both ends (`activateFeedMode(nextFeedMode(feedMode,
-   * offset))`, app.js:2999). A pull at the very top is not answered here — the native `RefreshControl`
-   * already owns it and reloads exactly the page that branch would have asked for.
+   * The page: the list's own height, measured once. It does not depend on the tab bar, on the header (the
+   * feed has none) or on the item — that is what makes every swipe one page of one size.
    */
-  const endSwipe = useCallback((dx: number, dy: number) => {
-    const decision = decideSocialGesture({ dx, dy, scrollTop: scrollTop.current });
-    if (decision.action !== 'channel') return;
-    onModeChange(nextMode(mode, decision.offset));
-  }, [mode, onModeChange]);
+  const [pageHeight, setPageHeight] = useState(0);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [muted, setMuted] = useState(true);
   /**
-   * The surface that reads the flick. Only a move that is clearly horizontal is taken over — 24px of travel
-   * and more than 1.2× the vertical one — so the column's own scroll and every tap stay with their owner.
-   *
-   * The compiler rule below reads `PanResponder.create` as a call that could run its handlers while the
-   * component renders; `endSwipe` is only ever reached on a release, which is exactly where reading where
-   * the column stands is allowed (the same disable sits on the media reader of `PostMedia.tsx`).
+   * A page whose reaction column is open stops the pager: the column's panel is chosen by dragging up
+   * the page (`ReactionControl` → `ReelPage`), and the pager would take that drag at the native level.
    */
-  // eslint-disable-next-line react-hooks/refs
-  const channelSwipe = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => false,
-    onMoveShouldSetPanResponder: (_event, gesture) => horizontalIntent(gesture.dx, gesture.dy),
-    onMoveShouldSetPanResponderCapture: (_event, gesture) => horizontalIntent(gesture.dx, gesture.dy),
-    onPanResponderRelease: (_event, gesture) => endSwipe(gesture.dx, gesture.dy),
-    onPanResponderTerminate: () => {},
-  }), [endSwipe]);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const viewability = useMemo(() => ({ itemVisiblePercentThreshold: 60 }), []);
 
   const applyPage = useCallback((page: FeedPage, kind: 'initial' | 'more') => {
     setCursor(typeof page.next_cursor === 'string' ? page.next_cursor : null);
@@ -94,31 +108,26 @@ export function FeedScreen({ mode, onModeChange }: {
         const seen = new Set(previous.map((post) => post.id));
         return [...previous, ...(page.posts ?? []).filter((post) => !seen.has(post.id))];
       }
+      /**
+       * The server's order, untouched (`openWithMedia` is gone with the footer it existed for): the first
+       * page of the feed may be a page of words now, because that page's presses climb the rail above the
+       * menu instead of standing on it.
+       */
       return page.posts ?? [];
     });
-    setNews(Array.isArray(page.news) ? page.news : null);
-    setNewsNotice(contract.id === 'news' && page.provider?.status === 'disabled'
-      ? String(page.provider.reason || 'Sursa de știri nu este configurată pe server.')
-      : '');
-    setEmptyNote(page.near?.status === 'consent_required'
-      ? 'Feedul local are nevoie de acordul tău pentru regiune.'
-      : 'Nu sunt postări de afișat.');
     setError('');
-  }, [contract.id]);
+  }, []);
 
   const describe = useCallback((cause: unknown) => (cause instanceof NexusApiError && cause.status === 409
     ? 'Profilul Social nu este activ pe această sesiune.'
     : cause instanceof Error ? cause.message : 'Conexiunea nu este disponibilă.'), []);
 
-  // The first page is fetched when the address changes. Every state update happens after the
-  // promise resolves, so nothing renders twice for the same request.
   useEffect(() => {
     const ticket = ++requestId.current;
     let cancelled = false;
     nexusApi<FeedPage>(url)
       .then((page) => {
         if (cancelled || ticket !== requestId.current) return;
-        /** Every post the feed received feeds the one relation store (`lib/relations.ts`). */
         rememberPayload(page);
         applyPage(page, 'initial');
         setLoadedUrl(url);
@@ -156,95 +165,149 @@ export function FeedScreen({ mode, onModeChange }: {
     setReloadNonce((value) => value + 1);
   }, []);
 
-  /** Where the full-screen reader stands: the index of the tapped post inside the media gallery. */
-  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
-  const openInViewer = useCallback((post: SocialPost) => {
-    const index = gallery.findIndex((entry) => entry.id === post.id);
-    if (index >= 0) setViewerIndex(index);
-  }, [gallery]);
+  /**
+   * Every post, in the order the server sent it, on the page the server's classifier gave it: a clip is
+   * the reel (rail on the right), anything else is the editorial composition (actions under the words).
+   * There is no slice any more — the owner removed the filter, so this list is the feed.
+   */
+  const visible = posts;
+
+  /**
+   * The page the reader has settled on. Only the index is read now: the tab bar is permanent (round 10),
+   * so there is no chrome to hide on a forward swipe and none to bring back on the first page. The
+   * gesture that carried that decision is gone, and the feed is a plain pager again.
+   */
+  const onMomentumEnd = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (pageHeight <= 0) return;
+    const index = Math.max(0, Math.round(event.nativeEvent.contentOffset.y / pageHeight));
+    setActiveIndex(index);
+  }, [pageHeight]);
+
+  const onViewableItemsChanged = useCallback((info: { viewableItems: ViewToken[] }) => {
+    const first = info.viewableItems.find((entry) => entry.isViewable);
+    if (first && typeof first.index === 'number') setActiveIndex(first.index);
+  }, []);
+
+  /**
+   * The page the reader is on is a view, and the only one this feed has to report: the ledger
+   * (`lib/impressions.ts`) measures how long the page held the screen and sends it on the route the web
+   * already uses. A feed that never reported a reading was why every count stayed at zero.
+   */
+  usePostImpression(visible[activeIndex]?.id);
 
   if (loadedUrl !== url) return <FeedSkeleton />;
 
-  // The clips reading is the immersive one (`presentation-immersive` of feed-surface.css), so it gets
-  // the full-viewport reader. Whispers and News keep the card list. When the clips reading is empty or
-  // failed the card list stays in place, which is where the empty and error lines live.
-  if (mode === 'reels' && posts.length > 0) {
-    return (
-      <>
-        <View style={styles.surface} {...channelSwipe.panHandlers}>
-          <ReelsReader
-            posts={posts}
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            onEndReached={onLoadMore}
-            loadingMore={loadingMore}
-            onOpenPost={openInViewer}
-            onOpenComments={openCommentsPage}
-          />
-        </View>
-        {/**
-         * `tapVideo` of the web (app.js:3216-3239) opens the reel full screen on a single tap; the reader
-         * it opens is the same `#mediaViewer` every other card opens, and it is handed the media posts of
-         * this surface (`gallery`), with the tapped post as its first frame.
-         */}
-        <MediaViewer
-          post={viewerIndex !== null ? gallery[viewerIndex] ?? null : null}
-          gallery={gallery}
-          onClose={() => setViewerIndex(null)}
-          onOpenCommentsRoot={(post) => { setViewerIndex(null); openCommentsPage(post); }}
-        />
-      </>
-    );
-  }
-
+  /**
+   * The page is the post. Every item — a clip or a post — is drawn into exactly the viewport's height, and
+   * the media is `cover` behind the composition, so the picture reaches the status clock at the top and the
+   * gesture bar at the bottom. Nothing is fitted into a smaller 9:16 box inside a black page, because that
+   * box was the band the owner saw, and a page whose height came from `viewport − chrome` was what made the
+   * swipe resize the content.
+   *
+   * The only parts that keep clear of the device are the words: `topInset` for the notch and the status
+   * clock, `bottomInset` for the floating tab bar and the gesture sign.
+   */
   return (
-    <FlatList
-      {...channelSwipe.panHandlers}
-      data={posts}
-      keyExtractor={(post) => String(post.id)}
-      renderItem={({ item }) => <PostCard post={item} gallery={gallery} />}
-      contentContainerStyle={styles.list}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={socialTokens.colors.white} />}
-      onEndReachedThreshold={0.6}
-      onEndReached={onLoadMore}
-      onScroll={(event) => { scrollTop.current = event.nativeEvent.contentOffset.y; }}
-      scrollEventThrottle={16}
-      ListHeaderComponent={mode === 'news' && (news || newsNotice) ? <NewsBlock items={news ?? []} notice={newsNotice} /> : null}
-      ListFooterComponent={loadingMore ? <ActivityIndicator color={socialTokens.colors.white} style={styles.footer} /> : null}
-      ListEmptyComponent={(
-        <View style={styles.emptyBox}>
-          <Text style={styles.empty}>{error || emptyNote}</Text>
-          {error ? (
-            <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
-              <Text style={styles.retryText}>Reîncearcă</Text>
-            </Pressable>
-          ) : null}
-          <Pressable accessibilityRole="button" onPress={() => onModeChange(nextMode(mode))} style={styles.retry}>
-            <Text style={styles.retryText}>{`Vezi ${socialTokens.feedModes.find((entry) => entry.id === nextMode(mode))?.title}`}</Text>
-          </Pressable>
-        </View>
-      )}
-      removeClippedSubviews={false}
-    />
+    <View
+      style={styles.surface}
+      onLayout={(event) => {
+        const { height } = event.nativeEvent.layout;
+        setPageHeight((previous) => (previous === height ? previous : height));
+      }}
+    >
+      <FlatList
+        data={visible}
+        keyExtractor={(post) => String(post.id)}
+        pagingEnabled
+        /** The reaction column of a page owns its own drag while its panel is open. */
+        scrollEnabled={!paletteOpen}
+        snapToInterval={pageHeight || undefined}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        showsVerticalScrollIndicator={false}
+        getItemLayout={pageHeight ? (_, index) => ({ length: pageHeight, offset: pageHeight * index, index }) : undefined}
+        onMomentumScrollEnd={onMomentumEnd}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewability}
+        initialNumToRender={1}
+        maxToRenderPerBatch={2}
+        windowSize={3}
+        removeClippedSubviews={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={editorial.leaf} progressViewOffset={8} />}
+        onEndReachedThreshold={0.8}
+        onEndReached={onLoadMore}
+        renderItem={({ item, index }) => {
+          /**
+           * A page with a picture or a clip is the reader's immersive page (`ReelPage`): the media covers
+           * the viewport and the five actions climb the right rail, exactly as the owner reads a reel. An
+           * authored text page (`text_style`) keeps the article composition even when it carries
+           * photographs (`isAuthoredArticle`): the theme stays the page, the first picture is a bounded
+           * block in the reading, and the words continue page by page. A page of words without media is
+           * the same editorial composition (`PostCard`), which mounts that very rail (`PostRail`) over the
+           * canvas.
+           */
+          const immersive = hasVisualMedia(item) && !isAuthoredArticle(item);
+          const active = index === activeIndex;
+          /** Nothing is drawn before the page has a height: a page of 0 is a flash of nothing. */
+          if (!pageHeight) return null;
+          return (
+            <View style={[styles.page, { height: pageHeight }]}>
+              {immersive ? (
+                <ReelPage
+                  post={item}
+                  height={pageHeight}
+                  overlayBottom={navReserve}
+                  active={active}
+                  muted={muted}
+                  onToggleMute={() => setMuted((value) => !value)}
+                  onPanelChange={setPaletteOpen}
+                />
+              ) : (
+                <PostCard
+                  post={item}
+                  height={pageHeight}
+                  topInset={insets.top}
+                  bottomInset={navReserve}
+                  active={active}
+                  onPanelChange={setPaletteOpen}
+                />
+              )}
+            </View>
+          );
+        }}
+        ListFooterComponent={loadingMore ? <ActivityIndicator color={editorial.leaf} style={styles.footer} /> : null}
+        ListEmptyComponent={(
+          <View style={styles.emptyBox}>
+            <Text style={styles.empty}>{error || 'Nu sunt postări de afișat.'}</Text>
+            {error ? (
+              <Pressable accessibilityRole="button" onPress={onRetry} style={styles.retry}>
+                <Text style={styles.retryText}>Reîncearcă</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        )}
+      />
+    </View>
   );
 }
 
 /**
- * `nextFeedMode` of feed-surface.js:66-69: one place along the rail, wrapping at both ends, over the order
- * the rail itself prints (`socialTokens.feedModes`). An unknown mode falls back to the first reading, the
- * way the web's own `Math.max(0, …)` floor does, so a stale mode can never throw the rail away.
+ * The headlines an allow-listed provider returned, or the provider's own notice when there is none.
+ *
+ * The notice is the two locale sentences the web prints (`feed.breakingDisabled*`), title over detail, in
+ * the same plate a headline gets — the disabled source is a state of that reading, not an error under it.
+ * It is exported and kept intact: round 6 removed the header button that opened the news reading, not the
+ * reading itself, and the endpoint that feeds it is untouched.
  */
-export function nextMode(mode: FeedModeId, offset = 1): FeedModeId {
-  const order: FeedModeId[] = socialTokens.feedModes.map((entry) => entry.id);
-  const step = Number(offset || 0);
-  return order[(Math.max(0, order.indexOf(mode)) + step + order.length) % order.length];
-}
-
-/** The headlines an allow-listed provider returned, or the provider's own reason for having none. */
-function NewsBlock({ items, notice }: { items: NewsItem[]; notice: string }) {
+export function NewsBlock({ items, notice }: { items: NewsItem[]; notice: { title: string; detail: string } | null }) {
   return (
     <View style={styles.news}>
-      {notice ? <Text style={styles.newsNotice}>{notice}</Text> : null}
+      {notice ? (
+        <View style={styles.newsNoticeBox}>
+          <Text style={styles.newsNoticeTitle}>{notice.title}</Text>
+          <Text style={styles.newsNotice}>{notice.detail}</Text>
+        </View>
+      ) : null}
       {items.map((item, index) => (
         <Pressable
           key={`${item.url ?? 'news'}-${index}`}
@@ -255,60 +318,72 @@ function NewsBlock({ items, notice }: { items: NewsItem[]; notice: string }) {
           style={styles.newsItem}
         >
           <Text style={styles.newsTitle}>{item.title}</Text>
-          <Text style={styles.newsMeta}>{[item.source, relativeTime(item.published_at)].filter(Boolean).join(' · ')}</Text>
+          <Text style={styles.newsMeta}>{[item.source, item.published_at].filter(Boolean).join(' · ')}</Text>
         </Pressable>
       ))}
     </View>
   );
 }
 
+/**
+ * The first page's shape: one full-bleed plate with the head and the foot of a post, so the real page
+ * lands exactly where the skeleton stood. A pair of 9:16 cards would be a smaller page than the feed now
+ * draws, which is the jump this plate exists to avoid.
+ */
 function FeedSkeleton() {
   return (
-    <View style={styles.list}>
-      {[0, 1, 2, 3].map((index) => (
-        <View key={index} style={styles.skeletonCard}>
-          <View style={styles.skeletonRow}>
-            <View style={[styles.skeletonBlock, styles.skeletonAvatar]} />
-            <View style={[styles.skeletonBlock, styles.skeletonName]} />
-          </View>
-          <View style={[styles.skeletonBlock, styles.skeletonMedia]} />
-          <View style={[styles.skeletonBlock, styles.skeletonLine]} />
-        </View>
-      ))}
+    <View style={styles.skeletonPage}>
+      <View style={styles.skeletonRow}>
+        <View style={[styles.skeletonBlock, styles.skeletonAvatar]} />
+        <View style={[styles.skeletonBlock, styles.skeletonName]} />
+      </View>
+      <View style={styles.skeletonFill} />
+      <View style={[styles.skeletonBlock, styles.skeletonLine]} />
+      <View style={[styles.skeletonBlock, styles.skeletonActions]} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  list: { paddingTop: 10, paddingHorizontal: 10, paddingBottom: 24 },
-  /** The surface the horizontal flick is read on: the whole body of the feed, above its own scrolling. */
-  surface: { flex: 1 },
+  /** The surface the pages are measured in: the whole window, from the notch to the gesture sign. */
+  surface: { flex: 1, backgroundColor: '#000000' },
+  /** One item per page: the page *is* the post, so it carries no padding and no centring of its own. */
+  page: { width: '100%', backgroundColor: '#000000', overflow: 'hidden' },
   footer: { paddingVertical: 16 },
-  emptyBox: { alignItems: 'center', gap: 12, paddingTop: 60, paddingHorizontal: 24 },
-  empty: { color: socialTokens.colors.muted, fontSize: 14, textAlign: 'center', lineHeight: 20 },
+  emptyBox: { alignItems: 'center', justifyContent: 'center', gap: 12, paddingTop: 120, paddingHorizontal: 28 },
+  empty: { color: editorial.inkMuted, fontSize: 14, textAlign: 'center', lineHeight: 21 },
+  emptyHint: { color: editorial.inkQuiet, fontSize: 12, textAlign: 'center' },
   retry: {
-    minHeight: 44, justifyContent: 'center', paddingHorizontal: 16,
-    borderWidth: 1, borderColor: socialTokens.colors.markBorder, borderRadius: 14,
+    minHeight: 44, justifyContent: 'center', paddingHorizontal: 18,
+    borderWidth: 1, borderColor: editorial.leafEdge, borderRadius: 14,
+    backgroundColor: editorial.leafFaint,
   },
-  retryText: { color: socialTokens.colors.white, fontWeight: '700', fontSize: 13 },
+  retryText: { color: editorial.ink, fontWeight: '800', fontSize: 13 },
   news: { gap: 10, marginBottom: 12 },
-  newsNotice: { color: socialTokens.colors.muted, fontSize: 13, lineHeight: 19 },
-  newsItem: {
-    padding: 12, gap: 4, borderWidth: 1, borderColor: socialTokens.colors.postBorder,
-    borderRadius: 14, backgroundColor: socialTokens.colors.cardSurface,
+  newsNoticeBox: {
+    padding: 12, gap: 4, borderWidth: 1, borderColor: editorial.hairline,
+    borderRadius: 14, backgroundColor: editorial.cardTop,
   },
-  newsTitle: { color: socialTokens.colors.text, fontSize: 15, fontWeight: '700' },
-  newsMeta: { color: socialTokens.colors.muted, fontSize: 12 },
-  skeletonCard: {
-    marginBottom: socialTokens.post.marginBottom, padding: socialTokens.post.padding,
-    borderWidth: 1, borderColor: socialTokens.colors.postBorder,
-    borderRadius: socialTokens.post.radius, backgroundColor: socialTokens.colors.postSurface, gap: 10,
+  newsNoticeTitle: { color: editorial.ink, fontSize: 15, fontWeight: '800' },
+  newsNotice: { color: editorial.inkMuted, fontSize: 13, lineHeight: 19 },
+  newsItem: {
+    padding: 12, gap: 4, borderWidth: 1, borderColor: editorial.hairline,
+    borderRadius: 14, backgroundColor: editorial.cardTop,
+  },
+  newsTitle: { color: editorial.ink, fontSize: 15, fontWeight: '700' },
+  newsMeta: { color: editorial.inkMuted, fontSize: 12 },
+  /**
+   * The skeleton of a page: full bleed, with the author's row at the top and the words at the foot, in the
+   * same safe insets the real composition uses. Nothing here is 9:16 — the page no longer is.
+   */
+  skeletonPage: {
+    flex: 1, backgroundColor: blackSilver.matteBlack, paddingHorizontal: 14, paddingTop: 74, paddingBottom: 96, gap: 12,
   },
   skeletonRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  skeletonBlock: { backgroundColor: '#131c25', borderRadius: 8 },
+  skeletonBlock: { backgroundColor: '#1B2320', borderRadius: 8 },
   skeletonAvatar: { width: 40, height: 40, borderRadius: 20 },
-  skeletonName: { flex: 1, height: 14 },
-  skeletonMedia: { width: '100%', height: 240, borderRadius: 12 },
-  skeletonLine: { width: '70%', height: 14 },
+  skeletonName: { width: 170, height: 14 },
+  skeletonFill: { flex: 1, width: '100%', borderRadius: 18, backgroundColor: blackSilver.graphite },
+  skeletonLine: { width: '64%', height: 14 },
+  skeletonActions: { width: '100%', height: 38 },
 });
-
