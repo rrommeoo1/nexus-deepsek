@@ -4778,3 +4778,61 @@ două indexuri. Fișierul viu nu a fost scris; copia a fost ștearsă. Conturile
    (`GET /api/dev/mail-capture`) sau, cu provider, mesajul real.
 5. Livrarea reală a unui email rămâne **NOT VERIFIED** până la pașii 1–2.
 
+## 38. Aplicația nu se mai deschidea pe telefon: un BOM UTF-8 oprea Metro (29 octombrie 2026)
+
+**Rezultatul rundei:** Jungle Book nu se deschidea pe Xiaomi MIX Flip — ecran gri. Cauza nu era emailul, nu
+era backendul și nu era vreun ecran nou: `apps/nexus-mobile/package.json` fusese salvat cu **BOM UTF-8**, iar
+Metro îl citește cu `JSON.parse(readFileSync(file, 'utf8'))`. Fiecare cerere de bundle primea `500`, clientul
+dev nu avea ce randa, deci ecran gri. Reparat cu trei octeți; păzit cu un test.
+
+### 38.1 Ce era rupt, măsurat
+
+Cererea de bundle, exact cum o face clientul dev:
+
+```
+GET http://127.0.0.1:8081/index.bundle?platform=android&dev=true
+500 {"type":"InternalError","message":"Metro has encountered an error: Unexpected token '﻿', \"﻿{\n  \"name\"...
+     is not valid JSON: …\\node_modules\\metro\\src\\node-haste\\PackageCache.js (27:27)"}
+```
+
+Conținutul din mesaj (`{\n  "name"`) este chiar `package.json` al aplicației mobile. Verificat pe istoric:
+
+| rev | primii trei octeți | verdict |
+| --- | --- | --- |
+| `efaf2d5` (înainte de runda 36) | `123 10 32` = `{`, `\n`, spațiu | curat |
+| `b6f8255` (runda 36/37, 00:13) | `239 187 191` = `EF BB BF` | **BOM introdus aici** |
+| `HEAD` (înainte de reparație) | `239 187 191` | încă BOM |
+
+De ce a trecut neobservat: `require('./package.json')`, `npm`, `tsc` și toate cele 61 de scripturi de test
+**taie BOM-ul** (loader-ul Node), deci treceau. Metro folosește `JSON.parse` pe text brut, deci nu.
+
+### 38.2 Dovada că s-a reparat
+
+- bundle-ul cerut de client (profil hermes bytecode, `routerRoot=src/app`): **`200`, 9 063 285 de octeți** pe
+  `127.0.0.1:8081` și **`200`, 9 063 293 de octeți** pe `192.168.1.153:8081`;
+- manifestul Expo pentru Android: `200`, cu `launchAsset` către bundle-ul de mai sus, `runtimeVersion
+  exposdk:57.0.0`, `scheme nexusdev` — adică exact ce cere clientul instalat;
+- `GET /` pe backend: `200`; `/api/auth-capabilities`: `login.email_password=true`, `email.provider=capture`;
+- `POST /auth/email/reset-request` cu o adresă inexistentă → **`202 {"ok":true,"requested":true}`**, fără
+  mesaj creat, fără cont atins (comportamentul rundei 37, neregresat);
+- teste: mobil **62 scripturi / 0 eșecuri**, `tsc --noEmit` exit 0, web **894/894**;
+- date: `users 9`, `posts 48`, `media 24` — identice înainte și după.
+
+### 38.3 Ce s-a schimbat în cod
+
+1. `apps/nexus-mobile/package.json`: cei trei octeți eliminați (5 951 → 5 948 de octeți). Conținutul e
+   identic; `git diff` arată două linii (BOM-ul și adăugarea testului în lanț).
+2. `apps/nexus-mobile/scripts/test-package-encoding.cjs` (nou, 2 teste): niciun BOM în `package.json`,
+   `app.json`, `tsconfig.json`, iar `package.json` trebuie să treacă de **exact** apelul Metro. Adăugat la
+   sfârșitul lanțului `npm test`, ca să nu poată fi uitat.
+
+Nimic altceva nu a fost atins: emailul, rutele, ecranele native, `app.json`, APK-ul și baza au rămas cum erau.
+
+### 38.4 Ce rămâne, pe telefon
+
+Telefonul **nu a fost conectat** în această rundă (`adb devices` gol, fără mDNS, portul `5555` închis pe LAN,
+nicio interfață ADB/MTP în Windows), deci lansarea pe dispozitiv și verificarea vizuală a ecranelor de login,
+înregistrare și „parolă uitată" sunt **neîncepute**. Pașii, în ordine, în `HANDOFF.md` §0.38. Un bundle care
+răspunde `200` este condiția necesară, nu dovada că aplicația s-a deschis pe telefon: dovada rămâne ecranul
+citit (`npm run dev:doctor` / `npm run dev:ui`), nu HTTP-ul.
+

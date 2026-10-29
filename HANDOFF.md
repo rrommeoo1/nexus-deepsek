@@ -1,3 +1,57 @@
+## 0.38 Aplicația nu se mai deschidea: un BOM UTF-8 în `package.json` oprea Metro (29 octombrie 2026)
+
+**Starea depozitului.** `codex/camera-draft-stability`, peste pachetul rundei 37 (`da11da6`, `bd14006`,
+`4d90f66`), cu reparația acestei runde **local**: *fix(mobile): strip the UTF-8 BOM from package.json that
+stopped every Metro bundle* (`425642e`, `apps/nexus-mobile/package.json` −2/+2 linii și un script de gardă
+nou). `git status -sb` arată `ahead 32`; **nimic nu a fost push-uit**. Nicio lucrare din rundele 36–37 nu a
+fost atinsă: emailul, rutele, ecranele și testele lor sunt exact cum au fost comise.
+
+**Ce s-a găsit, într-o frază:** `apps/nexus-mobile/package.json` fusese salvat cu **BOM UTF-8** (trei
+octeți `EF BB BF` în fața lui `{`) în `b6f8255`, iar Metro citește fișierul cu
+`JSON.parse(readFileSync(file, 'utf8'))` — deci fiecare cerere de bundle răspundea `500`, iar clientul dev
+nu avea ce randa: ecran gri.
+
+### Dovada, în ordinea în care a fost luată
+
+| pas | comandă / sursă | rezultat |
+| --- | --- | --- |
+| backend | `GET http://127.0.0.1:5000/health` | `ready`, `users 9`, `posts 48`, `media 24` — **baza e intactă, nu a fost scris nimic** |
+| backend | `GET /api/auth-capabilities` | `email.configured=true`, `provider=capture`, `login.email_password=true` — configurația rundei 37 e neatinsă |
+| dispozitiv | `adb devices -l`, `adb mdns services`, sonde `:5555` pe LAN | **niciun telefon** (nici USB, nici wireless); `Get-PnpDevice` nu arată interfață ADB sau MTP |
+| Metro (înainte) | `GET /index.bundle?platform=android&dev=true` | `500 InternalError: Unexpected token '﻿', "﻿{\n \"name\"..." is not valid JSON: …metro\src\node-haste\PackageCache.js` |
+| cauza | `git cat-file blob <rev>:apps/nexus-mobile/package.json` | `efaf2d5` = `123 10 32` (fără BOM); **`b6f8255` = `239 187 191`** (BOM) |
+| de ce nu a prins niciun test | `node -e "JSON.parse(fs.readFileSync('package.json','utf8'))"` | eșuează, dar `require()`/`npm`/`tsc` trec — loader-ul Node taie BOM-ul; Metro nu |
+| Metro (după) | același URL | **`200`, 9 063 285 de octeți** (loopback) și **9 063 293** (LAN `192.168.1.153`) |
+| manifest | `GET /` cu `expo-platform: android` | `200`; `launchAsset` = bundle-ul de mai sus, `runtimeVersion exposdk:57.0.0`, `scheme nexusdev` |
+| teste | mobil | **62 scripturi / 0 eșecuri** (61 + garda nouă), `tsc --noEmit` curat, `npm run typecheck` exit 0 |
+| teste | web | **894/894** |
+
+Cronologia se potrivește cu simptomul: `start.log` din `.expo/dev/logs` arată ultimul bundle reușit la
+22:03 pe 28 octombrie, iar `b6f8255` (00:13 pe 29 octombrie) a introdus BOM-ul. După aceea, Metro a fost
+repornit și a început să dea `500` — aplicația a rămas pe ecran gri, cu backendul și Metro „pornite".
+
+**Ce s-a schimbat:** cei trei octeți (5 951 → 5 948 de octeți), nimic altceva; plus
+`apps/nexus-mobile/scripts/test-package-encoding.cjs`, adăugat în lanțul `npm test`. Testul pică dacă
+`package.json`, `app.json` sau `tsconfig.json` mai au BOM vreodată și dacă `package.json` nu mai trece de
+**exact** apelul pe care îl face Metro (`JSON.parse(readFileSync(…, 'utf8'))`, nu `require()`).
+
+**Ce NU s-a făcut:** nu s-a dezinstalat aplicația, nu s-a golit stocarea, nu s-a resetat baza, nu s-a
+revenit niciun commit și nu s-a umblat la lucrarea de email. Nu s-a atins niciun cont.
+
+### Ce rămâne de făcut, pe telefon (owner, în ordine)
+
+Telefonul nu a fost conectat în această rundă, deci pașii de mai jos sunt **neîncepuți**, nu „verificați":
+
+1. Conectează Xiaomi MIX Flip pe USB, cu **Depanare USB** pornită; acceptă dialogul de autorizare.
+2. `adb devices -l` trebuie să arate `25098PN5AC … device`. Dacă apare `unauthorized`, acceptă dialogul.
+3. `npm run dev:reverse` (leagă `tcp:8081` și `tcp:5000`) — fără el telefonul nu vede nici bundle-ul, nici
+   backendul.
+4. `npm run dev:open` — deep link către bundle-ul care acum răspunde `200`. Alternativ: deschide aplicația
+   și apasă pe sesiunea din dev launcher.
+5. `npm run dev:doctor` — trebuie să raporteze `adb reverse` complet, „ultimul bundle" și textul real de pe
+   ecran; `npm run dev:ui` dă textul, adică dovada că WebView-ul a încărcat clientul, nu doar shell-ul.
+6. Abia după „verde": ecranele de login, înregistrare și „parolă uitată" pe telefon (fără să creezi conturi).
+
 ## 0.37 Email real: cont cu adresă, confirmare, parolă uitată prin link (29 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, peste `b6f8255` (runda 36), cu pachetul acestei runde
