@@ -22,6 +22,7 @@ ecranul.
 | fluxuri | `lib/email/service.js` | înscriere, retrimitere, confirmare, cerere de resetare, resetare, notificare de schimbare |
 | stocare | `lib/db.js`, tabel nou `email_tokens` | migrare **aditivă**; `openDb` creează tabela și pe bazele existente |
 | rute | `lib/api.js` | 5 rute noi + `email` în `/api/auth-capabilities` + `/api/email/status` + `/api/dev/mail-capture` |
+| clientul web | `public/app.js`, `public/interface-locale.js` | ecranul „recuperare cont" nu mai scrie „resetarea prin email nu este activă": cere adresa, cheamă `/auth/email/reset-request` și tipărește răspunsul care nu divulgă existența contului (text în 4 limbi) |
 
 Pagini pentru linkuri: `public/verify-email.html|.js`, `public/reset-password.html|.js` (sub CSP-ul
 existent, script extern). Telefon: `src/app/verify.tsx`, `src/app/reset-password.tsx`, `src/lib/emailAuth.ts`,

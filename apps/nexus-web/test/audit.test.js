@@ -785,7 +785,11 @@ test("authentication shell is device-localized before login and preserves provid
   assert.match(app, /function xPortalFailureMessage/);
   assert.match(app, /t\("auth\.xportalCancelled"\)/);
   assert.match(app, /t\("auth\.xportalTimedOut"\)/);
-  assert.match(app, /t\("auth\.emailResetUnavailable"\)/);
+  // Round 37: the recovery screen stopped claiming the flow does not exist and asks for the address the
+  // link is sent to, so the assertion follows the strings the screen really uses.
+  assert.match(app, /t\("auth\.resetEmailHint"\)/);
+  assert.match(app, /t\("auth\.sendResetLink"\)/);
+  assert.match(app, /api\("\/auth\/email\/reset-request"/);
   const xportal = app.slice(app.indexOf("async function xPortalFlow"), app.indexOf("function renderMvxLogin"));
   assert.doesNotMatch(xportal, /setStatus\(err\?\.message|toast\(err\?\.message/);
 });

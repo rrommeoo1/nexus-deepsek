@@ -1116,12 +1116,41 @@ function renderForgotPassword() {
   card.innerHTML = [
     '<div class="brand">NE<span>X</span>US</div>',
     '<div class="sep">' + esc(t("auth.recoveryTitle")) + '</div>',
-    '<p class="mvx-hint">' + esc(t("auth.emailResetUnavailable")) + '</p>',
+    // Round 37: the link really is sent now, so the screen asks for the address instead of saying the
+    // flow does not exist. The wording stays privacy-preserving: the answer is the same whether the
+    // address has an account or not.
+    '<p class="mvx-hint">' + esc(t("auth.resetEmailHint")) + '</p>',
+    '<div class="field"><label for="reset-email">' + esc(t("auth.resetEmailLabel")) + '</label>'
+      + '<div class="btn-row"><input id="reset-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder="adresa@exemplu.ro" />'
+      + '<button class="btn small" id="reset-email-send" type="button">' + esc(t("auth.sendResetLink")) + '</button></div></div>',
+    '<p id="reset-email-state" class="mvx-hint" role="status" aria-live="polite"></p>',
     '<button class="btn wallet-btn" id="recover-xportal" type="button"><span class="btn-logo">◇</span>' + esc(t("auth.recoverXportal")) + '</button>',
     '<div id="recovery-wallet-area"></div>',
     '<button class="btn ghost" id="back-login" type="button">' + esc(t("auth.backLogin")) + '</button>',
   ].join("");
   document.getElementById("back-login").addEventListener("click", () => renderLanding());
+
+  const sendResetLink = async () => {
+    const state = document.getElementById("reset-email-state");
+    const button = document.getElementById("reset-email-send");
+    const field = document.getElementById("reset-email");
+    const email = String(field?.value || "").trim();
+    if (!email) {
+      state.textContent = t("auth.resetEmailProblem");
+      field?.focus();
+      return;
+    }
+    button.disabled = true;
+    // `api()` adds the Idempotency-Key the mutation boundary expects; 202 means "asked", nothing more.
+    const result = await api("/auth/email/reset-request", { method: "POST", body: { email } }).catch(() => null);
+    button.disabled = false;
+    state.textContent = result && result.ok !== false ? t("auth.resetEmailSent") : t("auth.resetEmailProblem");
+  };
+  document.getElementById("reset-email-send").addEventListener("click", sendResetLink);
+  document.getElementById("reset-email").addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); void sendResetLink(); }
+  });
+
   document.getElementById("recover-xportal").addEventListener("click", async () => {
     const area = document.getElementById("recovery-wallet-area");
     area.innerHTML = '<p class="mvx-hint" id="mvx-wc-status" role="status" aria-live="polite">' + esc(t("auth.recoveryPreparing")) + '</p><div id="mvx-wc-qr" class="wc-qr" role="img" aria-label="' + esc(t("auth.xportalQr")) + '"></div><div id="mvx-wc-link" class="wc-link"></div>';

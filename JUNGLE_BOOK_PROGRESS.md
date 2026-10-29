@@ -4733,6 +4733,12 @@ de adrese imediat (`history.replaceState`), îl trimit într-un `POST`, arată p
 link nou dacă a expirat. Pe Android oferă și `nexusdev://verify?token=…` / `nexusdev://reset-password?token=…`
 — schema declarată în `app.json`.
 
+Clientul web nu mai minte: ecranul „recuperare cont" din `public/app.js` scria „Resetarea prin email nu este
+activă în demo" și trimitea omul la xPortal. Acum cere adresa, cheamă `/auth/email/reset-request` și afișează
+propoziția care nu divulgă existența contului; xPortal rămâne a doua cale, pentru conturile fără parolă.
+Textele (cinci chei noi, în RO/EN/PL/AR) sunt în `public/interface-locale.js`, iar testul de audit verifică
+legătura, nu doar textul.
+
 Pe telefon: `src/app/verify.tsx` și `src/app/reset-password.tsx` (expo-router), `src/lib/emailAuth.ts` (pur:
 `emailDeepLink`, `readEmailToken`, `emailRouteFromUrl`, `validateEmailRegistrationDraft`,
 `validateNewPassword`), plus `session.ts` cu cele cinci apeluri. Aplicația nu cheamă niciun provider: cheia

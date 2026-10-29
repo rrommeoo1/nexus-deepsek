@@ -95,7 +95,11 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // text-only post as paginated pages instead of a missing clip, and carries the Citează action
   // that starts a quote composer. The chain walk, the pagination and the three binders live in
   // post-quote.js, so this entrypoint keeps only the context and the card glue.
-  assert.equal(sizes.app <= 641_500, true, `app.js budget exceeded: ${sizes.app}`);
+  // Round 37 moves it by 2.3 kB and names the surface: the recovery screen stopped printing "email
+  // reset is not active" and now asks for the address, posts to /auth/email/reset-request and prints
+  // the privacy-preserving answer. The form is four elements and one fetch; the wording lives in
+  // interface-locale.js, which is why the locale budget below moves by a comparable amount.
+  assert.equal(sizes.app <= 644_000, true, `app.js budget exceeded: ${sizes.app}`);
   // The interface locale is the single source of truth for four languages, so every new
   // surface costs copy in RO/EN/PL/AR. The X-surface wave adds the post page, the reply
   // actions, the real view counters and the profile albums, which is what this allowance
@@ -129,7 +133,10 @@ test("first-party Social assets remain within explicit transfer-size regression 
   // The universal 9:16 feed adds eight sentences in four languages: the Citează action, the sentence
   // a reader gets when a post cannot be quoted, the name of a quoted conversation and the label that
   // opens it, the name of the text pages, and the quote composer's title, hint and placeholder.
-  assert.equal(sizes.locale <= 368_500, true, `locale budget exceeded: ${sizes.locale}`);
+  // Round 37 moves it by 1 kB: the recovery screen's five sentences in four languages (what the link is
+  // for, the field label, the button, the privacy-preserving answer, and the one failure sentence) —
+  // and it *removes* the sentence that claimed email reset was unavailable.
+  assert.equal(sizes.locale <= 369_800, true, `locale budget exceeded: ${sizes.locale}`);
   // Wave 6e (P8e) put the settings drawer and the read-only ticker band in their own modules, and wave 6f
   // took the handle, the location and the three counters out of the hero so the band is the only place
   // they are printed, which is a net saving in profile-experience.css. Wave 6g (P9) is the surface that
