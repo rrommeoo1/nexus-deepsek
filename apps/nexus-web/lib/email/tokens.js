@@ -68,13 +68,6 @@ export function consumeEmailToken(db, { purpose, token, now = Date.now() }) {
   return db.prepare(`SELECT * FROM email_tokens WHERE token_sha256 = ?`).get(hash) ?? null;
 }
 
-export function readEmailToken(db, { purpose, token }) {
-  requireTable(db);
-  const presented = String(token ?? "").trim();
-  if (!presented) return null;
-  return db.prepare(`SELECT * FROM email_tokens WHERE token_sha256 = ? AND purpose = ?`).get(sha256Hex(presented), purpose) ?? null;
-}
-
 /**
  * Removes a token that was never delivered.
  *
@@ -105,13 +98,6 @@ export function lastEmailTokenAt(db, { userId, purpose }) {
   requireTable(db);
   const row = db.prepare(`SELECT MAX(created_at) AS last FROM email_tokens WHERE user_id = ? AND purpose = ?`).get(userId, purpose);
   return Number(row?.last ?? 0);
-}
-
-export function countEmailTokensSince(db, { userId, purpose, since }) {
-  requireTable(db);
-  const row = db.prepare(`SELECT COUNT(*) AS total FROM email_tokens WHERE user_id = ? AND purpose = ? AND created_at >= ?`)
-    .get(userId, purpose, since);
-  return Number(row?.total ?? 0);
 }
 
 /** The expiry sweep, called from the same timer that already purges challenges and sessions. */
