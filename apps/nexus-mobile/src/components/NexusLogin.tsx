@@ -19,6 +19,12 @@ type Props = {
   busy: boolean;
   error: string;
   signupError?: string;
+  /**
+   * What happened after "Creează cont" when the answer is good news (round 37: the account exists and
+   * a confirmation message was asked for). Kept apart from `signupError` on purpose — a success
+   * sentence printed in the error line teaches people to ignore the error line.
+   */
+  signupStatus?: string;
   /** `local-development` when this server creates accounts without a mail provider or a wallet. */
   registrationMode?: string;
   /** `local-development` when this server can set a new password without an email link. */
@@ -138,7 +144,7 @@ function Rule({ top = false }: { top?: boolean }) {
 }
 
 export function NexusLogin({ brand, locale, googleReady, facebookReady, walletNetwork, busy, error,
-  signupError, registrationMode, onSignIn, onSignUp, onForgotPassword, onXPortal, onProvider }: Props) {
+  signupError, signupStatus, registrationMode, onSignIn, onSignUp, onForgotPassword, onXPortal, onProvider }: Props) {
   const t = copy[locale];
   const localAccounts = registrationMode === 'local-development';
   const [email, setEmail] = useState('');
@@ -192,6 +198,7 @@ export function NexusLogin({ brand, locale, googleReady, facebookReady, walletNe
             <Text style={styles.buttonText}>{t.createAccount}</Text>
           </Pressable>
           {signupError ? <Text accessibilityRole="alert" style={styles.authError}>{signupError}</Text> : null}
+          {signupStatus ? <Text accessibilityLiveRegion="polite" style={styles.signupStatus}>{signupStatus}</Text> : null}
           <Text style={styles.signupNote}>◇  {localAccounts ? t.localNote : t.walletAuto}</Text>
         </View>
       </View>
@@ -280,6 +287,8 @@ const styles = StyleSheet.create({
     lineHeight: v.forgot.lineHeight },
   signupNote: { color: c.providerNote, fontSize: v.signupNote.fontSize,
     lineHeight: v.signupNote.lineHeight, textAlign: 'center', marginTop: v.signupNote.marginTop },
+  signupStatus: { color: c.text, fontSize: v.providerNote.fontSize,
+    lineHeight: v.providerNote.lineHeight, textAlign: 'center', marginTop: 6 },
   authError: { color: c.authError, fontSize: v.providerNote.fontSize,
     lineHeight: v.providerNote.lineHeight, textAlign: 'center' },
 });

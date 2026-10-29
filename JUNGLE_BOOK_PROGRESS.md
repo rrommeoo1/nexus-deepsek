@@ -4647,3 +4647,128 @@ Suita: web **879/879**, mobil **57 de grupuri / 0 eșecuri**, `tsc --noEmit` **0
 
 
 
+
+---
+
+## 37. Email real: înscriere cu adresă, confirmare, resetare de parolă prin link (29 octombrie 2026)
+
+Runda 36 a livrat conturi locale fără email. Runda 37 aduce partea care lipsea cu adevărat: un sistem de
+email **real**, cu provider server-side, tokenuri de o singură folosință și linkuri care ajung în
+aplicație — plus o cale de dezvoltare (captura locală) care nu pretinde niciodată că a livrat ceva.
+
+### 37.1 Ce era înainte, măsurat
+
+| rută | înainte | acum |
+| --- | --- | --- |
+| `POST /auth/email/reset-request` | `503` hardcodat („resetarea prin email nu este activă în demo") | `202` identic pentru orice adresă + mesaj real (sau capturat local) |
+| `POST /auth/email/reset-confirm` | `410` („flux retras") | schimbă hash-ul, revocă sesiunile, consumă tokenul |
+| înscriere cu email | doar `/auth/email/signup`, care cere **dovadă de wallet Ed25519 generat în browser** | `POST /auth/email/register`: email + parolă, fără wallet |
+| confirmare de adresă | `/auth/email/verify` exista, dar niciun mesaj nu putea fi trimis | `verification/send` + `verification/confirm` |
+
+### 37.2 Providerul: port mic, zero dependențe
+
+`apps/nexus-web/lib/email/providers.js` are un `send()` per adaptor:
+
+- **Resend** (`POST https://api.resend.com/emails`, bearer, `Idempotency-Key`) — principalul;
+- **Brevo** (`POST https://api.brevo.com/v3/smtp/email`, header `api-key`, `htmlContent`/`textContent`) — al
+  doilea adaptor real, dovada că providerul e înlocuibil;
+- **capture** — scrie JSON în `NEXUS_DATA_DIR/mail-capture`, `delivered:false`, niciodată „livrat".
+
+Niciun SDK nou: `apps/nexus-web` are deliberat zero dependențe runtime, iar ambele API-uri sunt JSON peste
+HTTPS. Retry doar pe `408/425/429/5xx` și pe eroare de rețea, cu backoff exponențial și `Retry-After`
+respectat (max 5 s); un `4xx` nu se reîncearcă (ar multiplica refuzul). Fiecare încercare lasă o linie
+`[email] …` cu provider, eveniment, **domeniul** destinatarului și id-ul mesajului — fără token, fără link
+complet, fără parolă, fără cheie.
+
+### 37.3 Configurația: „gol" este „neconfigurat", iar producția refuză
+
+`lib/email/config.js` validează totul într-o funcție pură (`resolveEmailConfig`), deci același răspuns dă
+un răspuns, un test și un diagnostic:
+
+- nume de provider necunoscut → **refuz** (`EMAIL_PROVIDER_UNKNOWN`), nu fallback tăcut;
+- `resend`/`brevo` fără cheie sau fără expeditor → `EMAIL_API_KEY_MISSING` / `EMAIL_FROM_MISSING`, cu numele
+  variabilei în răspuns;
+- `capture` în producție → `EMAIL_CAPTURE_IN_PRODUCTION`;
+- dezvoltare fără provider → `capture`, cu avertismentul `CAPTURE_FALLBACK` (comportamentul se vede);
+- originea linkurilor: `NEXUS_EMAIL_LINK_ORIGIN`, apoi `NEXUS_ORIGIN`, apoi (doar în dezvoltare) originea
+  cererii. În producție **`localhost` este refuzat** (`LINK_ORIGIN_INSECURE`), pentru că un astfel de link nu
+  funcționează pentru nimeni.
+
+Variabilele sunt citite la fiecare cerere, deci nu e nevoie de repornire după o schimbare de `.env`.
+
+### 37.4 Tokenurile: hash, o singură folosință, expirare, revocare
+
+Tabel nou, aditiv: `email_tokens` (`user_id`, `purpose`, `token_sha256` UNIQUE, `email`, `expires_at`,
+`consumed_at`, `created_at`, `requested_ip_hash`). 32 de octeți aleatori; în bază doar `sha256`:
+
+- consum atomic: `UPDATE … SET consumed_at = ? WHERE token_sha256 = ? AND purpose = ? AND consumed_at IS NULL
+  AND expires_at > ?` — două click-uri simultane produc o confirmare și un refuz;
+- un token nou **revocă** linkurile anterioare de același fel;
+- un mesaj care nu a plecat este **șters**, ca să nu pornească un cooldown pentru un link pe care nimeni nu
+  l-a primit;
+- expirări: 24 h pentru confirmare, 30 min pentru resetare; cooldown de 60 s per cont la retrimitere.
+
+
+### 37.5 Fluxurile și rutele
+
+| rută | ce face |
+| --- | --- |
+| `POST /auth/email/register` | creează contul într-o tranzacție, apoi trimite confirmarea. `201` creat, `202` cont existent **neconfirmat** (retrimite linkul, nu creează al doilea rând), `409 EMAIL_TAKEN`/`HANDLE_TAKEN`, `503 EMAIL_NOT_CONFIGURED` (producție fără provider ⇒ nu se creează nimic) |
+| `POST /auth/email/verification/send` | `202 {ok,requested}` — **același corp pentru orice adresă**, cu un prag de timp (`NEXUS_EMAIL_RESPONSE_FLOOR_MS`) ca diferența să nu se vadă nici pe cronometru |
+| `POST /auth/email/verification/confirm` | `200 {verified,handle}`; `400 EMAIL_TOKEN_INVALID` (invalid/expirat/folosit); `409 EMAIL_TOKEN_STALE` dacă adresa contului s-a schimbat. **Nu** emite sesiune: confirmarea și conectarea sunt pași separați |
+| `POST /auth/email/reset-request` | `202` identic pentru cont existent/inexistent; cont fără parolă ⇒ niciun mail (se recuperează prin xPortal), fără să spună asta |
+| `POST /auth/email/reset-confirm` | validează parola **înainte** de a consuma tokenul (un refuz nu arde linkul), apoi rescrie hash-ul, revocă toate sesiunile și toate linkurile, trimite mesajul „parola a fost schimbată" (best effort) |
+| `GET /api/auth-capabilities` | bloc nou `email` (`configured`, `provider`, `delivery`, `sender`, `link_origin`, `missing`, `warnings`); `registration`/`password_recovery` devin `email` când serverul are provider |
+| `GET /api/email/status` | diagnostic pentru operator (provider, expeditor, origine, limite), doar de pe loopback/LAN |
+| `GET /api/dev/mail-capture` | cutia poștală locală (`captured_locally`), doar cu gate-ul local **și** captură activă |
+
+Gate-ul rutelor de cont local (`lib/local-account.js`) citește acum același `ctx.env` ca emailul, deci un
+test poate descrie un deployment întreg fără să atingă `process.env`.
+
+### 37.6 Linkurile: pagini web + deep link în aplicație
+
+`public/verify-email.html` + `public/verify-email.js` și `public/reset-password.html` +
+`public/reset-password.js` (sub CSP-ul existent: script extern, fără inline). Ambele scot tokenul din bara
+de adrese imediat (`history.replaceState`), îl trimit într-un `POST`, arată propoziția serverului și oferă un
+link nou dacă a expirat. Pe Android oferă și `nexusdev://verify?token=…` / `nexusdev://reset-password?token=…`
+— schema declarată în `app.json`.
+
+Pe telefon: `src/app/verify.tsx` și `src/app/reset-password.tsx` (expo-router), `src/lib/emailAuth.ts` (pur:
+`emailDeepLink`, `readEmailToken`, `emailRouteFromUrl`, `validateEmailRegistrationDraft`,
+`validateNewPassword`), plus `session.ts` cu cele cinci apeluri. Aplicația nu cheamă niciun provider: cheia
+trăiește doar pe server. Ecranul de login alege fluxul după `/api/auth-capabilities` (`registration: "email"`
+⇒ înscriere cu adresă și mesaj „verifică emailul"; `password_recovery: "email"` ⇒ foaia cere adresa și
+trimite linkul).
+
+### 37.7 Testele
+
+- web: **894/894** (`node --test test/*.test.js`), din care **15 noi** în `test/email-delivery.test.js`
+  (configurație, linkuri, template-uri, înscriere fără parolă în clar, token refolosit/expirat, rate limit,
+  privacy pe reset, reset complet cu revocare de sesiuni, refuz în producție, provider căzut + retry fără
+  duplicat, 429 apoi succes, captură locală + inbox local-only, capabilități, adaptoare).
+- `test/core.test.js` a fost actualizat deliberat: `reset-request` `503 → 202`, `reset-confirm` `410 → 400`
+  pentru un token fals, cu parola dovedită neatinsă.
+- mobil: **61 scripturi, 0 eșecuri** (60 existente + `scripts/test-email-auth.cjs`), `tsc --noEmit` curat.
+- HTTP real: `npm run test:email-http` → **22/22** pe o instanță de unică folosință (port 5099, director
+  temporar, șters la final): înscriere → mesaj capturat → confirmare (și refuzul celei de-a doua) → login →
+  cerere de resetare (și răspuns identic pentru o adresă inexistentă) → resetare (și refuzul replay-ului) →
+  parola veche `401`, cea nouă `200` → mesajul de schimbare, fără link. Niciun token în răspunsuri sau log.
+
+### 37.8 Baza vie: migrarea dovedită pe o copie
+
+`VACUUM INTO` dintr-o conexiune **read-only** la `C:\Nexus\data\nexus.sqlite`, apoi `openDb()` pe copie:
+`users 9 → 9`, `posts 48 → 48`, `sessions 4 → 4`, `personas 12 → 12`, iar tabela `email_tokens` apare cu cele
+două indexuri. Fișierul viu nu a fost scris; copia a fost ștearsă. Conturile owner-ului rămân exact cum erau.
+
+### 37.9 Ce rămâne deschis
+
+1. **Domeniu + cont la provider** (owner): codul e gata, dar `NEXUS_EMAIL_PROVIDER`, `_API_KEY`, `_FROM` și
+   `_LINK_ORIGIN` nu sunt setate, deci nu există expeditor verificat. `nexus.ro` nu are DNS (verificat).
+2. **Înregistrările DNS** le publică providerul în dashboard; `node tools/email/check-dns.mjs --domain …`
+   confirmă ce răspunde DNS-ul real (SPF/DKIM/DMARC). Nimic nu a fost inventat.
+3. **Repornirea serviciului viu** (`stop-backend.ps1` + `start-backend.ps1`) aplică migrarea aditivă și
+   activează rutele noi; până atunci `:5000` rulează codul rundei 36.
+4. **Test pe telefon** (owner): `adb reverse tcp:5000 tcp:5000`, apoi linkul din captura locală
+   (`GET /api/dev/mail-capture`) sau, cu provider, mesajul real.
+5. Livrarea reală a unui email rămâne **NOT VERIFIED** până la pașii 1–2.
+

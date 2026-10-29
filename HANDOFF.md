@@ -1,3 +1,79 @@
+## 0.37 Email real: cont cu adresă, confirmare, parolă uitată prin link (29 octombrie 2026)
+
+**Starea depozitului.** `codex/camera-draft-stability`, peste `b6f8255` (runda 36), cu commitul acestei
+runde — vezi `git log -1` (mesajul începe cu *feat(email)*) — **fără push**. `.gitignore` acoperă `/_*`;
+niciun `env`, `.sqlite`, log, imagine sau APK nu intră în commit. Sondele temporare au fost șterse.
+
+**Ce s-a găsit, într-o frază:** serverul avea un `503` hardcodat pe cererea de resetare și un `410` pe
+confirmare, iar singura înscriere cu email cerea o **dovadă de wallet Ed25519 generată în browser** — deci
+nici „mi-am uitat parola", nici „mi-am făcut cont cu emailul" nu puteau funcționa, oricât de bine arăta
+ecranul.
+
+### Ce s-a livrat, pe componente
+
+| piesă | fișier | ce face |
+| --- | --- | --- |
+| configurare | `lib/email/config.js` | validează providerul, expeditorul și originea linkurilor; „gol" = neconfigurat; producția refuză `localhost` și `capture` |
+| template-uri | `lib/email/templates.js` | 4 mesaje (confirmare, resetare, parolă schimbată, adresă schimbată): tabel 600 px, stiluri inline, fără pixel de tracking, link și ca text |
+| provider | `lib/email/providers.js` | `resend` (HTTP + `Idempotency-Key`), `brevo` (HTTP, `api-key`), `capture` (fișier local, `delivered:false`); retry doar pe 429/5xx/rețea |
+| tokenuri | `lib/email/tokens.js` | 32 octeți aleatori, stocați ca `sha256`, scară `verify_email`/`reset_password`, consum atomic, revocare, purjare |
+| fluxuri | `lib/email/service.js` | înscriere, retrimitere, confirmare, cerere de resetare, resetare, notificare de schimbare |
+| stocare | `lib/db.js`, tabel nou `email_tokens` | migrare **aditivă**; `openDb` creează tabela și pe bazele existente |
+| rute | `lib/api.js` | 5 rute noi + `email` în `/api/auth-capabilities` + `/api/email/status` + `/api/dev/mail-capture` |
+
+Pagini pentru linkuri: `public/verify-email.html|.js`, `public/reset-password.html|.js` (sub CSP-ul
+existent, script extern). Telefon: `src/app/verify.tsx`, `src/app/reset-password.tsx`, `src/lib/emailAuth.ts`,
+cinci apeluri în `session.ts`, foaia de recuperare cu mod `email`, iar ecranul de login alege fluxul după
+`/api/auth-capabilities`.
+
+### Cum îmi fac cont cu email și cum îmi recuperez parola
+
+1. **Fără niciun provider (azi, pe acest PC):** `POST /auth/email/register` creează contul, iar mesajul se
+   scrie în `C:\Nexus\data\mail-capture`. Îl citești cu `GET http://localhost:5000/api/dev/mail-capture`
+   (doar de pe acest PC/LAN) sau deschizând fișierul `.json`. Fiecare mesaj capturat spune
+   `"delivered": false`.
+2. **Confirmarea:** deschide linkul din mesaj (`…/verify-email.html?token=…`) în browser, sau
+   `nexusdev://verify?token=…` pe telefon. Serverul răspunde „adresa a fost confirmată" — și **nu** te
+   conectează automat: intri cu emailul și parola.
+3. **Parola uitată:** „Ai uitat parola?" → scrie adresa → primești linkul
+   (`…/reset-password.html?token=…` sau `nexusdev://reset-password?token=…`) → alegi parola nouă. Toate
+   sesiunile vechi sunt deconectate, iar linkul moare după prima folosire (30 de minute valabilitate).
+4. **Cu un provider real:** se setează `NEXUS_EMAIL_PROVIDER`, `NEXUS_EMAIL_API_KEY`, `NEXUS_EMAIL_FROM`,
+   `NEXUS_EMAIL_LINK_ORIGIN` în `C:\Nexus\env\jungle.env`; `GET /api/email/status` spune imediat dacă
+   serverul vede configurația. Pașii, în ordine, în `docs/EMAIL-AUTH-SETUP.md`.
+
+### Ce este dovedit și ce nu
+
+| întrebare | răspuns |
+| --- | --- |
+| Fluxurile funcționează cap-coadă | **Da**, pe o instanță de unică folosință: `npm run test:email-http` → **22/22** (înscriere → mesaj → confirmare → login → resetare → login cu parola nouă) |
+| Teste automate | web **894/894** (15 noi), mobil **61 scripturi / 0 eșecuri**, `tsc --noEmit` curat |
+| Domeniu potrivit existent | **Nu.** `nexus.ro` apare doar în fixture-uri și nu are DNS (MX/TXT/`_dmarc` = `ENOTFOUND`) |
+| Expeditor creat și verificat | **Nu.** Nu s-a creat niciun cont, nicio cheie, nicio adresă |
+| Înregistrări DNS (SPF/DKIM/DMARC) | **Nu.** `tools/email/check-dns.mjs` e gata și a fost rulat doar pe domenii publice de probă |
+| Email real livrat | **Nu — `NOT VERIFIED`.** Fluxul a fost testat cu adaptor mock și cu captura locală |
+| Datele owner-ului | **Neatinse.** Migrarea a fost dovedită pe o copie `VACUUM INTO`: `users 9→9`, `posts 48→48`, `sessions 4→4`, `personas 12→12`, plus tabela nouă |
+| Instanța vie `:5000` | **Repornită și verificată:** `GET /api/auth-capabilities` → `email.configured=true`, `provider=capture`, `delivery=captured_locally`, `link_origin=http://127.0.0.1:5000`, `warnings=[CAPTURE_FALLBACK]`; `GET /api/email/status` → `capture`; baza vie are acum `email_tokens` (0 rânduri) cu indexurile ei, iar `users 9 / posts 48 / sessions 4 / personas 12` au rămas identice |
+
+### Ce trebuie să facă owner-ul
+
+1. **Domeniu + provider:** alege un domeniu pe care îl controlează (sau aprobă cumpărarea unuia, ~10–15 €/an),
+   face cont la Resend sau Brevo și pune cheia în `C:\Nexus\env\jungle.env`. Înregistrările DNS le dă
+   providerul; nu sunt scrise nicăieri în repo.
+2. **Verificarea lor:** `node tools/email/check-dns.mjs --domain domeniul-tau.ro --selector resend` — iese cu
+   `0` doar dacă SPF, DKIM și DMARC răspund.
+3. **Test pe telefon:** `adb reverse tcp:5000 tcp:5000`, apoi linkul din captura locală (sau mesajul real).
+   Telefonul nu a fost conectat în această rundă, deci **nicio captură de ecran** și nicio verificare vizuală
+   pentru ecranele noi.
+4. **Commit și push:** commitul acestei runde este local; push-ul rămâne la aprobarea owner-ului.
+
+### Ce a mai rămas deschis din rundele anterioare
+
+Runda 36: allowlist-ul Reown pentru `http://localhost:5000`, xPortal cap-coadă pe telefon, `--adopt-handle`
+pentru `@test`/`test@nexus.ro`, push. Runda 34: pagina „Mașină", eticheta „Asistat de AI", scrierile sociale
+pe instanța vie, eticheta de origine a cititorului web (§31.5.6), rândul de sesiune `audit`.
+
+
 ## 0.36 Login, cont nou, parolă uitată și xPortal: două butoane care nu chemau serverul, plus o configurație care se anula singură (29 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, peste `57c566c` (checkpoint rundele 20–34) și

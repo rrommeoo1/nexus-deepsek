@@ -252,6 +252,8 @@ export type AuthCapabilities = {
   passwordRecovery: string;
   localAccounts: boolean;
   wallet: { ready: boolean; origin: string; missing: string[] } | null;
+  /** Round 37: the mail flows this server really has (`configured`, `delivery`, `missing`). */
+  email: { configured: boolean; delivery: string; provider: string; missing: string[] };
 };
 
 export async function readAuthCapabilities(): Promise<AuthCapabilities | null> {
@@ -266,6 +268,7 @@ export async function readAuthCapabilities(): Promise<AuthCapabilities | null> {
       password_recovery?: string;
       local_accounts?: { enabled?: boolean };
       wallet?: { ready?: boolean; origin?: string; missing?: string[] } | null;
+      email?: { configured?: boolean; delivery?: string; provider?: string; missing?: string[] } | null;
     };
     if (!body || body.ok !== true) return null;
     return {
@@ -275,6 +278,12 @@ export async function readAuthCapabilities(): Promise<AuthCapabilities | null> {
       wallet: body.wallet
         ? { ready: Boolean(body.wallet.ready), origin: String(body.wallet.origin ?? ''), missing: [...(body.wallet.missing ?? [])] }
         : null,
+      email: {
+        configured: Boolean(body.email?.configured),
+        delivery: String(body.email?.delivery ?? 'unconfigured'),
+        provider: String(body.email?.provider ?? ''),
+        missing: [...(body.email?.missing ?? [])],
+      },
     };
   } catch {
     return null;
@@ -356,3 +365,103 @@ export async function resetLocalPassword(identifier: string, password: string): 
   clearSession();
   return { handle: String((body as { handle?: string }).handle ?? '') };
 }
+
+/**
+ * The mail-backed account calls (round 37). Every request goes to **our backend**
+ * (`apps/nexus-web/lib/email/`), which is the only place a provider key ever exists: the phone never
+ * talks to Resend or Brevo, and no credential of either is compiled into the app.
+ *
+ * The password is sent exactly as typed (`passwordSubmissionValue` is the identity function); only the
+ * address is tidied.
+ */
+export type EmailDelivery = { sent: boolean; delivered: boolean; delivery: string; provider: string; expires_in_minutes: number; code?: string; note?: string };
+
+export type EmailRegistrationResult = {
+  user: SessionUser;
+  emailVerified: boolean;
+  verification: EmailDelivery | null;
+  /** `true` only in development: production refuses to sign in an unconfirmed address. */
+  loginAllowed: boolean;
+  created: boolean;
+};
+
+function emailJson(path: string, body: Record<string, unknown>, keyPrefix: string): Promise<Response> {
+  return fetch(`${API_ORIGIN}${path}`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      Origin: API_ORIGIN,
+      'Idempotency-Key': newMutationKey(keyPrefix),
+    },
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * Creates an account with an address and asks the server to mail the confirmation. No session is
+ * stored: the account exists but the app must not pretend the person is signed in before the address
+ * is confirmed (in production the server would refuse the login anyway).
+ */
+export async function registerEmailAccount(draft: { email: string; handle: string; password: string }): Promise<EmailRegistrationResult> {
+  const response = await emailJson('/auth/email/register', {
+    email: identifierSubmissionValue(draft.email),
+    handle: identifierSubmissionValue(draft.handle).replace(/^@/, ''),
+    password: passwordSubmissionValue(draft.password),
+  }, 'email-register');
+  if (!response.ok) throw await authError(response, 'Contul nu a putut fi creat.');
+  const body: unknown = await response.json().catch(() => null);
+  const payload = body && typeof body === 'object' ? body as {
+    ok?: boolean; user?: SessionUser; email_verified?: boolean; login_allowed?: boolean; created?: boolean;
+    verification?: EmailDelivery | null;
+  } : null;
+  if (!payload || payload.ok !== true || !payload.user) throw new Error('Contul nu a putut fi creat.');
+  return {
+    user: payload.user,
+    emailVerified: Boolean(payload.email_verified),
+    verification: payload.verification ?? null,
+    loginAllowed: payload.login_allowed !== false,
+    created: payload.created !== false,
+  };
+}
+
+/** Asks for the confirmation mail again. The server answers the same for any address. */
+export async function requestEmailVerification(email: string): Promise<void> {
+  const response = await emailJson('/auth/email/verification/send', { email: identifierSubmissionValue(email) }, 'email-verify-send');
+  if (!response.ok) throw await authError(response, 'Mesajul nu a putut fi cerut.');
+}
+
+/** Spends the token from the emailed link. The answer names the handle it confirmed. */
+export async function confirmEmailVerification(token: string): Promise<{ handle: string }> {
+  const response = await emailJson('/auth/email/verification/confirm', { token: String(token) }, 'email-verify-confirm');
+  if (!response.ok) throw await authError(response, 'Linkul nu a putut fi folosit.');
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object') throw new Error('Linkul nu a putut fi folosit.');
+  return { handle: String((body as { handle?: string }).handle ?? '') };
+}
+
+/** Asks for a reset link. Privacy-preserving by construction: the answer never says if the account exists. */
+export async function requestEmailPasswordReset(email: string): Promise<void> {
+  const response = await emailJson('/auth/email/reset-request', { email: identifierSubmissionValue(email) }, 'email-reset-request');
+  if (!response.ok) throw await authError(response, 'Linkul de resetare nu a putut fi cerut.');
+}
+
+/**
+ * Sets the new password with the token from the email. Every session of the account is revoked
+ * server-side, so the stored session is dropped here too instead of being kept in hope.
+ */
+export async function confirmEmailPasswordReset(token: string, password: string): Promise<{ handle: string }> {
+  const response = await emailJson('/auth/email/reset-confirm', {
+    token: String(token),
+    password: passwordSubmissionValue(password),
+  }, 'email-reset-confirm');
+  if (!response.ok) throw await authError(response, 'Parola nu a putut fi schimbată.');
+  const body: unknown = await response.json().catch(() => null);
+  if (!body || typeof body !== 'object' || (body as { ok?: boolean }).ok !== true) {
+    throw new Error('Parola nu a putut fi schimbată.');
+  }
+  clearSession();
+  return { handle: String((body as { handle?: string }).handle ?? '') };
+}
+

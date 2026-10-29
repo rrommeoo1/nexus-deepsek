@@ -22,7 +22,11 @@ const PEER = "192.168.1.50";
 /** Set the variables a local deployment has, run the body, then put the environment back exactly. */
 async function withEnv(overrides, body) {
   const keys = ["NODE_ENV", "NEXUS_DEPLOYMENT_MODE", "NEXUS_LOCAL_ACCOUNTS", "NEXUS_TRUST_PROXY",
-    "NEXUS_WC_PROJECT_ID", "NEXUS_WC_PROJECT_ATTESTED", "NEXUS_WC_ATTESTED_ORIGINS", "NEXUS_ORIGIN"];
+    "NEXUS_WC_PROJECT_ID", "NEXUS_WC_PROJECT_ATTESTED", "NEXUS_WC_ATTESTED_ORIGINS", "NEXUS_ORIGIN",
+    // Round 37: the capability probe also reports the mail setup, so the ambient mail variables are
+    // cleared here too — otherwise a developer's own `.env` would decide what this test proves.
+    "NEXUS_EMAIL_PROVIDER", "NEXUS_EMAIL_API_KEY", "NEXUS_EMAIL_FROM", "NEXUS_EMAIL_LINK_ORIGIN",
+    "NEXUS_EMAIL_CAPTURE_DIR"];
   const previous = new Map();
   for (const key of keys) {
     previous.set(key, process.env[key]);

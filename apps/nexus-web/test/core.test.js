@@ -613,14 +613,25 @@ test("email signup binds a client-only wallet proof and never exposes reset bear
   const repo = createRepo(db);
   const sse = { broadcast() {}, publish() {}, subscribe() { return () => {}; } };
   const { handleRequest } = await import("../lib/api.js");
+  // The mail flow reads its configuration from the request context. A captured-local mailbox keeps this
+  // test off the network and out of the repository's data directory.
+  const mailbox = mkdtempSync(join(tmpdir(), "nexus-core-mail-"));
+  const env = {
+    NODE_ENV: "development",
+    NEXUS_EMAIL_CAPTURE_DIR: mailbox,
+    NEXUS_EMAIL_LINK_ORIGIN: "http://localhost:5000",
+    NEXUS_EMAIL_RESPONSE_FLOOR_MS: "0",
+  };
 
   const call = async (path, body, cookie) => {
     const res = fakeRes();
-    await handleRequest(fakeReq("POST", path, cookie ?? "", body), res, { repo, sse, db });
+    await handleRequest(fakeReq("POST", path, cookie ?? "", body), res, { repo, sse, db, env });
     res.body = res.body ? JSON.parse(res.body) : {};
     res.status = res.statusCode;
     return res;
   };
+
+  try {
 
   const signup = await signupWithDeviceWallet(call, "alex@example.com", "parola-secreta");
   assert.equal(signup.status, 201);
@@ -638,17 +649,24 @@ test("email signup binds a client-only wallet proof and never exposes reset bear
   assert.equal(login.status, 200);
   const cookie = login.headers["set-cookie"];
 
-  // Reset cannot disclose a bearer on the LAN demo.
+  // Reset answers the same way for a known and an unknown address, and still discloses no bearer.
   const resetReq = await call("/auth/email/reset-request", { email: "alex@example.com" });
-  assert.equal(resetReq.status, 503);
+  assert.equal(resetReq.status, 202);
   assert.equal("reset_token" in resetReq.body, false);
   const decoyResetReq = await call("/auth/email/reset-request", { email: "unknown@example.com" });
-  assert.equal(decoyResetReq.status, 503);
+  assert.equal(decoyResetReq.status, 202);
   assert.deepEqual(Object.keys(decoyResetReq.body).sort(), Object.keys(resetReq.body).sort());
-  const retired = await call("/auth/email/reset-confirm", { token: "forged", password: "noua-parola-123" });
-  assert.equal(retired.status, 410);
+  // Round 37 replaced the retired 410 with a real single-use token exchange: a forged one is refused
+  // as an invalid link, and the account's password is untouched.
+  const forged = await call("/auth/email/reset-confirm", { token: "forged", password: "noua-parola-123" });
+  assert.equal(forged.status, 400);
+  assert.equal(forged.body.code, "EMAIL_TOKEN_INVALID");
+  assert.equal(verifyPassword("parola-secreta", repo.getUserByEmail("alex@example.com").password_hash), true);
 
   db.close();
+  } finally {
+    rmSync(mailbox, { recursive: true, force: true });
+  }
 });
 
 test("Nexus username lookup resolves a local account wallet and keeps the legacy route compatible", async () => {

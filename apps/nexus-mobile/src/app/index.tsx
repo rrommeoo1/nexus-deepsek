@@ -16,10 +16,12 @@ import { API_ORIGIN, apiOriginLabel } from '../lib/apiOrigin';
 import { nexusApi, NexusApiError } from '../lib/nexusApi';
 import { openSocialProfile } from '../lib/profileNavigation';
 import {
-  clearSession, readAuthCapabilities, readSession, registerWithLocalAccount, resetLocalPassword,
+  clearSession, readAuthCapabilities, readSession, registerEmailAccount, registerWithLocalAccount,
+  requestEmailPasswordReset, resetLocalPassword,
   signInWithEmail, signOut, type AuthCapabilities, type LoginResult,
 } from '../lib/session';
 import { validateLocalAccountDraft, type LocalAccountDraft } from '../lib/loginFields';
+import { validateEmailRegistrationDraft } from '../lib/emailAuth';
 import { PasswordRecoverySheet } from '../components/PasswordRecoverySheet';
 import type { MeResponse } from '../lib/socialTypes';
 import { mediaSourceForPath } from '../lib/socialTypes';
@@ -105,7 +107,9 @@ export default function NativeHomeScreen() {
   const [recoveryBusy, setRecoveryBusy] = useState(false);
   const [recoveryError, setRecoveryError] = useState('');
   const [recoveryDone, setRecoveryDone] = useState('');
+  const [recoveryMode, setRecoveryMode] = useState<'local' | 'email'>('local');
   const [signupError, setSignupError] = useState('');
+  const [signupStatus, setSignupStatus] = useState('');
   const booted = useRef(false);
 
   const loadMe = useCallback(async (): Promise<MeResponse | null> => {
@@ -176,12 +180,32 @@ export default function NativeHomeScreen() {
   }, [ensureSocialPersona, loadMe]);
 
   /**
-   * "Creează cont" — the local-development flow (`/auth/local/register`). The client checks the same
-   * rules the server enforces (handle shape, 8–256 characters, the two passwords matching) so the first
-   * answer is immediate, and then the server's own refusal is what the person sees if it differs.
+   * "Creează cont" — the flow this server says it has (`/api/auth-capabilities`).
+   *
+   * A local development server creates the account with a handle and no mail (`/auth/local/register`,
+   * round 36). A server with a mail provider creates it with an address and sends the confirmation
+   * (`/auth/email/register`, round 37) — and in that case the app deliberately does **not** pretend the
+   * person is signed in: production refuses to sign in an address it has never confirmed, so the screen
+   * says what to do next instead of dropping into a session that cannot exist.
    */
   const onSignUp = useCallback(async (draft: LocalAccountDraft) => {
-    setSignupError(''); setError('');
+    setSignupError(''); setError(''); setSignupStatus('');
+    const emailFlow = authCapabilities?.registration === 'email' && Boolean(authCapabilities?.email?.configured);
+    if (emailFlow) {
+      const complaint = validateEmailRegistrationDraft('ro', draft);
+      if (complaint) { setSignupError(complaint); return; }
+      setBusy(true);
+      try {
+        const result = await registerEmailAccount(draft);
+        const name = result.user?.handle ? `@${result.user.handle}` : 'contul';
+        setSignupStatus(result.verification?.sent
+          ? `${name} a fost creat. Verifică emailul, confirmă adresa, apoi intră în cont.`
+          : `${name} a fost creat, dar mesajul de confirmare nu a plecat. Cere-l din nou.`);
+      } catch (cause) {
+        setSignupError(cause instanceof Error ? cause.message : 'Contul nu a putut fi creat.');
+      } finally { setBusy(false); }
+      return;
+    }
     const complaint = validateLocalAccountDraft('ro', draft);
     if (complaint) { setSignupError(complaint); return; }
     setBusy(true);
@@ -194,7 +218,22 @@ export default function NativeHomeScreen() {
       clearSession();
       setSignupError(cause instanceof Error ? cause.message : 'Contul nu a putut fi creat.');
     } finally { setBusy(false); }
-  }, [ensureSocialPersona, loadMe]);
+  }, [authCapabilities, ensureSocialPersona, loadMe]);
+
+  /**
+   * The recovery sheet's email submit (round 37): the server mails a single-use link and answers the
+   * same for any address, so the sheet repeats that sentence instead of claiming more than the server
+   * knows. The password is not touched here at all.
+   */
+  const onSubmitRecoveryEmail = useCallback(async (email: string) => {
+    setRecoveryBusy(true); setRecoveryError(''); setRecoveryDone('');
+    try {
+      await requestEmailPasswordReset(email);
+      setRecoveryDone('Dacă adresa are un cont cu parolă, linkul de resetare a plecat. Verifică inboxul; linkul expiră în 30 de minute.');
+    } catch (cause) {
+      setRecoveryError(cause instanceof Error ? cause.message : 'Linkul nu a putut fi cerut.');
+    } finally { setRecoveryBusy(false); }
+  }, []);
 
   /**
    * The recovery sheet's submit. The server is the only authority: it names the handle it changed, or
@@ -336,11 +375,18 @@ export default function NativeHomeScreen() {
           busy={busy}
           error={error}
           signupError={signupError}
+          signupStatus={signupStatus}
           registrationMode={authCapabilities?.registration}
           recoveryMode={authCapabilities?.passwordRecovery}
           onSignIn={(email, password) => void onSignIn(email, password)}
           onSignUp={(draft) => void onSignUp(draft)}
-          onForgotPassword={() => { setRecoveryError(''); setRecoveryDone(''); setRecoveryOpen(true); }}
+          onForgotPassword={() => {
+            setRecoveryError(''); setRecoveryDone('');
+            // The sheet shows the mail form only when the server actually has a mail provider; a local
+            // development server without one keeps the flow that sets the password on the spot.
+            setRecoveryMode(authCapabilities?.passwordRecovery === 'email' && authCapabilities?.email?.configured ? 'email' : 'local');
+            setRecoveryOpen(true);
+          }}
           onXPortal={() => { setError(''); setXportalOpen(true); }}
           onProvider={() => setError('Google și Facebook nu sunt configurate pe server.')}
         />
@@ -353,10 +399,12 @@ export default function NativeHomeScreen() {
           visible={recoveryOpen}
           locale="ro"
           busy={recoveryBusy}
+          mode={recoveryMode}
           error={recoveryError}
           done={recoveryDone}
           onClose={() => setRecoveryOpen(false)}
           onSubmit={(identifier, password) => void onSubmitRecovery(identifier, password)}
+          onSubmitEmail={(email) => void onSubmitRecoveryEmail(email)}
         />
       </SafeAreaView>
     );

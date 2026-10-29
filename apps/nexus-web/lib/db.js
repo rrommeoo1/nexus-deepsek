@@ -922,6 +922,21 @@ CREATE TABLE IF NOT EXISTS auth_logout_commands (
   expires_at INTEGER NOT NULL,
   created_at INTEGER NOT NULL
 );
+-- Single-use email links (round 37): one row per minted token, stored as a hash, with the purpose and
+-- the address it was sent to. consumed_at is the single-use switch; expires_at is the clock.
+CREATE TABLE IF NOT EXISTS email_tokens (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose TEXT NOT NULL CHECK(purpose IN ('verify_email','reset_password')),
+  token_sha256 TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL,
+  expires_at INTEGER NOT NULL,
+  consumed_at INTEGER,
+  created_at INTEGER NOT NULL,
+  requested_ip_hash TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_email_tokens_user_purpose ON email_tokens(user_id, purpose, created_at);
+CREATE INDEX IF NOT EXISTS idx_email_tokens_expiry ON email_tokens(expires_at);
 CREATE TABLE IF NOT EXISTS listings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,

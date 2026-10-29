@@ -8,7 +8,7 @@ import { resolveStaticRequest } from "./lib/static-policy.js";
 
 loadEnv();
 validateRuntimeConfig();
-const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule, nativeAuthSessionModule, emailAuthSessionModule, previewTestAccountModule] = await Promise.all([
+const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule, nativeAuthSessionModule, emailAuthSessionModule, previewTestAccountModule, emailTokensModule] = await Promise.all([
   import("./lib/db.js"),
   import("./lib/repo.js"),
   import("./lib/sse.js"),
@@ -18,6 +18,7 @@ const [dbModule, repoModule, sseModule, apiModule, transportModule, outboxModule
   import("./lib/native-auth-session.js"),
   import("./lib/email-auth-session.js"),
   import("./lib/preview-test-account.js"),
+  import("./lib/email/tokens.js"),
 ]);
 const { openDb } = dbModule;
 const { createRepo } = repoModule;
@@ -27,6 +28,7 @@ const { send } = transportModule;
 const { createLocalOutboxHandlers, dispatchOutboxBatch } = outboxModule;
 const { purgeExpiredNativeAuthConsumptions } = nativeAuthSessionModule;
 const { purgeExpiredEmailAuthState } = emailAuthSessionModule;
+const { purgeExpiredEmailTokens } = emailTokensModule;
 const { ensurePreviewTestAccount } = previewTestAccountModule;
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -138,6 +140,7 @@ const outboxTimer = setInterval(() => {
     repo.purgeExpiredSessions();
     purgeExpiredNativeAuthConsumptions(db);
     purgeExpiredEmailAuthState(db);
+    purgeExpiredEmailTokens(db);
     dispatchOutboxBatch({ db, handlers: outboxHandlers, workerId: `local-${process.pid}`, limit: 25, maxAttempts: 5 });
   } catch (error) {
     console.error(`[outbox] local dispatch failed: ${String(error?.message ?? "unknown").replace(/[\r\n\t]/g, " ").slice(0, 160)}`);

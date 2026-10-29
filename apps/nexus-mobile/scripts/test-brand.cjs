@@ -40,6 +40,8 @@ const EXCEPTIONS = [
   { pattern: /^--nexus-/, reason: 'CSS custom property carried over from the web theme' },
   { pattern: /\/api\//, reason: 'API path' },
   { pattern: /nexus-dev/i, reason: 'local development script name' },
+  { pattern: /^nexusdev$/, reason: 'the Android deep-link scheme declared in app.json; renaming it would break installed apps' },
+  { pattern: /^nexusdev:\/\//, reason: 'a deep link built with that scheme; it is a URL, never a label the reader sees as a name' },
   { pattern: /__nexus(?:Resume|Copy)/, reason: 'bridge globals the WebView page and React Native share (relay resume, copy); never drawn' },
   { pattern: /^nexus-xportal$/, reason: 'envelope tag on the WebView bridge messages; a protocol value, not a label' },
 ];

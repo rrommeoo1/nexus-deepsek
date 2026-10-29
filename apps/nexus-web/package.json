@@ -24,6 +24,7 @@
     "action:reconcile:repair": "node scripts/action-ledger-reconcile.mjs --repair",
     "drill:mutation-outbox": "node scripts/mutation-outbox-drill.mjs",
     "smoke:auth": "node scripts/smoke-auth.mjs",
+    "test:email-http": "node scripts/email-http-e2e.mjs",
     "build:auth-clients": "node scripts/build-wc.mjs && node scripts/build-device-wallet.mjs",
     "actors": "node scripts/actors.js",
     "simulate:abuse": "node scripts/abuse-simulation.mjs",

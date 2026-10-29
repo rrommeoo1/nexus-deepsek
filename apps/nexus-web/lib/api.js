@@ -44,6 +44,11 @@ import {
   consumeAuthLogout, consumeAuthLogoutAll, getEmailSignupChallenge, issueEmailSignupChallenge, replayEmailAuthCommand,
 } from "./email-auth-session.js";
 import {
+  EmailFlowError, confirmEmailVerification, confirmPasswordReset, emailCapabilities, emailRuntime,
+  registerEmailAccount, requestPasswordReset, requestVerificationEmail, sendPasswordChangedNotice,
+} from "./email/service.js";
+import { readCapturedMail } from "./email/providers.js";
+import {
   cancelAccountDeletion, createAccountExportRequest,
   getAccountExport, getDeletionStatus, requestAccountDeletion,
 } from "./account-lifecycle.js";
@@ -318,6 +323,35 @@ function resumableUploadError(res, error) {
     return json(res, error.status, { ok: false, code: error.code, error: error.message, retryable: error.retryable });
   }
   if (error?.message === "body too large") return json(res, 413, { ok: false, code: "UPLOAD_PART_TOO_LARGE", error: "upload part too large", retryable: false });
+  throw error;
+}
+
+/**
+ * The mail runtime for one request (`lib/email/service.js`), built from the environment as it is right
+ * now — not at import time — so a development server can be reconfigured without a code change and a
+ * test can describe a provider per request (`ctx.env`). `ctx.fetcher` is passed through so adapter
+ * calls stay mockable, the same way the news and Jamendo paths already are.
+ */
+function emailContext(req, { db, fetcher, env }) {
+  let requestOrigin = "";
+  try { requestOrigin = externalOrigin(req); } catch { requestOrigin = ""; }
+  return emailRuntime({ db, env: env ?? process.env, requestOrigin, fetchImpl: fetcher });
+}
+
+/** One answer for every refusal a mail flow can produce: its own code, never a stack trace. */
+function emailFlowFailure(res, error) {
+  if (error instanceof EmailFlowError) {
+    return json(res, error.status, {
+      ok: false,
+      code: error.code,
+      error: error.message,
+      ...(error.missing ? { missing: error.missing } : {}),
+      ...(error.problems ? { problems: error.problems } : {}),
+    });
+  }
+  if (error?.code === "EMAIL_TOKENS_TABLE_MISSING") {
+    return json(res, 503, { ok: false, code: "EMAIL_STORAGE_UNAVAILABLE", error: "baza de date nu are tabela de tokenuri de email" });
+  }
   throw error;
 }
 
@@ -858,6 +892,10 @@ function boundedMediaRange(value, size) {
 export async function handleRequest(req, res, ctx) {
   const { repo, sse, db } = ctx;
   const fetcher = ctx.fetcher ?? globalThis.fetch;
+  // The mail subsystem takes its environment from the caller when one is given (`ctx.env`), so every
+  // decision it makes — which provider, which sender, which public origin — is testable per request
+  // without touching the process-wide environment. Everything else keeps reading `process.env`.
+  const emailEnv = ctx.env ?? process.env;
   const url = new URL(req.url ?? "/", "http://localhost");
   const path = url.pathname;
   const method = req.method?.toUpperCase() ?? "GET";
@@ -932,7 +970,7 @@ export async function handleRequest(req, res, ctx) {
    * configuration piece is still missing, so the UI can print something actionable instead of a spinner.
    */
   if (method === "GET" && path === "/api/auth-capabilities") {
-    const gate = localAccountGate(process.env, req.socket?.remoteAddress);
+    const gate = localAccountGate(emailEnv, req.socket?.remoteAddress);
     let origin = "";
     let wallet = null;
     try { origin = externalOrigin(req); } catch { origin = ""; }
@@ -948,14 +986,58 @@ export async function handleRequest(req, res, ctx) {
         origin_attested: report.originAttested,
       };
     }
+    // Mail is asked the same way the wallet is: what this exact server can really do, so a screen
+    // never offers a flow the server would refuse. Round 37 (`lib/email/*`) is the honest answer.
+    const email = emailCapabilities(emailRuntime({ db, env: emailEnv, requestOrigin: origin, fetchImpl: fetcher }));
     return json(res, 200, {
       ok: true,
       deployment: String(process.env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() || "unset",
       login: { email_password: true, handle_password: true, xportal: Boolean(wallet?.ready) },
-      registration: gate.enabled ? LOCAL_ACCOUNT_FLOW : "wallet_proof_required",
-      password_recovery: gate.enabled ? LOCAL_ACCOUNT_FLOW : "unavailable",
+      registration: gate.enabled ? LOCAL_ACCOUNT_FLOW : (email.configured ? "email" : "wallet_proof_required"),
+      password_recovery: gate.enabled ? LOCAL_ACCOUNT_FLOW : (email.configured ? "email" : "unavailable"),
       local_accounts: { enabled: gate.enabled, reason: gate.reason },
+      email,
       wallet,
+    });
+  }
+
+  /**
+   * The operator's view of the mail setup: provider, sender, link origin and the exact names still
+   * missing. Local-only on purpose (`lib/local-account.js` gate): a public deployment describes itself
+   * through `/api/auth-capabilities`, which carries no sender identity at all.
+   */
+  if (method === "GET" && path === "/api/email/status") {
+    if (!localAccountGate(emailEnv, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    let origin = "";
+    try { origin = externalOrigin(req); } catch { origin = ""; }
+    const runtime = emailRuntime({ db, env: emailEnv, requestOrigin: origin, fetchImpl: fetcher });
+    return json(res, 200, {
+      ok: true,
+      email: emailCapabilities(runtime),
+      limits: { timeout_ms: runtime.config.timeout_ms, max_attempts: runtime.config.max_attempts },
+    });
+  }
+
+  /**
+   * The local mailbox: what the capture adapter wrote, newest first, with the link it would have
+   * carried. It exists only when there is no real provider **and** the request comes from this machine
+   * or its own network, so a captured message can be read while developing without a mail service and
+   * can never be read from the internet.
+   */
+  if (method === "GET" && path === "/api/dev/mail-capture") {
+    if (!localAccountGate(emailEnv, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    const runtime = emailRuntime({ db, env: emailEnv, requestOrigin: "", fetchImpl: fetcher });
+    if (runtime.config.mode !== "capture" || !runtime.config.capture_dir) {
+      return json(res, 404, { ok: false, code: "NO_CAPTURE", error: "captura locală nu este activă pe acest server" });
+    }
+    const requested = Number(url.searchParams.get("limit") ?? 10);
+    const limit = Math.min(Math.max(Number.isFinite(requested) && requested > 0 ? Math.floor(requested) : 10, 1), 50);
+    return json(res, 200, {
+      ok: true,
+      delivery: "captured_locally",
+      note: "mesaje capturate local, netrimise; nu sunt dovezi de livrare",
+      directory: runtime.config.capture_dir,
+      messages: readCapturedMail(runtime.config.capture_dir, { limit }),
     });
   }
 
@@ -1252,7 +1334,7 @@ export async function handleRequest(req, res, ctx) {
   // create a brand-new row or rewrite the password of a row that already had one. They never adopt,
   // rename or claim an existing handle, and they never attach an email to somebody else's account.
   if (method === "POST" && path === "/auth/local/register") {
-    if (!localAccountGate(process.env, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    if (!localAccountGate(emailEnv, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
     const rate = enforceAuthRate(req, res, "local-register-ip", "", { limit: 10, windowMs: 60 * 60 * 1000 });
     if (!rate.allowed) return;
     const body = await readAuthJson(req);
@@ -1307,7 +1389,7 @@ export async function handleRequest(req, res, ctx) {
   }
 
   if (method === "POST" && path === "/auth/local/password-reset") {
-    if (!localAccountGate(process.env, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
+    if (!localAccountGate(emailEnv, req.socket?.remoteAddress).enabled) return json(res, 404, { ok: false, error: "not found" });
     const rate = enforceAuthRate(req, res, "local-password-reset-ip", "", { limit: 10, windowMs: 60 * 60 * 1000 });
     if (!rate.allowed) return;
     const body = await readAuthJson(req);
@@ -1342,19 +1424,137 @@ export async function handleRequest(req, res, ctx) {
     });
   }
 
-  if (method === "POST" && path === "/auth/email/reset-request") {
+  // ---- email accounts: registration with an address, confirmation, and a real password reset ----
+  //
+  // These are the flows the product promises and round 36 could not deliver: before this block,
+  // `/auth/email/reset-request` answered a hardcoded 503 and `/auth/email/reset-confirm` answered 410,
+  // while the only registration route needed a browser-generated wallet. Nothing here is gated on
+  // `NEXUS_DEPLOYMENT_MODE`: the flows are the same in every environment, and what changes is whether
+  // a provider is configured — an unconfigured production server *refuses* (`EMAIL_NOT_CONFIGURED`)
+  // instead of creating an account nobody could ever confirm.
+  if (method === "POST" && path === "/auth/email/register") {
+    const rate = enforceAuthRate(req, res, "email-register-ip", "", { limit: 10, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const email = sanitizeText(body.email, 120).toLowerCase();
+    const addressRate = enforceAuthRate(req, res, "email-register-address", email, { limit: 3, windowMs: 60 * 60 * 1000 });
+    if (!addressRate.allowed) return;
+    const runtime = emailContext(req, { db, fetcher, env: emailEnv });
+    try {
+      const result = await registerEmailAccount(runtime, {
+        db, repo, email,
+        password: typeof body.password === "string" ? body.password : "",
+        handle: sanitizeText(body.handle, 30),
+        displayName: sanitizeText(body.display_name, 50),
+        now: now(),
+        ip: requestClientId(req),
+      });
+      const user = repo.getUserById(result.account.id);
+      clearAuthAttempts("email-register-address", addressRate.bucket);
+      return json(res, result.created ? 201 : 202, {
+        ok: true,
+        flow: "email",
+        created: result.created,
+        existing: result.existing,
+        user: publicUser(user),
+        email_verified: Boolean(user?.email_verified),
+        verification: result.verification,
+        cooldown_seconds: result.cooldown_seconds,
+        // Honest about the policy: production refuses to sign in an address it has never confirmed;
+        // development does not, which is why the account is usable on this machine right away.
+        login_allowed: emailEnv.NODE_ENV !== "production",
+        note: result.note,
+      });
+    } catch (error) {
+      return emailFlowFailure(res, error);
+    }
+  }
 
+  if (method === "POST" && path === "/auth/email/verification/send") {
+    const rate = enforceAuthRate(req, res, "email-verify-send-ip", "", { limit: 20, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const email = sanitizeText(body.email, 120).toLowerCase();
+    const addressRate = enforceAuthRate(req, res, "email-verify-send-address", email, { limit: 5, windowMs: 60 * 60 * 1000 });
+    if (!addressRate.allowed) return;
+    const runtime = emailContext(req, { db, fetcher, env: emailEnv });
+    try {
+      await requestVerificationEmail(runtime, { repo, email, now: now(), ip: requestClientId(req) });
+      // Deliberately no field that varies with account existence: this answer is the same for an
+      // address that has an unconfirmed account, one that has none, and one already confirmed.
+      return json(res, 202, { ok: true, requested: true });
+    } catch (error) {
+      return emailFlowFailure(res, error);
+    }
+  }
+
+  if (method === "POST" && path === "/auth/email/verification/confirm") {
+    const rate = enforceAuthRate(req, res, "email-verify-confirm-ip", "", { limit: 30, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const runtime = emailContext(req, { db, fetcher, env: emailEnv });
+    try {
+      const result = confirmEmailVerification(runtime, { repo, token: sanitizeText(body.token, 200), now: now() });
+      return json(res, 200, {
+        ok: true,
+        verified: true,
+        already_verified: result.already_verified,
+        handle: result.user.handle,
+        note: "Adresa a fost confirmată. Intră în cont cu emailul și parola.",
+      });
+    } catch (error) {
+      return emailFlowFailure(res, error);
+    }
+  }
+
+  if (method === "POST" && path === "/auth/email/reset-request") {
     const rate = enforceAuthRate(req, res, "email-reset-request-ip", "", { limit: 10, windowMs: 15 * 60 * 1000 });
     if (!rate.allowed) return;
-    return json(res, 503, {
-      ok: false,
-      error: "resetarea prin email nu este activă în demo; recuperează contul prin xPortal",
-      recovery: "xportal",
-    });
+    const body = await readAuthJson(req);
+    const email = sanitizeText(body.email, 120).toLowerCase();
+    const addressRate = enforceAuthRate(req, res, "email-reset-request-address", email, { limit: 5, windowMs: 60 * 60 * 1000 });
+    if (!addressRate.allowed) return;
+    const runtime = emailContext(req, { db, fetcher, env: emailEnv });
+    try {
+      await requestPasswordReset(runtime, { repo, email, now: now(), ip: requestClientId(req) });
+      // One body for every address, and no reset token anywhere in the answer: the only copy of the
+      // token is inside the message. Enumeration is refused by construction here, not by wording.
+      return json(res, 202, { ok: true, requested: true });
+    } catch (error) {
+      return emailFlowFailure(res, error);
+    }
   }
 
   if (method === "POST" && path === "/auth/email/reset-confirm") {
-    return json(res, 410, { ok: false, error: "flux retras; folosește recuperarea prin xPortal" });
+    const rate = enforceAuthRate(req, res, "email-reset-confirm-ip", "", { limit: 30, windowMs: 60 * 60 * 1000 });
+    if (!rate.allowed) return;
+    const body = await readAuthJson(req);
+    const runtime = emailContext(req, { db, fetcher, env: emailEnv });
+    try {
+      const result = confirmPasswordReset(runtime, {
+        db, repo,
+        token: sanitizeText(body.token, 200),
+        password: typeof body.password === "string" ? body.password : "",
+        now: now(),
+      });
+      // The notice is best effort and happens after the password is already changed: a dead provider
+      // must never make a successful reset look like a failure.
+      const notice = await sendPasswordChangedNotice(runtime, { user: result.user, now: now() })
+        .catch(() => ({ sent: false, delivery: "failed" }));
+      notifyWithInvalidation(repo, sse, result.user.id, "security", "Parola contului Nexus a fost schimbată; sesiunile vechi au fost deconectate", { persona: "social", sensitive: true });
+      clearCookie(res, "nexus_session", { secure: requestIsSecure(req) });
+      return json(res, 200, {
+        ok: true,
+        flow: "email",
+        handle: result.user.handle,
+        sessions_revoked: true,
+        login_required: true,
+        notice: notice.delivery,
+        note: "Parola a fost schimbată. Intră din nou cu parola nouă.",
+      });
+    } catch (error) {
+      return emailFlowFailure(res, error);
+    }
   }
 
   // Never accept a real seed phrase through the Nexus server. Restore it in
