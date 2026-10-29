@@ -1,8 +1,9 @@
 ## 0.37 Email real: cont cu adresă, confirmare, parolă uitată prin link (29 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, peste `b6f8255` (runda 36), cu commitul acestei
-runde — vezi `git log -1` (mesajul începe cu *feat(email)*) — **fără push**. `.gitignore` acoperă `/_*`;
-niciun `env`, `.sqlite`, log, imagine sau APK nu intră în commit. Sondele temporare au fost șterse.
+runde — *feat(email): real transactional email, address verification and link-based password reset*
+(`da11da6`, 34 fișiere, +3 962 / −41, **ahead 27**, fără push). `.gitignore` acoperă `/_*`; niciun `env`,
+`.sqlite`, log, imagine sau APK nu intră în commit. Sondele temporare au fost șterse.
 
 **Ce s-a găsit, într-o frază:** serverul avea un `503` hardcodat pe cererea de resetare și un `410` pe
 confirmare, iar singura înscriere cu email cerea o **dovadă de wallet Ed25519 generată în browser** — deci
