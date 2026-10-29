@@ -4836,3 +4836,122 @@ nicio interfață ADB/MTP în Windows), deci lansarea pe dispozitiv și verifica
 răspunde `200` este condiția necesară, nu dovada că aplicația s-a deschis pe telefon: dovada rămâne ecranul
 citit (`npm run dev:doctor` / `npm run dev:ui`), nu HTTP-ul.
 
+
+## 39. Autentificarea pe telefonul real: xPortal până la wallet, cont real cu email, livrare reală încă lipsă (29 octombrie 2026)
+
+Runda 38 a lăsat un bundle care răspunde `200` și o aplicație care **nu fusese deschisă pe telefon**.
+Runda 39 a luat-o de la capăt, cu telefonul conectat (wireless debugging), și a dus lanțul până la
+singurele două lucruri pe care nu le poate face un agent: **amprenta owner-ului în xPortal** și **o cheie
+de provider de email**.
+
+### 39.1 Ce s-a dovedit pe dispozitiv
+
+| flux | dovada | rezultat |
+| --- | --- | --- |
+| aplicația se deschide | `uiautomator dump` + captură `round39-login-bottom` | ecranul nativ de autentificare, cu `Conectează xPortal · mainnet`, `SAU CU EMAIL`, `Ai uitat parola?`, `CREEAZĂ CONT` |
+| înregistrare | formularul aplicației (al doilea card, sub pliere), `POST /auth/email/register` | **201**; „@rrommeoo a fost creat. Verifică emailul, confirmă adresa, apoi intră în cont." |
+| login | `POST /auth/email/login 200` → `GET /api/me 200` | sesiune nouă `user_id=13`; profilul **rrommeoo (social) · @rrommeoo** pe ecran |
+| parolă greșită | `401` + ecranul | „Emailul sau parola nu sunt corecte." (mesajul de protocol nu mai ajunge pe ecran) |
+| ochiul parolei | atributul `password` din ierarhie | ascuns → arătat (text identic, 19 caractere) → ascuns |
+| repornire | `am force-stop` + deep link | feed autentificat fără niciun `POST /auth/email/login` |
+| logout | meniu → „Ieși din cont" | `POST /auth/logout 200`, rândul sesiunii dispare, restul conturilor neatinse |
+| parolă uitată | captura `round39-forgot-password-sheet` + `202` | foaia se deschide; linkul se emite, dar rămâne în captura locală |
+| xPortal | `[xportal] provider-ready ms=349`, `pairing … ms=5817`, `xportal-opened via=xportal:` | cererea ajunge în xPortal; acolo intervine **App Lock-ul MIUI**, care cere amprenta |
+
+### 39.2 xPortal: ce era în neregulă cu configurația
+
+`GET /api/auth-capabilities` arată acum `wallet.ready=true`, cu `project_id_configured`,
+`project_attested` și `origin_attested` toate `true`, deci **Project ID-ul nu mai lipsește**: valoarea
+reală stă în `apps/nexus-web/.env`, iar `C:\Nexus\env\jungle.env` are cheia goală — iar `lib/env.js`
+completează doar cheile goale, deci nu o mai anulează (comportamentul din runda 36).
+
+Ce rămânea neverificat era **originea**, iar sonda de relay (`builds/wc-relay-probe.cjs`) a răspuns fără
+ambiguitate: `http://192.168.1.153:5000` → `3000 Unauthorized: origin not allowed`. Adresa LAN nu este
+nici context sigur (`crypto.subtle` lipsește pe `http:` non-loopback), deci bridge-ul WalletConnect nu ar
+putea inițializa de acolo. `.env`-ul mobil a trecut pe `http://localhost:5000`, care este acceptat din
+oficiu de relay **și** a fost adăugat de owner în allowlist; telefonul ajunge la PC prin
+`adb reverse tcp:5000 tcp:5000`.
+
+Ce nu se poate spune: că aceasta era singura cauză a eșecurilor din rundele 36–37. Bridge-ul își lua
+pagina de pe `secureBridgeOrigin(API_ORIGIN)` (adică tot `localhost`) și atunci, iar din acele încercări
+nu există log. Ce se poate spune: **acum** lanțul merge până la wallet, iar originea LAN este dovedit
+refuzată.
+
+### 39.3 De ce contul nou nu putea fi creat „ca în producție" până azi
+
+Serverul local ține deschis fluxul din runda 36 (`NEXUS_LOCAL_ACCOUNTS`), care creează un cont cu handle
+și **nu poate trimite niciun link**. Aplicația alege fluxul exact după ce răspunde serverul
+(`registration` din `/api/auth-capabilities`), deci pe acest PC al doilea card nu cerea adresă, ci handle,
+și scria „Email (opțional)".
+
+`NEXUS_LOCAL_ACCOUNTS=0` în `C:\Nexus\env\jungle.env` (o variabilă care exista deja și este documentată
+în `lib/local-account.js`) închide doar rutele `/auth/local/*`; loginul cu email/handle trece prin
+`/auth/email/login` și rămâne neatins. După repornire, capabilitățile spun `registration:"email"`,
+`password_recovery:"email"`, iar al doilea card cere **adresă + parolă + confirmare**, cu handle-ul
+derivat din adresă (`rrommeoo`).
+
+### 39.4 Ce s-a schimbat în cod
+
+| fișier | schimbare | de ce |
+| --- | --- | --- |
+| `apps/nexus-mobile/scripts/run-metro.ps1` | `-Clear` (trece `--clear` la `expo start`) | `EXPO_PUBLIC_*` este inline-uit la transformare: fără golirea cache-ului, o schimbare de `.env` nu ajunge niciodată în bundle |
+| `apps/nexus-mobile/src/lib/emailAuth.ts` | `signInFailureMessage(status, code, serverText)` | `401` spunea „invalid credentials" în mijlocul unui formular românesc; clientul web traducea de mult aceleași două răspunsuri |
+| `apps/nexus-mobile/src/lib/session.ts` | `signInWithEmail` aruncă propoziția tradusă | un singur loc care decide ce se citește pe ecran |
+| `apps/nexus-mobile/scripts/test-email-auth.cjs` | test nou pentru mapare | `401`, `429`, `RATE_LIMITED`, text străin păstrat, plus verificarea că funcția este chiar chemată |
+| `apps/nexus-web/lib/api.js` | doar un comentariu la `registration`/`password_recovery` | spune care variabilă decide fluxul, ca să nu se caute în cod a doua oară |
+| `apps/nexus-mobile/.env` (ignorat) | `http://localhost:5000` | originea de relay și contextul sigur |
+
+
+
+### 39.5 Ce rămâne deschis
+
+| criteriu | stare | dovada stării |
+| --- | --- | --- |
+| Jungle Book se deschide pe MIX Flip | **PASS** | ecranul de autentificare citit pe dispozitiv, `focusOk=true` la captură |
+| cont nou cu `rrommeoo@yahoo.com` | **PASS** | `users` 9 → 10, linia `13:rrommeoo`, creată din formularul aplicației |
+| email real de confirmare ajuns în Yahoo | **BLOCKED** | provider `capture`; `[email] verification_issued … delivery=captured_locally` — un mesaj capturat nu este unul livrat |
+| login email + parolă pe telefon | **PASS** | `POST /auth/email/login 200` → `GET /api/me 200`, profilul pe ecran |
+| ochiul parolei | **PASS** | `password` false/true, text identic cu tastarea |
+| parolă uitată prin email real | **BLOCKED** | foaia și ruta funcționează (`202`), dar linkul rămâne în captura locală |
+| xPortal autentifică un wallet real | **BLOCKED** | lanțul merge până la `xportal-opened`; **App Lock-ul MIUI** cere amprenta owner-ului |
+| sesiunea persistă, logout-ul închide | **PASS** | repornire fără login nou; `POST /auth/logout 200` golește rândul sesiunii |
+| datele existente intacte | **PASS** | backup `integrity_check=ok` înainte de scriere; `posts 48`, `media 24`, `comments 41` neschimbate |
+| teste | **PASS** | mobil 63 scripturi / 0 eșecuri, `tsc --noEmit` 0, web 894/894 |
+
+**Owner-ul are două acțiuni, amândouă scurte:**
+
+1. **xPortal:** când cererea este pornită, deblochează xPortal (amprentă, App Lock MIUI) și aprobă
+   cererea de conectare + semnătura NativeAuth. Fereastra bridge-ului este de 5 minute
+   (`xportal-bridge.js`), deci cererea se pornește când owner-ul este lângă telefon.
+2. **email real:** cont Resend (gratuit) + cheie API scrisă în `C:\Nexus\env\jungle.env`:
+   ```
+   NEXUS_EMAIL_PROVIDER=resend
+   NEXUS_EMAIL_API_KEY=…            (din dashboard, nu se comite)
+   NEXUS_EMAIL_FROM=Jungle Book <onboarding@resend.dev>
+   ```
+   Fără domeniu verificat, Resend acceptă `onboarding@resend.dev` **doar** către adresa contului — care
+   este chiar `rrommeoo@yahoo.com`, deci exact testul cerut. Serverul citește `.env` la fiecare cerere
+   pentru cele de email (`lib/email/config.js`), deci după scriere nu e nevoie de repornire; următorul
+   `POST /auth/email/verification/send` trimite linkul real și revocă tokenul capturat azi.
+
+### 39.6 Comenzi de verificare
+
+```powershell
+# telefonul și tunelurile
+adb devices -l ; adb reverse --list
+
+# ce poate serverul chiar acum (emailul și walletul, fără secrete)
+curl.exe -s http://localhost:5000/api/auth-capabilities
+
+# originea pe care o acceptă relay-ul (sondează WalletConnect Cloud)
+$env:NEXUS_WC_PROJECT_ID = '<id>'; node apps/nexus-mobile/builds/wc-relay-probe.cjs `
+  http://localhost:5000 http://127.0.0.1:5000 http://192.168.1.153:5000
+
+# mailul capturat azi (nu livrat)
+curl.exe -s http://localhost:5000/api/dev/mail-capture
+
+# testele
+cd apps\nexus-mobile ; npm test ; node node_modules\typescript\bin\tsc --noEmit
+cd apps\nexus-web    ; npm test
+```
+

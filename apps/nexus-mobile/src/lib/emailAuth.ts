@@ -98,7 +98,26 @@ export function validateNewPassword(locale: LocalAccountLocale, password: string
   return '';
 }
 
+/**
+ * What the login screen prints when the server refuses the credentials.
+ *
+ * The server answers `401 {"error":"invalid credentials"}` — a correct but English sentence that the
+ * native screen used to print verbatim, in the middle of a Romanian form (`JUNGLE_BOOK_PROGRESS.md`
+ * §39). The web client has always translated the same two answers (`public/app.js`:
+ * `auth.invalidCredentials` / `auth.rateLimited`), so the phone now says the same thing instead of
+ * showing the wire text. Any other refusal keeps the server's own sentence, which is the only place
+ * that knows why (an invalid address, an unconfirmed account, a closed registration).
+ */
+export function signInFailureMessage(status: number, code: string, serverText: string): string {
+  const marker = String(code ?? '').trim().toUpperCase();
+  if (status === 401) return 'Emailul sau parola nu sunt corecte.';
+  if (status === 429 || marker === 'RATE_LIMITED') return 'Prea multe încercări. Așteaptă și reîncearcă.';
+  const text = String(serverText ?? '').trim();
+  return text || `Serverul a răspuns cu ${status}.`;
+}
+
 /** One sentence per state a link screen can be in, so the copy is in one place and testable. */
+
 export function emailLinkMessage(locale: LocalAccountLocale, state: 'checking' | 'verified' | 'changed' | 'missing' | 'failed'): string {
   const ro = {
     checking: 'Se verifică linkul…',

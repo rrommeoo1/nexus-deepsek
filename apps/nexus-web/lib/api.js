@@ -993,6 +993,10 @@ export async function handleRequest(req, res, ctx) {
       ok: true,
       deployment: String(process.env.NEXUS_DEPLOYMENT_MODE ?? "").trim().toLowerCase() || "unset",
       login: { email_password: true, handle_password: true, xportal: Boolean(wallet?.ready) },
+      // Round 39: on this PC the gate opens the local flow *and* the mail flow exists. Which one the phone
+      // is offered is decided by `NEXUS_LOCAL_ACCOUNTS` (`lib/local-account.js`): `=0` turns the local
+      // routes off, so this line answers `email` and the app registers with an address and a real link
+      // instead of a handle that can never be confirmed. No code change is needed to switch.
       registration: gate.enabled ? LOCAL_ACCOUNT_FLOW : (email.configured ? "email" : "wallet_proof_required"),
       password_recovery: gate.enabled ? LOCAL_ACCOUNT_FLOW : (email.configured ? "email" : "unavailable"),
       local_accounts: { enabled: gate.enabled, reason: gate.reason },

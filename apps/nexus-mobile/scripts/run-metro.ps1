@@ -3,9 +3,15 @@
 # Motiv: bucla reinstall-free se verifică prin timpul dintre salvarea unui fișier
 # și linia de Fast Refresh din jurnal. Jurnalul ajunge în builds\metro.log, motiv
 # pentru care `npm run dev:doctor` poate arăta ultimul Fast Refresh livrat.
+#
+# `-Clear` golește cache-ul de transformare. Este obligatoriu după o schimbare în
+# `.env`: `EXPO_PUBLIC_*` este inline-uit în bundle la transformare, deci un Metro
+# pornit înainte de editare continuă să servească originea veche (rândul 39 din
+# JUNGLE_BOOK_PROGRESS.md a fost diagnosticat exact așa).
 param(
   [int]$Port = 8081,
-  [switch]$NoLog
+  [switch]$NoLog,
+  [switch]$Clear
 )
 
 $ErrorActionPreference = 'Stop'
@@ -25,10 +31,15 @@ Write-Host "[nexus] Metro pe portul $Port; jurnal: $logPath" -ForegroundColor Cy
 
 # stderr de la Metro este normal (avertismente); nu trebuie să oprească scriptul.
 $ErrorActionPreference = 'Continue'
+$metroArgs = @('expo', 'start', '--dev-client', '--port', $Port)
+if ($Clear) {
+  $metroArgs += '--clear'
+  Write-Host '[nexus] Cache Metro golit (--clear): variabilele EXPO_PUBLIC_* se citesc din nou.' -ForegroundColor Cyan
+}
 if ($NoLog) {
-  & $npx.Source expo start --dev-client --port $Port 2>&1
+  & $npx.Source @metroArgs 2>&1
 } else {
-  & $npx.Source expo start --dev-client --port $Port 2>&1 |
+  & $npx.Source @metroArgs 2>&1 |
     ForEach-Object { "$(Get-Date -Format 'HH:mm:ss.fff') $_" } |
     Tee-Object -FilePath $logPath
 }

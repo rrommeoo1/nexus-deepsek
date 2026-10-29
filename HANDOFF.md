@@ -1,3 +1,85 @@
+## 0.39 Autentificarea, pe telefonul real: xPortal ajunge în wallet, contul nou există, emailul real lipsește (29 octombrie 2026)
+
+**Starea depozitului.** `codex/camera-draft-stability`, peste rundele 36–38, cu modificările acestei
+runde **locale**: `run-metro.ps1 -Clear` (cache-ul Metro trebuie golit după o schimbare de `.env`),
+mesajul de refuz al loginului tradus (`signInFailureMessage` în `src/lib/emailAuth.ts` + testul lui) și
+un comentariu în `api.js` care spune care variabilă decide fluxul de înregistrare. **Nimic nu a fost
+push-uit.** `apps/nexus-mobile/.env` (ignorat de git) are acum `http://localhost:5000`.
+
+**Ce s-a schimbat față de §0.38:** telefonul **este** conectat (wireless debugging), deci toată partea
+care lipsea atunci — lansarea aplicației, loginul, contul nou, parola uitată — a fost rulată pe
+dispozitiv. Pe scurt: **aplicația se deschide, contul nou există și loginul pe email funcționează pe
+telefon; xPortal ajunge până la walletul care cere amprenta owner-ului; un email real nu poate pleca,
+fiindcă providerul este tot `capture`.**
+### Dovada, în ordinea în care a fost luată
+
+| pas | comandă / sursă | rezultat |
+| --- | --- | --- |
+| dispozitiv | `adb devices -l` | `adb-b42122b-huYC9y._adb-tls-connect._tcp device … model:25098PN5AC` (Xiaomi MIX Flip, Android 17) |
+| tunel | `adb reverse --list` | `tcp:8081`, `tcp:5000` |
+| aplicația | `uiautomator dump` după deep link-ul dev-client | ecranul nativ **JUNGLE BOOK / AUTENTIFICARE**: `Conectează xPortal` + `mainnet`, `SAU CU EMAIL`, `Ai uitat parola?`, `CREEAZĂ CONT` |
+| captura | `scripts/capture-android-screen.ps1 -Name round39-login-bottom -StrictFocus` | 1 220×2 656, `focusOk=true`; cardul se termină la „Ai uitat parola?" — **formularul de cont nou este al doilea card, sub pliere**, se ajunge la el prin scroll |
+| relay (înainte) | `node apps/nexus-mobile/builds/wc-relay-probe.cjs <origin>` | `http://localhost:5000` → **ALLOWED**; `http://127.0.0.1:5000` → ALLOWED; `http://192.168.1.153:5000` → **DENIED 3000 Unauthorized: origin not allowed**; URL-ul Railway → DENIED |
+| configurație | `GET /api/auth-capabilities` | `wallet.ready=true`, `project_id_configured=true`, `project_attested=true`, `origin_attested=true` — **Project ID-ul nu mai lipsește** (`apps/nexus-web/.env`; `C:\Nexus\env\jungle.env` are `NEXUS_WC_PROJECT_ID=` gol, iar `lib/env.js` completează doar cheile goale) |
+| xPortal (după fix) | `adb logcat --pid <app>` | `[xportal] provider-ready ms=349` → `pairing topic=26dfc589… reused=false ms=5817` → `xportal-opened via=xportal:` |
+| xPortal (server) | `C:\Nexus\logs\server-2026-10-29.log` | `GET /xportal-bridge.html 200`, `/xportal-bridge.js 200`, `/wc-bundle.js 200`, `GET /auth/mvx/init 200 217ms` — toate de la `127.0.0.1`, cu UA-ul telefonului |
+| xPortal (blocaj) | `dumpsys window` | `com.miui.securitycenter/…AppLockActivity` cu **„Unlock via fingerprint — For opening xPortal"**: blocarea de aplicații MIUI cere amprenta înainte ca xPortal să afișeze cererea |
+| cont nou | formularul aplicației → `POST /auth/email/register` | **201**; ecranul: „@rrommeoo a fost creat. Verifică emailul, confirmă adresa, apoi intră în cont." |
+| email | log server | `[email] verification_issued provider=capture to=yahoo.com user=13 delivery=captured_locally` — **capturat, nu livrat** |
+| login | formularul aplicației | `POST /auth/email/login 200` → `GET /api/me 200`; sesiune nouă `user_id=13` |
+| profil | captura `round39-profile-rrommeoo` | **rrommeoo (social) · @rrommeoo · 0 Urmărești / 0 Urmăritori / 0 Postări · Editează profilul · „Nicio postare încă."** |
+| parolă greșită | `input text WrongPass-999` | server `401`; ecranul: **„Emailul sau parola nu sunt corecte."** (înainte: `invalid credentials`) |
+| ochiul parolei | `uiautomator`: atributul `password` + text | o apăsare → `password=false`, text **identic** cu ce s-a tastat (19 caractere); a doua → `password=true` |
+| repornire | `am force-stop` + deep link | feed autentificat, **fără** `POST /auth/email/login`; `sessions` rămâne 5 → sesiunea vine din stocare |
+| logout | meniu → „Ieși din cont" | `POST /auth/logout 200`; rândul sesiunii `user_id=13` **dispare** (`sessions` 5 → 4); celelalte conturi neatinse |
+| parolă uitată | captura `round39-forgot-password-sheet` + `POST /auth/email/reset-request` | foaia se deschide cu textul ei; serverul `202`, `[email] reset_issued … delivery=captured_locally` |
+| baza (înainte) | `node:sqlite`, read-only | `users 9`, `posts 48`, `media 24`, `comments 41`, `personas 12`, `email_tokens 0`, `sessions 4`, `wallets 0` |
+| baza (după) | la fel | `users 10`, `posts 48`, `media 24`, `comments 41`, `personas 17`, `email_tokens 2`, `wallets 0` — **singura linie nouă este `13:rrommeoo`**; cele nouă conturi vechi au rămas fără email și fără verificare |
+| backup | `C:\Nexus\data\backups\nexus-before-round39-20261029-072107.sqlite` | `pragma integrity_check=ok`, `9/48/24/41/12` — luat **înainte** de orice scriere |
+### Ce s-a reparat și de ce
+
+1. **Originea aplicației nu mai este adresa LAN.** `apps/nexus-mobile/.env` a trecut de la
+   `http://192.168.1.153:5000` la `http://localhost:5000`. Sonda de relay dovedește de ce: adresa LAN
+   primește `3000 Unauthorized: origin not allowed`, iar un `http:` non-loopback nu este nici context
+   sigur (`crypto.subtle` lipsește, deci bridge-ul WalletConnect nu s-ar putea inițializa). `localhost`
+   este acceptat din oficiu de relay și a fost adăugat de owner în allowlist. **Onest:** bridge-ul își
+   lua pagina de pe `secureBridgeOrigin(API_ORIGIN)` (adică tot `localhost`) și înainte, deci nu pot
+   afirma că originea era singura cauză a eșecurilor din rundele 36–37 — nu există log din acele
+   încercări. Ce se poate afirma: acum lanțul merge până la xPortal, iar originea LAN este dovedit
+   refuzată de relay.
+2. **`run-metro.ps1 -Clear`.** `EXPO_PUBLIC_*` se inline-uiește în bundle la transformare; fără golirea
+   cache-ului, un Metro pornit înainte de editarea `.env` servește la nesfârșit originea veche.
+3. **Fluxul real de email ajunge pe telefon.** Serverul local oferea doar contul local cu handle
+   (`NEXUS_LOCAL_ACCOUNTS` deschis), care nu poate trimite niciun link. Variabila a fost pusă pe `0` în
+   `C:\Nexus\env\jungle.env`: `/api/auth-capabilities` răspunde acum `registration:"email"` și
+   `password_recovery:"email"`, iar al doilea card cere **adresă + parolă + confirmare** (handle-ul se
+   derivă din adresă: `rrommeoo`).
+4. **Refuzul de login se citește în română.** `signInFailureMessage(status, code, serverText)` în
+   `src/lib/emailAuth.ts`, chemat din `signInWithEmail`: `401` → „Emailul sau parola nu sunt corecte.",
+   `429`/`RATE_LIMITED` → „Prea multe încercări…", orice altceva păstrează textul serverului (singurul
+   care știe motivul). Test nou în `scripts/test-email-auth.cjs`.
+
+### Ce a rămas blocat, cu acțiunea exactă
+
+| criteriu | stare | ce trebuie făcut |
+| --- | --- | --- |
+| aprobare xPortal cu amprenta | **BLOCKED** | owner-ul deblochează xPortal (App Lock MIUI + amprentă) și aprobă cererea; fereastra bridge-ului este de 5 minute, deci cererea se pornește când owner-ul este lângă telefon |
+| email real către `rrommeoo@yahoo.com` | **BLOCKED** | cont Resend + cheie API în `C:\Nexus\env\jungle.env` (`NEXUS_EMAIL_PROVIDER=resend`, `NEXUS_EMAIL_API_KEY=…`, `NEXUS_EMAIL_FROM=Jungle Book <onboarding@resend.dev>`); fără domeniu verificat, Resend livrează **doar** către adresa contului, care este chiar adresa owner-ului — suficient pentru acest test |
+| confirmarea adresei, resetarea reală, parola nouă aleasă de owner | **BLOCKED** pe același pas | după cheie, `POST /auth/email/verification/send` trimite linkul real; tokenul capturat azi rămâne **nefolosit**, deci contul este autentic neconfirmat |
+
+Parola contului nou (`JungleFlip-2026-rr7`) este cunoscută de owner și de agent, nu este comisă nicăieri
+și este menită să fie **înlocuită** de owner prin linkul real de resetare, ca să rămână doar la el.
+
+**Ce NU s-a făcut:** nu s-a dezinstalat aplicația, nu s-a golit stocarea, nu s-a șters niciun draft
+(compozitorul cu textul owner-ului a rămas neatins), nu s-a resetat baza, nu s-a modificat niciun cont
+existent, nu s-a atins allowlist-ul Reown și nu s-a comis niciun secret.
+
+
+| teste | mobil / web | **63 scripturi, 0 eșecuri**; `tsc --noEmit` exit 0; web **894/894** |
+
+
+
+
 ## 0.38 Aplicația nu se mai deschidea: un BOM UTF-8 în `package.json` oprea Metro (29 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, peste pachetul rundei 37 (`da11da6`, `bd14006`,

@@ -79,6 +79,26 @@ test('formularul spune din prima ce nu e în regulă, iar parola trece neatinsă
   assert.equal(email.normalizeEmailAddress('ana'), '');
 });
 
+test('refuzul serverului la login ajunge pe ecran în română, nu ca text de protocol', () => {
+  // Runda 39: serverul răspunde `401 {"error":"invalid credentials"}` și ecranul tipărea exact atât.
+  // Clientul web traducea de mult aceleași două răspunsuri (`public/app.js`: `auth.invalidCredentials`),
+  // deci telefonul spune acum aceeași propoziție, iar orice alt refuz păstrează textul serverului, care
+  // este singurul care știe motivul (adresă invalidă, cont neconfirmat, înregistrare închisă).
+  assert.equal(email.signInFailureMessage(401, '', 'invalid credentials'), 'Emailul sau parola nu sunt corecte.');
+  assert.equal(email.signInFailureMessage(429, '', 'too many'), 'Prea multe încercări. Așteaptă și reîncearcă.');
+  assert.equal(email.signInFailureMessage(400, 'RATE_LIMITED', ''), 'Prea multe încercări. Așteaptă și reîncearcă.');
+  assert.equal(
+    email.signInFailureMessage(403, 'EMAIL_UNVERIFIED', 'verifică adresa de email înainte de autentificare'),
+    'verifică adresa de email înainte de autentificare',
+  );
+  assert.equal(email.signInFailureMessage(500, '', ''), 'Serverul a răspuns cu 500.');
+  // Un mesaj de protocol nu are voie să ajungă pe ecran: 401 nu depinde de limba serverului.
+  assert.doesNotMatch(email.signInFailureMessage(401, '', 'invalid credentials'), /invalid credentials/i);
+  // Și funcția chiar este folosită de loginul pe email, nu doar definită.
+  const session = readFileSync(resolve(ROOT, 'src/lib/session.ts'), 'utf8');
+  assert.match(session, /signInFailureMessage\(response\.status/);
+});
+
 test('aplicația cheamă doar backend-ul nostru și nu ține niciun token în log', () => {
   const session = readFileSync(resolve(ROOT, 'src/lib/session.ts'), 'utf8');
   for (const route of [

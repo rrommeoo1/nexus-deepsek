@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { API_ORIGIN } from './apiOrigin';
+import { signInFailureMessage } from './emailAuth';
 import { newMutationKey } from './idempotency';
 import {
   identifierSubmissionValue, passwordSubmissionValue, type LocalAccountDraft,
@@ -181,8 +182,10 @@ export async function signInWithEmail(email: string, password: string): Promise<
   });
   const body: unknown = await response.json().catch(() => null);
   if (!response.ok || !body || typeof body !== 'object' || (body as { ok?: boolean }).ok !== true) {
-    const payload = body && typeof body === 'object' ? body as { error?: string } : null;
-    throw new Error(payload?.error || `Serverul a răspuns cu ${response.status}.`);
+    // Translated here, once, so every caller prints the same sentence (`lib/emailAuth.ts`): the wire
+    // text of a 401 is English and belongs in the log, not in the middle of a Romanian form.
+    const payload = body && typeof body === 'object' ? body as { error?: string; code?: string } : null;
+    throw new Error(signInFailureMessage(response.status, String(payload?.code ?? ''), String(payload?.error ?? '')));
   }
   const cookies = readSetCookie(response.headers);
   const token = cookieValue(cookies, 'nexus_session');
