@@ -30,6 +30,9 @@ import {
 } from '../lib/previewSafety';
 
 import { postPageTopInset } from '../lib/postChrome';
+import { OVERLAY_PRESETS, presetIndex, presetIndexForScale, presetLabel, presetScale, takePreset } from '../lib/overlayPresets';
+import { bottomInsetWithKeyboard } from '../lib/keyboardSpace';
+import { useKeyboardSpace } from '../lib/useKeyboardSpace';
 import { profileReaderBottomInset } from '../lib/readerBar';
 import { studioDecorations } from '../lib/studioManifest';
 import type { MeResponse, SocialPost } from '../lib/socialTypes';
@@ -51,8 +54,40 @@ function stickerLabel(sticker: LocalSticker, now: number): string {
 }
 
 /**
- * Urma pe care o raportează un `onLayout`, în punctele părintelui (aici: ecranul, pentru că previzualizarea
- * este `absoluteFill` pe el).
+ * Cele trei mărimi, ca un rând de trei chipuri (runda 46).
+ *
+ * Este feedback-ul discret cerut de owner: se vede care mărime este acum selectată, fără o bară nouă de
+ * unelte. Un chip se poate alege direct (fără să treci prin celelalte), iar instrumentul însuși parcurge
+ * ciclul la fiecare atingere (`lib/overlayPresets.ts::takePreset`).
+ */
+function PresetRow({ index, onPick, label }: {
+  index: number;
+  onPick: (index: number) => void;
+  label: string;
+}) {
+  return (
+    <View style={styles.presetRow} accessibilityRole="radiogroup" accessibilityLabel={label}>
+      {OVERLAY_PRESETS.map((preset, position) => {
+        const on = position === presetIndex(index);
+        return (
+          <Pressable
+            key={preset.id}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: on }}
+            accessibilityLabel={`Mărime ${preset.label}${on ? ', selectată' : ''}`}
+            onPress={() => onPick(position)}
+            style={[styles.presetChip, on && styles.presetChipOn]}
+          >
+            <Text style={[styles.presetText, on && styles.presetTextOn]}>{preset.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/**
+ * Urma pe care o raportează un `onLayout`, în punctele părintelui (aici: cadrul de previzualizare).
  */
 function boxOf(event: LayoutChangeEvent): GuideRect {
   const { x, y, width, height } = event.nativeEvent.layout;
@@ -169,6 +204,34 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   const [now, setNow] = useState(0);
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
   /**
+   * Ciclul de mărime al fiecărui instrument (runda 46): text, stickere și emoji au fiecare **propriul**
+   * indice, ca o atingere pe „Emoji" să nu schimbe mărimea textului scris cu o zi înainte. Logica celor
+   * trei preseturi și a întoarcerii la primul după a patra atingere stă într-un singur loc, pur
+   * (`lib/overlayPresets.ts`), iar aici rămâne doar starea fiecărui instrument.
+   */
+  const [textPreset, setTextPreset] = useState(() => presetIndexForScale(draft.overlayScale));
+  const [stickerPreset, setStickerPreset] = useState(0);
+  const [emojiPreset, setEmojiPreset] = useState(0);
+  /**
+   * Cât loc ia tastatura și cât rămâne pentru previzualizare (runda 46).
+   *
+   * `screenSize` este fereastra întreagă — pe Android 15 ea **nu** se micșorează pentru tastatură. De aceea
+   * previzualizarea se desenează într-un cadru de `stageHeight`: cu tastatura închisă este ecranul întreg
+   * (exact ce era înainte), iar cu ea deschisă este partea de deasupra tastelor. Zona media își păstrează
+   * proporția în acest cadru (`contain`, nu decupare), iar panoul de scriere stă lipit de tastatură.
+   */
+  const keyboard = useKeyboardSpace();
+  const [stageBox, setStageBox] = useState({ width: 0, height: 0 });
+  const stageHeight = keyboard.covered > 0
+    ? Math.max(240, Math.round(screenSize.height - keyboard.covered))
+    : screenSize.height;
+  /** Poziția panourilor: lipite de tastatură când e deschisă, de bara de gesturi când e închisă. */
+  const panelBottom = bottomInsetWithKeyboard(Math.max(insets.bottom, 16), keyboard.covered) + (keyboard.covered > 0 ? 8 : 18);
+  const measureStage = useCallback((event: LayoutChangeEvent) => {
+    const next = { width: Math.round(event.nativeEvent.layout.width), height: Math.round(event.nativeEvent.layout.height) };
+    setStageBox((previous) => (previous.width === next.width && previous.height === next.height ? previous : next));
+  }, []);
+  /**
    * Is the clip of this capture taller than it is wide? The reader draws a vertical clip `cover` and a
    * landscape one `contain` (`PostMedia`'s `portrait-cover`), so the preview must know before it can put a
    * dragged text where the reader will print it. A still picture is always `cover`.
@@ -263,7 +326,9 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
    * must not measure its texts against a smaller, centred box.
    */
   const previewRect = mediaContentRect({
-    width: screenSize.width, height: screenSize.height, ratio: mediaAspect, fit: previewFit,
+    width: stageBox.width || screenSize.width,
+    height: stageBox.height || screenSize.height,
+    ratio: mediaAspect, fit: previewFit,
   });
   /**
    * What this draft will publish, over the picture: the manifest's own decorations, not a second drawing
@@ -394,18 +459,21 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   /**
    * Benzile de zonă sigură, pe măsurători: capul și descrierea vin din compoziție (`previewChrome`), bara
    * de la poale din `pageFoot` (insetul telefonului ori bara editorului), iar reacțiile și uneltele din
-   * propriile lor `onLayout`. Toate dreptunghiurile sunt în punctele ecranului, pentru că previzualizarea
-   * este `absoluteFill` pe el.
+   * propriile lor `onLayout`. Toate dreptunghiurile sunt în punctele **cadrului de previzualizare**
+   * (`stageBox`) — de când tastatura poate micșora acel cadru (runda 46), ghidajele trebuie să cadă peste
+   * pagina pe care o descriu, nu peste fereastra întreagă.
    */
   const guideZones = useMemo<SafeZone[]>(() => {
-    if (screenSize.width <= 0 || screenSize.height <= 0) return [];
+    const stageW = stageBox.width || screenSize.width;
+    const stageH = stageBox.height || screenSize.height;
+    if (stageW <= 0 || stageH <= 0) return [];
     const measured = [
       railBox ? { id: 'rail' as const, label: 'Reacțiile', rect: railBox } : null,
       toolBox ? { id: 'tool' as const, label: 'Uneltele editorului', published: false, rect: toolBox } : null,
     ].filter((band): band is NonNullable<typeof band> => band !== null);
     return previewSafeZones({
-      width: screenSize.width,
-      height: screenSize.height,
+      width: stageW,
+      height: stageH,
       head: previewChrome.head,
       description: previewChrome.description,
       foot: pageFoot,
@@ -413,7 +481,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
       systemBottom: insets.bottom,
       measured,
     });
-  }, [insets.bottom, insets.top, pageFoot, previewChrome.description, previewChrome.head, railBox, screenSize.height, screenSize.width, toolBox]);
+  }, [insets.bottom, insets.top, pageFoot, previewChrome.description, previewChrome.head, railBox, screenSize.height, screenSize.width, stageBox.height, stageBox.width, toolBox]);
 
   /**
    * Etichetele care cad peste o bandă cu cuvinte sau butoane, grupate pe bandă.
@@ -452,13 +520,13 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   const moveLabelsToSafeArea = useCallback(() => {
     const ids = [...new Set(guideHits.flatMap((hit) => hit.ids))];
     if (!ids.length || previewRect.width <= 0) return;
-    const spots = freeSpots(guideZones, { width: screenSize.width, height: screenSize.height, count: ids.length });
+    const spots = freeSpots(guideZones, { width: stageBox.width || screenSize.width, height: stageBox.height || screenSize.height, count: ids.length });
     if (!spots.length) return;
     ids.forEach((id, index) => {
       const fraction = fractionOfFrame({ rect: previewRect, point: spots[index] });
       moveDecoration(id, overlayPercent(fraction.x) / 100, overlayPercent(fraction.y) / 100);
     });
-  }, [guideHits, guideZones, moveDecoration, previewRect, screenSize.height, screenSize.width]);
+  }, [guideHits, guideZones, moveDecoration, previewRect, screenSize.height, screenSize.width, stageBox.height, stageBox.width]);
 
   const measureRail = useCallback((event: LayoutChangeEvent) => {
     const next = boxOf(event);
@@ -481,14 +549,68 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
       return;
     }
     const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    /**
+     * Mărimea stickerului nou (runda 46): presetul de acum al instrumentului „Stickere", apoi ciclul
+     * avansează. Un sticker deja așezat nu se atinge — fiecare are `scale` lui, deci adăugarea unui al
+     * doilea nu redimensionează primul.
+     */
+    const taken = takePreset(stickerPreset);
     const sticker: LocalSticker = {
       id: `${type.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type, text: type === 'LOCATION' ? `📍 ${place}` : '',
-      x: 0.5, y: 0.48, timezone,
+      x: 0.5, y: 0.48, timezone, scale: taken.preset.scale,
     };
     updateDraft({ stickers: [...(current.stickers ?? []), sticker] });
+    setStickerPreset(taken.index);
     setStickerError('');
     setStickersOpen(false);
+  }
+
+  /**
+   * O atingere a instrumentului **Text**: aplică mărimea de acum textului așezat pe imagine și trece la
+   * următoarea (mic → mediu → mare → mic). Textul nu se dublează — instrumentul are un singur text, ca
+   * înainte —, iar a patra atingere readuce exact mărimea normală, fiindcă ciclul are trei preseturi, nu
+   * patru.
+   */
+  function cycleTextPreset() {
+    const taken = takePreset(textPreset);
+    updateDraft({ overlayScale: taken.preset.scale });
+    setTextPreset(taken.index);
+  }
+
+  /** Un chip apăsat direct: mărimea aleasă, fără să mai treacă prin celelalte. */
+  function chooseTextPreset(index: number) {
+    setTextPreset(presetIndex(index));
+    updateDraft({ overlayScale: presetScale(index) });
+  }
+
+  /**
+   * Un emoji este un caracter din textul așezat pe imagine (așa îl publică manifestul), deci mărimea lui
+   * este mărimea acelui bloc. Instrumentul „Emoji" are însă ciclul lui: patru atingeri pe emoji trec prin
+   * cele trei mărimi și se întorc la prima, fără să atingă textul scris cu instrumentul „Text".
+   */
+  function addEmoji(emoji: string) {
+    const taken = takePreset(emojiPreset);
+    updateDraft({ overlayText: `${draftRef.current.overlayText}${emoji}`, overlayScale: taken.preset.scale });
+    setEmojiPreset(taken.index);
+  }
+
+  function chooseEmojiPreset(index: number) {
+    setEmojiPreset(presetIndex(index));
+    updateDraft({ overlayScale: presetScale(index) });
+  }
+
+  /**
+   * Mărimea stickerelor: chipul alege mărimea **ultimului** sticker așezat (elementul cu care autorul
+   * lucrează acum) și o ține pentru următorul. Stickerele adăugate mai devreme nu se ating.
+   */
+  function chooseStickerPreset(index: number) {
+    const next = presetIndex(index);
+    setStickerPreset(next);
+    const stickers = draftRef.current.stickers ?? [];
+    const last = stickers[stickers.length - 1];
+    if (!last) return;
+    updateDraft({ stickers: stickers.map((entry) => (entry.id === last.id ? { ...entry, scale: presetScale(next) } : entry)) });
   }
 
   // The web offers automatic music for a fresh capture. Request the same real catalog once
@@ -702,7 +824,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
        * also gives the preview the published paint order — picture, then what was written on it, then the
        * author's head and the caption.
        */}
-      <View style={StyleSheet.absoluteFill}>
+      <View style={{ height: stageHeight, width: '100%' }} onLayout={measureStage}>
         <PostCanvas
           post={previewPost}
           variant="feed"
@@ -740,7 +862,7 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
           mediaOverlay={(
             <PostOverlay
               decorations={previewDecorations}
-              bounds={screenSize}
+              bounds={stageBox.width > 0 ? stageBox : screenSize}
               ratio={mediaAspect}
               fit={previewFit}
               now={now}
@@ -816,9 +938,9 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
         <Pressable accessibilityRole="button" accessibilityLabel="Continuă la detalii" onPress={() => setPage('details')} style={styles.nextButton}><Text style={styles.nextText}>Next</Text></Pressable>
       </View>
       <View style={[styles.toolRail, { top: postPageTopInset(insets.top) + 8 }]} onLayout={measureTools}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă text" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setStickersOpen(false); setTextOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>Aa</Text><Text style={styles.toolLabel}>Text</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă stickere" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setTextOpen(false); setStickersOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>✦</Text><Text style={styles.toolLabel}>Stickere</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Adaugă emoji" onPress={() => { setMusicOpen(false); setStickersOpen(false); setTextOpen(false); setEmojiOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>☺</Text><Text style={styles.toolLabel}>Emoji</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Text, mărimea ${presetLabel(textPreset)}`} onPress={() => { setMusicOpen(false); setEmojiOpen(false); setStickersOpen(false); setTextOpen(true); cycleTextPreset(); }} style={styles.tool}><Text style={styles.toolIcon}>Aa</Text><Text style={styles.toolLabel}>Text</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Adaugă stickere, mărimea ${presetLabel(stickerPreset)}`} onPress={() => { setMusicOpen(false); setEmojiOpen(false); setTextOpen(false); setStickersOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>✦</Text><Text style={styles.toolLabel}>Stickere</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Adaugă emoji, mărimea ${presetLabel(emojiPreset)}`} onPress={() => { setMusicOpen(false); setStickersOpen(false); setTextOpen(false); setEmojiOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>☺</Text><Text style={styles.toolLabel}>Emoji</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Alege muzică" onPress={() => { setStickersOpen(false); setEmojiOpen(false); setTextOpen(false); setMusicOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>♫</Text><Text style={styles.toolLabel}>Muzică</Text></Pressable>
         {/** Ghidajele se pot stinge: sunt o unealtă, iar un autor care vrea să vadă doar fotografia trebuie
          *  să poată. Starea se spune și în etichetă („Arată"/„Ascunde"), nu doar prin culoare. */}
@@ -846,12 +968,13 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
           <Text style={styles.muted}>Melodiile Jamendo se publică prin selecția semnată de server, valabilă două ore. Un fișier de pe telefon necesită declararea dreptului de folosire în Detalii.</Text>
         </View>
       ) : stickersOpen ? (
-        <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
+        <View style={[styles.textPanel, { bottom: panelBottom }]}>
           <View style={styles.textActions}><Text style={styles.label}>Stickere pe captură</Text><Pressable accessibilityRole="button" onPress={() => setStickersOpen(false)}><Text style={styles.doneText}>Gata</Text></Pressable></View>
           <View style={styles.stickerChoices}>
-            <Pressable accessibilityRole="button" accessibilityLabel="Adaugă ora" onPress={() => addSticker('TIME')} style={styles.audioButton}><Text style={styles.audioButtonText}>◷ Ora</Text></Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel="Adaugă data" onPress={() => addSticker('DATE')} style={styles.audioButton}><Text style={styles.audioButtonText}>▦ Data</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Adaugă ora, mărimea ${presetLabel(stickerPreset)}`} onPress={() => addSticker('TIME')} style={styles.audioButton}><Text style={styles.audioButtonText}>◷ Ora</Text></Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Adaugă data, mărimea ${presetLabel(stickerPreset)}`} onPress={() => addSticker('DATE')} style={styles.audioButton}><Text style={styles.audioButtonText}>▦ Data</Text></Pressable>
           </View>
+          <PresetRow index={stickerPreset} onPick={chooseStickerPreset} label="Mărimea stickerelor" />
           <TextInput accessibilityLabel="Numele locației pentru sticker" value={locationText} onChangeText={setLocationText} placeholder="Locație" placeholderTextColor="#84909b" maxLength={116} style={styles.input} />
           <Pressable accessibilityRole="button" accessibilityLabel="Adaugă locația scrisă" onPress={() => addSticker('LOCATION')} style={styles.audioButton}><Text style={styles.audioButtonText}>⌖ Adaugă locația</Text></Pressable>
           {stickerError ? <Text style={styles.error}>{stickerError}</Text> : null}
@@ -864,14 +987,16 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
           <Text style={styles.muted}>Trage stickerul peste imagine pentru a-l muta. Locația este introdusă de tine, fără GPS.</Text>
         </View>
       ) : emojiOpen ? (
-        <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
+        <View style={[styles.textPanel, { bottom: panelBottom }]}>
           <View style={styles.textActions}><Text style={styles.label}>Emoji pe imagine</Text><Pressable accessibilityRole="button" onPress={() => setEmojiOpen(false)}><Text style={styles.doneText}>Gata</Text></Pressable></View>
-          <View style={styles.emojiGrid}>{EMOJI.map((emoji) => <Pressable key={emoji} accessibilityRole="button" accessibilityLabel={`Adaugă ${emoji}`} onPress={() => updateDraft({ overlayText: `${draft.overlayText}${emoji}` })} style={styles.emojiButton}><Text style={styles.emojiText}>{emoji}</Text></Pressable>)}</View>
+          <View style={styles.emojiGrid}>{EMOJI.map((emoji) => <Pressable key={emoji} accessibilityRole="button" accessibilityLabel={`Adaugă ${emoji}`} onPress={() => addEmoji(emoji)} style={styles.emojiButton}><Text style={styles.emojiText}>{emoji}</Text></Pressable>)}</View>
+          <PresetRow index={emojiPreset} onPick={chooseEmojiPreset} label="Mărimea emoji-urilor" />
           <Text style={styles.muted}>Poți muta textul și emoji-urile prin tragere.</Text>
         </View>
       ) : textOpen ? (
-        <View style={[styles.textPanel, { bottom: Math.max(insets.bottom, 16) + 18 }]}>
+        <View style={[styles.textPanel, { bottom: panelBottom }]}>
           <TextInput accessibilityLabel="Text pe captură" autoFocus value={draft.overlayText} onChangeText={(overlayText) => updateDraft({ overlayText })} placeholder="Scrie pe fotografie sau video" placeholderTextColor="#84909b" maxLength={120} style={styles.input} />
+          <PresetRow index={textPreset} onPick={chooseTextPreset} label="Mărimea textului" />
           <View style={styles.textActions}>
             <Pressable accessibilityRole="button" onPress={() => updateDraft({ overlayText: '' })}><Text style={styles.muted}>Șterge textul</Text></Pressable>
             <Pressable accessibilityRole="button" onPress={() => setTextOpen(false)}><Text style={styles.doneText}>Gata</Text></Pressable>
@@ -987,6 +1112,15 @@ const styles = StyleSheet.create({
   trackList: { maxHeight: 200 },
   track: { paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#454b54' },
   emojiGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  /** Rândul celor trei mărimi: trei chipuri mici, unul selectat. */
+  presetRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
+  presetChip: {
+    minHeight: 30, paddingHorizontal: 12, borderRadius: 15, borderWidth: 1,
+    borderColor: '#ffffff2e', alignItems: 'center', justifyContent: 'center',
+  },
+  presetChipOn: { backgroundColor: '#ffffff', borderColor: '#ffffff' },
+  presetText: { color: '#d6dde4', fontSize: 12, fontWeight: '700' },
+  presetTextOn: { color: '#0b0d0c' },
   emojiButton: { width: '23%', paddingVertical: 8, alignItems: 'center' },
   emojiText: { fontSize: 28 },
   stickerChoices: { flexDirection: 'row', gap: 10 },

@@ -127,7 +127,12 @@ test('audit static: nici un verde, teal sau galben nedocumentat în cod', () => 
    *   webTokens.ts      a historical transcription of the web CSS variables; nothing imports it.
    */
   const exceptions = {
-    'src/lib/textStyle.ts': '#0b1f16 #c9a227 #2f5d45 #16301f #9ccb6e',
+    /**
+     * `#e3c777` este auriu de noapte (runda 46): cerneala *citită* a paginii mate, pentru tag-uri, link-uri
+     * și caret. Nu este branding verde — este perechea de contrast a `PAGE_NIGHT`, măsurată în
+     * `scripts/test-page-mode.cjs` (11.8:1 pe negru).
+     */
+    'src/lib/textStyle.ts': '#0b1f16 #c9a227 #2f5d45 #16301f #9ccb6e #e3c777',
     'src/theme/jungle.ts': '#f5d33c #f59b2e #f57a4a #8bd04a #2f9e5a #d63357 #5a50b4 #9a42b0',
     'src/theme/blackSilver.ts': '#39e58e #ffd166',
     'src/theme/social.ts': '#39e58e #ffd166',

@@ -100,18 +100,25 @@ export type PostHeadArrangement = 'row' | 'stack';
  * each side, and `fontScale` is the reader's own text scale — a 1.3 system font makes an `Editează
  * profilul` a third wider without changing a single point of layout, so the measurement is scaled with
  * it. A door whose own width is known (`actionWidth`) is honoured; otherwise the minimum is used.
+ *
+ * `extra` is a second control that shares the row with the door — since round 46 the `Hârtie / Noapte`
+ * toggle stands immediately before the relation door. It is folded into the same measurement instead of
+ * being placed by eye, so the two controls can never reach the author's name: on a narrow phone the pair
+ * drops to its own line together.
  */
 export function postHeadArrangement(input: {
   width: number;
   padding?: number;
   fontScale?: number;
   actionWidth?: number;
+  extra?: number;
 }): PostHeadArrangement {
   const width = Math.max(0, Number(input.width) || 0);
   const padding = Math.max(0, Number(input.padding) || 0);
   const scale = Math.max(0.8, Math.min(2.5, Number(input.fontScale) || 1));
   const action = Math.max(POST_HEAD.actionMin, Number(input.actionWidth) || 0);
+  const extra = Math.max(0, Number(input.extra) || 0);
   const available = width - padding * 2;
-  const needed = (POST_HEAD.identityMin + action + POST_HEAD.gap) * scale;
+  const needed = (POST_HEAD.identityMin + action + extra + POST_HEAD.gap + (extra > 0 ? POST_HEAD.gap : 0)) * scale;
   return available < needed ? 'stack' : 'row';
 }

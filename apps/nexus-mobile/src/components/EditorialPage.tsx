@@ -4,7 +4,6 @@ import {
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { RemoteImage, RemoteVideo } from './PostMedia';
-import { PostScrim } from './PostReadability';
 import { PhotoViewer } from './ArticleMedia';
 import { RichText } from './RichText';
 import {
@@ -24,9 +23,9 @@ import { editorialSizeFor, type EditorialMediaSource } from '../lib/editorialPos
 import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
 import { fontFamilyFor, metricFaceFor, pagePaletteOf, sizeOf, TEXT_SELECTION_COLOR, type TextStyle } from '../lib/textStyle';
+import type { PageMode } from '../lib/pageMode';
 import { insertAtSelection, snapSelection, type TextSelection } from '../lib/textInsert';
 import { RAIL_LINE_AIR, PAGE_FOLIO, folioLabel, pageFolioBand, type RailReserve } from '../lib/textPage';
-import { wordsScrim } from '../lib/readability';
 import { editorialType } from '../theme/editorial';
 
 /**
@@ -71,7 +70,7 @@ const FIELD_HOLD_MS = 420;
 export function EditorialPage({
   document, style, media, width, height, editable = false, active = true,
   selectedMediaId = null, railReserve, onSelectBlock, onChangeDocument, onFieldChange, insertRequest,
-  focusRequest, accessibilityLabel, folio,
+  focusRequest, accessibilityLabel, folio, mode = 'paper',
 }: {
   document: EditorialDocument;
   style: TextStyle;
@@ -132,6 +131,15 @@ export function EditorialPage({
    * the number's position.
    */
   folio?: { band: number; inset: number };
+  /**
+   * Cum se citește pagina (runda 46): hârtia caldă de până acum sau negrul mat al cititorului de noapte.
+   *
+   * Este o **preferință a cititorului** (`lib/pageMode.ts`), nu o proprietate a rândului: compozitorul o
+   * lasă pe cea implicită (`paper`), iar cititorul o dă mai departe din comutatorul din capul paginii.
+   * Structura, măsura, rândurile și fotografiile rămân exact aceleași — se schimbă numai perechea de
+   * culori din care pagina își ia cerneala și hârtia.
+   */
+  mode?: PageMode;
 }) {
   /**
    * The page is painted from `pagePaletteOf`, not from the theme of the stored style: warm paper under
@@ -140,7 +148,7 @@ export function EditorialPage({
    * reader all mount this component, so a stored `jungle` page and a page typed this evening open on
    * the same paper — the theme never paints the background here.
    */
-  const palette = pagePaletteOf(style);
+  const palette = pagePaletteOf(style, mode);
   const measure = sizeOf(editorialSizeFor(document, style));
   const bodyFont = fontFamilyFor(style.font, Platform.OS) ?? 'serif';
   /**
@@ -646,29 +654,16 @@ export function EditorialPage({
           const entry = flow.pages[index];
           if (!entry) return null;
           /**
-           * Banda de citire a paginii (runda 45).
+           * Banda de sub cuvinte a plecat (runda 46).
            *
-           * Până acum pagina de hârtie nu avea niciun strat, deși un reel deschis în același loc avea două
-           * — iar pe telefon asta se citea ca „textul nu are benzi". Aici banda nu este ghicită: fluxul a
-           * așezat fiecare rând la `line.y`, deci marginea de sus a primului rând și cea de jos a ultimului
-           * sunt măsurătoarea. Fiindcă desenul este chiar acesta, banda apare și în compozitor și în pagina
-           * publicată, fără o a doua socoteală (`lib/readability.ts::wordsScrim`).
+           * Runda 45 desena aici un strat măsurat pe rândurile fluxului. Ownerul a cerut contrariul, precis:
+           * pe o postare de text se citește **numai capul**, iar corpul articolului rămâne curat — fără văl,
+           * fără gradient peste hârtie. Rândurile au deci pagina goală sub ele, pe amândouă terenurile, iar
+           * `firstLine`/`lastLine` nu mai sunt socotite deloc (o măsurătoare care nu se mai desenează este
+           * o socoteală pe care nimeni nu o poate verifica).
            */
-          const firstLine = entry.lines.length ? Math.min(...entry.lines.map((line) => line.y)) : 0;
-          const lastLine = entry.lines.length ? Math.max(...entry.lines.map((line) => line.y + line.lineHeight)) : 0;
-          const band = wordsScrim({ block: lastLine - firstLine, frame: height, ground: 'paper' });
           return (
             <View style={{ width, height, backgroundColor: palette.background }}>
-              {/**
-               * Banda stă **sub** orice: sub rânduri, sub fotografii, sub `Pressable`-ul care deschide
-               * câmpul. Nu ia nicio atingere (`pointerEvents="none"`), deci nu poate fura un tap de la un
-               * cuvânt sau de la o poză.
-               */}
-              {band ? (
-                <View pointerEvents="none" style={[styles.wordBand, { top: firstLine, height: band.height }]}>
-                  <PostScrim id={`nxPageBand-${index}`} geometry={band} color={palette.text} />
-                </View>
-              ) : null}
               {/**
                * The one place the author's theme still colours the page: a two-point rule at its head,
                * the same accent the wall's cell draws above its title. It decorates, it never spells.
@@ -1119,8 +1114,6 @@ const styles = StyleSheet.create({
   frame: { overflow: 'hidden' },
   fill: { width: '100%', height: '100%' },
   accent: { position: 'absolute', left: 26, top: 20, width: 34, height: 3, borderRadius: 2 },
-  /** Banda de citire a paginii: lățimea paginii, înălțimea măsurată a rândurilor (runda 45). */
-  wordBand: { position: 'absolute', left: 0, right: 0 },
   placeholder: {
     position: 'absolute', left: 26, right: 26, top: 52, lineHeight: 32, opacity: 0.9,
   },

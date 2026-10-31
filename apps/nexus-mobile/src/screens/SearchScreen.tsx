@@ -58,8 +58,15 @@ type FeedPage = { ok: true; posts?: SocialPost[] };
 type TrendingTag = { kind?: string; tag?: string; display?: string; authors?: number; posts?: number };
 type TrendingPage = { ok: true; tags?: TrendingTag[] };
 
-/** Un răspuns de căutare, ținut împreună cu întrebarea lui. */
-type Answer = { query: string; term: string; profiles: SearchProfile[]; posts: SocialPost[] };
+/** Un răspuns de căutare, ținut împreună cu întrebarea lui și cu cursorul următoarei pagini. */
+type Answer = {
+  query: string;
+  term: string;
+  profiles: SearchProfile[];
+  posts: SocialPost[];
+  /** `next_cursor` al serverului: `null` înseamnă „s-a terminat", un șir înseamnă „mai sunt". */
+  nextCursor: string | null;
+};
 
 const describe = (cause: unknown) => (cause instanceof Error ? cause.message : 'Conexiunea nu este disponibilă.');
 
@@ -76,6 +83,14 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
   const [explore, setExplore] = useState<SocialPost[]>([]);
   const [trending, setTrending] = useState<TrendingTag[]>([]);
   const [exploreError, setExploreError] = useState('');
+  /**
+   * Pagina următoare (runda 46): `GET /api/social/search` are deja un cursor (`api.js`: `cursor`, multiplu
+   * de 20, până la 200, plus `next_cursor`), iar ecranul îl folosește în loc să se oprească la primele 20
+   * de rezultate. `busy` este singura poartă împotriva buclelor: cât o pagină se încarcă, `onEndReached`
+   * poate fi chemat de câte ori vrea lista.
+   */
+  const [moreBusy, setMoreBusy] = useState(false);
+  const [moreError, setMoreError] = useState('');
   /**
    * Biletul cererii: fiecare întrebare trimisă ia un număr, iar un răspuns care nu mai poartă biletul de
    * acum este aruncat. Așa o căutare veche, mai lentă, nu poate să scrie peste una nouă — fără
@@ -128,13 +143,21 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
     const mine = ticket.current + 1;
     ticket.current = mine;
     const timer = setTimeout(() => {
+      setMoreBusy(false);
+      setMoreError('');
       void (async () => {
         try {
           const page = await nexusApi<SocialSearchPage>(`/api/social/search?q=${encodeURIComponent(asked)}`);
           if (mine !== ticket.current) return;
           /** Oamenii din răspuns intră în singurul depozit de relații (`lib/relations.ts`). */
           rememberPayload(page);
-          setAnswer({ query: asked, term: page.query ?? asked, profiles: page.profiles ?? [], posts: page.posts ?? [] });
+          setAnswer({
+            query: asked,
+            term: page.query ?? asked,
+            profiles: page.profiles ?? [],
+            posts: page.posts ?? [],
+            nextCursor: page.next_cursor ?? null,
+          });
           setFailed(null);
         } catch (cause) {
           if (mine !== ticket.current) return;
@@ -175,6 +198,53 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
   const wall = term ? posts : explore;
   const clear = useCallback(() => setQuery(''), []);
   const emptyWall = !loading && !error && wall.length === 0;
+
+  /**
+   * Următoarea pagină de rezultate (runda 46), pe cursorul serverului.
+   *
+   * Trei reguli, toate în acest singur loc:
+   *
+   *   · **numai pentru întrebarea de acum** — `fresh.query` este întrebarea răspunsă, iar biletul
+   *     (`ticket`) este luat înainte de cerere; un răspuns care sosește după o tastă nouă este aruncat,
+   *     exact ca la prima pagină;
+   *   · **fără dubluri** — postările și oamenii se adaugă numai dacă id-ul lor nu este deja pe perete;
+   *   · **fără bucle** — `moreBusy` blochează a doua cerere cât prima nu s-a întors, iar un `next_cursor`
+   *     absent oprește totul.
+   *
+   * Poziția de derulare nu este atinsă: lista crește la poale, iar `FlatList` ține offsetul.
+   */
+  const loadMore = useCallback(() => {
+    if (!fresh || !fresh.nextCursor || moreBusy) return;
+    const mine = ticket.current;
+    const query = fresh.query;
+    const cursor = fresh.nextCursor;
+    setMoreBusy(true);
+    setMoreError('');
+    void (async () => {
+      try {
+        const page = await nexusApi<SocialSearchPage>(
+          `/api/social/search?q=${encodeURIComponent(query)}&cursor=${encodeURIComponent(cursor)}`,
+        );
+        if (mine !== ticket.current) return;
+        rememberPayload(page);
+        setAnswer((previous) => {
+          if (!previous || previous.query !== query) return previous;
+          const knownPosts = new Set(previous.posts.map((post) => post.id));
+          const knownProfiles = new Set(previous.profiles.map((profile) => profile.id));
+          return {
+            ...previous,
+            profiles: [...previous.profiles, ...(page.profiles ?? []).filter((profile) => !knownProfiles.has(profile.id))],
+            posts: [...previous.posts, ...(page.posts ?? []).filter((post) => !knownPosts.has(post.id))],
+            nextCursor: page.next_cursor ?? null,
+          };
+        });
+      } catch (cause) {
+        if (mine === ticket.current) setMoreError(describe(cause));
+      } finally {
+        if (mine === ticket.current) setMoreBusy(false);
+      }
+    })();
+  }, [fresh, moreBusy]);
   /**
    * Lățimea listei, măsurată: celula primește o lățime **fixă** (`tileSize`, aceeași aritmetică pe care o
    * descrie peretele profilului).
@@ -242,6 +312,27 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
         removeClippedSubviews
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        /**
+         * Pagina următoare, cerută numai în felia de **rezultate** (`term` non-gol) și numai când serverul
+         * a dat un `next_cursor`. `onEndReached` poate fi chemat de mai multe ori pentru aceeași poziție;
+         * `loadMore` are propriul `busy`, deci a doua chemare nu mai pornește nimic.
+         */
+        onEndReached={() => { if (term) loadMore(); }}
+        onEndReachedThreshold={0.6}
+        ListFooterComponent={
+          term && (moreBusy || moreError) ? (
+            <View style={styles.loadingRow}>
+              {moreBusy ? <ActivityIndicator size="small" color={socialTokens.archive.tilePinnedFirstEdge} /> : null}
+              {moreError ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="Reîncearcă încărcarea rezultatelor" onPress={loadMore}>
+                  <Text style={styles.error}>{`${moreError} Apasă pentru a reîncerca.`}</Text>
+                </Pressable>
+              ) : (
+                <Text style={styles.muted}>Se încarcă mai multe…</Text>
+              )}
+            </View>
+          ) : null
+        }
         ListHeaderComponent={(
           <View>
             {tagMatches.length ? (
@@ -262,6 +353,19 @@ export function SearchScreen({ initialQuery = '' }: { initialQuery?: string } = 
                   ))}
                 </View>
               </>
+            ) : null}
+            {/**
+             * Subiectele goale, spuse pe față (runda 46).
+             *
+             * `GET /api/social/tags` numără doar tag-urile din **ultimele trei zile** care au cel puțin
+             * **doi autori** (`api.js`: `sinceSeconds = 3 * 24 * 3600`, `minAuthors: 2`). Când lista aceea
+             * este goală, rândul de subiecte nu se desenează — și, fără o propoziție, absența lui arată ca
+             * un ecran stricat. Nu se inventează niciun subiect: se spune regula serverului.
+             */}
+            {term && !tagMatches.length && !trending.length ? (
+              <Text style={styles.muted}>
+                Subiecte: niciun tag din ultimele 3 zile nu are cel puțin doi autori, deci serverul nu are ce număra.
+              </Text>
             ) : null}
 
             {profiles.length ? (

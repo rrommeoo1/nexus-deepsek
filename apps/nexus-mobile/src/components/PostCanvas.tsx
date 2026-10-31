@@ -25,6 +25,7 @@ import { wordPageGutter, wordPageHead, wordPageRailReserve } from '../lib/textPa
 import { RAIL_FOOT } from './PostRail';
 import { PostScrim, WordsBand, useBlockHeight } from './PostReadability';
 import { descriptionScrim, headerScrim, type ReadabilityGround } from '../lib/readability';
+import { PAGE_MODE_TOGGLE_WIDTH, PageModeToggle, usePageMode } from './PageModeToggle';
 
 import { socialTokens } from '../theme/social';
 import { mercury, mercuryAvatar } from '../theme/mercury';
@@ -420,8 +421,14 @@ export function PostCanvas({
    */
   const viewport = useWindowDimensions();
   const headArrangement = useMemo(
-    () => postHeadArrangement({ width: width || viewport.width, padding: metrics.padH, fontScale: viewport.fontScale }),
-    [width, viewport.width, viewport.fontScale, metrics.padH],
+    () => postHeadArrangement({
+      width: width || viewport.width,
+      padding: metrics.padH,
+      fontScale: viewport.fontScale,
+      /** Comutatorul Hârtie/Noapte stă pe același rând cu poarta, deci intră în socoteală. */
+      extra: wordPage ? PAGE_MODE_TOGGLE_WIDTH : 0,
+    }),
+    [width, viewport.width, viewport.fontScale, metrics.padH, wordPage],
   );
   const items = postMediaItems(post).slice(0, MAX_MEDIA);
   const cover = items[0] ?? null;
@@ -482,13 +489,19 @@ export function PostCanvas({
    */
   const pageStyle = stage === 'text' || stage === 'article' ? pageStyleForPost(post.text_style) : null;
   /**
+   * Modul de citire al paginii (runda 46): hârtia caldă sau negrul mat. Este o preferință a **cititorului**
+   * (`lib/pageMode.ts`), deci o singură valoare pentru toate paginile: se schimbă dintr-un cap de pagină și
+   * toate celelalte o citesc, fără ca vreun rând publicat să fie rescris.
+   */
+  const pageMode = usePageMode();
+  /**
    * The paper, its ink, and the author's accent — `pagePaletteOf`, the one place a page's colours are
    * decided. A row stored in `jungle` (the composer's old default: every page published before 26
    * October 2026) therefore opens as warm paper with dark serif ink and its gold as a hairline, instead
    * of the green-black screen it used to paint; a row stored in any other theme opens the same paper
    * with that theme's accent. No stored row is rewritten to get there.
    */
-  const pagePalette = pageStyle ? pagePaletteOf(pageStyle) : null;
+  const pagePalette = pageStyle ? pagePaletteOf(pageStyle, pageMode) : null;
   /**
    * Cele două straturi de citire, măsurate — nu socotite (`lib/readability.ts`).
    *
@@ -507,7 +520,8 @@ export function PostCanvas({
   /** Cât loc ia blocul de cuvinte al paginii, raportat de `WordsBand` (`onMeasure`). */
   const [wordsHeight, setWordsHeight] = useState(0);
   const frameHeight = box.height || (box.width ? Math.round(box.width * (16 / 9)) : 0);
-  const ground: ReadabilityGround = pagePalette ? 'paper' : 'night';
+  /** Hârtia este un teren luminos; noaptea este un cadru întunecat, ca o poză. */
+  const ground: ReadabilityGround = pagePalette && pageMode === 'paper' ? 'paper' : 'night';
   /** Capul stă în ramura de lectură (text, articol, citat), nu în cea de imagine. */
   const headInReading = stage !== 'media' && stage !== 'reel';
   /**
@@ -516,21 +530,38 @@ export function PostCanvas({
    */
   const scrimInk = pagePalette ? pagePalette.text : editorial.fieldDeep;
   /**
-   * Amândouă benzile se desenează pe **orice** teren (runda 45). Până acum hârtia ieșea din ele, iar un
-   * text publicat rămânea singurul cadru fără cap și fără descriere delimitate.
+   * O **pagină de noapte** nu primește nicio bandă (runda 46).
+   *
+   * Cerneala hârtiei (`#1a221b`, la 26% sus) se vede pe hârtie pentru că e mai întunecată decât ea. Pe negru
+   * mat, aceeași bandă ar fi o pată *deschisă* peste un fundal închis: ar scădea contrastul exact în locul în
+   * care trebuie să fie cel mai bun (16.5:1). Deci pe noapte banda nu se desenează: delimitarea o face însuși
+   * fundalul paginii, iar capul rămâne al doilea cel mai luminos lucru din cadru, după litere.
    */
-  const headGeometry = headerScrim({
+  const nightPage = Boolean(pagePalette) && pageMode === 'night';
+  /**
+   * Amândouă benzile se desenează pe **orice** teren luminos (runda 45). Până acum hârtia ieșea din ele, iar
+   * un text publicat rămânea singurul cadru fără cap și fără descriere delimitate.
+   */
+  const headGeometry = nightPage ? null : headerScrim({
     block: headBlock.height, above: headInReading ? headTop : 0, frame: frameHeight, ground,
   });
   const footGeometry = ground === 'paper' || headInReading
     ? null
     : descriptionScrim({ block: footBlock.height, frame: frameHeight });
   /**
-   * Banda cuvintelor este desenată de `WordsBand` (măsurată pe bloc), **afară** de cazul în care o pagină
-   * de hârtie scrisă în compozitor o desenează singură, din rândurile fluxului (`EditorialPage`) — acolo un
-   * al doilea strat ar însemna o bandă dublă peste aceleași cuvinte.
+   * **Banda cuvintelor nu se mai desenează pe o pagină** (runda 46, owner).
+   *
+   * Runda 45 a dat paginii de hârtie o bandă sub cuvinte, ca să nu pară singurul cadru fără delimitare.
+   * Cerința de acum este alta și este precisă: pe o postare de text se citește **numai capul**, iar sub el
+   * rămâne hârtia curată — fără un văl peste articol, fără un gradient negru peste text. Deci stratul de sub
+   * cuvinte a plecat de pe toate terenurile paginii (și de pe hârtie, și de pe negru, unde oricum ar fi fost
+   * o a doua întunecare peste un fundal deja negru). `WordsBand` rămâne doar ca **măsurătoare**, fiindcă
+   * din înălțimea ei compozitorul își desenează ghidajul de zonă sigură.
+   *
+   * Un reel, o poză și un citat își păstrează benzile: acolo cuvintele stau peste o imagine, iar regula lor
+   * nu s-a schimbat.
    */
-  const pageDrawsBand = authoredPage && ground === 'paper';
+  const pageDrawsBand = false;
   /**
    * Ce află compozitorul: marginile reale ale celor două benzi de cuvinte, ca ghidajele lui de zonă
    * sigură să fie pagina publicată, nu o a doua schiță a ei.
@@ -647,16 +678,34 @@ export function PostCanvas({
     </View>
   );
   /**
+   * Comutatorul **Hârtie / Noapte** (runda 46), în capul unei pagini de cuvinte.
+   *
+   * Ownerul l-a cerut „imediat înaintea butonului Urmărește", deci stă în același grup cu poarta autorului
+   * (`authorAction`), iar `postHeadArrangement` ține seamă de lățimea lui: pe un telefon îngust sau la un
+   * font de sistem mare, cele două coboară **împreună** pe rândul doi, iar numele autorului păstrează toată
+   * măsura. Pe o suprafață fără poartă (o pagină proprie, un cititor fără relație) comutatorul rămâne singur
+   * în locul porții — nu se inventează un `Urmărește`.
+   *
+   * Un reel și o poză nu îl primesc: ele nu au pagină de hârtie, iar o comutare de fundal peste o fotografie
+   * ar fi o promisiune pe care compoziția nu o poate ține.
+   */
+  const modeToggle = wordPage && pagePalette ? (
+    <PageModeToggle ink={pagePalette.text} ground={pagePalette.background} />
+  ) : null;
+  /**
    * The author and the relation door. Beside the words when the paper is wide enough for both, under
    * them when it is not (`headArrangement`, `lib/postChrome.ts`): the door is a fixed-width thing and
    * the place needs the rest, so the two can never occupy the same pixels — on a narrow phone, a large
    * system font, or a long `Editează profilul`, the door drops to its own line and the words keep the
-   * whole measure.
+   * whole measure. The mode toggle rides the same group, immediately before the door.
    */
-  const authorWithDoor = authorAction ? (
+  const authorWithDoor = modeToggle || authorAction ? (
     <View style={[styles.authorLine, headArrangement === 'stack' && styles.authorLineStack]}>
       <View style={styles.authorBlock}>{author}</View>
-      <View style={[styles.authorDoor, headArrangement === 'stack' && styles.authorDoorStack]}>{authorAction}</View>
+      <View style={[styles.authorDoor, styles.headControls, headArrangement === 'stack' && styles.authorDoorStack]}>
+        {modeToggle}
+        {authorAction}
+      </View>
     </View>
   ) : author;
   /**
@@ -1066,12 +1115,15 @@ export function PostCanvas({
           <View style={styles.readingCenter}>
             <View style={[styles.readingBodyWrap, { paddingRight: bodyGutter }]}>
               {/**
-               * Blocul de cuvinte al paginii (`WordsBand`), cu banda lui măsurată înăuntru.
+               * Blocul de cuvinte al paginii (`WordsBand`).
                *
                * `flex` păstrează exact așezarea pe care o avea `readingBodyWrap`: un text paginat și un
-               * articol își iau tot locul, iar o declarație și un citat își iau doar înălțimea lor, ca banda
-               * să fie a cuvintelor, nu a paginii goale de sub ele. Banda este desenată **înaintea**
-               * cuvintelor, deci nu poate acoperi un `Citește tot`, `Vezi traducerea` sau un tag.
+               * articol își iau tot locul, iar o declarație și un citat își iau doar înălțimea lor.
+               *
+               * `band` (runda 46): **numai un citat** primește un strat sub cuvinte. Un citat este un card
+               * peste placa de jungle, deci cuvintele lui stau peste ceva ce nu e al lor; o postare de text
+               * stă pe hârtia ei (sau pe negrul ei mat), unde ownerul a cerut ca sub text să nu fie nicio
+               * bandă. Blocul rămâne măsurat, fiindcă din înălțimea lui compozitorul își ia ghidajul.
                */}
               <WordsBand
                 id={`nxCanvasWords-${post.id}`}
@@ -1079,7 +1131,7 @@ export function PostCanvas({
                 frame={frameHeight}
                 ground={ground}
                 flex={!(stage === 'quote' || statement)}
-                band={!pageDrawsBand}
+                band={stage === 'quote' && !pageDrawsBand}
                 onMeasure={setWordsHeight}
               >
                 {stage === 'quote' ? (
@@ -1115,6 +1167,7 @@ export function PostCanvas({
                       active={active}
                       railReserve={railReserve}
                       folio={folio}
+                      mode={pageMode}
                     />
                   ) : statement ? (
                     <RichText
@@ -1130,6 +1183,7 @@ export function PostCanvas({
                       style={styles.readingBody}
                       textStyle={pageStyle}
                       folio={folio}
+                      mode={pageMode}
                       lead={stage === 'article' ? (baseHeight) => (
                         <ArticleMediaBlock
                           items={items}
@@ -1253,6 +1307,8 @@ const styles = StyleSheet.create({
   authorBlock: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
   /** The door never shrinks and never wraps: a word cut in half is not a button. */
   authorDoor: { flexShrink: 0, alignSelf: 'flex-start', marginTop: POST_HEAD.actionTop },
+  /** Comutatorul Hârtie/Noapte și poarta autorului, pe un singur rând (runda 46). */
+  headControls: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   authorDoorStack: { alignSelf: 'flex-end', marginTop: 6 },
   /**
    * A clip that has not started: the archive cell's disc (`tilePlayDisc`), at the size a full frame can

@@ -212,8 +212,8 @@ test('editorul desenează ghidajele pe măsurătoarea paginii și a coloanei, nu
   assert.match(editor, /toolBox \? \{ id: 'tool' as const, label: 'Uneltele editorului', published: false/,
     'uneltele editorului intră în ghidaje, dar nu se publică');
   assert.match(editor, /<PostRail[\s\S]{0,400}onLayout=\{measureRail\}/, 'coloana își raportează urma');
-  assert.match(editor, /freeSpots\(guideZones, \{ width: screenSize\.width, height: screenSize\.height, count: ids\.length \}\)/,
-    'mutarea etichetelor folosește aceleași benzi');
+  assert.match(editor, /freeSpots\(guideZones, \{ width: stageBox\.width \|\| screenSize\.width, height: stageBox\.height \|\| screenSize\.height, count: ids\.length \}\)/,
+    'mutarea etichetelor folosește aceleași benzi, în cadrul de previzualizare care poate fi micșorat de tastatură (runda 46)');
   assert.match(editor, /pointerEvents="none" style=\{StyleSheet\.absoluteFill\}/, 'ghidajele nu fură atingerea de la tras');
   assert.match(editor, /numberOfLines=\{1\}\s*style=\{\[styles\.guideLabel, guideLabelPlacement\(zone\.rect, screenSize\.width\)\]\}/,
     'eticheta benzii își primește locul din măsurătoare, în puncte de cadru');

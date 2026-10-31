@@ -11,6 +11,7 @@
  */
 
 import { readEditorialDocument, type EditorialDocument } from './editorialDocument';
+import type { PageMode } from './pageMode';
 
 export type TextThemeId = 'jungle' | 'paper' | 'midnight' | 'ember' | 'moss' | 'ink';
 /**
@@ -508,18 +509,45 @@ export function pageStyleForPost(value: unknown): TextStyle {
 }
 
 /**
+ * Hârtia de noapte (runda 46): **negru mat**, nu un gri luminat și nu un gradient.
+ *
+ * Perechea este a paginii, ca și cea de zi: `background`/`text` nu vin din tema autorului, ci din produs.
+ * `mark` este accentul *citit* — un auriu deschis, fiindcă verdele închis al hârtiei (`#2f5d45`) ar fi
+ * invizibil pe negru. `accent` rămâne al autorului, dar numai dacă se vede: `pagePaletteOf` măsoară
+ * contrastul și cade pe `mark` când tema ar desena o linie pe care nimeni nu o poate citi.
+ *
+ * Numerele: `#0b0d0c` pe `#efece2` dă 16.5:1 (AAA), iar `#e3c777` pe același fundal dă 11.8:1 — deci
+ * titlurile, citatele, tag-urile și linkurile au toate loc destul.
+ */
+export const PAGE_NIGHT = { background: '#0b0d0c', text: '#efece2', mark: '#e3c777' } as const;
+
+/**
  * The colours a page of words is painted with — one page, whoever wrote it and whenever.
  *
- * `background` and `text` are always the paper's pair (`TEXT_THEMES.paper`): the warm page and the dark
- * serif ink this product reads on, whatever theme the row was stored in. Only `accent` follows the
- * author's theme, and only where it decorates rather than spells: a hairline above a title, the rule at
- * the head of an article, the frame of the translation chip, the outline of a selected picture. Words
- * that have to be read — a tag, a mention, a link, the caret, the `Vezi traducerea` label — take `mark`,
- * the paper's own accent, because a gold hairline is decoration and gold type on cream is a smudge.
+ * `background` and `text` are always the paper's pair (`TEXT_THEMES.paper`) in `paper` mode: the warm page
+ * and the dark serif ink this product reads on, whatever theme the row was stored in. In `night` mode they
+ * are `PAGE_NIGHT`'s — matte black and light ink. Only `accent` follows the author's theme, and only where
+ * it decorates rather than spells: a hairline above a title, the rule at the head of an article, the frame
+ * of the translation chip, the outline of a selected picture. Words that have to be read — a tag, a
+ * mention, a link, the caret, the `Vezi traducerea` label — take `mark`, because a gold hairline is
+ * decoration and gold type on cream is a smudge.
+ *
+ * `mode` is the reader's own choice (`lib/pageMode.ts`), never a property of the post: the same row is
+ * read on paper by day and on black at night, and nothing stored is rewritten to allow it.
  */
-export function pagePaletteOf(style?: Pick<TextStyle, 'theme'> | null): TextPagePalette {
+export function pagePaletteOf(style?: Pick<TextStyle, 'theme'> | null, mode: PageMode = 'paper'): TextPagePalette {
   const paper = themeOf(TEXT_PAGE_THEME);
   const chosen = style ? themeOf(style.theme) : paper;
+  if (mode === 'night') {
+    /**
+     * The author's accent survives the night only if it can be seen on it. Three-to-one is the WCAG
+     * threshold for a non-text graphic, which is exactly what a hairline is; below it the accent is
+     * replaced by the page's own mark, so a `paper`-themed row (whose accent is a dark green) does not
+     * draw a rule nobody can see.
+     */
+    const accent = contrastRatio(PAGE_NIGHT.background, chosen.accent) >= 3 ? chosen.accent : PAGE_NIGHT.mark;
+    return { background: PAGE_NIGHT.background, text: PAGE_NIGHT.text, mark: PAGE_NIGHT.mark, accent };
+  }
   return { background: paper.background, text: paper.text, mark: paper.accent, accent: chosen.accent };
 }
 

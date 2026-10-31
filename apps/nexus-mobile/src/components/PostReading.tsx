@@ -11,6 +11,7 @@ import {
   MAX_MEDIA, MAX_TEXT_PAGES, mediaLeadHeight, textPageCapacity, textPages, textPagesWithLead, textPreview, type QuoteLayer,
 } from '../lib/postPresentation';
 import { fontFamilyFor, mediaFrameOf, pagePaletteOf, sizeOf, type TextStyle } from '../lib/textStyle';
+import type { PageMode } from '../lib/pageMode';
 import { PAGE_FOLIO, folioLabel } from '../lib/textPage';
 import { mediaSourceForPath, postMediaItems, relativeTime, type SocialPost } from '../lib/socialTypes';
 import { BrandAvatar } from './BrandAvatar';
@@ -37,7 +38,7 @@ function pageFromOffset(offset: number, width: number): number {
 }
 
 export function PostTextReading({
-  text, pages: fixedPages, style, pageStyle, textStyle, accessibilityLabel, onPress, lead, folio,
+  text, pages: fixedPages, style, pageStyle, textStyle, accessibilityLabel, onPress, lead, folio, mode = 'paper',
 }: {
   /** The whole article. The reader paginates it against the box it was actually given. */
   text?: string | null;
@@ -73,6 +74,12 @@ export function PostTextReading({
    * the number: two surfaces, one printed row, one number.
    */
   folio?: { band: number; inset: number };
+  /**
+   * The reader's page mode (`lib/pageMode.ts`, round 46): warm paper or matte black. It comes from the
+   * surface that mounted the page — a legacy page of words is read in the same two modes as an authored
+   * one, or the toggle would only work on half the archive.
+   */
+  mode?: PageMode;
   /** `tapVideo` (app.js:3216): a tap on the reading opens the post, the way it does on the reel. */
   onPress?: () => void;
 }) {
@@ -86,7 +93,7 @@ export function PostTextReading({
    * written before the e-paper reading (or in `jungle`) is therefore read on paper without its stored
    * style being rewritten.
    */
-  const palette = textStyle ? pagePaletteOf(textStyle) : null;
+  const palette = textStyle ? pagePaletteOf(textStyle, mode) : null;
   const measure = textStyle ? sizeOf(textStyle.size) : null;
   const fontSize = measure?.fontSize ?? 20;
   const lineHeight = measure?.lineHeight ?? 29;
@@ -226,16 +233,20 @@ export function PostTextReading({
           </View>
         ) : null}
         {/**
-         * Banda de citire a unei pagini vechi (runda 45): aceeași bandă ca pe o pagină scrisă în compozitor,
-         * măsurată pe blocul de cuvinte al acestei file. Fără ea, un text publicat înainte de documente ar
-         * fi rămas singurul cadru fără bandă — exact defectul raportat de owner.
+         * Blocul de cuvinte al unei pagini vechi.
+         *
+         * Runda 45 îi desena aici o bandă, ca un text publicat înainte de documente să nu fie singurul cadru
+         * fără delimitare. Runda 46 a schimbat regula pentru paginile de text: banda se citește **numai în
+         * cap**, iar sub cuvinte rămâne pagina curată — pe hârtie ca și pe negru. `WordsBand` rămâne pentru
+         * măsurătoarea blocului, cu `band={false}`.
          */}
         <WordsBand
           id={`nxLegacyBand-${index}`}
           color={palette ? palette.text : '#f2f6f9'}
           frame={box.height || 900}
-          ground={palette ? 'paper' : 'night'}
+          ground={palette && mode === 'paper' ? 'paper' : 'night'}
           flex={false}
+          band={false}
         >
           <RichText text={entry} style={[styles.readingText, authoredWords]} />
         </WordsBand>

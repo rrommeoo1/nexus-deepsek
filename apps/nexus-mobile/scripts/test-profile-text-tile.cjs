@@ -237,7 +237,7 @@ test('celula și pagina pe care o deschide sunt aceeași hârtie', () => {
   assert.match(pageStyle, /id: 'paper'[^}]*background: '#f4efe2'[^}]*text: '#1a221b'/);
   // 2. Cadrul unei postări de cuvinte este *întotdeauna* o pagină: stilul autorului, sau hârtia implicită.
   assert.match(canvas, /const pageStyle = stage === 'text' \|\| stage === 'article' \? pageStyleForPost\(post\.text_style\) : null/);
-  assert.match(canvas, /const pagePalette = pageStyle \? pagePaletteOf\(pageStyle\) : null/);
+  assert.match(canvas, /const pagePalette = pageStyle \? pagePaletteOf\(pageStyle, pageMode\) : null/);
   assert.match(canvas, /backgroundColor: pagePalette\.background/);
   // Firul celulei este accentul paginii pe care o deschide, citit prin același resolver (nu din coloana brută).
   assert.match(component, /const accent = pagePaletteOf\(pageStyleForPost\(post\.text_style\)\)\.accent/);

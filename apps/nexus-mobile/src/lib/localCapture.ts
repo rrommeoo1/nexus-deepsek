@@ -16,6 +16,11 @@ export type LocalSticker = {
   x: number;
   y: number;
   timezone: string;
+  /**
+   * Mărimea desenată (`StudioDecoration.scale`), de la unul dintre cele trei preseturi (runda 46).
+   * Absentă pe un draft vechi, care se citește ca `1` — mărimea normală.
+   */
+  scale?: number;
 };
 
 export interface LocalCapture {
@@ -38,6 +43,11 @@ export interface LocalDraft {
   overlayText: string;
   overlayX: number;
   overlayY: number;
+  /**
+   * Mărimea textului scris peste imagine (runda 46): una din cele trei preseturi (`lib/overlayPresets.ts`).
+   * Absentă pe un draft vechi → `1`, adică exact ce se publica până acum.
+   */
+  overlayScale?: number;
   /** Movable, non-destructive stickers; optional so existing local drafts remain readable. */
   stickers?: LocalSticker[];
   /**
@@ -80,7 +90,7 @@ function draftFile(capture: LocalCapture): File {
 export function emptyDraft(capture: LocalCapture): LocalDraft {
   return {
     version: 1, captureName: capture.name, title: '', description: '',
-    overlayText: '', overlayX: 0.5, overlayY: 0.5, stickers: [], publishing: emptyPublishing(),
+    overlayText: '', overlayX: 0.5, overlayY: 0.5, overlayScale: 1, stickers: [], publishing: emptyPublishing(),
     // The two values the composer's own form starts from: a public post, no declaration made.
     visibility: 'public', provenance: 'NOT_DECLARED', updatedAt: Date.now(),
   };
@@ -117,6 +127,17 @@ function readAudioAttribution(value: unknown): string | undefined {
   return typeof value === 'string' ? value.slice(0, AUDIO_ATTRIBUTION_LIMIT) : undefined;
 }
 
+/**
+ * O mărime citită tolerant (runda 46): un draft scris înainte de cele trei preseturi nu are câmpul, deci se
+ * citește ca `1` (mărimea normală, exact ce se publica atunci), iar o valoare absurdă se taie în intervalul
+ * pe care serverul îl acceptă (`scale` între 0.4 și 3) în loc să fie trimisă și refuzată la publicare.
+ */
+function readScale(value: unknown): number | undefined {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return undefined;
+  return Math.min(3, Math.max(0.4, number));
+}
+
 export function loadDraft(capture: LocalCapture): LocalDraft {
   const file = draftFile(capture);
   if (!file.exists) return emptyDraft(capture);
@@ -141,6 +162,7 @@ export function loadDraft(capture: LocalCapture): LocalDraft {
         provenance: readProvenance(draft.provenance),
         audioRights: readAudioRights(draft.audioRights),
         audioAttribution: readAudioAttribution(draft.audioAttribution),
+        overlayScale: readScale(draft.overlayScale) ?? 1,
         stickers: Array.isArray(draft.stickers) ? draft.stickers.filter((entry) =>
           entry && ['TIME', 'DATE', 'LOCATION'].includes(entry.type)
           && typeof entry.id === 'string' && /^[a-z0-9-]{8,80}$/i.test(entry.id)
@@ -148,7 +170,7 @@ export function loadDraft(capture: LocalCapture): LocalDraft {
           && Number.isFinite(entry.x) && entry.x >= 0 && entry.x <= 1
           && Number.isFinite(entry.y) && entry.y >= 0 && entry.y <= 1
           && typeof entry.timezone === 'string' && entry.timezone.length <= 64,
-        ).slice(0, 12) : [],
+        ).slice(0, 12).map((entry) => ({ ...entry, scale: readScale(entry.scale) ?? 1 })) : [],
       };
     }
   } catch { /* A corrupt manifest must not hide the original media. */ }

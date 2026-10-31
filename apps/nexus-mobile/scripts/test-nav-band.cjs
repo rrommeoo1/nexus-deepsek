@@ -137,10 +137,10 @@ test('padurea sta sub cuvinte si numai pe o pagina fara fotografie de fundal', (
    */
   assert.match(canvas, /const authored = stage === 'text' \|\| stage === 'article' \? textStyleForPost\(post\.text_style\) : null/, 'stilul se citeste tolerant pe pagina de text si pe articolul cu poze');
   assert.match(canvas, /const pageStyle = stage === 'text' \|\| stage === 'article' \? pageStyleForPost\(post\.text_style\) : null/, 'o pagina de cuvinte este intotdeauna o pagina');
-  assert.match(canvas, /const pagePalette = pageStyle \? pagePaletteOf\(pageStyle\) : null/, 'hartia paginii vine din paleta paginii, nu din tema randului');
+  assert.match(canvas, /const pagePalette = pageStyle \? pagePaletteOf\(pageStyle, pageMode\) : null/, 'hartia paginii vine din paleta paginii, nu din tema randului, si din modul cititorului (runda 46)');
   assert.match(canvas, /backgroundColor: pagePalette\.background/, 'hartia paginii picteaza tot cadrul');
   assert.match(canvas, /const pageInk = pagePalette \? \{ color: pagePalette\.text \} : null/, 'numele autorului se scrie cu cerneala paginii, nu cu alb');
-  assert.ok(canvas.indexOf('pagePalette ? (') > open, 'pagina are ramura ei, in interiorul ramurii de text');
+  assert.ok(canvas.indexOf('pagePalette ? (', open) > open, 'pagina are ramura ei, in interiorul ramurii de text');
   for (const file of ['src/components/PostMedia.tsx', 'src/components/ReelsReader.tsx', 'src/components/StoryViewer.tsx']) {
     assert.doesNotMatch(code(read(file)), /JungleGrove/, `${file} deseneaza media si ramane negru`);
   }

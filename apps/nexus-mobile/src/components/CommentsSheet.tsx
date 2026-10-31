@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { blackSilver } from '../theme/blackSilver';
 import {
-  Alert, Dimensions, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
+  Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,8 @@ import { paymentRequired, quoteFromFailure, type ActionQuote } from '../lib/acti
 import { ActionPaymentSheet } from './ActionPaymentSheet';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
+import { bottomInsetWithKeyboard } from '../lib/keyboardSpace';
+import { useKeyboardSpace } from '../lib/useKeyboardSpace';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
 import { createComment, editComment, fetchCommentEngagement, fetchComments, fetchCommentVersions, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
   type CommentEngagementItem, type CommentEngagementPage, type CommentVersion } from '../lib/postInteractions';
@@ -83,7 +85,13 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const [historyBusy, setHistoryBusy] = useState(false);
   const [reportTarget, setReportTarget] = useState<CommentView | null>(null);
   const [clock, setClock] = useState(0);
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  /**
+   * Cât loc ia tastatura (runda 46): o singură socoteală, împărțită cu compozitorul și cu editorul
+   * (`lib/keyboardSpace.ts`). Ascultătorul local de `keyboardDidShow` a plecat: el număra tastatura o dată
+   * pentru fereastră și încă o dată pentru insetul de jos, iar pe un telefon care chiar își micșorează
+   * fereastra ar fi numărat-o de două ori.
+   */
+  const keyboard = useKeyboardSpace();
   const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
   /**
    * A comment is a paid action here (`lib/action-payments.js`): the write answers `402 PAYMENT_REQUIRED`
@@ -163,15 +171,6 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
     const initial = setTimeout(() => setClock(Date.now()), 0);
     const timer = setInterval(() => setClock(Date.now()), 1_000);
     return () => { clearTimeout(initial); clearInterval(timer); };
-  }, []);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const shown = Keyboard.addListener('keyboardDidShow', (event) => {
-      setKeyboardHeight(Math.max(0, event.endCoordinates.height));
-    });
-    const hidden = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
-    return () => { shown.remove(); hidden.remove(); };
   }, []);
 
   const submitPending = useCallback((entry: PendingComment, paymentIntentId?: string | null) => {
@@ -326,13 +325,20 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={[
             presentation === 'sheet' ? styles.sheet : presentation === 'page' ? styles.page : styles.viewerPanel,
-            { paddingBottom: insets.bottom },
-            keyboardHeight > 0 && Platform.OS === 'android' ? {
-              marginBottom: keyboardHeight,
-              ...(presentation === 'sheet' ? {
-                maxHeight: Math.max(240, Dimensions.get('screen').height - keyboardHeight),
-                minHeight: 0,
-              } : {}),
+            /**
+             * Insetul de jos se plătește **numai** cu tastatura închisă: când tastatura e deschisă, bara de
+             * gesturi stă sub ea, iar un `insets.bottom` adăugat peste înălțimea tastaturii ar lăsa o bandă
+             * moartă între câmpul de comentariu și taste (`lib/keyboardSpace.ts::bottomInsetWithKeyboard`).
+             */
+            { paddingBottom: bottomInsetWithKeyboard(insets.bottom, keyboard.covered) },
+            /**
+             * Foaia cedează exact partea din fereastră pe care tastatura o acoperă **fără** ca platforma să
+             * fi micșorat fereastra: pe Android 15 (edge-to-edge) asta este toată tastatura, iar pe un
+             * telefon care își micșorează fereastra, zero — deci nicio numărare dublă.
+             */
+            keyboard.covered > 0 ? {
+              marginBottom: keyboard.covered,
+              ...(presentation === 'sheet' ? { maxHeight: Math.max(240, keyboard.available), minHeight: 0 } : {}),
             } : null,
           ]}
         >

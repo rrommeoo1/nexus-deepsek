@@ -4,6 +4,7 @@ import { EditorialPage } from './EditorialPage';
 import { editorialDocumentForPost, editorialMediaForPost } from '../lib/editorialPost';
 import type { SocialPost } from '../lib/socialTypes';
 import type { TextStyle } from '../lib/textStyle';
+import type { PageMode } from '../lib/pageMode';
 import type { RailReserve } from '../lib/textPage';
 
 /**
@@ -18,12 +19,18 @@ import type { RailReserve } from '../lib/textPage';
  * composition instead of being reinterpreted by a newer engine.
  */
 export function EditorialArticle({
-  post, style, active = true, pageStyle, railReserve = null, folio,
+  post, style, active = true, pageStyle, railReserve = null, folio, mode = 'paper',
 }: {
   post: SocialPost;
   style: TextStyle;
   active?: boolean;
   pageStyle?: StyleProp<ViewStyle>;
+  /**
+   * The reader's page mode (`lib/pageMode.ts`): the same article on warm paper or on matte black. It is
+   * the *reader's* choice, so it arrives from the surface that mounted the page (`PostCanvas`), never
+   * from the row being read.
+   */
+  mode?: PageMode;
   /**
    * The room the page's own rail keeps in its lower right corner (`RailReserve`): the words narrow
    * beside the buttons and keep the whole measure above them, instead of a column of paper running the
@@ -58,6 +65,7 @@ export function EditorialArticle({
           active={active}
           railReserve={railReserve}
           folio={folio}
+          mode={mode}
           accessibilityLabel="Pagina articolului"
         />
       ) : null}

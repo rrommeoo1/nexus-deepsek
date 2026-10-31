@@ -40,13 +40,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { blackSilver } from '../theme/blackSilver';
 import { useRouter } from 'expo-router';
 import {
-  ActivityIndicator, Alert, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Switch,
+  ActivityIndicator, Alert, Image, Keyboard, Pressable, ScrollView, StyleSheet, Switch,
   Text, TextInput, View, useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EditorialPage, type EditorialSelection } from '../components/EditorialPage';
 import { TextToolbar, type TextToolbarPanel } from '../components/TextToolbar';
 import { requirePageCapabilities, requireTextStyleContract } from '../lib/backendVersion';
+import { bottomInsetWithKeyboard } from '../lib/keyboardSpace';
+import { useKeyboardSpace } from '../lib/useKeyboardSpace';
 import { loadEditorIdentity, type EditorIdentity } from '../lib/capturePublish';
 import {
   appendMediaBlock, documentCharCount, documentPlainText, placeMediaBlockAtFraction, reconcileMedia, remapMediaIndexes,
@@ -157,6 +159,14 @@ export default function TextComposer() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
+  /**
+   * Cât loc lasă tastatura (runda 46), dintr-o singură socoteală (`lib/keyboardSpace.ts`), și cât loc are
+   * lista după ce ecranul a cedat acea parte (`onLayout` pe `ScrollView`). Pagina se compune pe al doilea
+   * număr, nu pe fereastra întreagă: de aceea, cu tastatura deschisă, textul se re-paginează în locul rămas
+   * în loc să stea sub taste.
+   */
+  const keyboard = useKeyboardSpace();
+  const [viewport, setViewport] = useState(0);
   /**
    * One page, one look. The stored draft keeps whatever face, measure and composed blocks it has, but its
    * theme is the Kindle default: the chooser that used to rewrite it is gone (owner, 29 October 2026), and a
@@ -271,7 +281,18 @@ export default function TextComposer() {
   const characters = documentCharCount(page);
   const overLimit = characters > TEXT_MAX_CHARS;
   const pageWidth = Math.min(width - 40, 380);
-  const pageHeight = pageWidth * (16 / 9);
+  /**
+   * Înălțimea paginii: 9:16 când tastatura este închisă, **atât cât rămâne** când ea este deschisă (runda 46).
+   *
+   * Pagina compozitorului era un 9:16 fix, iar pe Android 15 fereastra nu se micșorează pentru tastatură:
+   * deci jumătatea de jos a paginii stătea sub taste. Acum înălțimea vine din locul măsurat al listei
+   * (`viewport`), adică din ce a rămas după ce ecranul a cedat tastatura — fluxul paginii re-paginează textul
+   * în locul mai mic, iar literele rămân de aceeași mărime. Un minim de 320 de puncte ține pagina citibilă
+   * dacă tastatura ar lăsa mai puțin (o tabletă în landscape); sub atât, lista oricum derulează.
+   */
+  const pageHeight = viewport > 0
+    ? Math.max(320, Math.min(Math.round(pageWidth * (16 / 9)), Math.round(viewport - 12)))
+    : pageWidth * (16 / 9);
   const selectedMedia = selected?.kind === 'media'
     ? (draft.document.blocks.find((block) => block.id === selected.blockId && block.type === 'media') ?? null) as EditorialMediaBlock | null
     : null;
@@ -672,7 +693,7 @@ export default function TextComposer() {
     );
   }
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <View style={[styles.screen, { paddingBottom: keyboard.covered }]}>
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide compozitorul" onPress={close} style={styles.headerSide} hitSlop={8}>
           <Text style={styles.headerAction}>Înapoi</Text>
@@ -698,6 +719,10 @@ export default function TextComposer() {
         contentContainerStyle={[styles.scrollBody, { paddingBottom: insets.bottom + 40 }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
+        onLayout={(event) => {
+          const next = Math.round(event.nativeEvent.layout.height);
+          setViewport((previous) => (previous === next ? previous : next));
+        }}
       >
         {/**
          * ONE page, and it is the article itself. The words are typed into the page; a picture is a
@@ -995,7 +1020,7 @@ export default function TextComposer() {
        * picker are wanted *while* writing, so they stay under the thumb. „Tastatură" closes the panel and
        * gives the field back its keyboard.
        */}
-      <View style={{ paddingBottom: insets.bottom }}>
+      <View style={{ paddingBottom: bottomInsetWithKeyboard(insets.bottom, keyboard.covered) }}>
         <TextToolbar
           panel={panel}
           onPanelChange={changePanel}
@@ -1006,7 +1031,7 @@ export default function TextComposer() {
           onMeasure={(next) => applyDocument(setDocumentTypography(draft.document, next), true)}
         />
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

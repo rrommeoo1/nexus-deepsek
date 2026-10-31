@@ -69,15 +69,16 @@ test('ușa autorului stă lângă cuvinte doar când încap amândouă', () => {
 test('canvasul pune locația pe rândul ei și ține ușa într-o coloană care nu se micșorează', () => {
   const canvas = read('src/components/PostCanvas.tsx');
   assert.match(canvas, /import \{ POST_HEAD, postHeadArrangement \} from '\.\.\/lib\/postChrome';/);
-  assert.match(canvas, /const headArrangement = useMemo\([\s\S]{0,160}postHeadArrangement\(\{ width: width \|\| viewport\.width, padding: metrics\.padH, fontScale: viewport\.fontScale \}\)/,
+  assert.match(canvas, /const headArrangement = useMemo\([\s\S]{0,240}postHeadArrangement\(\{[\s\S]{0,200}width: width \|\| viewport\.width,[\s\S]{0,200}padding: metrics\.padH,[\s\S]{0,200}fontScale: viewport\.fontScale/,
     'aranjamentul se măsoară, nu se ghicește');
   // Locația nu mai face parte din rândul @handle · dată.
   assert.match(canvas, /\{\[`@\$\{handle\}`, stamp\]\.filter\(Boolean\)\.join\(' · '\)\}/,
     'rândul de sub nume este handle + dată');
   assert.match(canvas, /numberOfLines=\{POST_HEAD\.locationLines\}/, 'locația se rupe natural pe două rânduri');
-  assert.match(canvas, /const authorWithDoor = authorAction \? \(/, 'ușa are un singur loc, într-un singur loc din cod');
+  assert.match(canvas, /const authorWithDoor = modeToggle \|\| authorAction \? \(/, 'ușa are un singur loc, într-un singur loc din cod');
   assert.match(canvas, /headArrangement === 'stack' && styles\.authorLineStack/);
-  assert.match(canvas, /styles\.authorDoor, headArrangement === 'stack' && styles\.authorDoorStack/);
+  assert.match(canvas, /styles\.authorDoor, styles\.headControls, headArrangement === 'stack' && styles\.authorDoorStack/,
+    'comutatorul și ușa stau în același grup, care coboară împreună pe rândul doi (runda 46)');
   // Tiparul celor două coloane: cuvintele primesc tot ce rămâne, ușa nu se strânge.
   assert.match(canvas, /authorBlock: \{ flexGrow: 1, flexShrink: 1, minWidth: 0 \}/);
   assert.match(canvas, /authorDoor: \{ flexShrink: 0, alignSelf: 'flex-start', marginTop: POST_HEAD\.actionTop \}/);

@@ -47,9 +47,9 @@ function zone(): string {
   catch { return 'UTC'; }
 }
 
-function decorationBase(id: string, type: StudioDecoration['type'], x: number, y: number, index: number): StudioDecoration {
+function decorationBase(id: string, type: StudioDecoration['type'], x: number, y: number, index: number, scale = 1): StudioDecoration {
   return {
-    id, type, assetId: '', text: '', x: percent(x), y: percent(y), scale: 1, rotation: 0,
+    id, type, assetId: '', text: '', x: percent(x), y: percent(y), scale, rotation: 0,
     zIndex: index + 1, opacity: 1, style: 'classic', align: 'center', color: '#ffffff',
     background: 'transparent', animation: 'none', startMs: 0, endMs: 600000,
     timezone: zone(), locationPrecision: 'area', dynamic: false,
@@ -68,17 +68,32 @@ function decorationBase(id: string, type: StudioDecoration['type'], x: number, y
 export function studioDecorations(capture: LocalCapture, draft: LocalDraft): StudioDecoration[] {
   const decorations: StudioDecoration[] = [];
   const text = draft.overlayText.trim();
+  /**
+   * Mărimea (runda 46): una din cele trei preseturi, scrisă în manifest ca `scale`. Este singurul loc în
+   * care mărimea din editor ajunge în postarea publicată, iar randatorul (`components/PostOverlay`) o
+   * citește de aici — deci previzualizarea și pagina publicată nu pot ajunge la două mărimi diferite.
+   */
   if (text) {
     const id = `text-${capture.name.slice(0, 13)}`;
-    decorations.push({ ...decorationBase(id, 'TEXT', draft.overlayX, draft.overlayY, 0), text });
+    decorations.push({ ...decorationBase(id, 'TEXT', draft.overlayX, draft.overlayY, 0, readScale(draft.overlayScale)), text });
   }
   for (const sticker of (draft.stickers ?? []).slice(0, 12 - decorations.length)) {
-    const base = decorationBase(sticker.id, sticker.type, sticker.x, sticker.y, decorations.length);
+    const base = decorationBase(sticker.id, sticker.type, sticker.x, sticker.y, decorations.length, readScale(sticker.scale));
     decorations.push(sticker.type === 'LOCATION'
       ? { ...base, text: sticker.text, style: 'pill-light', color: '#111111', background: '#ffffff', timezone: sticker.timezone }
       : { ...base, style: sticker.type === 'TIME' ? 'digital' : 'date', dynamic: true, timezone: sticker.timezone });
   }
   return decorations;
+}
+
+/**
+ * O mărime validă pentru manifest, oricât de vechi ar fi draftul: fără câmp → `1`, iar o valoare absurdă
+ * se ține în intervalul pe care serverul îl acceptă (`scale` între 0.4 și 3).
+ */
+function readScale(value: unknown): number {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return 1;
+  return Math.min(3, Math.max(0.4, number));
 }
 
 export function studioManifestFor(capture: LocalCapture, draft: LocalDraft): StudioManifest | null {

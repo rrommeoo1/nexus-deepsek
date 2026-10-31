@@ -100,3 +100,31 @@ test('întoarcerea dintr-o postare păstrează locul din listă', () => {
   assert.match(search, /openTagPage\(entry\.tag\)/, 'un subiect deschide pagina lui, nu o căutare nouă');
 });
 
+test('rezultatele continuă pe cursorul serverului, fără dubluri și fără bucle (runda 46)', () => {
+  const search = code('src/screens/SearchScreen.tsx');
+  assert.match(search, /nextCursor: page\.next_cursor \?\? null/, 'prima pagină reține cursorul serverului');
+  assert.match(search, /cursor=\$\{encodeURIComponent\(cursor\)\}/, 'pagina următoare cere cursorul, nu reface prima cerere');
+  assert.match(search, /if \(!fresh \|\| !fresh\.nextCursor \|\| moreBusy\) return;/,
+    'fără cursor sau cu o pagină în zbor, nimic nu pornește: fără bucle');
+  assert.match(search, /if \(mine !== ticket\.current\) return;[\s\S]*?rememberPayload\(page\);/,
+    'un răspuns vechi este aruncat și pe pagina a doua');
+  assert.match(search, /const knownPosts = new Set\(previous\.posts\.map\(\(post\) => post\.id\)\);/);
+  assert.match(search, /\(page\.posts \?\? \[\]\)\.filter\(\(post\) => !knownPosts\.has\(post\.id\)\)/, 'fără dubluri');
+  assert.match(search, /const knownProfiles = new Set\(previous\.profiles\.map\(\(profile\) => profile\.id\)\);/);
+  assert.match(search, /onEndReached=\{\(\) => \{ if \(term\) loadMore\(\); \}\}/, 'pagina următoare se cere doar în rezultate');
+  assert.match(search, /const DEBOUNCE_MS = 320;/, 'debounce-ul rămâne cel cerut');
+  assert.match(search, /setMoreBusy\(false\);\s*setMoreError\(''\);/, 'o întrebare nouă curăță starea paginii vechi');
+});
+
+test('subiectele goale se spun în cuvinte, nu se inventează (runda 46)', () => {
+  const search = code('src/screens/SearchScreen.tsx');
+  assert.match(search, /term && !tagMatches\.length && !trending\.length/,
+    'rândul de subiecte are un răspuns pentru lista goală');
+  assert.match(search, /ultimele 3 zile/);
+  const api = readFileSync(resolve(__dirname, '../../nexus-web/lib/api.js'), 'utf8');
+  assert.match(api, /const windowSeconds = 3 \* 24 \* 3600;/, 'fereastra de trei zile este a serverului, nu a ecranului');
+  assert.match(api, /minAuthors: 2/, 'și pragul de doi autori este tot al serverului');
+  assert.ok(!/insert into|INSERT INTO|seed/i.test(search), 'ecranul nu creează date ca să aibă ce arăta');
+});
+
+

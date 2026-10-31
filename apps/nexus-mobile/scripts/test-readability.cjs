@@ -151,24 +151,31 @@ test('banda cuvintelor are exact înălțimea blocului măsurat, pe orice teren'
   assert.ok(short.stops[1].offset <= 0.6);
 });
 
-test('pagina de hârtie își desenează bandă din rândurile fluxului, nu din poziția cadrului', () => {
+test('pagina de text nu are bandă sub cuvinte: banda se citește numai în cap (runda 46)', () => {
+  /**
+   * Ownerul (runda 46): „pe o postare de text, banda de lizibilitate se desenează **numai** în spatele
+   * capului autorului; sub textul editorial nu se pune niciun văl". Aici se ține partea care nu are nevoie
+   * de telefon: nicio pagină de cuvinte nu mai desenează un strat sub rândurile ei, iar capul își păstrează
+   * banda pe amândouă terenurile.
+   */
   const page = read('src/components/EditorialPage.tsx');
-  assert.match(page, /import \{ PostScrim \} from '\.\/PostReadability';/);
-  assert.match(page, /wordsScrim\(\{ block: lastLine - firstLine, frame: height, ground: 'paper' \}\)/,
-    'banda vine din rândurile așezate de flux');
-  assert.match(page, /<PostScrim id=\{`nxPageBand-\$\{index\}`\} geometry=\{band\}/);
-  assert.ok(page.indexOf('nxPageBand-') < page.indexOf('{entry.lines.map'),
-    'banda stă sub rânduri, deci nu poate acoperi un cuvânt');
-  /** Pagina veche (fără document) își ia aceeași bandă prin `WordsBand`, măsurată pe blocul ei. */
+  assert.ok(!/nxPageBand-/.test(page), 'pagina scrisă în compozitor nu mai desenează un strat sub rânduri');
+  assert.ok(!/wordsScrim/.test(page), 'și nu mai socotește o bandă pe care nu o desenează');
+  assert.ok(!/wordBand/.test(page), 'nici stilul benzii nu a rămas în urmă');
   const legacy = read('src/components/PostReading.tsx');
-  assert.match(legacy, /import \{ WordsBand \} from '\.\/PostReadability';/);
-  assert.match(legacy, /<WordsBand\s+id=\{`nxLegacyBand-\$\{index\}`\}/);
+  assert.match(legacy, /band=\{false\}/, 'o pagină moștenită (fără document) se citește la fel: fără văl sub cuvinte');
   const canvas = read('src/components/PostCanvas.tsx');
   assert.match(canvas, /headerScrim\(\{\s*block: headBlock\.height[^}]*ground,/,
-    'capul primește bandă pe orice teren');
-  assert.ok(!/headGeometry = ground === 'paper'/.test(canvas), 'hârtia nu mai este scoasă din sistemul de citire');
+    'capul primește bandă pe orice teren, inclusiv pe hârtie și pe negru');
+  assert.ok(!/headGeometry = ground === 'paper'/.test(canvas), 'hârtia nu este scoasă din sistemul de citire');
   assert.match(canvas, /id=\{`nxCanvasWords-\$\{post\.id\}`\}/);
+  assert.match(canvas, /band=\{stage === 'quote' && !pageDrawsBand\}/,
+    'numai un citat, care stă peste placa de jungle, își păstrează banda');
   assert.match(canvas, /const scrimInk = pagePalette \? pagePalette\.text : editorial\.fieldDeep;/);
+  /** Banda de sub un citat rămâne desenată **înaintea** cuvintelor, deci nu poate acoperi un tag. */
+  const words = canvas.indexOf('nxCanvasWords-');
+  const band = canvas.indexOf('band={stage === \'quote\'');
+  assert.ok(words > 0 && band > 0 && band > words, 'stratul citatului stă în blocul de cuvinte');
 });
 
 test('compoziția desenează ambele straturi prin `PostScrim`, măsurate pe benzi reale', () => {
