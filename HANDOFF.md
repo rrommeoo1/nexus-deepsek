@@ -1,4 +1,174 @@
+## 0.46 Numai capul are bandă, o pagină care se poate citi noaptea, trei mărimi și tastatura care micșorează conținutul (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice; xPortal și `apps/nexus-web` neatinse). `tsc --noEmit` exit 0;
+`node scripts/run-tests.mjs` → `suites=75 failed=0 in 41s`, cu trei suite noi (`test-page-mode.cjs`,
+`test-keyboard-space.cjs`, `test-overlay-presets.cjs`) la capătul lanțului `npm test`. `eslint` este curat pe
+fișierele noi (`pageMode.ts`, `keyboardSpace.ts`, `useKeyboardSpace.ts`, `overlayPresets.ts`,
+`PageModeToggle.tsx`) și pe cele reparate integral (`CommentsSheet.tsx`, `CaptureEditor.tsx`,
+`SearchScreen.tsx`); `PostCanvas.tsx` (3) și `EditorialPage.tsx` (11) păstrează exact erorile vechi
+`react-hooks/*`, pe linii pe care runda aceasta nu le-a atins.
+
+**Telefonul NU a fost disponibil în această rundă.** `adb devices` este gol, `adb mdns services` se blochează,
+iar adresele de wireless debugging din 0.45 (`192.168.1.184:36819`, `:46783`) nu mai răspund. Deci **nicio
+afirmație vizuală din runda asta nu are dovadă pe telefon**: tot ce urmează este dovadă de sursă, de test și
+de aritmetică. Nu s-a raportat nicio verificare vizuală ca făcută.
+
+**Ce s-a schimbat, și de ce.**
+
+### 1. Postare de text: bandă **numai** în cap (cerința 1)
+
+Runda 45 dăduse paginii de hârtie o bandă sub cuvinte și o bandă a capului. Cerința de acum este alta:
+capul se delimitează, **corpul articolului rămâne curat** — fără văl, fără gradient negru peste hârtie.
+Schimbarea a fost făcută în trei locuri, ca să nu rămână o a doua sursă de bandă:
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/components/EditorialPage.tsx` | banda desenată din rândurile fluxului (`wordsScrim` + `PostScrim` + stilul `wordBand`) a **plecat**; rândurile au acum pagina goală sub ele. Importurile `PostScrim`/`wordsScrim` au plecat cu ea |
+| `src/components/PostCanvas.tsx` | `WordsBand` din ramura de lectură primește `band={stage === 'quote' && !pageDrawsBand}`: **numai un citat**, care stă peste placa de jungle, își păstrează stratul. `pageDrawsBand` este acum `false` (pagina nu-și mai desenează bandă) |
+| `src/components/PostReading.tsx` | `PostTextReading` (pagina veche, fără document) primește `band={false}`: aceeași regulă pentru arhivă, unde `WordsBand` rămâne doar măsurătoare |
+
+Banda capului rămâne, măsurată (`headerScrim` peste `headBlock.onLayout`), și se desenează pe **orice**
+suprafață care montează compoziția: feed, profil, căutare (citirea deschisă din celulă), ruta `/post/[id]`,
+compozitorul (previzualizarea) și pagina publicată. Nu există o a doua socoteală nicăieri.
+
+Reel-urile sunt neatinse: `ground === 'night'` și blocul de jos (`footGeometry`) rămân exact cum erau, iar
+`test-readability.cjs` verifică în continuare amândouă benzile pentru un cadru cu imagine.
+
+
+### 2. Hârtie / Noapte, înaintea porții autorului (cerința 2)
+
+**Decizia de persistență: preferință a cititorului, nu a postării.** O pagină nu are de ce să poarte o
+culoare aleasă de cititorul ei, iar un om care citește noaptea nu vrea să comute fiecare postare. Preferința
+trăiește în `src/lib/pageMode.ts` — aceeași arhitectură ca limba cititorului (`lib/language.ts`): o valoare de
+sesiune, citită de orice suprafață prin `useSyncExternalStore`. **Limita, spusă pe față:** aplicația nu are
+strat de persistență locală (nici `AsyncStorage`, nici `expo-secure-store` nu sunt dependențe), deci modul
+supraviețuiește deschiderii/închiderii cititorului și navigării, dar **nu** repornirii aplicației. Nu s-a
+inventat un „salvat pentru totdeauna".
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/lib/pageMode.ts` (nou, pur) | `PageMode = 'paper' \| 'night'`, `PAGE_MODES` (etichetă, semn, propoziție pentru cititorul de ecran), `activePageMode`, `setReaderPageMode` (fără notificare când valoarea e aceeași), `togglePageMode`, `subscribePageMode`, `resetReaderPageMode` (teste) |
+| `src/lib/textStyle.ts` | `PAGE_NIGHT = { background: '#0b0d0c', text: '#efece2', mark: '#e3c777' }`; `pagePaletteOf(style, mode = 'paper')` — modul implicit neschimbat, deci toate locurile care îl chemau rămân valide; accentul autorului se păstrează **numai dacă se vede** (contrast ≥ 3:1 pe negru), altfel cade pe `mark` |
+| `src/components/PageModeToggle.tsx` (nou) | segmentat cu două fețe (`☀`/`☾`), `accessibilityRole="tablist"` + `tab` + `accessibilityState.selected`, `accessibilityHint` din `PAGE_MODES`, 26×24 dp per celulă; `PAGE_MODE_TOGGLE_WIDTH = 60` este numărul pe care îl folosește socoteala capului |
+| `src/components/PostCanvas.tsx` | `usePageMode()`; `pagePaletteOf(pageStyle, pageMode)`; `modeToggle` numai pe `wordPage` (nu pe un reel, nu pe o celulă); comutatorul și poarta autorului stau în același grup (`styles.headControls`), deci coboară **împreună** pe rândul doi; `extra: PAGE_MODE_TOGGLE_WIDTH` intră în `postHeadArrangement`; **pe o pagină de noapte banda capului nu se desenează** (`nightPage ? null : headerScrim(...)`) — o bandă de cerneală deschisă peste negru ar scădea exact contrastul care trebuie să fie maxim (16.5:1) |
+| `src/lib/postChrome.ts` | `postHeadArrangement` primește `extra?: number` (al doilea control de pe rândul porții), inclus în aceeași măsurătoare; fără `extra`, rezultatul este identic cu cel de până acum |
+| `src/components/EditorialArticle.tsx`, `EditorialPage.tsx`, `PostReading.tsx` | primesc `mode` și îl dau paletei: articolul publicat, pagina compusă din blocuri și pagina veche se citesc toate în același mod |
+
+**Ce rămâne pe hârtie intenționat:** celula de arhivă (`ProfileTextTile`, folosită de peretele profilului și
+de cel de explorare) și compozitorul de text. Celula este *coperta* paginii, nu o suprafață de citire, iar
+compozitorul are propriul lui crom întunecat. Decizia este scrisă aici ca să poată fi contrazisă explicit.
+
+### 3. Text / stickere / emoji: trei mărimi, ciclu de patru atingeri (cerința 3)
+
+Logica este **pură** și într-un singur loc: `src/lib/overlayPresets.ts` — exact trei preseturi
+(`small 1`, `medium 1.35`, `large 1.8`, în intervalul 0.4–3 pe care serverul îl acceptă,
+`apps/nexus-web/lib/creator-studio.js`), `takePreset(index)` întoarce **mărimea de aplicat acum** și
+**indicele următor**, iar `presetIndex` normalizează orice număr (deci a patra atingere este `0`, nu o a
+patra mărime). `presetIndexForScale` citește un draft vechi ca mărimea cea mai apropiată.
+
+Cum se simte în editor (`src/components/CaptureEditor.tsx`):
+
+| instrument | ce face o atingere |
+| --- | --- |
+| **Text** | aplică mărimea de acum textului așezat pe imagine și trece la următoarea; deschide și panoul de scriere. Textul nu se dublează (editorul are un singur text, ca înainte) |
+| **Stickere** | fiecare sticker nou (`Ora`, `Data`, locația scrisă) primește mărimea de acum și ciclul avansează; **stickerele deja așezate nu se ating** (fiecare are `scale` lui) |
+| **Emoji** | emoji sunt caractere din textul așezat pe imagine, deci mărimea lor este a acelui bloc; instrumentul are însă **propriul** ciclu, ca o atingere pe emoji să nu schimbe textul scris cu „Text" |
+
+Fiecare panou are un rând de trei chipuri (`PresetRow`, `accessibilityRole="radio"`) care arată mărimea de
+acum: feedback-ul discret cerut, fără o bară nouă de unelte. Mărimea ajunge în postarea publicată prin
+**același câmp** pe care îl citește randatorul: `LocalDraft.overlayScale` / `LocalSticker.scale` →
+`studioManifest.studioDecorations` scrie `scale` → `components/PostOverlay` desenează `{ scale: item.scale }`.
+Deci previzualizarea și pagina publicată nu pot ajunge la două mărimi diferite. Un draft scris înainte de
+runda asta se deschide neschimbat (`readScale` → `1`).
+
+**Ce NU s-a făcut, și de ce:** compozitorul de **text** (`src/app/text.tsx`) nu are unelte de stickere sau
+emoji peste imagine — pagina lui este un document de blocuri, iar singura lui mărime este `TEXT_SIZES`
+(Mic/Mediu/Mare/Foarte mare), scrisă în `document.typography` și validată de server. Cerința „trei preseturi
+și pentru postările de text" ar fi însemnat fie să reduc `TEXT_SIZES` la trei (ar schimba pagini publicate),
+fie să inventez un al doilea sistem de mărimi; nu am făcut niciuna. Rămâne deschis, cu întrebare către owner:
+dacă ciclul trebuie să guverneze și măsura paginii, sau doar elementele așezate peste imagine.
+
+### 4. Tastatura micșorează conținutul, nu îl acoperă (cerința 4)
+
+**Arhitectura, într-o propoziție:** o singură socoteală pură (`src/lib/keyboardSpace.ts`) plus un singur
+cârlig (`src/lib/useKeyboardSpace.ts`), consumate de toate suprafețele care pot avea tastatură deschisă.
+
+De ce nu se putea folosi o singură regulă: pe telefonul de dezvoltare (Android 15, edge-to-edge) fereastra
+**nu** se micșorează pentru tastatură, deci o măsurătoare `onLayout` rămâne înălțimea întreagă și conținutul
+stă sub taste; pe alte telefoane fereastra **se** micșorează (`adjustResize`). `keyboardSpaceOf` compară
+fereastra de acum cu cea mai înaltă fereastră văzută în sesiune și scade din înălțimea raportată de tastatură
+exact partea pe care platforma a luat-o deja. Rezultatul are două numere: `covered` (cât trebuie cedat) și
+`available` (cât rămâne, niciodată sub `KEYBOARD_MIN_CONTENT = 220`). `bottomInsetWithKeyboard` rezolvă a
+doua capcană: cu tastatura deschisă, bara de gesturi stă **sub** ea, deci `insets.bottom` nu se mai adaugă.
+
+| suprafață | ce s-a schimbat |
+| --- | --- |
+| `src/components/CommentsSheet.tsx` | ascultătorul local `keyboardDidShow` a plecat (număra tastatura o dată pentru fereastră și încă o dată pentru inset); foaia cedează `keyboard.covered` (`marginBottom`), `maxHeight` vine din `keyboard.available`, iar `paddingBottom` este `bottomInsetWithKeyboard(...)`; lista de comentarii se derulează în spațiul rămas, iar câmpul + butonul de trimitere stau deasupra tastaturii |
+| `src/app/text.tsx` (compozitorul paginii) | `KeyboardAvoidingView` (care pe Android nu făcea nimic) a fost înlocuit cu un `View` care cedează `keyboard.covered`; `ScrollView`-ul își raportează înălțimea (`onLayout`), iar **pagina se compune pe acel număr** (`pageHeight = max(320, min(9:16, viewport - 12))`). Deci textul se **re-paginează** în locul mai mic, cu aceeași mărime a literelor — nu se micșorează fontul |
+| `src/components/CaptureEditor.tsx` | previzualizarea are acum un cadru măsurat (`stageHeight` = ecranul întreg când tastatura e închisă, partea de deasupra tastelor când e deschisă), iar `previewRect`, `PostOverlay` și ghidajele se socotesc pe `stageBox`: zona media își păstrează proporția (`contain`), nu se decupează. Panourile (Text/Stickere/Emoji) stau lipite de tastatură (`panelBottom`) |
+| `PostStage` (feed/reader) | **neatins, deliberat**: firul de comentarii este un `Modal` pe tot ecranul, deci postarea nu este vizibilă în timp ce se scrie. Ce trebuie să se adapteze acolo este foaia, și se adaptează. A face postarea din spate să se micșoreze ar cere rescrierea firului ca panou divizat, nu o micșorare de cadru |
+
+### 5. Restanțele căutării (cerința 5)
+
+| punct | ce s-a găsit | ce s-a făcut |
+| --- | --- | --- |
+| **A. Subiecte goale** | `/api/social/tags` (`api.js:3878`) numără doar etichete din **ultimele 3 zile** (`sinceSeconds = 3 * 24 * 3600`) cu **minim 2 autori** (`minAuthors: 2`). În baza asta, postările cu `#` sunt din 07.10.2026, deci lista vine goală — nu este un bug de UI | rândul „Subiecte" rămâne ascuns când nu are ce arăta, iar în locul lui apare o propoziție care spune regula serverului („niciun tag din ultimele 3 zile nu are cel puțin doi autori"). **Niciun subiect inventat, nicio postare creată** |
+| **B. Paginare** | endpoint-ul **are** deja cursor: `cursor` multiplu de 20, până la 200, plus `next_cursor` (`api.js:3853-3862`) | `SearchScreen` reține `nextCursor`, cere pagina următoare la `onEndReached` (numai în rezultate), blochează a doua cerere cât prima e în zbor (`moreBusy`), aruncă răspunsul vechi prin același bilet (`ticket`), nu adaugă dubluri (filtru pe `id`) și păstrează debounce-ul de 320 ms. Un eșec se vede la poale, cu „apasă pentru a reîncerca" |
+| **C. Navigare și stare** | ecranul rămâne montat sub ruta `/post/[id]`; cheia lui se schimbă numai când o ușă aduce o întrebare nouă | neatins: `test-search-explore.cjs` verifică în continuare că nu există `useFocusEffect`/`useIsFocused` (deci fără reîncărcare la focus) și că o celulă singură are o treime din lățime (`tileSize`), nu tot ecranul |
+
+**Ce s-a dovedit, fără telefon.** 75 de suite, 0 eșecuri (`node scripts/run-tests.mjs`), `tsc --noEmit` exit 0.
+Cele trei suite noi verifică exact ce s-a schimbat:
+
+| suită | ce apără |
+| --- | --- |
+| `scripts/test-page-mode.cjs` (8 teste) | magazinul de mod (fără notificare la aceeași valoare), cele două palete cu contrast măsurat (noaptea: fundal neutru sub 20/255, text ≥ 7:1, `mark` ≥ 4.5:1), accentul autorului păstrat numai dacă se vede, comutatorul în capul paginii **înaintea** porții și lățimea lui în `postHeadArrangement`, modul dat mai departe în `EditorialArticle`/`EditorialPage`/`PostTextReading`, banda capului absentă pe noapte, `pageMode` scris în **niciun** stil de postare |
+| `scripts/test-keyboard-space.cjs` (7 teste) | cele două feluri de telefon (fereastră care nu se micșorează → se cedează toată tastatura; fereastră care se micșorează → se cedează zero, fără numărare dublă), minimul de 220, insetul de jos plătit o singură dată, `contentBudget`, și faptul că `CommentsSheet`, `text.tsx` și `CaptureEditor` împart aceeași socoteală (comentariile nu mai au ascultător propriu) |
+| `scripts/test-overlay-presets.cjs` (8 teste) | exact trei preseturi în intervalul serverului (`scale` 0.4–3, citit din `creator-studio.js`), ciclul `small → medium → large → small` pe șapte atingeri, normalizarea oricărui indice, potrivirea cu un draft vechi, scrierea pe **un singur** element, cele trei instrumente cu cicluri separate, `scale` scris în manifest și citit de `PostOverlay`, draft vechi citit neschimbat |
+
+Testele existente au fost **actualizate** acolo unde descriau regula veche, nu șterse: `test-readability.cjs`
+(acum apără „pagina de text nu are bandă sub cuvinte"), `test-nav-band.cjs` (`pagePaletteOf(pageStyle, pageMode)`
+și a doua apariție a ramurii paginii), `test-post-chrome.cjs` (aranjamentul pe mai multe linii + grupul
+comutator/poartă), `test-text-page.cjs` (`mode={pageMode}`), `test-preview-safety.cjs` (ghidajele pe cadrul de
+previzualizare), `test-profile-text-tile.cjs` (paleta cu mod), `test-black-silver.cjs` (auriul de noapte
+`#e3c777`, cu motivul scris lângă el), `test-search-explore.cjs` (+2 teste: paginarea pe cursor fără dubluri
+și fără bucle, subiectele goale spuse în cuvinte).
+
+**Ce NU s-a putut dovedi (și de ce).**
+
+1. **Nicio verificare vizuală.** Telefonul nu a fost conectat (`adb devices` gol; `adb mdns services` se
+   blochează; adresele din 0.45 nu răspund). Deci, pentru runda asta, **nu există capturi** și niciunul dintre
+   cele opt scenarii cerute (text pe hârtie, text pe negru, reel neschimbat, cele trei mărimi, editor cu
+   tastatura, comentarii cu tastatura, text lung pe ecran îngust, explorare goală) nu a fost exercitat pe
+   telefon. Ce s-a verificat este sursa, testul și aritmetica — nu desenul.
+2. **Comentariile deschise peste o postare**: foaia este un `Modal` pe tot ecranul, deci „zona de postare de
+   deasupra tastaturii" nu există ca suprafață vizibilă; ce se adaptează este foaia. Dacă ownerul vrea ca
+   postarea să rămână vizibilă și să se micșoreze sub fir, asta este o schimbare de arhitectură a firului
+   (panou divizat), nu o micșorare de cadru.
+3. **Ciclul de mărimi în compozitorul de text**: neimplementat, cu motivul din §3 (pagina are `TEXT_SIZES`
+   propriu, validat de server). Întrebarea pentru owner este scrisă acolo.
+4. **`PostStage` nu a fost legat la tastatură** (§4): ar fi cod mort cât timp firul este modal.
+5. **Subiectele** nu pot fi văzute pe acest telefon, fiindcă datele nu le au (fereastră de 3 zile, minim 2
+   autori). Rândul gol are acum o propoziție, dar propoziția nu a fost citită pe ecran.
+6. **Paginarea căutării** are dovadă de sursă și de test, nu de rețea: nu s-a putut rula o căutare reală cu
+   peste 20 de rezultate pe telefon.
+7. **Re-paginarea din compozitor** (pagina compusă pe `viewport`) schimbă numărul de pagini când se deschide
+   tastatura; textul nu se pierde (documentul este sursa), dar poziția de derulare a listei se poate mișca
+   puțin la comutare. Este exact lucrul care trebuie privit pe telefon înainte de a fi declarat „fără
+   sărituri".
+
+**Checkpoint local.** Lotul acestei runde este comis local ca `684b429` (23 de fișiere: 15 modificate + 8 noi,
+toate din `apps/nexus-mobile/**`, plus `package.json`), **nepushat**. Acest `HANDOFF.md` vine într-un commit
+separat imediat după el, ca hash-ul de mai sus să fie cel adevărat. În lot nu intră nimic din
+`apps/nexus-web/**`, `docs/parity-report/**`, `tools/_diag-*` sau `JUNGLE_BOOK_*.md` — acelea sunt
+modificări mai vechi, neatinse de runda asta și lăsate necomise.
+
+**Ce nu s-a atins.** Niciun push, nicio reinstalare, nicio setare a telefonului modificată, nicio postare
+publică (nu s-a creat nici măcar una locală), nicio ștergere de date sau de ciorne, nicio imagine comisă.
+xPortal, plățile, datele de producție și `apps/nexus-web` neatinse.
+
 ## 0.45 Benzi pe hârtie, o căutare care se caută singură și avertismentul care nu se aprindea (31 octombrie 2026)
+
 
 **Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
 ștergeri de date, fără postări publice; xPortal neatins). `tsc --noEmit` exit 0; `node scripts/run-tests.mjs`
