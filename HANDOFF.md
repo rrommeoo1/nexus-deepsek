@@ -6,7 +6,9 @@ nicio schimbare, vezi §3). `tsc --noEmit` exit 0. `node scripts/run-tests.mjs` 
 două suite noi (`test-sheet-preview.cjs` 7 teste, `test-text-sizes.cjs` 6 teste) la capătul lanțului
 `npm test`. **Telefonul a fost disponibil în această rundă** (wireless debugging,
 `adb-b42122b-huYC9y._adb-tls-connect._tcp`), deci secțiunea „CE S-A TESTAT PE ANDROID" de mai jos este
-dovadă reală, cu capturi publicate în `JUNGLE_BOOK_VERIFICATION/final_jpg/`.
+dovadă reală, cu capturi publicate în `JUNGLE_BOOK_VERIFICATION/final_jpg/`. Checkpoint local, fără push:
+**`6d6e222`** — 19 fișiere, 940 de linii adăugate (cod + teste + acest raport); commit-ul de față adaugă doar
+rândul cu hash-ul.
 
 **Ce a cerut ownerul, în ordinea în care a fost făcut.** (1) foaia de comentarii **să rămână exact ce
 este**, iar postarea din jumătatea de sus să se vadă **întreagă**; (2) banda de lizibilitate numai în cap —
