@@ -7,7 +7,9 @@
 pe linii noi (verificat cu `git show HEAD:` pe fiecare: `PostCanvas.tsx` 353 `mediaClock.current = reportProgress`,
 1094 `watched.interpolate`, `PostReading.tsx` 168 `pageRef.current = page`, 171 `setPage(...)` în `useEffect`) plus
 5 avertismente (`BOM` în trei fișiere, un `socialTokens` nefolosit). Checkpoint-urile de păstrat rămân
-**`6d6e222`** (runda 47) și **`da7b147`** (raportul ei).
+**`6d6e222`** (runda 47) și **`da7b147`** (raportul ei). Checkpoint local al rundei 48, fără push:
+**`5152695`** — 11 fișiere, 672 de linii adăugate (cod + teste + acest raport); commit-ul de față adaugă doar
+rândul cu hash-ul.
 
 **Ce a cerut ownerul, cu cuvintele lui** (31 octombrie 2026):
 
@@ -94,6 +96,9 @@ Ce s-a **citit** din fiecare imagine (dovada este imaginea citită, nu fișierul
 | `r48-l-locate.jpg` | postarea cu clip (Manaus, 0:08 / 0:12) ca pagină întreagă — referința pentru măsurătoarea decupării |
 | `r48-m-video-preview.jpg` | aceeași postare cu foaia deschisă: doar clipul, în cutia de 585 px, foaia „Comentarii · 1” cu un comentariu |
 | `r48-n-video-keyboard.jpg` | aceeași postare cu tastatura deschisă: cutia s-a strâns la ~484 px măsurați, centrată; foaia arată antet, file și compozitor |
+
+A paisprezecea captură, `r48-d-post2.jpg`, este o stare intermediară a aceleiași postări cu poză și nu dovedește
+nimic în plus față de `r48-e`/`r48-f`, deci nu e descrisă aici.
 
 **O observație măsurată, rămasă deschisă: decorațiunile nu se micșorează exact cu cutia.** Stickerul „Așa
 este😍” măsoară în pagină 981×217 px și începe la 66 px de marginea stângă (`r48-a`); în previzualizare
