@@ -3,7 +3,8 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
@@ -19,7 +20,19 @@ import {
 import { nexusApi } from '../lib/nexusApi';
 import { publishIntentKey } from '../lib/publishClient';
 import { PublishPanel } from './PublishPanel';
-import { creatorTokens } from '../theme/creator';
+import { PostCanvas, type PostChromeMeasure } from './PostCanvas';
+import { PostOverlay } from './PostOverlay';
+import { PostRail, RAIL_FOOT } from './PostRail';
+import { mediaContentRect, overlayPercent } from '../lib/overlayFrame';
+import {
+  decorationSpot, fractionOfFrame, freeSpots, guideLabelPlacement, previewSafeZones, zonesAt,
+  type GuideRect, type SafeZone, type SafeZoneId,
+} from '../lib/previewSafety';
+
+import { postPageTopInset } from '../lib/postChrome';
+import { profileReaderBottomInset } from '../lib/readerBar';
+import { studioDecorations } from '../lib/studioManifest';
+import type { MeResponse, SocialPost } from '../lib/socialTypes';
 
 type JamendoTrack = {
   id: string; name: string; artist: string; audio_url: string;
@@ -37,53 +50,111 @@ function stickerLabel(sticker: LocalSticker, now: number): string {
   } catch { return sticker.type === 'TIME' ? 'Ora indisponibilă' : 'Data indisponibilă'; }
 }
 
-function VideoPreview({ uri, muteOriginal }: { uri: string; muteOriginal: boolean }) {
+/**
+ * Urma pe care o raportează un `onLayout`, în punctele părintelui (aici: ecranul, pentru că previzualizarea
+ * este `absoluteFill` pe el).
+ */
+function boxOf(event: LayoutChangeEvent): GuideRect {
+  const { x, y, width, height } = event.nativeEvent.layout;
+  return {
+    left: Math.max(0, Math.round(x)),
+    top: Math.max(0, Math.round(y)),
+    width: Math.max(0, Math.round(width)),
+    height: Math.max(0, Math.round(height)),
+  };
+}
+
+/** Două urme egale nu trebuie să schimbe starea: un `onLayout` care raportează la fel la fiecare cadru ar
+ *  randa editorul la infinit. */
+function sameBox(a: GuideRect | null, b: GuideRect | null): boolean {
+  if (!a || !b) return a === b;
+  return a.left === b.left && a.top === b.top && a.width === b.width && a.height === b.height;
+}
+
+/** Ce scrie pe ghidaj despre o etichetă: textul ei, scurtat, ori felul ștampilei când nu are text. */
+function decorationLabel(decoration: { type: string; text: string }): string {
+  const text = (decoration.text ?? '').trim();
+  if (text) return text.length > 24 ? `${text.slice(0, 24)}…` : text;
+  if (decoration.type === 'TIME') return 'Ora';
+  if (decoration.type === 'DATE') return 'Data';
+  if (decoration.type === 'LOCATION') return 'Locul';
+  return 'Textul';
+}
+
+/**
+ * Culoarea unui ghidaj, după banda pe care o apără. Nimic nu este o a doua paletă: capul poartă rozul
+ * paginii (cuvântul cel mai des verificat), descrierea argintiul deschis, reacțiile argintiul de mijloc, iar
+ * benzile care nu se publică rămân gri stins. Nuanțele verzi și aurii sunt interzise în cod (auditul din
+ * `test-black-silver.cjs`), deci un ghidaj nu are voie să inventeze una.
+ */
+function guideZoneStyle(id: SafeZoneId): { borderColor: string } {
+  if (id === 'head') return { borderColor: 'rgba(255,49,95,0.85)' };
+  if (id === 'description') return { borderColor: 'rgba(255,255,255,0.66)' };
+  if (id === 'rail') return { borderColor: 'rgba(214,219,228,0.7)' };
+  if (id === 'tool') return { borderColor: 'rgba(170,176,186,0.7)' };
+  return { borderColor: 'rgba(255,255,255,0.3)' };
+}
+
+/** Sub asta, o bandă nu încape cu eticheta în ea: coloana de reacții are 44 dp, uneltele 53 dp. */
+
+/**
+ * The clip of the capture, drawn in the rectangle the published page will draw it in.
+ *
+ * `fit` is not a taste: the reader draws a clip `portrait-cover` (`PostMedia`), i.e. a vertical clip is
+ * cropped to fill the page and a landscape one keeps its whole frame. The editor used to letterbox every
+ * clip inside a centred 9:16 box, so a text dragged to the upper third of what the author saw landed in
+ * the middle of what the reader saw. It now reports the clip's own orientation (`onPortrait`) for the same
+ * decision, and the caller measures the content rectangle from it (`lib/overlayFrame.ts`).
+ */
+function VideoPreview({ uri, muteOriginal, fit = 'cover', onPortrait, clock }: {
+  uri: string;
+  muteOriginal: boolean;
+  fit?: 'cover' | 'contain';
+  onPortrait?: (portrait: boolean) => void;
+  /** The canvas's own reporter (`PostCanvas.mediaClock`): the preview's clock reaches the published bar. */
+  clock?: { current: ((fraction: number, position: number, duration: number) => void) | null };
+}) {
   const player = useVideoPlayer(uri, (instance) => {
     instance.loop = true;
     instance.muted = muteOriginal;
     instance.play();
+    /** Four samples a second, exactly what a published clip gives the bar (`PostMedia`). */
+    instance.timeUpdateEventInterval = 0.25;
   });
-  return <VideoView style={StyleSheet.absoluteFill} player={player} contentFit="contain" nativeControls={false} />;
-}
-
-function MovableText({
-  text, x, y, width, height, onMove, stickerType,
-}: {
-  text: string; x: number; y: number; width: number; height: number;
-  onMove: (x: number, y: number) => void;
-  stickerType?: LocalSticker['type'];
-}) {
-  const [drag, setDrag] = useState({ dx: 0, dy: 0 });
-  const [labelSize, setLabelSize] = useState({ width: 0, height: 0 });
-  const pan = useMemo(() => PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderMove: (_, gesture) => setDrag({ dx: gesture.dx, dy: gesture.dy }),
-    onPanResponderRelease: (_, gesture) => {
-      setDrag({ dx: 0, dy: 0 });
-      if (!width || !height) return;
-      onMove(
-        Math.max(0.08, Math.min(0.92, x + gesture.dx / width)),
-        Math.max(0.08, Math.min(0.92, y + gesture.dy / height)),
-      );
-    },
-  }), [height, onMove, width, x, y]);
-  return (
-    <View {...pan.panHandlers} onLayout={(event) => {
-      const { width: nextWidth, height: nextHeight } = event.nativeEvent.layout;
-      setLabelSize((previous) => previous.width === nextWidth && previous.height === nextHeight ? previous : { width: nextWidth, height: nextHeight });
-    }} style={[styles.movable, stickerType && styles.stickerMovable, stickerType === 'LOCATION' && styles.locationMovable,
-      (stickerType === 'TIME' || stickerType === 'DATE') && styles.clockMovable, {
-      left: `${x * 100}%`, top: `${y * 100}%`,
-      transform: [{ translateX: -labelSize.width / 2 + drag.dx }, { translateY: -labelSize.height / 2 + drag.dy }],
-    }]}>
-      <Text style={[styles.overlayText, stickerType && styles.stickerText, stickerType && {
-        fontSize: stickerType === 'LOCATION'
-          ? Math.min(creatorTokens.decoration.locationMaxFontSize, Math.max(creatorTokens.decoration.locationMinFontSize, width * creatorTokens.decoration.locationViewportFontRatio))
-          : Math.min(creatorTokens.decoration.maxFontSize, Math.max(creatorTokens.decoration.minFontSize, width * creatorTokens.decoration.viewportFontRatio)),
-      }, stickerType === 'LOCATION' && styles.locationText]}>{text}</Text>
-    </View>
-  );
+  /**
+   * The clip's own clock, for the page it is about to become (round 42). `timeUpdate` is the same event
+   * `PostMedia` listens to, so the preview's bar, its two times and the reader's are the same numbers from
+   * the same kind of sample — the preview simply had nobody listening before.
+   */
+  useEffect(() => {
+    const subscription = player.addListener('timeUpdate', ({ currentTime }) => {
+      const total = player.duration || 0;
+      const fraction = total > 0 ? Math.max(0, Math.min(1, currentTime / total)) : 0;
+      clock?.current?.(fraction, Math.max(0, currentTime), total);
+    });
+    return () => subscription.remove();
+  }, [clock, player]);
+  useEffect(() => {
+    const read = (tracks: typeof player.availableVideoTracks) => {
+      const size = tracks.find((track) => track.size.width > 0 && track.size.height > 0)?.size;
+      if (size) onPortrait?.(size.height >= size.width);
+    };
+    read(player.availableVideoTracks);
+    const loaded = player.addListener('sourceLoad', ({ availableVideoTracks }) => read(availableVideoTracks));
+    const changed = player.addListener('videoTrackChange', ({ videoTrack }) => {
+      if (videoTrack?.size) read([videoTrack]);
+    });
+    return () => { loaded.remove(); changed.remove(); };
+  }, [onPortrait, player]);
+  /**
+   * A `textureView`, not the default surface: the editor draws the author's head, the caption and the
+   * draggable words **over** the clip, and a plain `SurfaceView` is composited by Android in its own layer
+   * above every sibling view — the preview showed a video with the post's chrome hidden behind it (seen on
+   * the phone, round 41). A texture view costs a copy per frame and is the only surface a view can be
+   * drawn over; the reader keeps the cheaper one (`PostMedia`), because there the chrome lives *outside*
+   * the video's rectangle.
+   */
+  return <VideoView style={StyleSheet.absoluteFill} player={player} contentFit={fit} nativeControls={false} surfaceType="textureView" />;
 }
 
 export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onExit: () => void }) {
@@ -97,7 +168,21 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   const [stickerError, setStickerError] = useState('');
   const [now, setNow] = useState(0);
   const [screenSize, setScreenSize] = useState({ width: 0, height: 0 });
-  const [mediaSize, setMediaSize] = useState({ width: 0, height: 0 });
+  /**
+   * Is the clip of this capture taller than it is wide? The reader draws a vertical clip `cover` and a
+   * landscape one `contain` (`PostMedia`'s `portrait-cover`), so the preview must know before it can put a
+   * dragged text where the reader will print it. A still picture is always `cover`.
+   *
+   * Until the clip's own track says otherwise the answer is "not portrait": a landscape file must not be
+   * cropped for the first frames of its own preview (round 42).
+   */
+  const [portraitVideo, setPortraitVideo] = useState(false);
+  /**
+   * The author this draft will be published as, read from `/api/me` for the preview's head only. The
+   * publish path keeps its own reading (`loadEditorIdentity`), so a preview that could not be read never
+   * holds a publish back.
+   */
+  const [me, setMe] = useState<MeResponse['user'] | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [audioBusy, setAudioBusy] = useState(false);
   const [musicOpen, setMusicOpen] = useState(false);
@@ -116,12 +201,117 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
   const [flowNote, setFlowNote] = useState<string | null>(null);
   const [flowError, setFlowError] = useState<string | null>(null);
   const [publishedId, setPublishedId] = useState<number | null>(null);
+  /**
+   * How tall the editor's own foot is (the hint lines and the `Next` button), measured rather than
+   * assumed. The preview is the *published* page, so its caption and its rail must stand above whatever
+   * the editor has put at the foot of the screen — the editor's bar plays the part the device's inset
+   * plays on the reader's phone. Measured with `onLayout`, so a longer hint or a second button line moves
+   * the page instead of covering it (owner's „nu văd unde ajunge descrierea", round 41).
+   */
+  const [editorFoot, setEditorFoot] = useState(0);
+  /**
+   * Cât loc iau, în puncte de cadru, benzile de cuvinte ale paginii **publicate**: marginile capului și
+   * înălțimea blocului de descriere, raportate de compoziție (`PostCanvas.onChromeMeasure`, adică din
+   * `onLayout`, nu din stiluri). Ghidajele de zonă sigură se desenează pe aceste numere — un ghidaj socotit
+   * separat ar arăta o bandă pe care pagina nu o are (owner, runda 43: „previzualizarea să fie exact ce se
+   * publică").
+   */
+  const [previewChrome, setPreviewChrome] = useState<PostChromeMeasure>({ head: 0, description: 0 });
+  const measureChrome = useCallback((measure: PostChromeMeasure) => {
+    setPreviewChrome((previous) => (
+      previous.head === measure.head && previous.description === measure.description ? previous : measure
+    ));
+  }, []);
+  /** Ghidajele sunt o unealtă a compozitorului, nu parte din poză: se pot stinge, și nu se publică. */
+  const [guidesOn, setGuidesOn] = useState(true);
+  /** Urma măsurată a coloanei de reacții (`PostRail.onLayout`) — coloana își știe propria înălțime. */
+  const [railBox, setRailBox] = useState<GuideRect | null>(null);
+  /** Urma măsurată a uneltelor editorului: fură loc din poză cât se compune, deci intră în ghidaje. */
+  const [toolBox, setToolBox] = useState<GuideRect | null>(null);
   const publishKey = useRef<string | null>(null);
+  /**
+   * The preview clip's clock, handed to the canvas and filled by the canvas (`PostCanvas.mediaClock`):
+   * the editor's own player writes into it, and the page's bar and times read it. One handle, because a
+   * file on this phone is not a `RemoteVideo` and the canvas owns the only bar there is.
+   */
+  const previewClock = useRef<((fraction: number, position: number, duration: number) => void) | null>(null);
   const audioPlayer = useAudioPlayer(draft.audioUri ?? draft.jamendoAudioUrl ?? null);
   const audioStatus = useAudioPlayerStatus(audioPlayer);
+  /** The aspect the manifest publishes (`studioManifestFor`: `VERTICAL_9_16` or `ORIGINAL`). */
   const mediaAspect = capture.framing === '9:16' ? 9 / 16 : 3 / 4;
-  const frameWidth = Math.min(screenSize.width, screenSize.height * mediaAspect);
-  const frameHeight = frameWidth / mediaAspect;
+  /**
+   * The band the preview page gives up at its foot: the device's own inset plus the strip of air a page
+   * opened from a profile keeps (`profileReaderBottomInset`), and never less than the editor's own bar —
+   * which is what the reader's device inset becomes inside this screen.
+   */
+  const pageFoot = Math.max(profileReaderBottomInset(insets.bottom), editorFoot);
+  /**
+   * The rule the reader will draw this file with: a still picture covers the page, and so does a vertical
+   * clip; a landscape clip keeps its whole frame (`PostMedia`'s `portrait-cover`).
+   *
+   * Round 42 aligns the *unknown* case with the reader's: `portraitVideo` starts `false` for a clip, so a
+   * landscape file is letterboxed from the first frame instead of being cropped until its track arrives
+   * and then jumping to `contain` — the "wrong framing before the orientation is resolved" the owner
+   * reported. The reader resolves the same unknown the same way (`displayedPortraitByHash` defaults to
+   * `false`), so both surfaces guess identically, which is the only thing a guess may do.
+   */
+  const previewFit: 'cover' | 'contain' = capture.kind === 'photo' || portraitVideo ? 'cover' : 'contain';
+  /**
+   * The rectangle the picture **really** occupies, measured against the whole preview surface — the same
+   * rectangle the reader measures on the published page (`lib/overlayFrame.ts::mediaContentRect`). It is
+   * larger than the screen on the short side when the media is cropped, which is exactly why the composer
+   * must not measure its texts against a smaller, centred box.
+   */
+  const previewRect = mediaContentRect({
+    width: screenSize.width, height: screenSize.height, ratio: mediaAspect, fit: previewFit,
+  });
+  /**
+   * What this draft will publish, over the picture: the manifest's own decorations, not a second drawing
+   * of them (`studioDecorations`). A text that is still being typed is here as it will be sent.
+   */
+  const previewDecorations = useMemo(() => {
+    try { return studioDecorations(capture, draft); } catch { return []; }
+  }, [capture, draft]);
+  /**
+   * The clock of the preview, read **once**: `created_at` says „acum" on the head, and a `Date.now()` inside
+   * the memo below would be an impure call during render (eslint's `react-hooks/purity` refuses it, rightly —
+   * the record would change identity on every re-render).
+   */
+  const [previewCreatedAt] = useState(() => Date.now());
+  /**
+   * The post this capture is about to become, as the reader will receive it: the same `SocialPost` fields
+   * `PostCanvas` reads (author, caption, place, time, the media kind that decides the composition). It is
+   * not stored anywhere and its id is negative — a preview is a drawing, not a record.
+   */
+  const previewPost = useMemo<SocialPost>(() => ({
+    id: -1,
+    kind: capture.kind === 'video' ? 'video' : 'image',
+    caption: draft.description,
+    created_at: previewCreatedAt,
+    persona: identity?.persona ?? 'social',
+    /**
+     * The media record, in the shape the reader's own classifier reads. `hash` and `ext` are what make a
+     * post a *media* post at all (`lib/postPresentation.ts::mediaOf` and `socialTypes.postMediaItems` both
+     * require them — the second one wants a 64-character hash), and they are the reason the preview is a
+     * reel and not a page of words: without them the canvas drew the **paper** composition over the clip,
+     * with the author's name in the paper's dark ink (seen on the phone, round 41). No byte is ever fetched
+     * for them: the picture itself comes from this phone (`mediaOverride`), so the canvas never mounts its
+     * own `RemoteImage`/`RemoteVideo` for this record.
+     */
+    media: {
+      hash: '0000000000000000000000000000000000000000000000000000000000000000',
+      ext: capture.kind === 'video' ? 'mp4' : 'jpg',
+      mime: capture.kind === 'video' ? 'video/mp4' : 'image/jpeg',
+      kind: capture.kind === 'video' ? 'video' : 'image',
+    },
+    publishing: { location: draft.publishing.location, locationPrecision: draft.publishing.locationPrecision, title: draft.publishing.title },
+    author: me ? { id: me.id, handle: me.handle, display_name: me.display_name, avatar: me.avatar } : null,
+  }), [capture.kind, draft.description, draft.publishing.location, draft.publishing.locationPrecision, draft.publishing.title, identity?.persona, me, previewCreatedAt]);
+  /**
+   * A dragged label writes the number the manifest stores: the fraction of the **content rectangle** it
+   * was dropped at (`lib/overlayFrame.ts::overlayPercent`), for the placed text and for a sticker alike.
+   * Declared below `updateDraft` (it is the write itself), never above it.
+   */
 
   useEffect(() => {
     if (!(draft.stickers ?? []).some((item) => item.type === 'TIME' || item.type === 'DATE')) return;
@@ -178,6 +368,106 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
       setSaveError(`Draftul nu a putut fi salvat: ${String(error)}`);
     }
   }, [capture]);
+
+  /**
+   * The author of the preview. One read of `/api/me`, for the head of the page the editor shows; a
+   * refusal leaves the head to the canvas's own fallback (`BrandAvatar`, the `nexus` handle) and changes
+   * nothing about publishing, which reads the account through `loadEditorIdentity`.
+   */
+  useEffect(() => {
+    let alive = true;
+    void nexusApi<MeResponse>('/api/me')
+      .then((answer) => { if (alive) setMe(answer?.user ?? null); })
+      .catch(() => { if (alive) setMe(null); });
+    return () => { alive = false; };
+  }, []);
+
+  /**
+   * A dragged label writes the number the manifest stores: the fraction of the **content rectangle** it
+   * was dropped at (`lib/overlayFrame.ts::overlayPercent`), for the placed text and for a sticker alike.
+   */
+  const moveDecoration = useCallback((id: string, x: number, y: number) => {
+    if (id.startsWith('text-')) { updateDraft({ overlayX: x, overlayY: y }); return; }
+    updateDraft({ stickers: (draftRef.current.stickers ?? []).map((entry) => (entry.id === id ? { ...entry, x, y } : entry)) });
+  }, [updateDraft]);
+
+  /**
+   * Benzile de zonă sigură, pe măsurători: capul și descrierea vin din compoziție (`previewChrome`), bara
+   * de la poale din `pageFoot` (insetul telefonului ori bara editorului), iar reacțiile și uneltele din
+   * propriile lor `onLayout`. Toate dreptunghiurile sunt în punctele ecranului, pentru că previzualizarea
+   * este `absoluteFill` pe el.
+   */
+  const guideZones = useMemo<SafeZone[]>(() => {
+    if (screenSize.width <= 0 || screenSize.height <= 0) return [];
+    const measured = [
+      railBox ? { id: 'rail' as const, label: 'Reacțiile', rect: railBox } : null,
+      toolBox ? { id: 'tool' as const, label: 'Uneltele editorului', published: false, rect: toolBox } : null,
+    ].filter((band): band is NonNullable<typeof band> => band !== null);
+    return previewSafeZones({
+      width: screenSize.width,
+      height: screenSize.height,
+      head: previewChrome.head,
+      description: previewChrome.description,
+      foot: pageFoot,
+      systemTop: insets.top,
+      systemBottom: insets.bottom,
+      measured,
+    });
+  }, [insets.bottom, insets.top, pageFoot, previewChrome.description, previewChrome.head, railBox, screenSize.height, screenSize.width, toolBox]);
+
+  /**
+   * Etichetele care cad peste o bandă cu cuvinte sau butoane, grupate pe bandă.
+   *
+   * Punctul fiecărei etichete este cel pe care îl desenează `PostOverlay`: fracția din dreptunghiul de
+   * conținut, dusă în punctele cadrului (`frameSpotOf`). Nimic nu este estimat — dacă o etichetă este sub
+   * numele autorului, apare aici.
+   */
+  const guideHits = useMemo(() => {
+    if (previewRect.width <= 0) return [] as { zone: SafeZone; labels: string[]; ids: string[] }[];
+    const byZone = new Map<string, { zone: SafeZone; labels: string[]; ids: string[] }>();
+    for (const decoration of previewDecorations) {
+      /**
+       * Poziția etichetei, citită din manifest (`x`/`y` sunt **procente** 0–100, nu fracții): conversia o
+       * face `decorationSpot`, într-un singur loc. Înainte, procentul intra direct în `frameSpotOf`, era
+       * limitat la 1 și fiecare etichetă cădea în colțul de jos — de aceea avertismentul nu se vedea.
+       */
+      const spot = decorationSpot(previewRect, decoration);
+      for (const zone of zonesAt(guideZones, spot)) {
+        const entry = byZone.get(zone.id) ?? { zone, labels: [], ids: [] };
+        if (entry.ids.includes(decoration.id)) continue;
+        entry.ids.push(decoration.id);
+        const label = decorationLabel(decoration);
+        if (!entry.labels.includes(label)) entry.labels.push(label);
+        byZone.set(zone.id, entry);
+      }
+    }
+    return [...byZone.values()];
+  }, [guideZones, previewDecorations, previewRect]);
+
+  /**
+   * Mută etichetele care intră în benzi în locurile libere din cadru, ca autorul să nu fie obligat să
+   * ghicească: `freeSpots` așază un punct pentru fiecare, iar fracția scrisă în draft este cea a
+   * dreptunghiului de conținut (`overlayPercent`), adică exact ce va citi reader-ul.
+   */
+  const moveLabelsToSafeArea = useCallback(() => {
+    const ids = [...new Set(guideHits.flatMap((hit) => hit.ids))];
+    if (!ids.length || previewRect.width <= 0) return;
+    const spots = freeSpots(guideZones, { width: screenSize.width, height: screenSize.height, count: ids.length });
+    if (!spots.length) return;
+    ids.forEach((id, index) => {
+      const fraction = fractionOfFrame({ rect: previewRect, point: spots[index] });
+      moveDecoration(id, overlayPercent(fraction.x) / 100, overlayPercent(fraction.y) / 100);
+    });
+  }, [guideHits, guideZones, moveDecoration, previewRect, screenSize.height, screenSize.width]);
+
+  const measureRail = useCallback((event: LayoutChangeEvent) => {
+    const next = boxOf(event);
+    setRailBox((previous) => (sameBox(previous, next) ? previous : next));
+  }, []);
+  const measureTools = useCallback((event: LayoutChangeEvent) => {
+    const next = boxOf(event);
+    setToolBox((previous) => (sameBox(previous, next) ? previous : next));
+  }, []);
 
   function addSticker(type: LocalSticker['type']) {
     const current = draftRef.current;
@@ -399,29 +689,149 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
 
   return (
     <View style={styles.screen} onLayout={(event) => setScreenSize(event.nativeEvent.layout)}>
-      <View style={[styles.mediaFrame, {
-        width: frameWidth, height: frameHeight,
-        left: (screenSize.width - frameWidth) / 2,
-        top: (screenSize.height - frameHeight) / 2,
-      }]} onLayout={(event) => setMediaSize(event.nativeEvent.layout)}>
-        {capture.kind === 'photo' ? <Image source={{ uri: capture.uri }} style={StyleSheet.absoluteFill} resizeMode="contain" /> : <VideoPreview key={draft.audioUri || draft.jamendoAudioUrl ? 'with-music' : 'original-audio'} uri={capture.uri} muteOriginal={!!(draft.audioUri || draft.jamendoAudioUrl)} />}
-        {draft.overlayText ? <MovableText text={draft.overlayText} x={draft.overlayX} y={draft.overlayY} width={mediaSize.width} height={mediaSize.height} onMove={(overlayX, overlayY) => updateDraft({ overlayX, overlayY })} /> : null}
-        {(draft.stickers ?? []).map((sticker) => <MovableText
-          key={sticker.id} stickerType={sticker.type} text={stickerLabel(sticker, now)}
-          x={sticker.x} y={sticker.y} width={mediaSize.width} height={mediaSize.height}
-          onMove={(x, y) => updateDraft({ stickers: (draftRef.current.stickers ?? []).map((entry) => entry.id === sticker.id ? { ...entry, x, y } : entry) })}
-        />)}
+      {/**
+       * The page this capture is about to become, drawn by the component that will draw it after the
+       * publish: `PostCanvas` — the same head, the same caption block, the same foot, the same 9:16
+       * geometry — around the file this phone holds (`mediaOverride`). The editor used to draw its own
+       * approximation of a reel (a centred box, `contain`, a fixed 27-point text in a dark pill), which is
+       * why the owner saw the text "become too large and stand somewhere else" after publishing.
+       *
+       * `mediaOverlay` carries the words over the picture, drawn by the reader's own layer (`PostOverlay`)
+       * in the same content rectangle and at the same type, with the one difference the editor is allowed:
+       * they can be dragged (`onMove` writes the fraction the manifest stores). Being handed to the canvas
+       * also gives the preview the published paint order — picture, then what was written on it, then the
+       * author's head and the caption.
+       */}
+      <View style={StyleSheet.absoluteFill}>
+        <PostCanvas
+          post={previewPost}
+          variant="feed"
+          layout="post"
+          page
+          /**
+           * Round 42: the page starts under the editor's own row, exactly as it starts under the route's
+           * header (`postPageTopInset`). Before it, the canvas began at the status clock while the editor
+           * drew its `×` and `Next` at `inset + 10` — over the author's avatar and his Follow door.
+           */
+          topInset={postPageTopInset(insets.top)}
+          bottomInset={pageFoot}
+          /** Cât loc iau capul și descrierea publicate: ghidajele se desenează pe aceste numere. */
+          onChromeMeasure={measureChrome}
+          mediaClock={previewClock}
+          mediaOverride={previewRect.width > 0 ? (
+            <View style={{
+              position: 'absolute', left: previewRect.left, top: previewRect.top,
+              width: previewRect.width, height: previewRect.height,
+            }}>
+              {capture.kind === 'photo'
+                ? <Image source={{ uri: capture.uri }} style={StyleSheet.absoluteFill} resizeMode={previewFit} />
+                : (
+                  <VideoPreview
+                    key={draft.audioUri || draft.jamendoAudioUrl ? 'with-music' : 'original-audio'}
+                    uri={capture.uri}
+                    muteOriginal={!!(draft.audioUri || draft.jamendoAudioUrl)}
+                    fit={previewFit}
+                    onPortrait={setPortraitVideo}
+                    clock={previewClock}
+                  />
+                )}
+            </View>
+          ) : null}
+          mediaOverlay={(
+            <PostOverlay
+              decorations={previewDecorations}
+              bounds={screenSize}
+              ratio={mediaAspect}
+              fit={previewFit}
+              now={now}
+              onMove={moveDecoration}
+            />
+          )}
+        />
+        {/**
+         * The rail of the page the capture becomes: the same column of presses the reader will put over the
+         * picture, at the same distance from the foot (`RAIL_FOOT` plus the page's own bottom inset), with
+         * the soundtrack's disc on a clip. It is drawn so the preview can be trusted about *where the
+         * buttons stand* — that was the owner's question — but every press is inert here: this is a
+         * drawing of the post, not the post.
+         */}
+        <PostRail
+          bottom={RAIL_FOOT + pageFoot}
+          onLayout={measureRail}
+          summary={null}
+          comments={0}
+          reposts={0}
+          saved={false}
+          reposted={false}
+          heart="emoji"
+          sound={capture.kind === 'video' ? { muted: false, label: 'Oprește sunetul', onToggle: () => {} } : null}
+          onReact={() => {}}
+          onOpenComments={() => {}}
+          onToggleSaved={() => {}}
+          onShare={() => {}}
+        />
+        {/**
+         * Benzile de zonă sigură, desenate pe măsurătorile de mai sus: capul paginii, descrierea, bara
+         * telefonului, coloana de reacții și uneltele editorului. Ele sunt o unealtă a compozitorului — nu
+         * se publică, nu primesc atingerea (`pointerEvents="none"`, ca trasul etichetelor să meargă prin
+         * ele) și se pot stinge din `Ghidaje`.
+         */}
+        {guidesOn && guideZones.length ? (
+          <>
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {guideZones.map((zone) => (
+                <View
+                  key={zone.id}
+                  style={[
+                    styles.guideZone,
+                    guideZoneStyle(zone.id),
+                    !zone.published && styles.guideZoneDraft,
+                    { left: zone.rect.left, top: zone.rect.top, width: zone.rect.width, height: zone.rect.height },
+                  ]}
+                />
+              ))}
+            </View>
+            {/**
+             * Etichetele stau într-un strat al lor, peste tot cadrul: un copil absolut poziționat este măsurat
+             * în lățimea părintelui, iar părintele unei benzi înguste (44 dp de reacții, 53 dp de unelte) nu
+             * are loc pentru un cuvânt — de aceea eticheta ieșea „Uneltele …ui".
+             */}
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {guideZones.map((zone) => (
+                <Text
+                  key={zone.id}
+                  numberOfLines={1}
+                  style={[styles.guideLabel, guideLabelPlacement(zone.rect, screenSize.width)]}
+                >
+                  {zone.label}
+                </Text>
+              ))}
+            </View>
+          </>
+        ) : null}
       </View>
-      <View style={[styles.header, styles.editorHeader, { paddingTop: Math.max(insets.top, 18) + 10 }]}>
+      <View style={[styles.header, styles.editorHeader, { paddingTop: insets.top, height: postPageTopInset(insets.top) }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="Închide editorul" onPress={confirmExit} style={styles.headerButton}><Text style={styles.headerIcon}>×</Text></Pressable>
-        <Text style={styles.heading}>Previzualizare</Text>
+        <View style={styles.headerSpacer} />
         <Pressable accessibilityRole="button" accessibilityLabel="Continuă la detalii" onPress={() => setPage('details')} style={styles.nextButton}><Text style={styles.nextText}>Next</Text></Pressable>
       </View>
-      <View style={[styles.toolRail, { top: Math.max(insets.top, 18) + 78 }]}>
+      <View style={[styles.toolRail, { top: postPageTopInset(insets.top) + 8 }]} onLayout={measureTools}>
         <Pressable accessibilityRole="button" accessibilityLabel="Adaugă text" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setStickersOpen(false); setTextOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>Aa</Text><Text style={styles.toolLabel}>Text</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Adaugă stickere" onPress={() => { setMusicOpen(false); setEmojiOpen(false); setTextOpen(false); setStickersOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>✦</Text><Text style={styles.toolLabel}>Stickere</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Adaugă emoji" onPress={() => { setMusicOpen(false); setStickersOpen(false); setTextOpen(false); setEmojiOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>☺</Text><Text style={styles.toolLabel}>Emoji</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Alege muzică" onPress={() => { setStickersOpen(false); setEmojiOpen(false); setTextOpen(false); setMusicOpen(true); }} style={styles.tool}><Text style={styles.toolIcon}>♫</Text><Text style={styles.toolLabel}>Muzică</Text></Pressable>
+        {/** Ghidajele se pot stinge: sunt o unealtă, iar un autor care vrea să vadă doar fotografia trebuie
+         *  să poată. Starea se spune și în etichetă („Arată"/„Ascunde"), nu doar prin culoare. */}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ selected: guidesOn }}
+          accessibilityLabel={guidesOn ? 'Ascunde ghidajele de zonă sigură' : 'Arată ghidajele de zonă sigură'}
+          onPress={() => setGuidesOn((previous) => !previous)}
+          style={[styles.tool, guidesOn && styles.toolOn]}
+        >
+          <Text style={styles.toolIcon}>⌗</Text>
+          <Text style={styles.toolLabel}>{guidesOn ? 'Ascunde' : 'Ghidaje'}</Text>
+        </Pressable>
       </View>
       {musicOpen ? (
         <View style={[styles.musicPanel, { bottom: Math.max(insets.bottom, 16) + 14 }]}>
@@ -468,7 +878,30 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
           </View>
         </View>
       ) : (
-        <View style={[styles.editorBottom, { paddingBottom: Math.max(insets.bottom, 16) + 14 }]}>
+        <View
+          style={[styles.editorBottom, { paddingBottom: Math.max(insets.bottom, 16) + 14 }]}
+          onLayout={(event) => {
+            const height = Math.round(event.nativeEvent.layout.height);
+            setEditorFoot((previous) => (previous === height ? previous : height));
+          }}
+        >
+          {/**
+           * Ce intră sub cuvinte: benzile pe care textul atinge cuvântul paginii, spuse în cuvinte, plus un
+           * drum de ieșire (`Mută în zona liberă`). Editorul nu mută nimic singur — o etichetă este a
+           * autorului —, dar nici nu-l lasă să creadă că e în regulă.
+           */}
+          {guidesOn && guideHits.length ? (
+            <View style={styles.guideWarn}>
+              {guideHits.map((hit) => (
+                <Text key={hit.zone.id} style={styles.guideWarnText} numberOfLines={2}>
+                  {`„${hit.labels.join('”, „')}” intră ${hit.zone.id === 'head' ? 'sub capul paginii' : hit.zone.id === 'description' ? 'sub descriere' : hit.zone.id === 'rail' ? 'peste reacții' : hit.zone.id === 'tool' ? 'sub uneltele editorului' : 'peste poalele paginii'}`}
+                </Text>
+              ))}
+              <Pressable accessibilityRole="button" accessibilityLabel="Mută etichetele în zona liberă" onPress={moveLabelsToSafeArea} style={styles.guideWarnAction}>
+                <Text style={styles.guideWarnActionText}>Mută în zona liberă</Text>
+              </Pressable>
+            </View>
+          ) : null}
           {draft.audioUri || draft.jamendoAudioUrl ? (
             <View style={styles.audioControls}>
               <Pressable accessibilityRole="button" accessibilityLabel={audioStatus.playing ? 'Oprește muzica' : 'Ascultă muzica'} style={styles.audioButton} onPress={() => audioStatus.playing ? audioPlayer.pause() : audioPlayer.play()}><Text style={styles.audioButtonText}>{audioStatus.playing ? 'Pauză' : 'Ascultă'}</Text></Pressable>
@@ -487,17 +920,20 @@ export function CaptureEditor({ capture, onExit }: { capture: LocalCapture; onEx
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#050507' },
-  mediaFrame: { position: 'absolute', overflow: 'hidden' },
-  movable: { position: 'absolute', maxWidth: '78%', padding: 8, borderRadius: 8, backgroundColor: '#0005' },
-  stickerMovable: { backgroundColor: 'transparent', paddingHorizontal: creatorTokens.decoration.horizontalPadding, paddingVertical: creatorTokens.decoration.verticalPadding },
-  clockMovable: { paddingHorizontal: creatorTokens.decoration.timeHorizontalPadding, paddingVertical: creatorTokens.decoration.timeVerticalPadding },
-  locationMovable: { maxWidth: '86%', backgroundColor: '#ffffff', borderRadius: creatorTokens.decoration.locationRadius },
-  overlayText: { color: '#fff', fontSize: 27, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 6, textAlign: 'center' },
-  stickerText: { fontWeight: '800', letterSpacing: creatorTokens.decoration.timeLetterSpacing },
-  locationText: { color: '#111111', textShadowRadius: 0, letterSpacing: 0 },
+  /**
+   * The room the preview is drawn in. `overflow: 'hidden'` is the page's own edge: the content rectangle
+   * of a cropped picture is wider than the phone (`lib/overlayFrame.ts`), exactly as it is on the
+   * published page, and only the part inside the screen can be seen.
+   */
+  screen: { flex: 1, backgroundColor: '#050507', overflow: 'hidden' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18 },
-  editorHeader: { position: 'absolute', left: 0, right: 0 },
+  /**
+   * The title used to stand here, and on a full-screen preview it landed on the author's name — the one
+   * piece of the page the owner checks first (round 41). The screen is the preview; the two doors at its
+   * ends say what it is, so the row keeps the room and drops the words.
+   */
+  headerSpacer: { flex: 1 },
+  editorHeader: { position: 'absolute', left: 0, right: 0, top: 0 },
   headerButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#0009', alignItems: 'center', justifyContent: 'center' },
   headerIcon: { color: '#fff', fontSize: 29, lineHeight: 32 },
   heading: { color: '#fff', fontWeight: '800', fontSize: 17, textShadowColor: '#000', textShadowRadius: 6 },
@@ -507,6 +943,37 @@ const styles = StyleSheet.create({
   tool: { alignItems: 'center', backgroundColor: '#0009', borderRadius: 15, padding: 8, minWidth: 50 },
   toolIcon: { color: '#fff', fontSize: 24, fontWeight: '800' },
   toolLabel: { color: '#fff', fontSize: 11 },
+  /** Uneltele aprinse (ghidajele arătate): o urmă în culoarea paginii, nu o a doua culoare. */
+  toolOn: { backgroundColor: 'rgba(255,49,95,0.42)', borderWidth: 1, borderColor: 'rgba(255,49,95,0.85)' },
+  /**
+   * Un ghidaj de zonă sigură: un dreptunghi punctat, fără umplere (fotografia rămâne vizibilă sub el) și
+   * fără atingere — trasul etichetelor trece prin el. Culoarea vine din `guideZoneStyle`, după bandă.
+   */
+  guideZone: { position: 'absolute', borderWidth: 1, borderStyle: 'dashed', borderRadius: 8 },
+  /** Benzile care nu se publică (uneltele editorului) se desenează mai stins: nu fac parte din poză. */
+  guideZoneDraft: { borderStyle: 'dotted', opacity: 0.72 },
+  /**
+   * Eticheta benzii: o pastilă întunecată, ca să se citească și pe o poză albă (o umbră singură nu ajunge
+   * peste zăpadă). Unde stă — în bandă, deasupra ei sau în stânga, când banda e prea îngustă pentru un
+   * cuvânt — se hotărăște în `guideLabelPlacement`, pe măsurătoarea benzii, nu aici.
+   */
+  guideLabel: {
+    position: 'absolute', fontSize: 10, fontWeight: '800',
+    color: 'rgba(255,255,255,0.96)', backgroundColor: 'rgba(6,6,8,0.74)',
+    paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6, overflow: 'hidden',
+    textShadowColor: '#000', textShadowRadius: 6,
+  },
+  /** Avertismentul locurilor ocupate: o bandă, nu un dialog — autorul trebuie să vadă în continuare poza. */
+  guideWarn: {
+    gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14,
+    backgroundColor: 'rgba(10,10,12,0.86)', borderWidth: 1, borderColor: 'rgba(255,49,95,0.55)',
+  },
+  guideWarnText: { color: '#fff', fontSize: 12, fontWeight: '700', textAlign: 'center' },
+  guideWarnAction: {
+    alignSelf: 'center', paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999,
+    borderWidth: 1, borderColor: 'rgba(255,49,95,0.9)', backgroundColor: 'rgba(255,49,95,0.18)',
+  },
+  guideWarnActionText: { color: '#fff', fontSize: 12, fontWeight: '800' },
   editorBottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 20, gap: 10 },
   audioControls: { flexDirection: 'row', gap: 8, alignItems: 'center', borderRadius: 14, backgroundColor: '#000b', padding: 7 },
   audioButton: { borderRadius: 10, backgroundColor: '#ffffff26', paddingHorizontal: 10, paddingVertical: 8 },

@@ -1,6 +1,6 @@
-﻿import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
-  Pressable, StyleSheet, Text, View, useWindowDimensions,
+  Animated, Pressable, StyleSheet, Text, View, useWindowDimensions,
   type LayoutChangeEvent, type StyleProp, type ViewStyle,
 } from 'react-native';
 import { blackSilver } from '../theme/blackSilver';
@@ -23,6 +23,9 @@ import { POST_HEAD, postHeadArrangement } from '../lib/postChrome';
 import { pagePaletteOf, pageStyleForPost, textStyleForPost, defaultTextStyle } from '../lib/textStyle';
 import { wordPageGutter, wordPageHead, wordPageRailReserve } from '../lib/textPage';
 import { RAIL_FOOT } from './PostRail';
+import { PostScrim, WordsBand, useBlockHeight } from './PostReadability';
+import { descriptionScrim, headerScrim, type ReadabilityGround } from '../lib/readability';
+
 import { socialTokens } from '../theme/social';
 import { mercury, mercuryAvatar } from '../theme/mercury';
 import { STATEMENT_CHARS, editorial, editorialType } from '../theme/editorial';
@@ -48,6 +51,18 @@ import { STATEMENT_CHARS, editorial, editorialType } from '../theme/editorial';
  */
 
 export type PostCanvasVariant = 'feed' | 'reader' | 'tile';
+
+/**
+ * Cât loc iau, în punctele cadrului, cele două benzi de cuvinte pe care compoziția le desenează:
+ * `head` este marginea de jos a capului (de la marginea de sus a cadrului, cu tot cu `topInset`), iar
+ * `description` este înălțimea blocului de la poale. Zero înseamnă „banda nu este desenată".
+ *
+ * Compozitorul le primește prin `onChromeMeasure` ca să-și deseneze ghidajele de zonă sigură pe numere
+ * reale, nu pe o socoteală paralelă — altfel previzualizarea ar arăta o bandă pe care pagina publicată nu
+ * o are.
+ */
+export type PostChromeMeasure = { head: number; description: number };
+
 
 /**
  * Where a surface keeps the actions of the post it is drawing. A page with media is read with the thumb on
@@ -161,7 +176,7 @@ export function PostCanvas({
   post, variant = 'feed', layout = 'reel', active = false, muted = true, expanded = false,
   onError, onOpenAuthor, onToggleExpanded, onTranslate, notice, noticeTone = 'error',
   onPressMedia, authorAction, playBadge = false, bottomActions, page = false,
-  topInset = 0, bottomInset = 0, folio,
+  topInset = 0, bottomInset = 0, folio, mediaOverride, mediaOverlay, mediaClock, onChromeMeasure,
 }: {
   post: SocialPost;
   variant?: PostCanvasVariant;
@@ -193,6 +208,37 @@ export function PostCanvas({
    */
   topInset?: number;
   bottomInset?: number;
+  /**
+   * The media layer, when the caller already holds it.
+   *
+   * The composer's preview is the one surface whose file does not live on `/media/…`: it is a capture
+   * still sitting on this phone, so it cannot travel through `RemoteImage`/`RemoteVideo` (both of which
+   * need a hashed server path). Handing the canvas the layer it should draw instead lets the preview be
+   * the **published composition** — the same head, the same caption, the same rail maths, the same
+   * overlay rectangle — instead of a second, approximate rendering of a post. A post drawn from the API
+   * never passes it.
+   */
+  mediaOverride?: React.ReactNode;
+  /**
+   * Where a caller-drawn `mediaOverride` reports its own clock (round 42: the composer's preview).
+   *
+   * The bar, its two times and its seek are *this* component's, and a published clip feeds them through
+   * `RemoteVideo.onProgress`. A clip that is still a file on this phone is not a `RemoteVideo`, so before
+   * round 42 the preview had no bar at all: the composer promised a page whose clock only appeared after
+   * publishing. The canvas now fills this ref with the same reporter, and the editor's own player calls
+   * it — one clock, one bar, and the preview says how long the clip is before it is published.
+   */
+  mediaClock?: { current: ((fraction: number, position: number, duration: number) => void) | null };
+  /**
+   * What is drawn **on the picture, under the chrome**: the decorations a manifest carries (a text, a
+   * clock, a place — `PostDecorations`).
+   *
+   * It is a slot and not a sibling because the order of painting is the whole point: the picture, then its
+   * veil, then what was written on the picture, and only then the author's head and the caption. A layer
+   * mounted beside the canvas stood *over* the head, and on a profile reel the author's own text printed
+   * itself through his name (owner's screenshot, round 41). The one visual order is decided here, once.
+   */
+  mediaOverlay?: React.ReactNode;
   /**
    * The row a **page of words** prints its folio in (`lib/textPage.ts::folioRow`), when the surface reading
    * it is not the default one: `undefined` keeps `PAGE_FOLIO` (the feed, the composer's receipt, every
@@ -244,22 +290,41 @@ export function PostCanvas({
    * a list leaves this off: it keeps the canvas's own padding and its compact row under the words.
    */
   page?: boolean;
-}) {
-  const [width, setWidth] = useState(0);
   /**
-   * How far the clip has played (0-1), reported by `RemoteVideo.onProgress`. It lives here and not in the
-   * media component because the strip has to be drawn *after* the frame's veil: a clip is composed without
-   * native controls, and the veil would otherwise bury a 3px line at the bottom of the frame.
+   * Cât loc iau capul și descrierea, în punctele cadrului, pentru singura suprafață care trebuie să le
+   * știe dinainte: compozitorul (`CaptureEditor`), care își desenează ghidajele de zonă sigură peste
+   * previzualizare. Este o **măsurătoare raportată**, nu o a doua socoteală: numerele vin din `onLayout`
+   * pe cap și pe blocul de jos, deci ghidajul și pagina publicată nu pot să difere. Orice altă suprafață
+   * nu are nevoie de ea și nu o pasează.
    */
-  const [watched, setWatched] = useState(0);
+  onChromeMeasure?: (measure: PostChromeMeasure) => void;
+}) {
+  /**
+   * Măsurătoarea cadrului: lățimea a fost dintotdeauna aici, iar înălțimea este ce lipsea. Ambele vin
+   * dintr-un singur `onLayout`, pentru că scrim-ul are nevoie de înălțimea cadrului ca să-și socotească
+   * penumbra (o parte din cadru, nu un număr fix).
+   */
+  const [box, setBox] = useState({ width: 0, height: 0 });
+  const width = box.width;
+
+  /**
+   * How far the clip has played (0-1), reported by `RemoteVideo.onProgress`.
+   *
+   * Round 42: it is an `Animated.Value`, not state. A 23-second clip reports four times a second, and a
+   * *state* write there re-rendered this whole composition — picture, veil, decorations, caption, clock —
+   * eight to nine times a second for as long as the clip ran. That is what made a reel feel different
+   * from a page of words: the page has no clip, so nothing redrew while the thumb was on the reaction
+   * press, and the panel's drag was smooth. The bar is the only thing that moves, so the bar is the only
+   * thing told: `setValue` writes straight to the view and no React render happens.
+   */
+  const watched = useRef(new Animated.Value(0)).current;
   /** The clip's clock: fraction for the bar, position and duration for the words beside it. */
   const [clock, setClock] = useState({ position: 0, duration: 0 });
   /** The player's hand, filled by `RemoteVideo`: a tap on the bar seeks through it. */
   const seekRef = useRef<((fraction: number) => void) | null>(null);
   const trackWidth = useRef(0);
   const reportProgress = useCallback((fraction: number, position = 0, duration = 0) => {
-    // Below half a percent nothing moves on screen; not re-rendering there keeps a long clip cheap.
-    setWatched((previous) => (Math.abs(previous - fraction) < 0.005 ? previous : fraction));
+    watched.setValue(Math.max(0, Math.min(1, fraction)));
     setClock((previous) => {
       /** The readout ticks once a second, not four times: a clock that flickers is a clock that lies. */
       const nextPosition = Math.floor(position);
@@ -267,7 +332,17 @@ export function PostCanvas({
       if (previous.position === nextPosition && previous.duration === nextDuration) return previous;
       return { position: nextPosition, duration: nextDuration };
     });
-  }, []);
+  }, [watched]);
+  /**
+   * The door a caller-drawn media layer reports its clock through (the composer's preview). A published
+   * clip arrives here as `RemoteVideo.onProgress`; a file on this phone arrives through this ref, and both
+   * end in the same two places: the bar and the two times.
+   */
+  useEffect(() => {
+    if (!mediaClock) return;
+    mediaClock.current = reportProgress;
+    return () => { mediaClock.current = null; };
+  }, [mediaClock, reportProgress]);
   const metrics = METRICS[variant];
   const k = scaleOf(width, variant);
   const tile = variant === 'tile';
@@ -298,12 +373,30 @@ export function PostCanvas({
    */
   const railGutter = stacked && !page ? 0 : wordPageGutter(metrics.railGutter, wordPage, metrics.padH);
   /**
+   * The room the **clip's clock** keeps on the right, in the page's own points.
+   *
+   * The strip used to run the full width of the padded block, so its last 60-odd points — and the
+   * `0:12 / 0:30` printed there — stood under the rail's soundtrack disc, which is a 56dp circle 10dp
+   * from the edge (`PostRail`). The owner read the collision as „bara de progres intră peste butonul de
+   * sunet" (round 41). The rail is measured from the *screen's* edge and this block is already inset by
+   * `metrics.padH`, so the clock yields the difference — the number the caption above it already yields
+   * (`bottomInner`), which also puts the bar and the words on one right edge.
+   */
+  const railFootGutter = Math.max(0, railGutter - metrics.padH);
+  /**
    * The head of a page of words: the author's face and name one step larger than the same head on a
    * card, because the page is the whole screen and a 14dp name over an 18dp page margin reads as a
    * caption. Only the words are set this way — a picture, a clip and a cell keep `metrics` exactly, so
    * no photograph grew a face it did not ask for (`lib/textPage.ts`).
+   *
+   * Round 41: a page that prints its head **at the top of the frame** — a profile reel, the composer's
+   * preview of one — takes the same step. The owner asked for the top of a reel and the top of a text
+   * post opened from the same profile to be the *same* block: same face, same name, same handle line, same
+   * place line. A 54dp face over a clip is the face the page beside it carries; the feed's immersive page
+   * (`layout="reel"`, head at the foot) keeps its 42 exactly as before.
    */
-  const head = wordPageHead(metrics, wordPage);
+  const pageHead = wordPage || (page && stacked && !tile);
+  const head = wordPageHead(metrics, pageHead);
   /** Where the head of a page begins: at the notification band itself, or below the card's own padding. */
   const headTop = (page ? 0 : metrics.padB) + topInset;
 
@@ -396,6 +489,63 @@ export function PostCanvas({
    * with that theme's accent. No stored row is rewritten to get there.
    */
   const pagePalette = pageStyle ? pagePaletteOf(pageStyle) : null;
+  /**
+   * Cele două straturi de citire, măsurate — nu socotite (`lib/readability.ts`).
+   *
+   *   · `headBlock` măsoară banda capului: pe un card și pe o pagină de lectură, blocul care ține fața,
+   *     numele, `@handle`, data, locul și declarația; pe un reel capul stă în blocul de jos, deci aici
+   *     rămâne zero și scrim-ul de sus nu se desenează;
+   *   · `footBlock` măsoară blocul de la poale (autorul pe un reel, textul, `Citește tot`, rândul de
+   *     acțiuni, ceasul clipului) — deci descrierea își ia exact înălțimea textului pe care îl apără.
+   *
+   * `ground` este terenul: un cadru cu imagine are nevoie de umbră, o pagină de hârtie nu (hârtia este
+   * chiar suprafața de citire — un scrim negru ar fi o bandă gri pe ea, iar cerneala paginii este deja
+   * întunecată pe un fundal deschis).
+   */
+  const headBlock = useBlockHeight();
+  const footBlock = useBlockHeight();
+  /** Cât loc ia blocul de cuvinte al paginii, raportat de `WordsBand` (`onMeasure`). */
+  const [wordsHeight, setWordsHeight] = useState(0);
+  const frameHeight = box.height || (box.width ? Math.round(box.width * (16 / 9)) : 0);
+  const ground: ReadabilityGround = pagePalette ? 'paper' : 'night';
+  /** Capul stă în ramura de lectură (text, articol, citat), nu în cea de imagine. */
+  const headInReading = stage !== 'media' && stage !== 'reel';
+  /**
+   * Cerneala benzilor: negrul de câmp pe un cadru cu imagine, cerneala caldă a paginii pe hârtie. Este
+   * aceeași bandă, desenată cu ce e întunecat pe terenul ei.
+   */
+  const scrimInk = pagePalette ? pagePalette.text : editorial.fieldDeep;
+  /**
+   * Amândouă benzile se desenează pe **orice** teren (runda 45). Până acum hârtia ieșea din ele, iar un
+   * text publicat rămânea singurul cadru fără cap și fără descriere delimitate.
+   */
+  const headGeometry = headerScrim({
+    block: headBlock.height, above: headInReading ? headTop : 0, frame: frameHeight, ground,
+  });
+  const footGeometry = ground === 'paper' || headInReading
+    ? null
+    : descriptionScrim({ block: footBlock.height, frame: frameHeight });
+  /**
+   * Banda cuvintelor este desenată de `WordsBand` (măsurată pe bloc), **afară** de cazul în care o pagină
+   * de hârtie scrisă în compozitor o desenează singură, din rândurile fluxului (`EditorialPage`) — acolo un
+   * al doilea strat ar însemna o bandă dublă peste aceleași cuvinte.
+   */
+  const pageDrawsBand = authoredPage && ground === 'paper';
+  /**
+   * Ce află compozitorul: marginile reale ale celor două benzi de cuvinte, ca ghidajele lui de zonă
+   * sigură să fie pagina publicată, nu o a doua schiță a ei.
+   */
+  const headBand = headBlock.height > 0
+    ? headBlock.height + (headInReading ? headTop : 0)
+    : 0;
+  /** Ce bandă de descriere desenează compoziția: blocul de jos pe un cadru cu imagine, cuvintele pe o pagină. */
+  const footBand = headInReading
+    ? (pageDrawsBand ? 0 : wordsHeight)
+    : footBlock.height;
+  useEffect(() => {
+    onChromeMeasure?.({ head: headBand, description: footBand });
+  }, [onChromeMeasure, headBand, footBand]);
+
   /**
    * The head of a page is set in the page's ink: the reader's white name over a cream page would print
    * the author into the paper.
@@ -519,7 +669,15 @@ export function PostCanvas({
     const original = conversation.layers[conversation.layers.length - 1]?.post;
     const originalHandle = original?.author?.handle || 'nexus';
     return (
-      <View style={styles.fill} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+      <View
+        style={styles.fill}
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout;
+          setBox((previous) => (previous.width === Math.round(next.width) && previous.height === Math.round(next.height)
+            ? previous
+            : { width: Math.round(next.width), height: Math.round(next.height) }));
+        }}
+      >
         {!plate ? <RemoteImage item={cover} fit="cover" style={styles.media} onError={onError} /> : null}
         {plate ? (
           <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
@@ -603,10 +761,18 @@ export function PostCanvas({
 
 
 
-  const hasMedia = items.length > 0;
+  const hasMedia = items.length > 0 || Boolean(mediaOverride);
 
   return (
-    <View style={styles.fill} onLayout={(event) => setWidth(event.nativeEvent.layout.width)}>
+    <View
+        style={styles.fill}
+        onLayout={(event) => {
+          const next = event.nativeEvent.layout;
+          setBox((previous) => (previous.width === Math.round(next.width) && previous.height === Math.round(next.height)
+            ? previous
+            : { width: Math.round(next.width), height: Math.round(next.height) }));
+        }}
+      >
       {/**
        * The field under the picture. A page is the whole window, and a picture is not always the window's
        * shape: a landscape clip keeps its whole frame (`portrait-cover` falls back to `contain` for it), so
@@ -625,7 +791,14 @@ export function PostCanvas({
         <Rect width="100%" height="100%" fill={`url(#nxCanvasField-${post.id})`} />
       </Svg>
 
-      {stage !== 'article' && items.length > 1 ? (
+      {/**
+       * The media layer. The clip's own failure reaches `onError` (the page prints its sentence); a
+       * **soundtrack** that will not sync does not — it used to, and the page printed „Fișierul media nu a
+       * putut fi încărcat." over a clip that was playing perfectly (round 41, after the app restarted and
+       * the Jamendo preview lost its player). A soundtrack is a decoration on the clip, not the clip.
+       */}
+      {stage !== 'article' && mediaOverride ? mediaOverride : null}
+      {stage !== 'article' && !mediaOverride && items.length > 1 ? (
         <PostMediaGallery
           post={post}
           active={active}
@@ -636,7 +809,7 @@ export function PostCanvas({
           style={styles.media}
         />
       ) : null}
-      {stage !== 'article' && items.length <= 1 && cover && isVideo ? (
+      {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && isVideo ? (
         <RemoteVideo
           item={cover}
           fit="portrait-cover"
@@ -647,10 +820,10 @@ export function PostCanvas({
           onProgress={reportProgress}
           seekRef={seekRef}
           onError={() => onError?.()}
-          onAudioError={() => onError?.()}
+          onAudioError={() => {}}
         />
       ) : null}
-      {stage !== 'article' && items.length <= 1 && cover && !isVideo ? (
+      {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && !isVideo ? (
         <RemoteImage item={cover} fit="cover" style={styles.media} onError={onError} />
       ) : null}
 
@@ -698,21 +871,16 @@ export function PostCanvas({
       <Svg pointerEvents="none" style={StyleSheet.absoluteFill} width="100%" height="100%">
         <Defs>
           <LinearGradient id={`nxCanvasVeil-${post.id}`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#000000" stopOpacity={0.44} />
+            {/**
+             * Vălul este acum doar **fundalul** compoziției; citirea propriu-zisă o fac cele două straturi
+             * măsurate (`PostScrim`). De aceea poalele lui au coborât de la `0.92` la `0.55`: un văl aproape
+             * opac pe toată lățimea ecranului, plus scrim-ul descrierii peste el, ar fi însemnat o bandă
+             * neagră de două ori mai închisă decât are nevoie textul și o poză stinsă la poale fără motiv.
+             */}
+            <Stop offset="0" stopColor="#000000" stopOpacity={0.34} />
             <Stop offset="0.22" stopColor="#000000" stopOpacity={0.04} />
-            <Stop offset="0.62" stopColor="#000000" stopOpacity={0.18} />
-            <Stop offset="1" stopColor="#000000" stopOpacity={0.92} />
-          </LinearGradient>
-          {/**
-           * A post's head sits *over* the picture (`layout="post"`), so it needs its own scrim: the
-           * gradient falls from the card's charcoal to nothing across the height of the author block. A
-           * photograph is never blurred, dimmed or cropped for the sake of the words — the words get a
-           * reading surface of their own.
-           */}
-          <LinearGradient id={`nxCanvasHead-${post.id}`} x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor={editorial.fieldDeep} stopOpacity={0.96} />
-            <Stop offset="0.6" stopColor={editorial.fieldDeep} stopOpacity={0.72} />
-            <Stop offset="1" stopColor={editorial.fieldDeep} stopOpacity={0} />
+            <Stop offset="0.62" stopColor="#000000" stopOpacity={0.12} />
+            <Stop offset="1" stopColor="#000000" stopOpacity={0.55} />
           </LinearGradient>
         </Defs>
         {/**
@@ -724,8 +892,32 @@ export function PostCanvas({
          * is that its paper is the colour it says it is.
          */}
         <Rect width="100%" height="100%" fill={`url(#nxCanvasVeil-${post.id})`} opacity={pagePalette ? 0 : hasMedia ? 1 : 0.4} />
-        {stacked && hasMedia && stage !== 'article' ? <Rect width="100%" height={132 + topInset} fill={`url(#nxCanvasHead-${post.id})`} /> : null}
       </Svg>
+
+      {/**
+       * What was written **on** the picture, above its veil and below every word of the composition's own
+       * chrome (`mediaOverlay`): a text, a clock, a place. The author's head, the caption and the rail are
+       * drawn after this line, so no sticker can print itself through a name.
+       */}
+      {mediaOverlay}
+
+      {/**
+       * Capul compoziției are propriul lui teren de citire, desenat **după** ce s-a scris pe imagine
+       * (`lib/readability.ts::headerScrim`).
+       *
+       * Până la runda 43 acesta era un gradient de `132 + topInset` puncte, desenat numai pe un card cu
+       * imagine: un număr fix nu putea să acopere un cap care crește cu fontul cititorului și nici să nu
+       * acopere o treime dintr-o poză luminată pe un ecran scurt. Acum înălțimea vine din măsurătoarea
+       * capului (`headBlock`, `onLayout`) plus o penumbră proporțională cu cadrul.
+       *
+       * Runda 45: banda se desenează pe **orice** teren, inclusiv pe pagina de hârtie, unde lipsea cu
+       * desăvârșire. Acolo are aceeași formă și altă greutate (`READABILITY.paper.header`) și cerneala
+       * paginii, deci se vede fără să transforme hârtia într-o placă. Un text sau un ceas tras în capul
+       * unui clip nu poate trece prin nume: scrim-ul este deasupra lui (owner: „stickerele acoperă
+       * butoanele din header").
+       */}
+      <PostScrim id={`nxCanvasHead-${post.id}`} geometry={headGeometry} color={scrimInk} />
+
 
       {/**
        * The clip's clock is drawn with the composition, not over the frame's edge: the bar, its times and
@@ -748,12 +940,27 @@ export function PostCanvas({
       {stage === 'media' || stage === 'reel' ? (
         <>
           {/**
+           * Terenul de citire al **descrierii**, ancorat la poale (`lib/readability.ts::descriptionScrim`).
+           *
+           * El crește în sus cât blocul de jos măsurat — textul de trei rânduri, `Citește tot`, rândul de
+           * acțiuni, ceasul clipului, numele autorului pe un reel —, plus o penumbră proporțională cu
+           * cadrul. Este desenat **înaintea** cuvintelor, deci nu poate acoperi nici un `Citește tot`, nici
+           * o reacție, nici bara clipului: stratul stă sub ele, iar rândul de acțiuni (`PostRail`) este
+           * desenat de suprafață peste compoziție. Vălul de la poale a fost coborât la `0.55` pentru că
+           * scrim-ul adaugă partea lui deasupra lui.
+           */}
+          <PostScrim id={`nxCanvasFoot-${post.id}`} geometry={footGeometry} color={scrimInk} anchor="bottom" />
+
+          {/**
            * A picture's author is stamped at the top of the frame, the way the post page of the web prints it:
            * the bottom belongs to the words and to the row of actions under them. A clip keeps the author at
            * the bottom, beside the rail its thumb already knows.
            */}
           {stacked ? (
-            <View style={[styles.top, { paddingHorizontal: metrics.padH, paddingTop: headTop }]}>
+            <View
+              style={[styles.top, { paddingHorizontal: metrics.padH, paddingTop: headTop }]}
+              onLayout={headBlock.onLayout}
+            >
               {repostName ? (
                 <Text style={[styles.repostLine, { fontSize: metrics.handle }]} numberOfLines={1}>
                   {`${repostName} a repostat`}
@@ -763,7 +970,10 @@ export function PostCanvas({
             </View>
           ) : null}
 
-          <View style={[styles.bottom, { paddingHorizontal: metrics.padH, paddingBottom: (bottomActions ? Math.round(metrics.padB * 0.4) : metrics.padB) + bottomInset }]}>
+          <View
+            style={[styles.bottom, { paddingHorizontal: metrics.padH, paddingBottom: (bottomActions ? Math.round(metrics.padB * 0.4) : metrics.padB) + bottomInset }]}
+            onLayout={footBlock.onLayout}
+          >
           {!stacked && repostName ? (
             <Text style={[styles.repostLine, { fontSize: metrics.handle }]} numberOfLines={1}>
               {`${repostName} a repostat`}
@@ -799,14 +1009,19 @@ export function PostCanvas({
           {bottomActions ? <View style={[styles.actionsRow, { paddingRight: railGutter }]}>{bottomActions}</View> : null}
           {/**
            * The clip's clock (§9): a bar with the position it is at, the length it has, and a seek. It sits
-           * *above* the action row — never over it — and only once the clip has really been read, so forty
-           * cards in a list do not each carry an empty 0:00/0:00 line.
+           * *above* the action row — never over it — keeps the rail's own room on the right
+           * (`railFootGutter`), and only once the clip has really been read, so forty cards in a list do not
+           * each carry an empty 0:00/0:00 line.
+           *
+           * The bar itself is 4dp of ink, so its *press* is given the room a thumb needs: 16dp of track plus
+           * `hitSlop` above and below is the 44dp target every other control of the page keeps (round 41).
            */}
           {isVideo && clock.duration > 0 ? (
-            <View style={styles.videoClock}>
+            <View style={[styles.videoClock, { paddingRight: railFootGutter }]}>
               <Pressable
                 accessibilityRole="adjustable"
                 accessibilityLabel={`Clip la ${formatClock(clock.position)} din ${formatClock(clock.duration)}. Apasă pe bară pentru a căuta.`}
+                hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
                 onLayout={(event) => { trackWidth.current = event.nativeEvent.layout.width; }}
                 onPress={(event) => {
                   const width = trackWidth.current;
@@ -815,7 +1030,11 @@ export function PostCanvas({
                 style={styles.videoTrack}
               >
                 <View style={styles.videoRail}>
-                  <View style={[styles.videoFill, { width: `${Math.round(watched * 100)}%` }]} />
+                  <Animated.View
+                    style={[styles.videoFill, {
+                      width: watched.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+                    }]}
+                  />
                 </View>
               </Pressable>
               <Text style={styles.videoTime}>{`${formatClock(clock.position)} / ${formatClock(clock.duration)}`}</Text>
@@ -830,7 +1049,7 @@ export function PostCanvas({
            * the location the author attached (never an invented one — `locationOf` reads
            * `publishing.location` and answers '' otherwise).
            */}
-          <View style={styles.readingHead}>
+          <View style={styles.readingHead} onLayout={headBlock.onLayout}>
             {repostName ? (
               <Text style={[styles.repostLine, { fontSize: metrics.handle }, pageFaintInk]} numberOfLines={1}>
                 {`${repostName} a repostat`}
@@ -846,19 +1065,36 @@ export function PostCanvas({
            */}
           <View style={styles.readingCenter}>
             <View style={[styles.readingBodyWrap, { paddingRight: bodyGutter }]}>
-              {stage === 'quote' ? (
-                <>
-                  {post.caption ? (
-                    <RichText
-                      text={post.caption}
-                      style={[styles.quoteIntro, { fontSize: metrics.quoteIntro, lineHeight: metrics.quoteIntroLine }]}
-                      numberOfLines={6}
-                      hashtagStyle={styles.mark}
-                      mentionStyle={styles.markMention}
-                    />
-                  ) : null}
-                  <QuotePanels layers={conversation.layers} />
-                  {conversation.omitted > 0 ? (
+              {/**
+               * Blocul de cuvinte al paginii (`WordsBand`), cu banda lui măsurată înăuntru.
+               *
+               * `flex` păstrează exact așezarea pe care o avea `readingBodyWrap`: un text paginat și un
+               * articol își iau tot locul, iar o declarație și un citat își iau doar înălțimea lor, ca banda
+               * să fie a cuvintelor, nu a paginii goale de sub ele. Banda este desenată **înaintea**
+               * cuvintelor, deci nu poate acoperi un `Citește tot`, `Vezi traducerea` sau un tag.
+               */}
+              <WordsBand
+                id={`nxCanvasWords-${post.id}`}
+                color={scrimInk}
+                frame={frameHeight}
+                ground={ground}
+                flex={!(stage === 'quote' || statement)}
+                band={!pageDrawsBand}
+                onMeasure={setWordsHeight}
+              >
+                {stage === 'quote' ? (
+                  <>
+                    {post.caption ? (
+                      <RichText
+                        text={post.caption}
+                        style={[styles.quoteIntro, { fontSize: metrics.quoteIntro, lineHeight: metrics.quoteIntroLine }]}
+                        numberOfLines={6}
+                        hashtagStyle={styles.mark}
+                        mentionStyle={styles.markMention}
+                      />
+                    ) : null}
+                    <QuotePanels layers={conversation.layers} />
+                    {conversation.omitted > 0 ? (
                     <Text style={styles.quoteNote}>
                       {`+${conversation.omitted} ${conversation.omitted === 1 ? 'strat anterior' : 'straturi anterioare'} în conversație`}
                     </Text>
@@ -924,6 +1160,7 @@ export function PostCanvas({
                   ) : null}
                 </>
               )}
+              </WordsBand>
             </View>
           </View>
 

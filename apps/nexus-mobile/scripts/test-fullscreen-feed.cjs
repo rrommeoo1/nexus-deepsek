@@ -81,8 +81,9 @@ test('postul umple ecranul, iar cuvintele se feresc de notch și de semnul de ge
 test('un reel umple pagina la fel ca un post', () => {
   assert.match(reel, /<PostStage fill>/, 'the reel is the page, not a 9:16 box inside it');
   assert.doesNotMatch(reel, /<PostStage bottomInset=/, 'the stage no longer reserves the bar');
-  assert.match(reel, /bottomInset=\{overlayBottom\}/, 'the canvas keeps the words above the bar');
-  assert.match(reel, /bottom=\{RAIL_FOOT \+ overlayBottom\}/, 'the rail sits above the bar, at the reel foot the web uses');
+  assert.match(reel, /bottomInset=\{band\}/, 'the canvas keeps the words above the bar');
+  assert.match(reel, /const band = Math\.max\(0, overlayBottom\) \+ Math\.max\(0, bottomInset\);/, 'bar plus device inset, one floor');
+  assert.match(reel, /bottom=\{RAIL_FOOT \+ band\}/, 'the rail sits above the bar, at the reel foot the web uses');
   assert.match(reel, /<PostDecorations post=\{post\} fit="cover" \/>/, 'decorations follow the covering picture');
 });
 

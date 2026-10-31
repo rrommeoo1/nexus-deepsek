@@ -90,8 +90,18 @@ test('ruta unei postări are un antet adevărat, iar Back nu mai stă peste nume
   const route = read('src/app/post/[id].tsx');
   assert.match(route, /import \{ POST_HEADER, postHeaderHeight, postPageTopInset \} from '\.\.\/\.\.\/lib\/postChrome';/);
   assert.match(route, /topInset=\{topInsetFor\(entry\)\}/, 'pagina începe sub antetul care o acoperă');
-  assert.match(route, /readsAsPage\(entry\) \? readerPageTopInset\(insets\.top\) : postPageTopInset\(insets\.top\)/,
+  /**
+   * Runda 41: un reel deschis din profil își tipărește propriul cap (`layout="post"`), deci antetul rutei
+   * nu se mai desenează peste el — exact regula pe care runda 31 a dat-o paginii de cuvinte. Numerele
+   * rămân aceleași: o pagină cu cap începe în banda notificărilor, una fără cap (un citat) sub antet.
+   */
+  assert.match(route, /const ownsHead = \(entry: SocialPost\) => readsAsPage\(entry\) \|\| \(hasVisualMedia\(entry\) && !isAuthoredArticle\(entry\)\)/,
+    'o pagină care își tipărește capul nu primește un al doilea antet');
+  assert.match(route, /ownsHead\(entry\) \? readerPageTopInset\(insets\.top\) : postPageTopInset\(insets\.top\)/,
     'aceleași numere pe care antetul le ocupă, alese după felul paginii');
+  assert.match(route, /\{!pageOwnHead \? \(/, 'antetul rutei se desenează doar peste o pagină fără cap');
+  assert.match(route, /layout="post"/, 'un reel deschis din profil se citește cu capul sus, ca o pagină de cuvinte');
+  assert.match(route, /const systemNavPlate = profileOrigin;/, 'footerul gri (placa de metal) stă sub orice pagină din profil');
   assert.match(route, /height: postHeaderHeight\(insets\.top\)/, 'antetul își rezervă exact înălțimea');
   assert.match(route, /accessibilityRole="header"/, 'antetul este un antet pentru cititorul de ecran');
   assert.match(route, /styles\.headerWords\}>[\s\S]{0,300}numberOfLines=\{1\}/, 'numele se taie la un rând');
@@ -168,6 +178,13 @@ test('traducerea cerută rămâne o acțiune reală a paginii', () => {
   assert.equal((canvas.match(/onPress=\{translation\}/g) ?? []).length, 3,
     'toate cele trei locuri în care poarta apare rămân apăsări reale');
   const card = read('src/components/PostCard.tsx');
-  assert.match(card, /onTranslate=\{\(\) => setNotice\(\{ text: 'Traducerea pe dispozitiv nu este disponibilă în această aplicație\.', tone: 'info' \}\)\}/,
-    'traducerea existentă este încă legată');
+  /**
+   * Runda 42: propozitia care spune ca traducerea lipseste din acest build a plecat din `useState`-ul
+   * paginii in registrul comun. Ce apara testul ramane acelasi lucru: poarta este legata, iar lipsa unei
+   * traduceri este o *informare*, nu o eroare (`engagement.inform`, nu `fail`).
+   */
+  assert.match(card, /onTranslate=\{\(\) => engagement\.inform\('Traducerea/,
+    'traducerea existenta este inca legata, ca informare');
+  assert.match(card, /noticeTone=\{notice\?\.tone\}/, 'propozitia isi pastreaza tonul');
+
 });

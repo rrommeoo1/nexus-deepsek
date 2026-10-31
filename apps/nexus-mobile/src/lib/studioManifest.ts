@@ -56,10 +56,18 @@ function decorationBase(id: string, type: StudioDecoration['type'], x: number, y
   };
 }
 
-export function studioManifestFor(capture: LocalCapture, draft: LocalDraft): StudioManifest | null {
+/**
+ * The decorations this draft will publish, in the exact form the manifest stores them.
+ *
+ * Round 41 (owner, 31 October 2026): the composer used to keep its own renderer for what it drew over
+ * the clip — a different type size, a different box, a different rectangle — so the preview and the
+ * published post disagreed about the same two numbers. The preview now draws *these* decorations with
+ * the reader's own layer (`components/PostOverlay`), because they are the very records the publish will
+ * send: one list, one geometry, no second guess about what a text "should" look like.
+ */
+export function studioDecorations(capture: LocalCapture, draft: LocalDraft): StudioDecoration[] {
   const decorations: StudioDecoration[] = [];
   const text = draft.overlayText.trim();
-  if (text.length > 120) throw new Error('Textul peste imagine are cel mult 120 de caractere. Scurtează textul înainte de publicare; draftul rămâne salvat.');
   if (text) {
     const id = `text-${capture.name.slice(0, 13)}`;
     decorations.push({ ...decorationBase(id, 'TEXT', draft.overlayX, draft.overlayY, 0), text });
@@ -70,6 +78,13 @@ export function studioManifestFor(capture: LocalCapture, draft: LocalDraft): Stu
       ? { ...base, text: sticker.text, style: 'pill-light', color: '#111111', background: '#ffffff', timezone: sticker.timezone }
       : { ...base, style: sticker.type === 'TIME' ? 'digital' : 'date', dynamic: true, timezone: sticker.timezone });
   }
+  return decorations;
+}
+
+export function studioManifestFor(capture: LocalCapture, draft: LocalDraft): StudioManifest | null {
+  const text = draft.overlayText.trim();
+  if (text.length > 120) throw new Error('Textul peste imagine are cel mult 120 de caractere. Scurtează textul înainte de publicare; draftul rămâne salvat.');
+  const decorations = studioDecorations(capture, draft);
   if (!decorations.length) return null;
   return {
     version: 1, aspect: capture.framing === '9:16' ? 'VERTICAL_9_16' : 'ORIGINAL', filter: 'NONE', intensity: 0,

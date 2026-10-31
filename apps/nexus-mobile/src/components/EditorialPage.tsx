@@ -4,6 +4,7 @@ import {
   type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { RemoteImage, RemoteVideo } from './PostMedia';
+import { PostScrim } from './PostReadability';
 import { PhotoViewer } from './ArticleMedia';
 import { RichText } from './RichText';
 import {
@@ -25,6 +26,7 @@ import { resolveMediaUri } from '../lib/mediaCache';
 import { fontFamilyFor, metricFaceFor, pagePaletteOf, sizeOf, TEXT_SELECTION_COLOR, type TextStyle } from '../lib/textStyle';
 import { insertAtSelection, snapSelection, type TextSelection } from '../lib/textInsert';
 import { RAIL_LINE_AIR, PAGE_FOLIO, folioLabel, pageFolioBand, type RailReserve } from '../lib/textPage';
+import { wordsScrim } from '../lib/readability';
 import { editorialType } from '../theme/editorial';
 
 /**
@@ -643,8 +645,30 @@ export function EditorialPage({
         renderItem={({ item: index }) => {
           const entry = flow.pages[index];
           if (!entry) return null;
+          /**
+           * Banda de citire a paginii (runda 45).
+           *
+           * Până acum pagina de hârtie nu avea niciun strat, deși un reel deschis în același loc avea două
+           * — iar pe telefon asta se citea ca „textul nu are benzi". Aici banda nu este ghicită: fluxul a
+           * așezat fiecare rând la `line.y`, deci marginea de sus a primului rând și cea de jos a ultimului
+           * sunt măsurătoarea. Fiindcă desenul este chiar acesta, banda apare și în compozitor și în pagina
+           * publicată, fără o a doua socoteală (`lib/readability.ts::wordsScrim`).
+           */
+          const firstLine = entry.lines.length ? Math.min(...entry.lines.map((line) => line.y)) : 0;
+          const lastLine = entry.lines.length ? Math.max(...entry.lines.map((line) => line.y + line.lineHeight)) : 0;
+          const band = wordsScrim({ block: lastLine - firstLine, frame: height, ground: 'paper' });
           return (
             <View style={{ width, height, backgroundColor: palette.background }}>
+              {/**
+               * Banda stă **sub** orice: sub rânduri, sub fotografii, sub `Pressable`-ul care deschide
+               * câmpul. Nu ia nicio atingere (`pointerEvents="none"`), deci nu poate fura un tap de la un
+               * cuvânt sau de la o poză.
+               */}
+              {band ? (
+                <View pointerEvents="none" style={[styles.wordBand, { top: firstLine, height: band.height }]}>
+                  <PostScrim id={`nxPageBand-${index}`} geometry={band} color={palette.text} />
+                </View>
+              ) : null}
               {/**
                * The one place the author's theme still colours the page: a two-point rule at its head,
                * the same accent the wall's cell draws above its title. It decorates, it never spells.
@@ -1095,6 +1119,8 @@ const styles = StyleSheet.create({
   frame: { overflow: 'hidden' },
   fill: { width: '100%', height: '100%' },
   accent: { position: 'absolute', left: 26, top: 20, width: 34, height: 3, borderRadius: 2 },
+  /** Banda de citire a paginii: lățimea paginii, înălțimea măsurată a rândurilor (runda 45). */
+  wordBand: { position: 'absolute', left: 0, right: 0 },
   placeholder: {
     position: 'absolute', left: 26, right: 26, top: 52, lineHeight: 32, opacity: 0.9,
   },

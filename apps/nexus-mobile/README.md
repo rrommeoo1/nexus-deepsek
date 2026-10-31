@@ -89,6 +89,25 @@ Reguli și limite:
 Shell-ul încarcă `http://localhost:5000`, nu un site public. Portul vine din `PORT` (în `apps/nexus-web/.env`); dacă îl schimbi, transmite-l și scriptului: `.\scripts\nexus-dev.ps1 -Action web -WebPort 6000`.
 
 `localhost` este considerat de WebView o origine de încredere, la fel ca în browser: `getUserMedia` (camera și microfonul folosite de clientul web), `crypto.subtle` (E2EE) și portofelul funcționează fără un certificat HTTPS public. Alternativa locală cu `.certs` și `https://<LAN-IP>:3443` cere instalarea manuală a unui certificat pe telefon, deci nu este folosită implicit.
+### Două origini: backendul și pagina portofelului
+
+Din runda 0.40 aplicația are **două** adrese, fiindcă nu sunt același lucru:
+
+- `EXPO_PUBLIC_NEXUS_API_URL` — unde stă backendul (feed, `/api/me`, `/auth/mvx/native`). Se schimbă atunci
+  când serverul se mută de pe acest PC pe Railway sau invers.
+- `EXPO_PUBLIC_NEXUS_WALLET_URL` — unde stă pagina care ține WalletConnect (`/xportal-bridge.html`). Ea dă
+  identitatea pe care o vede xPortal (metadata și originea relay-ului), deci trebuie să rămână aceeași când
+  backendul se mută; altfel fiecare mutare cere o intrare nouă în allowlist-ul Reown, iar fiecare build pare
+  „alt portofel”.
+
+Fără a doua variabilă se aplică regula veche și dovedită (`secureBridgeOrigin` în `src/lib/bridgeOrigin.ts`):
+https rămâne cum e, `localhost` rămâne cum e, iar o adresă LAN este înlocuită cu loopback-ul telefonului prin
+`adb reverse tcp:5000 tcp:5000` — adresa LAN este refuzată de relay (`3000 Unauthorized: origin not allowed`)
+și nu are `crypto.subtle`. Sursa aleasă se scrie în trace (`sheet-open { wallet, origin }`, plus un
+`wallet-origin { note }` când e nevoie de `adb reverse`), iar o valoare configurată greșit (http public, cale
+în URL) nu este ignorată în tăcere: foaia o spune pe ecran și continuă cu regula veche.
+
+
 
 Diferențe față de un browser obișnuit, tratate explicit în `src/app/index.tsx`:
 

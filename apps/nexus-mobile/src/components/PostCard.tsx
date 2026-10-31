@@ -2,18 +2,14 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
-import {
-  intentIsPaid, paymentRequired, quoteFromFailure, type ActionQuote, type PaymentIntent,
-} from '../lib/actionPayments';
-import { ActionPaymentSheet } from './ActionPaymentSheet';
-import { CommentsSheet } from './CommentsSheet';
+import { usePostEngagement } from '../lib/postEngagement';
 import { PostActionRow } from './PostActionRow';
 import { PostCanvas, PostFrame } from './PostCanvas';
 import { PostRail, PostDistributePanel, RAIL_FOOT } from './PostRail';
+import { PostSheets } from './PostSheets';
 import { RelationButton } from './RelationButton';
-import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
 import { stageFor } from '../lib/postPresentation';
-import { viewerReaction, type SocialPost } from '../lib/socialTypes';
+import type { SocialPost } from '../lib/socialTypes';
 import type { ControlTone } from '../theme/social';
 
 /**
@@ -91,82 +87,17 @@ export function PostCard({
   const handle = post.author?.handle || 'nexus';
   const name = post.author?.display_name || handle;
 
-  const [commentsOpen, setCommentsOpen] = useState(false);
+  /**
+   * Everything this page *does* to a post lives in one record (`lib/postEngagement.ts`), shared with the
+   * reel beside it, with the profile's reader and with the search card: a reaction, a save, a repost, a
+   * share, an open thread, a paid like waiting for its transfer. This component only paints it.
+   */
+  const engagement = usePostEngagement(post);
+  const {
+    summary, saved, reposted, notice, comments: commentCount, distributeOpen,
+  } = engagement;
+  /** The caption's own reading state: this page's, not the post's — no other surface can open it. */
   const [captionExpanded, setCaptionExpanded] = useState(false);
-  const [summary, setSummary] = useState(post.reactions ?? null);
-  const [saved, setSaved] = useState(Boolean(post.saved_by_me));
-  const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
-  const [confirmedCommentCount, setConfirmedCommentCount] = useState(0);
-  /**
-   * The frame's own sentence (`PostCanvas.notice`): a media file that would not load, a refused write, a
-   * translation this build cannot produce. It carries its own tone, because a translation is information
-   * and a failure is a failure, and the two must not look alike.
-   */
-  const [notice, setNotice] = useState<{ text: string; tone: 'error' | 'info' } | null>(null);
-  /**
-   * The paid like. Reacting is a paid action on this network, so the card does not assume success: it
-   * sends the write, and if the server answers `402 PAYMENT_REQUIRED` it holds the server's own quote
-   * here and lets `ActionPaymentSheet` carry the confirmation, the signed devnet transfer and the retry.
-   */
-  const [likePayment, setLikePayment] = useState<{ kind: string; quote: ActionQuote | null } | null>(null);
-  /**
-   * The share menu of the page (`PostDistributePanel`): a share is two decisions — a repost inside the
-   * feed, or a share with the server's own sentence — and the rail's single cell can only mean one of
-   * them. The reel has opened this panel since round 8; a page of words opens the same one, from the same
-   * cell, at the same distance from the foot.
-   */
-  const [distributeOpen, setDistributeOpen] = useState(false);
-  const mine = viewerReaction(summary);
-  const commentCount = Math.max(Number(post.comment_count ?? 0), confirmedCommentCount);
-  const commentCreated = (postId: number) => {
-    if (postId === post.id) setConfirmedCommentCount((previous) => Math.max(previous, Number(post.comment_count ?? 0)) + 1);
-  };
-
-  function fail(cause: unknown) {
-    setNotice({ text: cause instanceof Error ? cause.message : 'Acțiunea nu a putut fi trimisă.', tone: 'error' });
-  }
-
-  const react = (kind: string, paymentIntentId?: string | null, approval?: PaymentIntent | null) => {
-    const nextActive = mine !== kind;
-    const optimistic = !nextActive || Boolean(paymentIntentId || approval);
-    // The like is only drawn as taken once it is paid for; until then the summary stays as the server left it.
-    if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
-    setPostReaction(post.id, kind, nextActive, { paymentIntentId })
-      .then((answer) => {
-        setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction });
-        setLikePayment(null);
-        setNotice(null);
-      })
-      .catch((cause) => {
-        if (paymentRequired(cause)) {
-          setLikePayment({ kind, quote: quoteFromFailure(cause) });
-          // A refused write on top of a paid transfer is a real charge: never let it look unpaid.
-          if (approval && intentIsPaid(approval)) {
-            fail(new Error('Transferul a plecat, dar aprecierea nu a fost înregistrată. Reîncarcă.'));
-          }
-          return;
-        }
-        if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: mine }));
-        fail(cause);
-      });
-  };
-
-  const save = () => {
-    const next = !saved;
-    setSaved(next);
-    setPostSaved(post.id, next).then((answer) => setSaved(answer.saved)).catch((cause) => { setSaved(!next); fail(cause); });
-  };
-
-  const repostIt = () => {
-    const next = !reposted;
-    setReposted(next);
-    setPostRepost(post.id, next)
-      .then((answer) => setReposted(Boolean(answer.reposted_by_me ?? answer.active)))
-      .catch((cause) => { setReposted(!next); fail(cause); });
-  };
-
-  // Sharing stays internal on this product: the server answers with its own sentence and the card prints it.
-  const share = () => { sharePost(post.id).catch(fail); };
 
   /**
    * The author's own record, from the one store (`lib/relations.ts`): the card prints the same relation the
@@ -212,12 +143,12 @@ export function PostCard({
       topInset={topInset}
       bottomInset={bottomInset}
       folio={folio}
-      onError={() => setNotice({ text: 'Fișierul media nu a putut fi încărcat.', tone: 'error' })}
+      onError={() => engagement.fail('Fișierul media nu a putut fi încărcat.')}
       notice={notice?.text}
       noticeTone={notice?.tone}
       onOpenAuthor={() => openSocialProfile(post.author?.handle)}
       onToggleExpanded={() => setCaptionExpanded((value) => !value)}
-      onTranslate={() => setNotice({ text: 'Traducerea pe dispozitiv nu este disponibilă în această aplicație.', tone: 'info' })}
+      onTranslate={() => engagement.inform('Traducerea pe dispozitiv nu este disponibilă în această aplicație.')}
       authorAction={authorId ? (
         <RelationButton
           variant="compact"
@@ -242,11 +173,11 @@ export function PostCard({
           reposts={post.reposts}
           saved={saved}
           reposted={reposted}
-          onReact={(kind) => react(kind)}
-          onOpenComments={() => setCommentsOpen(true)}
-          onToggleSaved={save}
-          onToggleRepost={repostIt}
-          onShare={share}
+          onReact={(kind) => engagement.react(kind)}
+          onOpenComments={engagement.openComments}
+          onToggleSaved={engagement.save}
+          onToggleRepost={engagement.repost}
+          onShare={engagement.share}
         />
       )}
     />
@@ -258,11 +189,10 @@ export function PostCard({
         <View style={{ height }}>
           {canvas}
           {/**
-           * The rail, over the page: the same column of five presses a reel carries (`PostRail`), at the
-           * same distance from the page's foot. The band the tab bar owns is constant (round 10), so
-           * the rail needs no clock: it stands where it stands, and the words end above it.
-           * with the thumb on the right, exactly as a picture is. The owner, 20 October 2026: the
-           * horizontal bar at the foot was „footer”, and the reactions had to climb the reel's own column.
+           * The rail, over the page: the same column of five presses a reel carries (`PostRail`), at
+           * the same distance from the page's foot. The band the tab bar owns is constant (round 10), so
+           * the rail needs no clock: it stands where it stands, and the words end above it — with the
+           * thumb on the right, exactly as a picture is.
            */}
           <PostRail
             bottom={RAIL_FOOT + bottomInset}
@@ -272,10 +202,11 @@ export function PostCard({
             reposts={post.reposts}
             saved={saved}
             reposted={reposted}
-            onReact={(kind) => react(kind)}
-            onOpenComments={() => setCommentsOpen(true)}
-            onToggleSaved={save}
-            onShare={() => setDistributeOpen((open) => !open)}
+            busy={engagement.busy}
+            onReact={(kind) => engagement.react(kind)}
+            onOpenComments={engagement.openComments}
+            onToggleSaved={engagement.save}
+            onShare={engagement.toggleDistribute}
             onPanelChange={onPanelChange}
           />
           {/**
@@ -287,37 +218,19 @@ export function PostCard({
             bottom={214 + bottomInset}
             tone={tone}
             reposted={reposted}
-            onToggleRepost={repostIt}
-            onShare={share}
+            onToggleRepost={engagement.repost}
+            onShare={engagement.share}
           />
         </View>
       ) : <PostFrame>{canvas}</PostFrame>}
 
       {/**
-       * The thread of this exact post, over the feed: the app's one comment surface (`CommentsSheet`),
-       * with the one composer it already had. It is a sheet because the post above is already the whole
-       * screen — the thread is the one deeper surface, never a second rendering of the post.
+       * The thread of this exact post and the paid like's confirmation: `PostSheets`, the pair every
+       * surface mounts, fed by the one engagement record (`lib/postEngagement.ts`). It is a sheet because
+       * the post above is already the whole screen — the thread is the one deeper surface, never a second
+       * rendering of the post.
        */}
-      {commentsOpen ? (
-        <CommentsSheet
-          post={post}
-          onClose={() => setCommentsOpen(false)}
-          onCommentCreated={commentCreated}
-        />
-      ) : null}
-
-      {/**
-       * The paid like. `onPaid` re-sends the same reaction carrying the ledger row as `payment_intent_id`,
-       * so the appreciation lands once the transfer exists — and only then.
-       */}
-      <ActionPaymentSheet
-        visible={Boolean(likePayment)}
-        postId={post.id}
-        action="appreciation"
-        quote={likePayment?.quote ?? null}
-        onPaid={(approval) => { if (likePayment) react(likePayment.kind, approval.id, approval); }}
-        onClose={() => setLikePayment(null)}
-      />
+      <PostSheets post={post} engagement={engagement} />
     </>
   );
 }

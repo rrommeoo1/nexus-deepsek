@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { RemoteImage, RemoteImageSource, RemoteImageSound, RemoteVideo, isVideoItem } from './PostMedia';
 import { RichText } from './RichText';
+import { WordsBand } from './PostReadability';
 import {
   MAX_MEDIA, MAX_TEXT_PAGES, mediaLeadHeight, textPageCapacity, textPages, textPagesWithLead, textPreview, type QuoteLayer,
 } from '../lib/postPresentation';
@@ -224,7 +225,20 @@ export function PostTextReading({
             {typeof lead === 'function' ? lead(baseLeadHeight) : lead}
           </View>
         ) : null}
-        <RichText text={entry} style={[styles.readingText, authoredWords]} />
+        {/**
+         * Banda de citire a unei pagini vechi (runda 45): aceeași bandă ca pe o pagină scrisă în compozitor,
+         * măsurată pe blocul de cuvinte al acestei file. Fără ea, un text publicat înainte de documente ar
+         * fi rămas singurul cadru fără bandă — exact defectul raportat de owner.
+         */}
+        <WordsBand
+          id={`nxLegacyBand-${index}`}
+          color={palette ? palette.text : '#f2f6f9'}
+          frame={box.height || 900}
+          ground={palette ? 'paper' : 'night'}
+          flex={false}
+        >
+          <RichText text={entry} style={[styles.readingText, authoredWords]} />
+        </WordsBand>
       </ScrollView>
     </Pressable>
   ));

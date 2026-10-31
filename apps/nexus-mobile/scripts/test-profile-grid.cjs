@@ -214,7 +214,7 @@ test('a press held on a cell opens the arrangement, and the wall keeps scrolling
   // A screen reader still learns the mode: the dock has a name of its own, and every cell says that a
   // hold arranges the grid (a long press is exactly what TalkBack calls a double-tap-and-hold).
   assert.match(screenCode, /accessibilityLabel="Aranjarea grilei"/);
-  assert.match(tileCode, /accessibilityHint="Se deschide pe tot ecranul\. Ține apăsat pentru a aranja grila\."/);
+  assert.match(tileCode, /accessibilityHint=\{mode === 'explore' \?/);
   assert.match(screenCode, /Grila de aranjat/);
 });
 

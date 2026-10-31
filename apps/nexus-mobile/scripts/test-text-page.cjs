@@ -82,7 +82,13 @@ test('the canvas asks the module, and only a page of words', () => {
   const canvas = code(read('src/components/PostCanvas.tsx'));
   assert.match(canvas, /const wordPage = page && !tile && \(stage === 'text' \|\| stage === 'article'\);/,
     'o pagina de cuvinte este un text sau un articol, nu o fotografie si nu o celula');
-  assert.match(canvas, /const head = wordPageHead\(metrics, wordPage\);/);
+  /**
+   * Runda 41: pasul de tipar se ia si pe o pagina care isi tipareste capul sus — un reel din profil, o
+   * previzualizare din compozitor — ca sa fie acelasi bloc cu pagina de cuvinte de langa el.
+   */
+  assert.match(canvas, /const pageHead = wordPage \|\| \(page && stacked && !tile\);/,
+    'capul mare este al paginii, nu al cuvintelor');
+  assert.match(canvas, /const head = wordPageHead\(metrics, pageHead\);/);
   assert.match(canvas, /const railGutter = stacked && !page \? 0 : wordPageGutter\(metrics\.railGutter, wordPage, metrics\.padH\);/,
     'paddingul paginii intra in calcul: bara nu mai ia de doua ori aceeasi margine');
   // The head is what the author block reads: one face, one name, one handle.

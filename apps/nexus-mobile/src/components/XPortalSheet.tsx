@@ -1,10 +1,10 @@
 ﻿import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { blackSilver } from '../theme/blackSilver';
-import { AppState, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Constants from 'expo-constants';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { API_ORIGIN } from '../lib/apiOrigin';
-import { bridgeUnreachableSentence, secureBridgeOrigin } from '../lib/bridgeOrigin';
+import { bridgeUnreachableSentence, resolveWalletOrigin } from '../lib/bridgeOrigin';
 import { signInWithXPortalToken, type LoginResult } from '../lib/session';
 import { clearXPortalAttempt, readXPortalAttempt, writeXPortalAttempt } from '../lib/xportalAttemptFile';
 import {
@@ -12,8 +12,16 @@ import {
   xPortalAttemptRecord, xPortalBridgeUrl, xPortalFailureSentence, xPortalPairingTopic,
   xPortalRedirectScheme, xPortalWalletLinks,
 } from '../lib/xportalLogin';
+import {
+  SIGNATURE_REOPEN_DELAY_MS, UNSTUCK_DELAY_MS, XPORTAL_OPEN_ACTION, xPortalLaunchDecision,
+  xPortalReturnHint, xPortalStageSentence, type XPortalLaunchReason,
+} from '../lib/xportalNavigation';
+import { openWalletRequest } from '../lib/xportalIntents';
 import { jungle } from '../theme/jungle';
-import { XPORTAL_INITIAL_STATE, XPORTAL_WAIT_SECONDS, xPortalIsWaiting, xPortalReduce, xPortalWaitLabel } from '../lib/xportalState';
+import {
+  XPORTAL_INITIAL_STATE, XPORTAL_WAIT_SECONDS, xPortalIsWaiting, xPortalReduce, xPortalWaitLabel,
+  type XPortalStage,
+} from '../lib/xportalState';
 import { JungleBackdrop } from './JungleBackdrop';
 
 
@@ -65,6 +73,15 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
   const unstuckTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** When xPortal was last put in front, so a re-open never fires at a wallet that is already up. */
   const openedAt = useRef(0);
+  /**
+   * The stage the timers must reason about, read from a ref: a `setTimeout` armed while the page was
+   * at `approved` has to see `signature` when it fires 1.2 s later, without being re-created (a
+   * re-created timer is a second intent). `attempt.stage` is still the only source of truth; this is
+   * the same value seen from inside a callback.
+   */
+  const stageRef = useRef<XPortalStage>(XPORTAL_INITIAL_STATE.stage);
+  /** Remounting the page is the only way to ask WalletConnect for a fresh pairing after a failure. */
+  const [bridgeKey, setBridgeKey] = useState(0);
 
   /** A pending auto-reopen belongs to one attempt only: closing the sheet must cancel it. */
   const cancelReopen = useCallback(() => {
@@ -87,6 +104,11 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     cancelUnstuck();
   }, [cancelReopen, cancelUnstuck]);
 
+  /** The ref follows the reducer in the same commit that renders the new stage. */
+  useEffect(() => {
+    stageRef.current = attempt.stage;
+  }, [attempt.stage]);
+
   /**
    * `nexusdev://` (from `app.json`'s `scheme`) is the address xPortal is given so an approval can
    * bring the reader straight back to the running app instead of leaving them on xPortal's home
@@ -101,15 +123,27 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     [],
   );
 
+  /**
+   * Where the wallet page runs. It is **not** necessarily the API origin any more: a build can point
+   * `EXPO_PUBLIC_NEXUS_WALLET_URL` at a stable public https address, so moving the backend to another
+   * PC does not change the origin xPortal sees (and does not silently require a new Reown allowlist).
+   * Without that variable the old rule applies: https as given, loopback as given, LAN swapped for the
+   * phone's own loopback through `adb reverse`.
+   */
+  const walletOrigin = useMemo(
+    () => resolveWalletOrigin({ configured: process.env.EXPO_PUBLIC_NEXUS_WALLET_URL, apiOrigin: API_ORIGIN }),
+    [],
+  );
+
   const bridgeUrl = useMemo(() => {
     try {
       // The wallet page runs from the secure origin (`lib/bridgeOrigin.ts`); every other request keeps
       // using API_ORIGIN, so the LAN address still serves the app.
-      return xPortalBridgeUrl(secureBridgeOrigin(API_ORIGIN), { native: redirectNative });
+      return xPortalBridgeUrl(walletOrigin.origin, { native: redirectNative });
     } catch {
       return '';
     }
-  }, [redirectNative]);
+  }, [redirectNative, walletOrigin]);
 
   useEffect(() => {
     if (!visible) {
@@ -145,8 +179,11 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     } else if (interrupted) {
       clearXPortalAttempt();
     }
-    logXPortal('sheet-open', { redirectNative: redirectNative || 'none' });
-  }, [visible, redirectNative, cancelReopen, cancelUnstuck]);
+    // The origin the wallet page will run from is part of the attempt's identity: a build that moved
+    // servers says so in the trace, instead of leaving a changed origin to be guessed from a failure.
+    logXPortal('sheet-open', { redirectNative: redirectNative || 'none', wallet: walletOrigin.source, origin: walletOrigin.origin });
+    if (walletOrigin.note) logXPortal('wallet-origin', { source: walletOrigin.source, note: walletOrigin.note.slice(0, 120) });
+  }, [visible, redirectNative, walletOrigin, cancelReopen, cancelUnstuck]);
 
   /** One tick per second while the attempt is waiting; the reducer decides when it expired. */
   useEffect(() => {
@@ -157,7 +194,10 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
 
   /**
    * Hands the pairing to xPortal. Android resolves the first link the wallet declares — `wc:` is the
-   * one xPortal registers for WalletConnect, and the universal link is the last resort.
+   * one xPortal registers for WalletConnect, and the universal link is the last resort. The link
+   * leaves through `openWalletRequest` (Intent flags, not plain `Linking`) because a second window
+   * opened while xPortal is already running would otherwise get a black activity: see
+   * `WALLET_INTENT_FLAGS`.
    */
   const openXPortal = useCallback(async (uri: string) => {
     if (!uri) return;
@@ -171,19 +211,61 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     }
     for (const link of candidates) {
       try {
-        await Linking.openURL(link);
+        const transport = await openWalletRequest(link);
         setError('');
         setNotice('');
         openedAt.current = Date.now();
-        logXPortal('xportal-opened', { topic: xPortalPairingTopic(uri), via: link.slice(0, 8) });
+        logXPortal('xportal-opened', {
+          topic: xPortalPairingTopic(uri),
+          via: link.slice(0, 12),
+          transport,
+        });
         return;
       } catch (cause) {
         lastError = cause instanceof Error ? cause.message : String(cause);
       }
     }
     logXPortal('xportal-open-failed');
-    setError(`Nu am putut deschide xPortal. ${lastError}`.trim());
+    // The only recovery left when no link resolves: an explicit button, not a silent dead end.
+    setError(`Nu am putut deschide xPortal (${lastError || 'niciun link acceptat'}). Apasă „${XPORTAL_OPEN_ACTION}”.`);
   }, []);
+
+  /**
+   * Puts xPortal in front **only when the authentication state says it is useful**, and records why
+   * when it is not (`lib/xportalNavigation.ts` holds the rule). Three things this protects:
+   *
+   *   · `signature` is the only stage where a second window exists — opening earlier shows an empty
+   *     wallet screen, which is what made the reader think the login had failed;
+   *   · a wallet that is already in front is not re-opened (Android would flash the app switcher);
+   *   · the attempt that asked for the launch must still be the live one (`uri` check), so a stale
+   *     timer from a closed sheet cannot steal the screen from the next attempt.
+   */
+  const launchWallet = useCallback(async (
+    uri: string,
+    reason: XPortalLaunchReason,
+    options: { scheduled?: boolean } = {},
+  ): Promise<boolean> => {
+    if (!uri || pairingRef.current?.uri !== uri) {
+      logXPortal('xportal-open-skipped', { reason, skip: 'stale-attempt' });
+      return false;
+    }
+    const decision = xPortalLaunchDecision({
+      reason,
+      stage: stageRef.current,
+      hasPairing: Boolean(uri),
+      now: Date.now(),
+      openedAt: openedAt.current,
+      // A timer that was already armed *is* the decision; the flags only stop a second timer.
+      autoReopened: options.scheduled ? false : autoReopened.current,
+      unstuckUsed: options.scheduled ? false : unstuckReopened.current,
+    });
+    if (!decision.launch) {
+      logXPortal('xportal-open-skipped', { reason, skip: decision.skip });
+      return false;
+    }
+    await openXPortal(uri);
+    return true;
+  }, [openXPortal]);
 
   /**
    * xPortal approves the session on its own screen and stays there; the login-signature request
@@ -194,7 +276,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
    * bounce the reader between the two apps.
    */
   const scheduleReopen = useCallback(() => {
-    if (autoReopened.current) return;
+    if (autoReopened.current || reopenTimer.current) return;
     autoReopened.current = true;
     // The approval makes the unstuck path pointless: this re-open is the one that shows the second
     // window, and two timers would send xPortal two intents a second apart.
@@ -204,25 +286,26 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       reopenTimer.current = null;
       const current = pairingRef.current;
       if (!current) return;
-      // xPortal is already the screen in front (it was put there a moment ago): the second window
-      // appears on its own, and a second intent would only flash the app switcher.
-      if (Date.now() - openedAt.current < 4000) {
-        logXPortal('auto-reopen-skipped');
+      // The request never reached the relay (the page is still preparing it): nothing to show in the
+      // wallet, and the flag goes back so the real `signature` can still bring xPortal forward.
+      if (stageRef.current !== 'signature') {
+        autoReopened.current = false;
+        logXPortal('auto-reopen-deferred', { stage: stageRef.current });
         return;
       }
       dispatch({ type: 'reopen' });
-      setNotice('xPortal e din nou în față: Connect, amprenta, apoi revii în Jungle Book.');
+      setNotice('xPortal e din nou în față.');
       logXPortal('auto-reopen');
-      void openXPortal(current.uri);
-    }, 1200);
-  }, [cancelReopen, cancelUnstuck, openXPortal]);
+      void launchWallet(current.uri, 'signature', { scheduled: true });
+    }, SIGNATURE_REOPEN_DELAY_MS);
+  }, [cancelReopen, cancelUnstuck, launchWallet]);
 
   /**
    * A frozen xPortal never sends `signature`: the reader comes back to a sheet that can only count
    * down, and the only recovery the app owns is putting xPortal in front again with the same request.
    * It fires only if the reader *stays* here — going back to xPortal cancels it, because then the
    * wallet is doing its job and another intent would steal the screen. One shot per attempt; the
-   * "Deschide xPortal din nou" link stays available for the case where xPortal has to be closed first.
+   * "Deschide xPortal" link stays available for the case where xPortal has to be closed first.
    */
   const scheduleUnstuck = useCallback(() => {
     if (unstuckReopened.current || unstuckTimer.current) return;
@@ -235,11 +318,36 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       unstuckReopened.current = true;
       cancelReopen();
       dispatch({ type: 'reopen' });
-      setNotice('xPortal nu a răspuns: îl redeschid cu aceeași cerere. Dacă ecranul lui rămâne înghețat, închide-l din Recents și apasă „Deschide xPortal din nou”.');
+      setNotice('xPortal nu a răspuns: îl redeschid o dată cu aceeași cerere. Dacă ecranul lui rămâne înghețat, închide-l din Recents și apasă „Deschide xPortal”.');
       logXPortal('unstuck-reopen');
-      void openXPortal(current.uri);
-    }, 10000);
-  }, [cancelReopen, openXPortal]);
+      void launchWallet(current.uri, 'unstuck', { scheduled: true });
+    }, UNSTUCK_DELAY_MS);
+  }, [cancelReopen, launchWallet]);
+
+  /**
+   * One tap to start over after a failure or an expired pairing: WalletConnect needs a fresh page for
+   * a fresh URI, so `bridgeKey` remounts the WebView (which clears the old session and posts a new
+   * `pairing`). Everything the dead attempt owned is reset first, so one of its timers can never
+   * touch the new attempt.
+   */
+  const retry = useCallback(() => {
+    cancelReopen();
+    cancelUnstuck();
+    opened.current = '';
+    pairingRef.current = null;
+    setPairing(null);
+    autoReopened.current = false;
+    unstuckReopened.current = false;
+    handed.current = false;
+    openedAt.current = 0;
+    setBusy(false);
+    setError('');
+    setNotice('');
+    setStatus('');
+    dispatch({ type: 'open' });
+    setBridgeKey((value) => value + 1);
+    logXPortal('retry');
+  }, [cancelReopen, cancelUnstuck]);
 
   /** The page owns the clipboard context; the app only asks it to copy the pairing it holds. */
   const copyPairing = useCallback((uri: string) => {
@@ -253,11 +361,16 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     if (parsed.kind === 'status') { setStatus(parsed.message); return; }
     if (parsed.kind === 'log') { logXPortal(parsed.event, parsed.fields); return; }
     if (parsed.kind === 'phase') {
+      // Logged with the phone's own clock, so the page's `t`/`dt` trace and the logcat can be lined
+      // up: the page says when it *posted* a phase, this says when the sheet received it.
+      logXPortal('phase', { phase: parsed.phase });
       dispatch({ type: 'phase', phase: parsed.phase });
       if (parsed.phase === 'failed') setBusy(false);
       // The attempt is over: a later open must not report it as interrupted.
       if (isXPortalAttemptFinished(parsed.phase)) clearXPortalAttempt();
-      // `signature` is the bridge's own word for "xPortal approved; the login message is next".
+      // `signature` is the page's word for "the request is on the wire": only then is bringing xPortal
+      // back in front useful. `approved` means the wallet said yes and the page is still preparing the
+      // request, so a re-open there would show the reader an empty wallet screen.
       if (parsed.phase === 'signature') scheduleReopen();
       return;
     }
@@ -286,14 +399,15 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       pairingRef.current = { uri: parsed.uri, deepLink: parsed.deepLink };
       setPairing(pairingRef.current);
       dispatch({ type: 'pairing' });
-      setStatus('În xPortal: Connect, apoi revii în Jungle Book. xPortal se redeschide singur: Connect + amprenta, apoi revii în Jungle Book.');
+      setStatus('');
       // Remember that a pairing is live, so a process kill is reported instead of swallowed. Only the
       // topic is written: the URI carries the symmetric key and never leaves the page.
       writeXPortalAttempt(xPortalAttemptRecord(xPortalPairingTopic(parsed.uri), 'pairing'));
       logXPortal('pairing', { topic: xPortalPairingTopic(parsed.uri) });
       if (opened.current !== parsed.uri) {
         opened.current = parsed.uri;
-        void openXPortal(parsed.uri);
+        // First window: the sheet is already saying "Confirmă conectarea în xPortal" above.
+        void launchWallet(parsed.uri, 'first-open');
       }
       return;
     }
@@ -307,13 +421,19 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
     logXPortal('token-received');
     clearXPortalAttempt();
     signInWithXPortalToken(parsed.token)
-      .then((result) => onAuthenticated(result))
+      .then((result) => {
+        // Success is announced only here: the server has accepted the signature and opened the
+        // session. Nothing before this point may read as "reușit" — not the pairing, not the phase.
+        dispatch({ type: 'authenticated' });
+        logXPortal('authenticated');
+        return onAuthenticated(result);
+      })
       .catch((cause) => {
         handed.current = false;
         setBusy(false);
         setError(cause instanceof Error ? cause.message : 'Sesiunea nu a putut fi deschisă.');
       });
-  }, [onAuthenticated, openXPortal, scheduleReopen, cancelReopen, cancelUnstuck]);
+  }, [onAuthenticated, launchWallet, scheduleReopen, cancelReopen, cancelUnstuck]);
 
   /**
    * The relay websocket sleeps while xPortal is in front. Every return to this app asks the bridge
@@ -327,6 +447,10 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
       if (state !== 'active') {
         // The reader went back to xPortal: a pending unstuck re-open must not steal the screen.
         cancelUnstuck();
+        // One line per transition, so a real-device report can say which way the app moved and when
+        // (`app-background` / `app-active` with the stage in between — the only honest evidence that
+        // the return was automatic rather than a manual switch).
+        logXPortal('app-background', { stage: attempt.stage });
         return;
       }
       logXPortal('app-active', { stage: attempt.stage, waitedSeconds: XPORTAL_WAIT_SECONDS - attempt.seconds });
@@ -351,6 +475,15 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
   }, [visible, attempt.stage, attempt.seconds, scheduleReopen, scheduleUnstuck, cancelUnstuck]);
 
   const waitLabel = xPortalWaitLabel(attempt);
+  /**
+   * One sentence, the stage's own: "Se deschide xPortal…", "Confirmă conectarea în xPortal",
+   * "Pregătim autentificarea…", "Confirmă semnătura în xPortal", "Autentificare reușită". The page's
+   * `status` text is only a fallback for the moments between stages — it never replaces the sentence
+   * of a stage the reducer already knows.
+   */
+  const headline = xPortalStageSentence(attempt.stage);
+  /** The fallback for a wallet that does not come back by itself (empty outside `signature`). */
+  const returnHint = xPortalReturnHint(attempt.stage);
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -360,21 +493,23 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
           <View style={styles.grabber} />
           <Text style={styles.title}>Conectare cu xPortal</Text>
           <View style={styles.body}>
-            <Text style={styles.muted}>{status}</Text>
+            <Text style={headline ? styles.headline : styles.muted}>{headline || status}</Text>
+            {returnHint ? <Text style={styles.notice}>{returnHint}</Text> : null}
             {resumed ? <Text style={styles.notice}>{resumed}</Text> : null}
             {waitLabel ? (
               <Text style={attempt.stage === 'expired' ? styles.expired : styles.waiting}>{waitLabel}</Text>
             ) : null}
             {error ? <Text style={styles.error}>{error}</Text> : null}
+            {walletOrigin.problem ? <Text style={styles.error}>{walletOrigin.problem}</Text> : null}
             {notice ? <Text style={styles.notice}>{notice}</Text> : null}
             {pairing && waitLabel ? (
               <View style={styles.links}>
                 <Pressable
                   accessibilityRole="link"
-                  accessibilityLabel="Deschide aplicația xPortal din nou"
-                  onPress={() => { cancelUnstuck(); dispatch({ type: 'reopen' }); void openXPortal(pairing.uri); }}
+                  accessibilityLabel="Deschide aplicația xPortal"
+                  onPress={() => { cancelUnstuck(); dispatch({ type: 'reopen' }); void launchWallet(pairing.uri, 'reader'); }}
                 >
-                  <Text style={styles.link}>Deschide xPortal din nou</Text>
+                  <Text style={styles.link}>{XPORTAL_OPEN_ACTION}</Text>
                 </Pressable>
                 <Pressable
                   accessibilityRole="link"
@@ -393,6 +528,16 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
             </Text>
           </View>
           <View style={styles.actions}>
+            {attempt.stage === 'failed' || attempt.stage === 'expired' ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Încearcă din nou conectarea cu xPortal"
+                onPress={retry}
+                style={({ pressed }) => [styles.secondary, pressed && styles.pressed]}
+              >
+                <Text style={styles.secondaryLabel}>Încearcă din nou</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Renunță la conectarea xPortal"
@@ -408,6 +553,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
             {visible && bridgeUrl ? (
               <WebView
                 ref={webview}
+                key={bridgeKey}
                 source={{ uri: bridgeUrl }}
                 originWhitelist={['*']}
                 javaScriptEnabled
@@ -417,7 +563,7 @@ export function XPortalSheet({ visible, onClose, onAuthenticated }: XPortalSheet
                 mixedContentMode="always"
                 setSupportMultipleWindows={false}
                 onMessage={onMessage}
-                onError={(event) => setError(`${bridgeUnreachableSentence(API_ORIGIN)} (${event.nativeEvent.description})`)}
+                onError={(event) => setError(`${bridgeUnreachableSentence(walletOrigin.origin)} (${event.nativeEvent.description})`)}
                 onHttpError={(event) => setError(`Serverul a refuzat pagina de conectare (${event.nativeEvent.statusCode}).`)}
                 // The page never navigates; a wallet link that escapes the page is opened by the
                 // system, and every other scheme stays inside the sheet instead of leaving the app.
@@ -437,6 +583,8 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 42, height: 4, borderRadius: 2, backgroundColor: '#26343f', marginTop: 10, marginBottom: 8 },
   title: { color: '#eaf6ff', fontSize: 17, fontWeight: '800', paddingHorizontal: 18, paddingBottom: 6 },
   body: { paddingHorizontal: 18, paddingBottom: 8, gap: 8 },
+  /** The stage's own sentence: the one line a beginner is meant to read. */
+  headline: { color: '#eaf6ff', fontSize: 14, lineHeight: 20, fontWeight: '700' },
   muted: { color: '#8fa3b4', fontSize: 12, lineHeight: 17 },
   error: { color: '#ff9a9a', fontSize: 12, lineHeight: 17 },
   /** The wait itself: the one sentence that says the app is still listening to xPortal. */

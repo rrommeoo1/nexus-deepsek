@@ -162,7 +162,7 @@ test('the wall and the reader draw the share, and the tab has a sentence when it
   // A cell says the share once: a picture wears the chip, a page of words carries the line itself.
   const tile = code(read('src/components/ProfileTile.tsx'));
   assert.match(tile, /const attribution = repostAttribution\(post\);/);
-  assert.match(tile, /\{attribution && !words \? \(/, 'o pagina de cuvinte nu primeste si chipul, si randul');
+  assert.match(tile, /\{mode !== 'explore' && attribution && !words \? \(/, 'o pagina de cuvinte nu primeste si chipul, si randul');
   const text = code(read('src/components/ProfileTextTile.tsx'));
   assert.match(text, /const attribution = repostAttribution\(post\);/);
   assert.match(text, /`⟳ \$\{attribution\}`/, 'pagina de hartie isi scrie distribuirea pe ea');

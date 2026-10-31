@@ -124,7 +124,7 @@ test('ecranul de login deschide foaia xPortal, nu mai anunţă că nu e portată
   const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
   assert.match(sheet, /signInWithXPortalToken\(parsed\.token\)/);
   assert.match(sheet, /parseXPortalBridgeMessage\(event\.nativeEvent\.data\)/);
-  assert.match(sheet, /xPortalBridgeUrl\(secureBridgeOrigin\(API_ORIGIN\), \{ native: redirectNative \}\)/);
+  assert.match(sheet, /xPortalBridgeUrl\(walletOrigin.origin, \{ native: redirectNative \}\)/);
 });
 
 test('redirectul dat lui xPortal e schemă goală sau nimic', () => {
@@ -154,8 +154,8 @@ test('pagina primește redirectul doar ca schemă, iar universal doar ca http(s)
   assert.equal(rejected.search, '');
 });
 
-test('fazele paginii sunt doar cele cinci pe care le înțelege foaia', () => {
-  for (const phase of ['preparing', 'pairing', 'signature', 'token', 'failed']) {
+test('fazele paginii sunt doar cele șase pe care le înțelege foaia', () => {
+  for (const phase of ['preparing', 'pairing', 'approved', 'signature', 'token', 'failed']) {
     assert.deepEqual(login.parseXPortalBridgeMessage(envelope('phase', { phase })), { kind: 'phase', phase });
   }
   assert.equal(login.parseXPortalBridgeMessage(envelope('phase', { phase: 'gata' })), null);
@@ -215,7 +215,7 @@ test('foaia cere reluarea relay-ului când aplicația revine în față', () => 
   assert.match(sheet, /\{waitLabel \? \(/);
   assert.match(sheet, /xPortalRedirectScheme\(Constants\.expoConfig\?\.scheme\)/);
   // Fără `redirect`, xPortal nu are unde să întoarcă cititorul: parametrul trebuie să plece în URL.
-  assert.match(sheet, /xPortalBridgeUrl\(secureBridgeOrigin\(API_ORIGIN\), \{ native: redirectNative \}\)/);
+  assert.match(sheet, /xPortalBridgeUrl\(walletOrigin.origin, \{ native: redirectNative \}\)/);
 });
 
 test('foaia redeschide xPortal o singură dată, imediat după aprobare', () => {
@@ -223,8 +223,8 @@ test('foaia redeschide xPortal o singură dată, imediat după aprobare', () => 
   // Al doilea ecran din xPortal (semnătura) apare doar când walletul e din nou în față. Pagina
   // anunță aprobarea cu `phase: signature`; foaia trebuie să redeschidă xPortal atunci, singură.
   assert.match(sheet, /if \(parsed\.phase === 'signature'\) scheduleReopen\(\);/);
-  assert.match(sheet, /if \(autoReopened\.current\) return;/);
-  assert.match(sheet, /void openXPortal\(current\.uri\);/);
+  assert.match(sheet, /if \(autoReopened\.current \|\| reopenTimer\.current\) return;/);
+  assert.match(sheet, /void launchWallet\(current\.uri, 'signature', \{ scheduled: true \}\);/);
   // Un singur re-open per încercare: altfel aprobarea și întoarcerea în app s-ar putea bucla.
   assert.match(sheet, /autoReopened\.current = false;/);
   assert.match(sheet, /cancelReopen/);
@@ -234,9 +234,10 @@ test('textul foii spune ambele întoarceri în Jungle Book', () => {
   const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
   // Prima întoarcere în app aduce aprobarea, a doua aduce semnătura; textul le numește pe amândouă,
   // ca cititorul să nu ghicească dacă trebuie să rămână în xPortal ori să revină.
-  assert.match(sheet, /În xPortal: Connect, apoi revii în Jungle Book\./);
-  assert.match(sheet, /Connect \+ amprenta, apoi revii în Jungle Book\./);
-  assert.match(sheet, /xPortal e din nou în față: Connect, amprenta, apoi revii în Jungle Book\./);
+  // Fiecare stadiu are propoziția lui, iar ordinea o dă mașina de stări, nu un cronometru.
+  assert.match(sheet, /xPortalStageSentence\(attempt\.stage\)/);
+  assert.match(sheet, /xPortalReturnHint\(attempt\.stage\)/);
+  assert.match(sheet, /setNotice\('xPortal e din nou în față\.'\);/);
 });
 
 test('o revenire cu xPortal înghețat îl redeschide o dată, nu în buclă', () => {
@@ -252,7 +253,7 @@ test('o revenire cu xPortal înghețat îl redeschide o dată, nu în buclă', (
   // Un singur „deblocare” per încercare, ca aprobarea să nu poată bucla app ↔ xPortal.
   assert.match(sheet, /if \(unstuckReopened\.current \|\| unstuckTimer\.current\) return;/);
   // Un xPortal pus în față acum câteva secunde nu mai primește un al doilea intent.
-  assert.match(sheet, /if \(Date\.now\(\) - openedAt\.current < 4000\) \{/);
+  assert.match(sheet, /openedAt: openedAt\.current,/);
 });
 
 test('fereastra de așteptare a telefonului nu contrazice serverul', () => {
@@ -323,4 +324,20 @@ test('fraza de eroare păstrează originea exactă de adăugat în WalletConnect
   // Restul erorilor rămân pe rezumatul scurt: „allowlist” fără origine nu se poate urma.
   assert.match(login.xPortalFailureSentence('WalletConnect nu a creat sesiunea: project id allowlist relay'), /WalletConnect Dashboard/);
   assert.match(login.xPortalFailureSentence('relay nu a răspuns'), /Serverul nu poate deschide conexiunea WalletConnect/);
+});
+
+test('ruta de întoarcere se citește dintr-un link, fără token în log', () => {
+  // `nexusdev://` este adresa dată lui xPortal; aceeași schemă duce și linkurile de email. Un log care
+  // spune „nexusdev” (și nu „https:jungle…” sau gol) e dovada că întoarcerea a venit din deep link.
+  assert.equal(login.xPortalReturnRoute('nexusdev://'), 'nexusdev');
+  assert.equal(login.xPortalReturnRoute('nexusdev:///'), 'nexusdev');
+  assert.equal(login.xPortalReturnRoute('nexusdev:///auth?t=1'), 'nexusdev:auth');
+  // Un link de browser se recunoaște după host, nu după prima bucată de cale.
+  assert.equal(login.xPortalReturnRoute('https://jungle.example.com/a/b?c=1'), 'https:jungle.example.com/a');
+  assert.equal(login.xPortalReturnRoute('https://jungle.example.com'), 'https:jungle.example.com');
+  // Nimic care nu e link, și niciun secret: tokenul din query nu ajunge în trace.
+  assert.equal(login.xPortalReturnRoute(''), '');
+  assert.equal(login.xPortalReturnRoute(null), '');
+  assert.equal(login.xPortalReturnRoute('nu-e-un-link'), '');
+  assert.doesNotMatch(login.xPortalReturnRoute('nexusdev://reset-password?token=secret'), /secret/);
 });

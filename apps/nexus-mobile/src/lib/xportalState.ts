@@ -7,8 +7,8 @@
  * a stage changes; the sheet renders it, and `scripts/test-xportal-state.cjs` drives it directly.
  *
  * The stages are the bridge page's own phases (`apps/nexus-web/public/xportal-bridge.js`) plus the
- * two the phone owns: `idle` before the page speaks, and `expired` when nothing came back in
- * `XPORTAL_WAIT_SECONDS`.
+ * three the phone owns: `idle` before the page speaks, `expired` when nothing came back in
+ * `XPORTAL_WAIT_SECONDS`, and `authenticated` once the server has confirmed the session.
  */
 /**
  * The same window the server and the bridge page use (`apps/nexus-web/public/xportal-bridge.js`,
@@ -25,10 +25,21 @@ export type XPortalStage =
   | 'preparing'
   /** A pairing URI exists and the reader has been sent to xPortal. */
   | 'pairing'
-  /** xPortal approved the connection; the NativeAuth signature is what is missing. */
+  /**
+   * xPortal approved the connection and the page is getting its relay ready for the signature
+   * request. This is not the same as `signature`: nothing has been asked of the wallet yet, so a
+   * re-open now would put xPortal in front of an empty screen.
+   */
+  | 'approved'
+  /** The signature request is on the wire; what is missing is the wallet showing it and signing. */
   | 'signature'
   /** The signature arrived and the server call is in flight. */
   | 'token'
+  /**
+   * The server accepted the signature and opened the session. The only stage in which the sheet may
+   * say "reușit": it is set from the answer of `signInWithXPortalToken`, never from a phase or a timer.
+   */
+  | 'authenticated'
   /** The page or the reader ended the attempt; the sheet's `error` says why. */
   | 'failed'
   /** Nothing came back within `XPORTAL_WAIT_SECONDS`. The page may still deliver. */
@@ -55,6 +66,8 @@ export type XPortalAction =
   | { type: 'pairing' }
   /** A NativeAuth token was posted. */
   | { type: 'token' }
+  /** The server confirmed the session: the only action that may render success. */
+  | { type: 'authenticated' }
   /** The page, or the app reading it, failed. */
   | { type: 'error' }
   /** One second of the countdown; no effect outside a live wait. */
@@ -71,14 +84,14 @@ export const XPORTAL_INITIAL_STATE: XPortalState = {
   returns: 0,
 };
 
-/** The two stages the sheet has to render as a wait. */
+/** The stages the sheet has to render as a wait: the countdown runs in all of them. */
 function waiting(stage: XPortalStage): boolean {
-  return stage === 'pairing' || stage === 'signature';
+  return stage === 'pairing' || stage === 'approved' || stage === 'signature';
 }
 
-/** `token` and `failed` are final: no later event may move the sheet out of them. */
+/** `token`, `authenticated` and `failed` are final: no later event may move the sheet out of them. */
 function finished(stage: XPortalStage): boolean {
-  return stage === 'token' || stage === 'failed';
+  return stage === 'token' || stage === 'authenticated' || stage === 'failed';
 }
 
 export function xPortalReduce(state: XPortalState, action: XPortalAction): XPortalState {
@@ -95,7 +108,16 @@ export function xPortalReduce(state: XPortalState, action: XPortalAction): XPort
         case 'preparing':
           return waiting(state.stage) ? state : { ...state, stage: 'preparing' };
         case 'pairing':
-          return { ...state, stage: 'pairing' };
+          // Forward only: the page posts `pairing` once, but a page that reloads can repeat it, and an
+          // attempt the wallet already approved must never read as "never approved" again — that is
+          // what made the sheet send a second, unrequested open at a busy wallet.
+          return state.stage === 'approved' || state.stage === 'signature'
+            ? state
+            : { ...state, stage: 'pairing' };
+        case 'approved':
+          // The wallet approved the connection; the page is preparing the signature request. It is a
+          // forward step only: a late `pairing` must not undo it, and `signature` follows it.
+          return { ...state, stage: 'approved' };
         case 'signature':
           return { ...state, stage: 'signature' };
         case 'token':
@@ -111,10 +133,15 @@ export function xPortalReduce(state: XPortalState, action: XPortalAction): XPort
       return { ...state, stage: 'pairing', seconds: XPORTAL_WAIT_SECONDS };
     case 'token':
       return { ...state, stage: 'token', seconds: 0 };
+    case 'authenticated':
+      // Only ever after the server's answer; a page that reports anything later cannot undo it.
+      return { ...state, stage: 'authenticated', seconds: 0 };
     case 'error':
       // A page error after the token arrived cannot undo it: the signature is already with the
-      // server, and only that call may decide how the attempt ends.
-      if (state.stage === 'token') return state;
+      // server, and only that call may decide how the attempt ends. Once the server has confirmed,
+      // the attempt is over for good — a page that reloads later and reports a relay error must not
+      // erase a session the reader already has.
+      if (finished(state.stage)) return state;
       return { ...state, stage: 'failed', seconds: 0 };
     case 'tick':
       if (!waiting(state.stage)) return state;
@@ -123,7 +150,16 @@ export function xPortalReduce(state: XPortalState, action: XPortalAction): XPort
         : { ...state, stage: 'expired', seconds: 0 };
     case 'reopen':
       if (finished(state.stage)) return state;
-      return { ...state, stage: 'pairing', seconds: XPORTAL_WAIT_SECONDS, reopened: state.reopened + 1 };
+      // A re-open after the approval cannot un-approve it: the wallet is being put in front for its
+      // own signature sheet, so only the clock restarts. Moving back to `pairing` here made every
+      // return look like "xPortal was never approved", and the sheet answered that with a second,
+      // unrequested intent at a wallet that was busy showing the signature.
+      return {
+        ...state,
+        stage: state.stage === 'signature' || state.stage === 'approved' ? state.stage : 'pairing',
+        seconds: XPORTAL_WAIT_SECONDS,
+        reopened: state.reopened + 1,
+      };
     case 'active':
       // Coming back with xPortal still in front of the reader is the moment a signature can arrive;
       // an expired wait starts a fresh window instead of leaving the sheet saying "expired".
@@ -152,7 +188,10 @@ export function xPortalIsFinished(state: XPortalState): boolean {
  * never disagree; `''` means "there is no wait to describe".
  */
 export function xPortalWaitLabel(state: XPortalState): string {
-  if (waiting(state.stage)) return `Se așteaptă confirmarea din xPortal… (${state.seconds}s)`;
+  // The two waits name different things on purpose: after the first approval the countdown is over
+  // this page's own relay work, and only `signature` can be answered by xPortal.
+  if (state.stage === 'approved') return `Aprobat. Pregătesc cererea de semnătură… (${state.seconds}s)`;
+  if (state.stage === 'pairing' || state.stage === 'signature') return `Se așteaptă confirmarea din xPortal… (${state.seconds}s)`;
   if (state.stage === 'expired') {
     const minutes = Math.max(1, Math.round(XPORTAL_WAIT_SECONDS / 60));
     return `xPortal nu a confirmat în ${minutes} minute. Redeschide xPortal sau copiază linkul de conectare.`;

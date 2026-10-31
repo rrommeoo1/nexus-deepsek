@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { ReactionControl, type ReactionHeart } from './ReactionControl';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { compactCount, type ReactionSummary } from '../lib/socialTypes';
@@ -44,7 +44,7 @@ export const RAIL_SOUND_AIR = 4;
  */
 export function PostRail({
   bottom, summary, comments, reposts, saved, reposted, busy = false, sound = null, tone = 'night', heart = 'mark',
-  onReact, onOpenComments, onToggleSaved, onShare, onPanelChange,
+  onReact, onOpenComments, onToggleSaved, onShare, onPanelChange, onLayout,
 }: {
   /** How far the rail's last cell sits from the page's foot — 26dp plus the band the tab bar owns. */
   bottom: number;
@@ -90,6 +90,12 @@ export function PostRail({
    * along its row, and the feed's pager must not take that drag at the native level while it is open.
    */
   onPanelChange?: (open: boolean) => void;
+  /**
+   * Urma coloanei, pentru singurul loc care trebuie să o știe dinainte: ghidajele de zonă sigură ale
+   * compozitorului (`lib/previewSafety.ts`). Coloana este cea care își știe înălțimea — patru presuri plus
+   * discul sunetului —, deci o raportează în loc să fie socotită de altcineva din `RAIL_CELL`.
+   */
+  onLayout?: (event: LayoutChangeEvent) => void;
 }) {
   /** The inks of the two grounds this column can stand on — the one source of every colour in it. */
   const controls = socialTokens.post.controls[tone];
@@ -115,7 +121,7 @@ export function PostRail({
    */
   const stateInk = { backgroundColor: controls.ink };
   return (
-    <View style={[styles.rail, { bottom }]}>
+    <View style={[styles.rail, { bottom }]} onLayout={onLayout}>
       {/**
        * The owner removed the rail's avatar badge (19 October 2026): the author is already on the page,
        * beside the words, so a second ring above the like was one avatar too many. The rail opens with the

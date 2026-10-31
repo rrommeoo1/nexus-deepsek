@@ -10,6 +10,7 @@ import {
   type ReactionSummary,
 } from '../lib/socialTypes';
 import { PICKER_HOLD_MS, pickerIndexAt, pickerPositionAt, type PickerAnchor, type PickerBox } from '../lib/reactionPicker';
+import { describeReactionTrace, traceReaction, type ReactionTraceKind } from '../lib/reactionTrace';
 
 /**
  * How an untouched Like press is drawn (`PostRail.heart`, `ReactionControl.heart`).
@@ -217,6 +218,7 @@ export function ReactionControl({ summary, onReact, variant = 'card', tone = 'ni
     if (index === hoverRef.current) return;
     hoverRef.current = index;
     setHover(index);
+    note('aim', { cell: index });
   };
 
   /**
@@ -243,6 +245,17 @@ export function ReactionControl({ summary, onReact, variant = 'card', tone = 'ni
     onReact(kind, mine !== kind);
   };
 
+  /**
+   * The gesture's own record (`lib/reactionTrace.ts`), written on every decision and *never* on a pixel:
+   * a developer reads it from Metro to see whether the phone gave the gesture to the pager, to the video
+   * or to the control. It is the only way to answer "works on words, fails on a clip" with evidence.
+   */
+  const note = (kind: ReactionTraceKind, detail: { cell?: number; x?: number; y?: number } = {}) => {
+    if (!__DEV__) return;
+    // eslint-disable-next-line no-console
+    console.log(describeReactionTrace(traceReaction(kind, variant, { ...detail, open })));
+  };
+
   const stopTimer = () => {
     if (press.current.timer) clearTimeout(press.current.timer);
     press.current.timer = null;
@@ -251,15 +264,21 @@ export function ReactionControl({ summary, onReact, variant = 'card', tone = 'ni
   /** One gesture from the plate to the panel: the same hand, the same touch, the same decision. */
   const grip = {
     onStartShouldSetResponderCapture: () => true,
-    onResponderTerminationRequest: () => !open,
+    onResponderTerminationRequest: (event: GestureResponderEvent) => {
+      const kept = !open;
+      note('request', { x: event.nativeEvent.pageX, y: event.nativeEvent.pageY });
+      return kept;
+    },
     onResponderGrant: (event: GestureResponderEvent) => {
       const { pageX, pageY } = event.nativeEvent;
       stopTimer();
       press.current = { timer: null, x: pageX, y: pageY, opened: false };
+      note('grant', { x: pageX, y: pageY });
       if (open) return;
       press.current.timer = setTimeout(() => {
         press.current.timer = null;
         press.current.opened = true;
+        note('hold', { x: press.current.x, y: press.current.y });
         present();
       }, PICKER_HOLD_MS);
     },
@@ -284,6 +303,7 @@ export function ReactionControl({ summary, onReact, variant = 'card', tone = 'ni
     },
     onResponderRelease: () => {
       stopTimer();
+      note('release', { cell: press.current.opened ? hoverRef.current : -1 });
       if (!open) {
         /** A short press is the like the plate always was. */
         onReact('LIKE', mine !== 'LIKE');
@@ -303,6 +323,7 @@ export function ReactionControl({ summary, onReact, variant = 'card', tone = 'ni
     },
     onResponderTerminate: () => {
       stopTimer();
+      note('terminate', { cell: hoverRef.current });
       /** A scroll took the gesture: the panel closes unanswered, never a reaction nobody chose. */
       if (press.current.opened) setOpen(false);
     },

@@ -78,6 +78,17 @@ export default function PostReaderRoute() {
   const [muted, setMuted] = useState(true);
   const [at, setAt] = useState(0);
   /**
+   * The page's reaction panel is open (round 42).
+   *
+   * The feed has stopped its pager for this since round 9 (`FeedScreen.scrollEnabled`) because the panel
+   * is chosen by *dragging* along its row, and a native pager takes that drag before any JavaScript can
+   * refuse it (`ReactionControl`'s own comment, 19 October 2026). This route — the walk a profile cell
+   * opens, and the only surface search has for a post — never did: its `FlatList` kept turning under the
+   * reader's thumb, so the same gesture that works in the feed lost the panel here. One flag, one rule,
+   * both pagers.
+   */
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  /**
    * The page the pager opens on: the pressed cell's own place in the archive, found by `walkAnchor` when the
    * archive arrives — never a place the wall passed in. A drag, a pin, a deletion or a post written from
    * another device moves every place between the wall's fetch and this route's, and a place is then a number
@@ -190,6 +201,26 @@ export default function PostReaderRoute() {
    */
   const wordPage = current ? readsAsPage(current) : false;
   /**
+   * Whether the page on screen is a page of **media** — a picture, a clip, a carousel — the composition
+   * that has carried its own head since round 41 (round 31 left it out).
+   *
+   * A profile reel opened here used to print the author twice: once in the route's 52dp chrome and once
+   * in the composition itself. The owner read the top band as „un al doilea antet, cu același nume" and
+   * asked for the reel to be read exactly like a text post opened from the same profile. `ReelPage` now
+   * takes `layout="post"` (the author at the top of the frame, the caption at the foot, the relation
+   * door beside the name), so the page carries its own head and the route draws no chrome over it —
+   * the same rule round 31 gave a page of words.
+   */
+  const mediaPage = current ? hasVisualMedia(current) && !isAuthoredArticle(current) : false;
+  /**
+   * Does the page print an author's head of its own? If it does, the route must not print a second one:
+   * a page of words prints it on its paper, a page of media prints it over the picture, and only a quote
+   * — a conversation on a dark plate, whose panels carry other people's names — has none, so only a
+   * quote keeps the route's chrome (and with it the one door that reads it as a page of the walk).
+   */
+  const ownsHead = (entry: SocialPost) => readsAsPage(entry) || (hasVisualMedia(entry) && !isAuthoredArticle(entry));
+  const pageOwnHead = current ? ownsHead(current) : false;
+  /**
    * Whether this page still prints the foot's door (round 32).
    *
    * A page of words opened from a profile does not: the phone's own Back stands in the navigation bar
@@ -204,12 +235,16 @@ export default function PostReaderRoute() {
     canGoBack: router.canGoBack(),
   });
   /**
-   * Whether the phone's own navigation controls need a ground under them: a page of words opened from a
-   * profile, where the paper is cream and the system's glyphs are drawn light by the app's own default
-   * (`app.json`, `style: "light"`). `SystemNavBand` paints the device's inset in Mercury's silver and asks
-   * for dark glyphs, and hands both back when it unmounts.
+   * Whether the phone's own navigation controls need a ground under them: a page opened from a profile.
+   *
+   * Round 32 asked this for a page of words, where the paper is cream and the system's glyphs are drawn
+   * light by the app's own default (`app.json`, `style: "light"`). Round 41 asks it for the reel beside it
+   * too: the owner's „footer gri" is this plate, and a profile reel that ended on bare video while the
+   * post above it ended on metal was the one visible difference left between the two after the headers
+   * were unified. `SystemNavBand` paints the device's inset in Mercury's silver, asks for dark glyphs, and
+   * hands both back when it unmounts.
    */
-  const systemNavPlate = profileOrigin && wordPage;
+  const systemNavPlate = profileOrigin;
   /**
    * A development-only reading of the route, so a phone can be asked whether it was opened as one page or
    * as the profile's own order. `__DEV__` is false in a release build.
@@ -222,9 +257,9 @@ export default function PostReaderRoute() {
     (globalThis as unknown as Record<string, unknown>).__POST_ROUTE = {
       walkMode, handle, tab, reading, at, count: list.length, id: current?.id ?? null, startIndex, cell: cellKey,
       /** Round 32: where the page came from, and what its foot prints because of it. */
-      profileOrigin, wordPage, door: showReaderDoor, navPlate: systemNavPlate,
+      profileOrigin, wordPage, mediaPage, head: pageOwnHead, door: showReaderDoor, navPlate: systemNavPlate,
     };
-  }, [walkMode, handle, tab, reading, at, list.length, current?.id, startIndex, cellKey, profileOrigin, wordPage, showReaderDoor, systemNavPlate]);
+  }, [walkMode, handle, tab, reading, at, list.length, current?.id, startIndex, cellKey, profileOrigin, wordPage, mediaPage, pageOwnHead, showReaderDoor, systemNavPlate]);
   /**
    * The insets a page is handed, decided by what kind of page it is — and, for a page of words, by where it
    * was opened from.
@@ -242,11 +277,19 @@ export default function PostReaderRoute() {
    * plate of metal that carries the system's own controls (`SystemNavBand`) stands in exactly that room.
    */
   const topInsetFor = (entry: SocialPost) => (
-    readsAsPage(entry) ? readerPageTopInset(insets.top) : postPageTopInset(insets.top)
+    ownsHead(entry) ? readerPageTopInset(insets.top) : postPageTopInset(insets.top)
   );
   const bottomInsetFor = (entry: SocialPost) => {
+    /**
+     * Round 41: a page opened from a **profile** keeps the same foot whatever it carries — a text post
+     * and a reel both end `PROFILE_READER_FOOT.air` above the device's inset, in the room the plate of
+     * metal (`SystemNavBand`) no longer needs — because the two are now read as the same page seen twice.
+     * A media page anywhere else keeps the device's own inset; a page of words anywhere else keeps the
+     * band its foot door stands in.
+     */
+    if (profileOrigin) return profileReaderBottomInset(insets.bottom);
     if (!readsAsPage(entry)) return insets.bottom;
-    return profileOrigin ? profileReaderBottomInset(insets.bottom) : readerBarHeight(insets.bottom);
+    return readerBarHeight(insets.bottom);
   };
   /**
    * The row the folio is printed in: the page's own on every surface, the profile's shorter row on a page
@@ -259,10 +302,20 @@ export default function PostReaderRoute() {
       <ReelPage
         post={entry}
         height={height}
+        /**
+         * No tab bar on this route, and no header above the page any more (round 41): the reel prints its
+         * own head, exactly as the page of words beside it does, so the foot is the device's, plus the
+         * strip of air a profile page keeps above it (`profileReaderBottomInset`).
+         */
         overlayBottom={0}
+        topInset={topInsetFor(entry)}
+        bottomInset={bottomInsetFor(entry)}
+        layout="post"
+        follow
         active={active}
         muted={muted}
         onToggleMute={() => setMuted((value) => !value)}
+        onPanelChange={setPaletteOpen}
       />
     ) : (
       <PostCard
@@ -272,6 +325,7 @@ export default function PostReaderRoute() {
         bottomInset={bottomInsetFor(entry)}
         folio={folioFor(entry)}
         active={active}
+        onPanelChange={setPaletteOpen}
       />
     )
   );
@@ -308,9 +362,30 @@ export default function PostReaderRoute() {
            * keeps its own horizontal swipes (an authored page has pages of its own).
            */
           pagingEnabled
+          /**
+           * Round 42: the walk stops while a reaction panel is open, exactly as the feed does. The panel is
+           * dragged along its own row, and this pager would otherwise take that drag at the native level
+           * before JavaScript could refuse it — the reason the same gesture worked on a text page in the
+           * feed and failed on the same reel opened from a profile.
+           */
+          scrollEnabled={!paletteOpen}
           showsVerticalScrollIndicator={false}
           initialScrollIndex={Math.min(startIndex, list.length - 1)}
           getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
+          /**
+           * Round 42: the walk renders pages the way the feed does — one at a time, a couple of pages
+           * ahead — and not the twenty-one a `FlatList` mounts by default.
+           *
+           * Every page of media creates a real player (`PostMedia`'s `useVideoPlayer`), and a decoder is
+           * the largest thing this app holds. A walk of twenty-one pages therefore held up to twenty-one
+           * video players: on the owner's phone the app aborted with `OutOfMemoryError` inside
+           * `MediaCodecRenderer` a few minutes after a reel was opened from a profile (tombstones of
+           * 09:53 and 10:28, 31 October 2026). The numbers are the feed's own (`FeedScreen`), because the
+           * walk and the feed are the same page seen twice.
+           */
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
           onLayout={() => {
             const first = Math.min(startIndex, list.length - 1);
             setAt(first);
@@ -349,7 +424,13 @@ export default function PostReaderRoute() {
         * route promises is a post; the only number a reader needs is the page's own folio), and the way
         * out moves to the foot, where the page has reserved it (`lib/readerBar.ts`).
         */}
-      {!wordPage ? (
+      {/**
+       * ... and round 41 gives the same answer to the page of **media** beside it: a profile reel now
+       * prints the author's head over the picture (`ReelPage layout="post"`), so this row was printing the
+       * same name twice there as well. Only a page that carries no head of its own — a quote — keeps the
+       * chrome.
+       */}
+      {!pageOwnHead ? (
         <View
           accessibilityRole="header"
           style={[styles.header, { paddingTop: insets.top, height: postHeaderHeight(insets.top) }]}

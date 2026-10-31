@@ -3,6 +3,7 @@ import { Image, StyleSheet, View, type ImageStyle, type StyleProp, type ViewStyl
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAudioPlayer } from 'expo-audio';
 import { pauseIfAlive } from '../lib/audioLifecycle';
+import { playerClosed, playerOpened } from '../lib/playerTrace';
 import { mediaKindOf, mediaSourceFor, type MediaItem, type MediaSource, type SocialPost } from '../lib/socialTypes';
 import { cachedMediaUri, downloadMedia, immediateMediaUri, isRemoteMediaSource } from '../lib/mediaCache';
 
@@ -280,6 +281,21 @@ export function RemoteVideo({ item, fit = 'cover', style, active, muted = true, 
     return () => subscription.remove();
   }, [player]);
 
+  /**
+   * The player's own lifetime, counted (`lib/playerTrace.ts`, round 43).
+   *
+   * `useVideoPlayer` ties the native player — and with it an Android `MediaCodec` — to this component's
+   * lifetime, so a mounted `RemoteVideo` is a decoder the app is holding. The owner reported three
+   * `OutOfMemoryError` kills inside `MediaCodecRenderer`, and the number that answers whether that is
+   * *too many decoders* is this one: three pages of the feed, times five attachments of a carousel
+   * (`MAX_MEDIA`), times the pages of the walk. One open and one close per component, tickets paired.
+   */
+  const ticket = useRef(0);
+  useEffect(() => {
+    ticket.current = playerOpened('video', item?.hash ?? 'clip');
+    return () => { playerClosed(ticket.current); ticket.current = 0; };
+  }, [item?.hash]);
+
   if (!source) return null;
   const resolvedFit = fit === 'portrait-cover' ? (portraitVideo ? 'cover' : 'contain') : fit;
   return (
@@ -335,6 +351,19 @@ export function RemoteImageSound({ soundtrack, active, muted, onAudioError }: {
     const interval = setInterval(sync, 500);
     return () => { alive = false; clearInterval(interval); pauseIfAlive(player); };
   }, [active, jamendo, muted, player]);
+
+  /**
+   * A Jamendo track is a second player (`expo-audio`), and it is counted with the same ticket as a clip
+   * — the OOM in `MediaCodecRenderer` does not care which of the two took the buffer. `still-sound` is
+   * the clip's name here: it plays over a picture, so it has no hash of its own.
+   */
+  const ticket = useRef(0);
+  useEffect(() => {
+    if (!jamendo) return undefined;
+    ticket.current = playerOpened('audio', 'still-sound');
+    return () => { playerClosed(ticket.current); ticket.current = 0; };
+  }, [jamendo]);
+
   return null;
 }
 

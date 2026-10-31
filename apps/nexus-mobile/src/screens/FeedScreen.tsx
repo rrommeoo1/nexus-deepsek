@@ -64,6 +64,15 @@ export const NEWS_DISABLED_DETAIL = 'Nicio sursă nu a fost aprobată încă. F�
  * no vacated band to descend into, no clock to follow, and no `chromeHidden` to react to. Every page keeps
  * the same foot, the bar stands over it, and the words end above it (`bottomInset`): the feed takes no
  * props any more, because it has no chrome of its own left to move.
+ *
+ * Round 43 (31 October 2026) gave the page of **media** the head its neighbours already had. Until this
+ * round the feed asked `ReelPage` for `layout="reel"`, which stamped the author above the caption at the
+ * foot of the frame, while a page of words in the same feed and the same reel opened from a profile both
+ * printed the author at the top. The owner asked for one rule: the head at the top, the caption at the
+ * foot, everywhere — so this screen now asks for `layout="post"`, hands the notch in as `topInset` (the
+ * number a page of words and the profile route use) and asks for the author's relation door, because the
+ * page of words beside it has one. Nothing else about the page moved: the rail, the clip's clock, the
+ * caption's `Citește tot`, the tab bar's band and the reactions are the same components they were.
  */
 export function FeedScreen() {
   const insets = useSafeAreaInsets();
@@ -257,6 +266,25 @@ export function FeedScreen() {
                   post={item}
                   height={pageHeight}
                   overlayBottom={navReserve}
+                  /**
+                   * Round 43: the feed's page of media is read exactly like a page of words beside it, and
+                   * exactly like the same reel opened from a profile. The head stands at the **top** of the
+                   * frame (`layout="post"`), in the one arrangement the canvas draws for a page: the same
+                   * 54dp face, the same 17dp name, the same `@handle`, the same place line and the same
+                   * relation door — because it is the same block (`PostCanvas`), not a second one tuned for
+                   * the feed. Until this round the feed asked for `reel`, which kept the author above the
+                   * caption at the foot, so the same post had two different heads depending on where it was
+                   * opened.
+                   *
+                   * `topInset` is the device's own notch, which is also the number the page of words and
+                   * the profile route use (`readerPageTopInset` is the inset itself): the head of a page
+                   * begins in the notification band on all three surfaces. The foot stays the feed's own,
+                   * `overlayBottom={navReserve}` — the floating tab bar is a feed band and a profile route
+                   * does not have it.
+                   */
+                  topInset={insets.top}
+                  layout="post"
+                  follow
                   active={active}
                   muted={muted}
                   onToggleMute={() => setMuted((value) => !value)}

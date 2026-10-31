@@ -62,7 +62,7 @@ export type ProfileTileManage = {
  * the handle it is being held by. The handle *must* stay mounted: the native view is the gesture's own
  * touch target, and unmounting it mid-drag is exactly how a tile used to be left stuck under a finger.
  */
-export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs = 500, manage, handle, dragging = false, dragLabel = '', ghost = false }: {
+export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs = 500, manage, handle, dragging = false, dragLabel = '', ghost = false, mode = 'archive' }: {
   post: ArchivePost;
   /** A pinned-first tab keeps a thin ring; it is part of the grid's explanation, not a badge. */
   pinnedFirst?: boolean;
@@ -83,6 +83,16 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
   dragLabel?: string;
   /** The face alone, for the overlay that follows the finger. */
   ghost?: boolean;
+  /**
+   * What kind of wall this cell stands on.
+   *
+   *   `archive` — the owner's grid (the default): a picture's cell prints its view count, a cell of words
+   *               is paper and prints nothing, because the archive is a reading of somebody's own work;
+   *   `explore` — the search grid (round 45): **only** the real view count, on every cell that has one,
+   *               and no share chip. The owner's rule for this wall is one number, no author, no caption,
+   *               no reaction bar — the thumbnail is a door, not a second reading.
+   */
+  mode?: 'archive' | 'explore';
 }) {
   const cover = postMediaItems(post).find((item) => mediaKindOf(item) !== 'audio') ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
@@ -130,6 +140,11 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
         </View>
       )}
 
+      {/**
+       * Numărul real de vizualizări. Pe arhivă rămâne regula ei (o celulă cu imagine își arată cifra), iar
+       * pe explorare cifra este **singurul** lucru scris pe celulă — fără autor, fără descriere, fără
+       * reacții (runda 45). Amândouă variantele desenează același chip, din `view_stats.viewers`.
+       */}
       {cover && viewers ? (
         <View
           pointerEvents="none"
@@ -141,8 +156,15 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
         </View>
       ) : null}
 
+      {mode === 'explore' && viewers && !cover ? (
+        <View pointerEvents="none" style={styles.viewsChip} accessibilityLabel={`${viewers} vizualizări`}>
+          <SolidViewerIcon kind="views" size={socialTokens.archive.tileViewsGlyph} color={socialTokens.archive.tileChipInk} />
+          <Text allowFontScaling={false} style={styles.viewsText}>{viewers}</Text>
+        </View>
+      ) : null}
+
       {/** A share says whose it is, in the corner the count never uses (`repostAttribution`). */}
-      {attribution && !words ? (
+      {mode !== 'explore' && attribution && !words ? (
         <View
           pointerEvents="none"
           style={styles.repostChip}
@@ -234,7 +256,7 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`Deschide postarea ${post.id}`}
-      accessibilityHint="Se deschide pe tot ecranul. Ține apăsat pentru a aranja grila."
+      accessibilityHint={mode === 'explore' ? 'Se deschide în cititorul de postări, cu reacții și comentarii.' : 'Se deschide pe tot ecranul. Ține apăsat pentru a aranja grila.'}
       onPress={open}
       onLongPress={onManage}
       delayLongPress={holdMs}

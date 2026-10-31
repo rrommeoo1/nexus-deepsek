@@ -1,3 +1,373 @@
+## 0.45 Benzi pe hârtie, o căutare care se caută singură și avertismentul care nu se aprindea (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice; xPortal neatins). `tsc --noEmit` exit 0; `node scripts/run-tests.mjs`
+→ `suites=72 failed=0 in 40s` (o suită nouă: `test-search-explore.cjs`, la capătul lanțului `npm test`).
+`eslint` este curat pe fișierele atinse (`SearchScreen.tsx`, `ProfileTile.tsx`, `readability.ts`,
+`previewSafety.ts`, `PostReadability.tsx`, `app/index.tsx`, `CaptureEditor.tsx`); `PostCanvas.tsx` (3) și
+`EditorialPage.tsx` (10) păstrează exact erorile vechi `react-hooks/refs`, neatinse aici.
+
+**Ce lipsea.** Trei lucruri, toate trei vizibile pe telefon.
+
+1. **Postările de tip text nu aveau niciuna dintre cele două benzi de citire.** Runda 44 le scotea din sistem
+   *prin construcție*: `PostCanvas` socotea terenul (`ground = pagePalette ? 'paper' : 'night'`) și apoi
+   `headGeometry = ground === 'paper' ? null : …`, `footGeometry = ground === 'paper' || headInReading ? null : …`,
+   iar `EditorialPage` nu desena niciun strat. Deci un text publicat — în feed, în profil, în căutare, pe ruta
+   postului și în compozitor — era singurul cadru fără delimitare, deși un reel deschis în același loc avea
+   amândouă benzile. Regula „hârtia nu are nevoie de umbră" era o presupunere despre contrast, nu o măsurătoare.
+2. **Căutarea** era un antet de shell (logo + Social/Prieteni) deasupra unui câmp, un buton „Caută", iar
+   rezultatele erau **carduri întregi** de postare (`PostCard`) într-o listă cu o coloană. Ownerul a cerut:
+   fără antet, câmpul primul rând, grilă de trei coloane 9:16, numai cifra reală de vizualizări, căutare
+   automată, conturi cu poză/nume/`@handle`, citire prin readerul existent, poziția păstrată la întoarcere.
+3. **Avertismentul de suprapunere din compozitor nu se aprindea niciodată** (rămas deschis în 0.44, cu dovadă
+   doar de sursă). Cauza nu era vizuală, ci de unitate: `studioManifest.decorationBase` scrie `x`/`y` ca
+   **procente 0–100** (`percent()`), dar `CaptureEditor` le trecea direct în `frameSpotOf`, care citește
+   **fracții 0–1** și le limitează. Fiecare etichetă era deci socotită în colțul de jos-dreapta al
+   dreptunghiului de conținut, oriunde ar fi stat; banda descrierii e mai sus, deci `guideHits` era mereu gol.
+
+
+**Ce s-a schimbat, pe fișiere:**
+
+| fișier | de ce |
+| --- | --- |
+| `src/lib/readability.ts` | `READABILITY.paper` (aceeași formă, altă greutate: cap `0.26/0.16/0.09`, descriere `0.13`); `headerScrim` primește `ground` și, pe hârtie, se oprește chiar la marginea de jos a capului (o penumbră de 44 dp ar intra peste primele rânduri și ar fi acoperită de hârtia paginii); funcție nouă `wordsScrim` — banda **din interiorul** blocului măsurat, înălțime egală cu măsurătoarea, tranziție în interior; `needsHeaderScrim`/`needsDescriptionScrim` au plecat (erau regula care producea defectul) |
+| `src/components/PostReadability.tsx` | `WordsBand`: blocul de cuvinte măsurat (`onLayout`) cu banda lui înaintea copiilor; `flex` păstrează așezarea unui text paginat, iar `band={false}` lasă banda paginii care o desenează singură; `onMeasure` raportează numărul mai departe |
+| `src/components/PostCanvas.tsx` | capul primește bandă pe **orice** teren, cu cerneala terenului (`scrimInk = pagePalette ? pagePalette.text : editorial.fieldDeep`); ramura de lectură desenează banda cuvintelor prin `WordsBand` (declarații, citate, pagini vechi); `pageDrawsBand` evită o bandă dublă pe o pagină scrisă în compozitor; `footBand` raportează acum și banda cuvintelor |
+| `src/components/EditorialPage.tsx` | banda paginii de hârtie vine din **rândurile fluxului** (`Math.min(line.y)` … `Math.max(line.y + lineHeight)`), desenată sub rânduri, sub fotografii și sub `Pressable`-ul câmpului; fiindcă este chiar desenul paginii, apare identic în compozitor și în postarea publicată |
+| `src/components/PostReading.tsx` | paginile vechi (fără document) primesc aceeași bandă prin `WordsBand`, măsurată pe blocul lor |
+| `src/lib/previewSafety.ts` | `decorationSpot(rect, {x, y})`: singurul loc care citește procentul din manifest ca fracție (și duce o poziție nedefinită la mijloc, nu în colț) |
+| `src/components/CaptureEditor.tsx` | `guideHits` folosește `decorationSpot` — de aici încolo avertismentul se poate aprinde |
+| `src/screens/SearchScreen.tsx` (rescris) | câmp primul rând (fără antet, fără buton), grilă `FlatList` cu `numColumns={3}` din `GRID_COLUMNS/GRID_GAP`, celulă cu lățime **fixă** din `tileSize` (un rând pe jumătate plin nu-și mai întinde celula pe tot ecranul — defect văzut pe telefon la „dimen"), miniaturi `ProfileTile mode="explore"`, căutare automată la 320 ms cu bilet de cerere (un răspuns vechi nu scrie peste unul nou), secțiuni Subiecte (`/api/social/tags`) și Oameni, perete de explorare din `/api/social/feed?lens=for-you` |
+| `src/components/ProfileTile.tsx` | `mode: 'archive' \| 'explore'`: pe explorare cifra se vede pe **orice** celulă care o are (inclusiv paginile de cuvinte), chipul de redistribuire nu se tipărește, iar textul de accesibilitate nu mai promite o aranjare care nu există acolo |
+| `src/app/index.tsx` | slotul `search` nu mai primește `AppHeader` |
+| `scripts/test-search-explore.cjs` (nou) | 7 teste: fără antet + câmpul înaintea listei, trei coloane din aceleași numere ca peretele profilului, numai cifra reală, căutare automată cu bilet, aranjamentul contului, citirea prin `/post/[id]` fără niciun player în listă, poziția păstrată la întoarcere |
+| `scripts/test-readability.cjs` | testele regulii vechi au fost înlocuite: hârtia primește benzi cu greutatea ei, banda cuvintelor are exact înălțimea măsurată, pagina își ia banda din rândurile fluxului, pagina veche prin `WordsBand` |
+| `scripts/test-preview-safety.cjs` | test nou pentru procent ↔ fracție: `frameSpotOf` cu `y: 85` ajunge la marginea de jos (defectul), `decorationSpot` duce punctul în banda descrierii |
+| `scripts/test-profile-reposts.cjs`, `scripts/test-profile-grid.cjs` | urmează chipul de redistribuire și textul de accesibilitate, acum condiționate de `mode` |
+**Ce s-a văzut pe telefon** (JPG citit, nu doar fișier existent; px fizici ÷ 2,6 = dp; cadru 469 × 1022 dp):
+
+| captură | ce arată |
+| --- | --- |
+| `round45-search-explore.jpg` (13:35) | **explorarea**: niciun antet deasupra câmpului (câmpul începe la ~67 dp, imediat sub ceas), eticheta „Populare acum", grilă de trei coloane: celule de 155 dp lățime (≈ `(469 − 2×2) / 3`) și 9:16, despărțite de 2 dp; fiecare celulă tipărește **numai** cifra reală („1", „4", „2", „3") în colțul de jos-stânga; un clip este o poză de afiș cu disc de redare, nu un player. Trei rânduri încap: 3 × 275 dp + 2 × 2 = 829 dp, iar un al patrulea ar cere 1 106 dp din cei ~890 rămași între câmp și bara de tab-uri |
+| `round45-search-results.jpg` (13:35) | **căutare automată**: s-a tastat „test" fără nicio apăsare pe „Caută"; secțiunea „Oameni" cu șapte conturi — poză rotundă de 44 dp, nume bold, `@handle` (și „1 urmăritori" unde serverul îl dă), ușa relației în dreapta |
+| `round45-search-posts.jpg` (13:36) | rezultatele de **postări** pentru „test", după ce tastatura a fost închisă printr-o glisare: aceeași grilă de trei coloane, pagini de hârtie și fotografii, fiecare cu cifra ei |
+| `round45-textpost-from-search.jpg` (13:37) | **text deschis din căutare**, prin ruta comună `/post/[id]`: banda capului de la marginea de sus (peste ceas) până la ~84 dp, solidă sub nume și `@handle`, stinsă înainte de primul rând; banda descrierii exact pe cele patru rânduri (13…453 dp pe orizontală, 111…180 dp pe verticală = blocul măsurat), cu tranziția în interiorul ei; jos, ușa de întoarcere a readerului |
+| `round45-search-return.jpg` (13:37) | **întoarcerea**: aceeași listă, aceeași poziție de scroll și același „test" în câmp — ecranul rămâne montat sub rută, deci nu se reîncarcă |
+| `round45-feed-text.jpg` (13:39) | **text în feed**: aceleași două benzi, acum peste `Urmărește` și peste „Vezi traducerea" (banda acoperă și chipul, fiindcă el face parte din blocul de cuvinte) |
+| `round45-textpost-from-profile.jpg` (13:40) | **același text deschis din profil**: identic cu cel din căutare (aceeași pagină, alt picior al ecranului) |
+| `round45-text-composer-band.jpg` (13:45) | **compozitorul de text**: după ce s-a scris un rând în pagină, banda apare sub el, din rândurile fluxului (5/20000 caractere, nimic publicat) — dovedește paritatea compozitor ↔ pagină publicată, fiindcă este chiar `EditorialPage` |
+| `round45-feed-now.jpg` (13:38) | **reelul de referință** în feed (Konarka, 0:07/0:23): capul sus, descrierea jos, rail-ul și discul de sunet — aceeași limbă vizuală, cu greutatea de noapte |
+| `round45-search-single-row-2.jpg` (14:09) | **un rând pe jumătate plin**: căutarea „dimen" dă o singură postare, iar celula stă pe o treime din lățime (2…160 dp), nu pe tot ecranul. Înainte de lățimea fixă (`tileSize`), celula singură a rândului se întindea pe 469 dp și, cu 9:16, se făcea de trei ori mai înaltă decât ecranul (`round45-search-single-row.jpg`, 14:08) |
+| `round45-editor-warning.jpg` (13:58) | **avertismentul de suprapunere, în sfârșit aprins**: textul tras în banda „Descrierea" (centru la ~684 dp, banda 617…827 dp) produce pastila „„vText peste descriere" intră sub descriere" și butonul „Mută în zona liberă". Înainte de `decorationSpot` același gest nu aprindea nimic |
+| `round45-editor-warning-moved.jpg` (13:58) | butonul apăsat: eticheta sare la ~307 dp, deasupra benzii, iar avertismentul dispare |
+
+**Ce NU s-a dovedit / rămâne deschis.** (1) Al patrulea rând de miniaturi nu încape pe acest telefon la
+9:16 (aritmetica de mai sus) — ecranul arată trei rânduri, nu patru. (2) O celulă de **text** își arată
+pagina, nu doar cifra: o postare de cuvinte nu are fotografie, iar pagina mică este singura ei față; cifra
+rămâne singurul element de interfață de pe celulă (fără autor, fără descriere, fără reacții). (3) Pe cele
+două capturi de editor, textul scris prin `adb input text` a ieșit cu un „v" în față — artefact al tastei
+sintetice, nu al produsului. (4) Banda paginilor **vechi** (`PostTextReading`, fără document) are dovadă doar
+de sursă și de test: în bază nu există un asemenea text cu care să se facă poza. (5) Căutarea nu paginează
+încă peste primele 20 de rezultate (`next_cursor` există în răspuns, dar nu este cerut). (6) Rândul
+„Subiecte" nu a putut fi văzut pe telefon: `/api/social/tags` întoarce doar etichete din ultimele 3 zile cu
+minim doi autori, iar în această bază toate postările cu `#` sunt din 07.10.2026 — deci lista vine goală și
+secțiunea nu se desenează. Căutarea găsește totuși postările care conțin eticheta, fiindcă serverul caută în
+textul postării. (7) `round45-search-grid.jpg`
+este o captură **ratată** (focus pe `com.twitter.android`, `focusOk:false`) — rămâne în `final_jpg` doar ca
+urmă a incidentului, nu ca dovadă.
+
+**Ce nu s-a atins.** Niciun push, nicio reinstalare, nicio setare a telefonului modificată, nicio postare
+publică, nicio ștergere de date, nicio imagine comisă. xPortal, plățile și datele de producție neatinse.
+
+
+
+
+## 0.44 Un singur sistem de citire și ghidaje care se văd: compozitorul se uită la pagina publicată, nu la o a doua socoteală (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice; xPortal neatins). `tsc --noEmit` exit 0; `node scripts/run-tests.mjs`
+→ `suites=71 failed=0 in 28s`, cu două suite noi (`test-readability.cjs`, `test-preview-safety.cjs`) puse la
+capătul lanțului `npm test`, deci intrate și în `npm run test:all`. Lotul acestei runde este **necomis**:
+arborele are deja necomise rundele 42–43, iar fișierele noi (`readability.ts`, `previewSafety.ts`,
+`PostReadability.tsx`) sunt dependențe ale lor — un commit tăiat pe un packet ar rupe buildul.
+
+**Ce lipsea.** Două lucruri, amândouă vizibile pe telefon. (1) Fiecare suprafață își desena **singură** un
+gradient de citire peste compoziție — card, reel, feed, media, ruta postului — deci același nume avea altă
+penumbră după locul de unde era deschis postul, iar un text lung putea ieși din ea. (2) Compozitorul nu
+spunea unde se termină capul, descrierea și poalele paginii, deși ownerul cere să tragă text pe fotografie
+fără să-l pună sub nume; iar etichetele ghidajelor ieșeau ciuntite („Uneltele …ui", „Reacțiil…").
+
+**Ce s-a schimbat, pe fișiere:**
+
+| fișier | de ce |
+| --- | --- |
+| `src/lib/readability.ts` (nou) | geometria penumbrei ca funcție pură: o parte din cadru, ținută între 20 și 44 de puncte, blocul măsurat plus halo, descrierea ancorată la poale și crescută în sus, opriri ordonate 0–1 cu trei zecimale, și regula că **terenul** hotărăște cine are nevoie de scrim (hârtia nu, imaginea da) |
+| `src/components/PostReadability.tsx` (nou) | `PostScrim` și `useBlockHeight`: capul și blocul de descriere se măsoară cu `onLayout`, iar penumbra se desenează din acele numere — niciun scrim nu are înălțime scrisă de mână |
+| `src/components/PostCanvas.tsx` | desenează ambele straturi prin `PostScrim` și raportează `onChromeMeasure({ head, description })`; gradientul de teren al cardului rămâne (este pământul compoziției, nu un scrim de citire) |
+| `src/components/PostCard.tsx`, `src/components/ReelsReader.tsx`, `src/screens/FeedScreen.tsx`, `src/components/PostMedia.tsx`, `src/app/post/[id].tsx` | fără gradient propriu de citire: `LinearGradient`/`stopOpacity` au acum **zero** apariții în aceste cinci fișiere (verificat prin căutare, plus testul de mai jos) |
+| `src/lib/previewSafety.ts` (nou) | benzile compozitorului ca funcție pură: `head`, `description`, `system` („Poalele paginii"), plus cele măsurate de editor (`rail`, `tool`, cu `published: false`). Capul ține și banda de sus a telefonului (`max(head, systemTop)`), poalele sunt `max(foot, systemBottom)`, **descrierea stă deasupra benzii de la poale** și se taie la locul rămas; o bandă cu înălțime zero nu se desenează |
+| `src/lib/previewSafety.ts` (`freeSpots`) | locurile libere stau între cap și descriere: limita de sus vine din benzile lipite de marginea de sus, cea de jos din **orice** bandă care începe mai jos (un punct sub descriere ar fi tot ascuns de cuvinte), iar pe orizontală la stânga coloanei de reacții |
+| `src/lib/previewSafety.ts` (`guideLabelPlacement`, nou) | unde stă eticheta unei benzi, **în puncte de cadru**: o bandă îngustă (< 150) își ține eticheta în stânga, lipită de margine, `maxWidth` = locul rămas până la marginea cadrului; o bandă care are loc deasupra își ține eticheta deasupra liniei (ca să nu acopere primul rând de cuvinte); capul, lipit de marginea de sus, rămâne în interior, în colț |
+| `src/components/CaptureEditor.tsx` | ghidajele vin din măsurători (`onChromeMeasure`, `onLayout` pe coloana de reacții și pe unelte, `pageFoot`, insets); etichetele se desenează într-un **strat propriu peste tot cadrul** (`numberOfLines={1}`), fiindcă un copil absolut poziționat este măsurat în lățimea părintelui, iar părintele are 44–53 dp; avertismentul de suprapunere spune „peste poalele paginii" |
+| `scripts/test-readability.cjs` (nou) | 11 teste: geometria penumbrei, ancorarea descrierii la poale, opririle, terenul, plus paritatea de sursă — niciunul dintre cele cinci ecrane nu mai are `LinearGradient`/`stopOpacity`, iar compoziția desenează ambele straturi prin `PostScrim` |
+| `scripts/test-preview-safety.cjs` (nou) | 11 teste: benzile de sus în jos, capul chiar fără descriere, descrierea mai înaltă decât locul rămas (tăiată, nu ieșită din cadru), banda măsurată preluată și cea vidă aruncată, `zonesAt` la margine inclusiv, drumul dus-întors fracție ↔ punct, locurile libere între cap și descriere (și `count` de la 1 la 12), eticheta mutată în puncte de cadru, plus legătura cu sursa: stratul separat de etichete și `guideLabelPlacement(zone.rect, screenSize.width)` |
+
+**Ce s-a văzut pe telefon (JPG citit, nu doar fișier existent; px fizici ÷ 2,6 = dp, cadru 469 × 1022 dp):**
+
+| captură | ce arată |
+| --- | --- |
+| `round44-editor-guides-7.jpg` (12:35, **după** schimbarea din 12:33) | etichetele sunt întregi: „Capul paginii" în capul benzii (4 dp de margine), „Uneltele editorului" **în stânga** plăcii de unelte — dreapta pastilei la 379 dp, placa începe la 393 dp, deci 14 dp aer și niciun cuvânt tăiat; „Reacțiile" în stânga coloanei (dreapta la 375 dp, coloana începe la 389 dp); „Descrierea" deasupra liniei descrierii (linia la 543 dp); „Poalele paginii" deasupra liniei de la poale (773 dp) |
+| `round44-editor-guides-warn.jpg` (12:36) | aceleași etichete întregi pe un al doilea cadru (cap mai înalt, „1 min"), cu textul tras „Text peste video" **deasupra** benzii descrierii — deci avertismentul de suprapunere nu s-a aprins, fiindcă textul chiar nu intră în bandă |
+
+**Ce nu s-a atins.** Niciun push, nicio reinstalare, nicio setare a telefonului modificată, nicio postare
+publică, nicio imagine comisă (`docs/vision/` rămâne generat și ignorat). xPortal, plățile și datele de
+producție neatinse.
+
+**Lint.** `eslint` (prin `node node_modules/eslint/bin/eslint.js`, fiindcă `npx.ps1` este blocat de politica
+de execuție a mașinii) este **curat pe fișierele acestei runde**: `readability.ts`, `previewSafety.ts`,
+`PostReadability.tsx`, `CaptureEditor.tsx` — exit 0. Pe drum s-au plătit trei datorii: `Date.now()` chemat în
+randare pentru `created_at`-ul previzualizării (acum o singură citire, ținută în `useState`, cu `previewCreatedAt`
+în dependențele memoului) și două tipuri `Array<T>` devenite `T[]`/`readonly T[]`. Restul depozitului are
+însă **33 de erori în 13 fișiere**, toate mai vechi (cel mai mare: `EditorialPage.tsx` 10, `ProfileScreen.tsx`
+7, `PostCanvas.tsx` 3 — regula nouă `react-hooks/refs` peste `useRef(new Animated.Value(0)).current` din bara
+clipului); nu au fost atinse aici, fiindcă o reparare a barei cere o rundă proprie de telefon. Reparațiile de
+azi din `CaptureEditor.tsx` nu schimbă ce se vede (capul scrie tot „acum", iar un docblock dublat a fost șters),
+deci nu au cerut o captură nouă — dovada lor este `tsc --noEmit` exit 0, `eslint` exit 0 pe cele patru fișiere
+și `suites=71 failed=0`.
+
+**Ce rămâne deschis:** (1) lotul 0.43–0.44 este necomis pe ramură — cere un commit întreg (fișierele noi
+sunt dependențe, nu pot fi tăiate pe packet); (2) avertismentul de suprapunere din compozitor are dovadă
+doar de sursă și de test: două încercări de tras text în bandă (`-warn`, `-warn-2`) au lăsat textul
+deasupra ei, deci banda de avertisment nu s-a văzut încă pe telefon; (3) cele 33 de erori de lint din 13
+fișiere, mai vechi decât runda, cu prioritate pe `PostCanvas.tsx` (bara clipului) și `EditorialPage.tsx`;
+(4) grila de căutare/explorare pe trei coloane rămâne neîncepută (`Search/Explore`), după ce se închide
+rândul de mai sus.
+
+## 0.43 Un singur cap, sus, pe orice pagină: reel-ul din feed se citește ca cel din profil (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice; xPortal neatins). `tsc --noEmit` exit 0; 69 de suite
+`scripts/test-*.cjs` exit 0 (două noi: `test-feed-reel-head.cjs`, `test-player-trace.cjs`), rulate dintr-un
+proces cu `npm run test:all`. Aplicația a fost repornită cu `am force-stop` + deep link pe clientul de
+dezvoltare, apoi citită pe telefon, captură cu captură.
+
+**Ce lipsea.** Runda 41 a mutat capul unui reel deschis **din profil** sus (`ReelPage layout="post"`), dar
+feed-ul cerea în continuare `layout="reel"`: același post avea două capete după locul de unde era deschis.
+Ownerul a cerut o singură regulă, deci feed-ul cere acum aranjamentul paginii.
+
+**Ce s-a schimbat, pe fișiere:**
+
+| fișier | de ce |
+| --- | --- |
+| `src/screens/FeedScreen.tsx` | pagina de media a feed-ului cere `layout="post"`, `topInset={insets.top}` și `follow`: capul sus, în aceeași bandă ca pagina de cuvinte din același feed și ca ruta din profil (`readerPageTopInset` este chiar `insets.top`), cu ușa autorului, pentru că pagina de cuvinte de alături o are. Piciorul rămâne al feedului (`overlayBottom={navReserve}`) — bara de tab-uri nu există pe rută |
+| `src/components/ReelsReader.tsx` | `layout` are acum implicit `post` (niciun ecran nu mai cere aranjamentul vechi), iar documentația spune de ce: un post nu poate avea două capete |
+| `src/lib/playerTrace.ts` (nou) | contorul de redări vii: fiecare `RemoteVideo`/`RemoteImageSound` se anunță la montare și la demontare (`[player] ±1 #n video clip=… live=… peak=…`, doar `__DEV__`). Răspunsul la „câte decodoare ține telefonul", pe care nici o captură nu îl dă |
+| `src/components/PostMedia.tsx` | ambele redări (clip + coloană sonoră Jamendo) se deschid și se închid cu bilet, în același contor |
+| `scripts/test-feed-reel-head.cjs` (nou) | contractul care s-a rupt: feedul cere `post` + `insets.top` + `follow`, niciun `.tsx` nu mai cere `reel`, iar canvasul are un singur cap pe pagină (sus; jos doar în forma veche). Comentariile se taie înainte de potrivire, ca istoria din docblock-uri să nu dea testul fals |
+| `scripts/test-player-trace.cjs` (nou) | contorul ca funcție (deschide/închide, bilet închis de două ori, vârf), plus legătura cu codul: cine deschide o redare o și închide la demontare |
+| `tools/_diag-media-counts.mjs` (nou, doar citire) | ce postări există cu cele mai multe atașamente/clipuri, ca un test de telefon să deschidă exact cazul cel mai greu |
+| `package.json` | cele două suite noi intră în lanț (`npm test`), deci și în `npm run test:all` |
+
+
+**Ce s-a văzut pe telefon (JPG citit, nu doar fișier existent):**
+
+| captură | ce arată (măsurat în px fizici ÷ 2,6) |
+| --- | --- |
+| `round43-feed-first.jpg` | **reel în feed**, capul sus: față de 54 dp la 14 dp de marginea stângă, „Mother Fucker" 17 dp, `@wallet4e8gv6 · 3 h`, „Bucharest", „Editează profilul" în dreapta sus; descrierea jos cu „Citește tot"; rail-ul vertical (reacție, comentarii, salvare, distribuire) neatins |
+| `round43-profile-reel.jpg` | **același post deschis din profil** (față → profil → celula 1): capul stă pe aceleași rânduri, la aceeași dimensiune, cu același pilul; diferă doar piciorul — placa gri cu bara sistemului în loc de bara de tab-uri |
+| `round43-profile-text.jpg` | **pagină de cuvinte deschisă din profil**: același cap (54 dp, 17 dp, `@handle · 3 z`, locul „Czyżyny, Cracovia", „Editează profilul"), foiță `1/2` jos — deci textul și reelul din profil sunt un singur bloc |
+| `round43-feed-word-page.jpg` | **pagină de cuvinte în feed**: capul pe aceleași rânduri ca reelul din feed (nume la 167 px, `@` la 227 px, pilul la 173 px), foiță `1/2`, „Vezi traducerea" |
+| `round43-feed-clip-rail.jpg` | **a doua pagină de media din feed**, alt autor (`@test`, „Krakow"): „Urmărești" în loc de „Editează profilul" — ușa relației funcționează pentru altcineva, nu doar pentru cititor |
+| `round43-feed-caption-expanded.jpg` | „Citește tot" apăsat: descrierea urcă la 8 rânduri, „Mai puțin" jos, capul rămâne neatins sus, iar textul se termină deasupra barei de tab-uri (22 dp aer, `padB`) |
+| `round43-post-clip-route.jpg` | **un clip adevărat** (postarea 27, Veneția): capul sus, descrierea jos pe 3 rânduri cu „Citește tot", rail-ul vertical, discul de sunet și bara `0:11 / 0:17` — ceasul se oprește înainte de coloana discului |
+| `round43-search-reel-card.jpg` | **căutare** (`afectat`): același clip ca *card* — capul sus în card, descrierea jos, rândul de acțiuni sub ea. Căutarea nu deschide un reader separat: cardul este citirea, iar compoziția lui este `PostCard` (`layout="post"`), deci regula e aceeași |
+
+**Ce s-a măsurat despre memorie (runda 42 lăsase trei `OutOfMemoryError` în `MediaCodecRenderer`):**
+
+- contorul nou, citit din `adb logcat`: swiping pe **10 pagini de feed** a dat `peak=2` redări vii, fiecare
+  pagină închizându-și biletul când ieșea din fereastra listei (`live=0` la final); pe **walk-ul din
+  profil** (8 pagini) vârful a fost `1`. Nu s-a văzut nicio acumulare de redări și niciun `OutOfMemoryError`
+  în sesiune (logcat filtrat pe `OutOfMemoryError|FATAL|MediaCodecRenderer`).
+- `dumpsys meminfo app.nexus.mobile.dev`: PSS 1 015 MB înainte de cele 10 pagini, 843 MB după (RSS 1 190 →
+  1 018 MB) — deci swiping-ul **nu** crește memoria; cei ~500 MB de native heap sunt ai procesului, nu ai
+  unei liste de playere.
+- cauza rămasă, dovedită prin citire și nu prin măsurare: `PostMediaGallery` montează un `RemoteVideo`
+  pentru **fiecare** atașament (până la `MAX_MEDIA = 5`), deci un carusel de 5 clipuri ar ține 5 decodoare pe
+  un singur card. În baza de acum nu există niciun astfel de post (`tools/_diag-media-counts.mjs`: toate
+  postările au exact un atașament), deci nu se poate nici măsura, nici verifica vizual o schimbare acolo —
+  rămâne scrisă ca următorul levier, nu făcută pe nevăzute.
+
+**Ce s-a dovedit totuși cu degetul, după mutarea capului:** pe pagina din feed, `input motionevent
+DOWN/MOVE/UP` pe Like a scris în urmă `grant → hold → aim(cell=1) → aim(cell=2) → aim(cell=3) →
+release(cell=3)`, fără `terminate` — glisarea continuă de emoji a rundei 42 merge și cu capul sus.
+
+**Ce NU s-a făcut:** nimic publicat, nicio scriere în bază, nicio setare a telefonului modificată, nicio
+reinstalare, niciun push. xPortal, `docs/` și datele de producție neatinse.
+
+**Ce rămâne deschis:** (1) un carusel de clipuri (5 atașamente) ar ține 5 decodoare — de reparat când
+există un astfel de post cu care să se facă dovada vizuală; (2) ceasul previzualizării compozitorului are
+încă doar dovadă de sursă (cere o captură nouă din cameră); (3) cele două pagini de media din feed pe care
+le-am prins erau fotografii, iar clipul a fost citit pe rută (`round43-post-clip-route.jpg`) — compoziția
+este aceeași ramură (`stage === 'reel'`/`'media'`), dar o captură a unui clip **în feed** ar închide
+complet rândul.
+
+## 0.42 Un gest, o stare, aceleași suprafețe: feed, profil și căutare (31 octombrie 2026)
+
+**Starea depozitului.** Schimbare de cod pe ramura `codex/camera-draft-stability` (fără push, fără
+reinstalare, fără ștergeri de date, fără postări publice). `tsc --noEmit` exit 0; toate cele 67 de suite
+`scripts/test-*.cjs` exit 0 (două noi: `test-post-engagement.cjs`, `test-reaction-gesture.cjs`); jurnalul
+`builds/metro.log` păstrează urma fiecărui gest executat pe telefon.
+
+**Ce s-a schimbat, pe fișiere:**
+
+| fișier | de ce |
+| --- | --- |
+| `src/lib/postEngagement.ts` (nou) | **un** registru pe postare: rezumat de reacții, comentarii, salvat, redistribuit, foaia deschisă, plata în așteptare. Optimist cu întoarcere, o singură scriere pe zbor (`IN_FLIGHT`), iar un payload **umple** un câmp necunoscut și nu rescrie niciodată ce a făcut cititorul |
+| `src/components/PostSheets.tsx` (nou) | filele pe care le au toate suprafețele: firul de comentarii (`CommentsSheet`) și confirmarea like-ului plătit (`ActionPaymentSheet`), montate o dată, din registru |
+| `src/components/PostCard.tsx`, `src/components/ReelsReader.tsx` | fără stare proprie și fără `setPostReaction/save/repost/share`: citesc registrul, montează `PostSheets`, primesc `busy` din el (reel-ul îl avea, pagina de cuvinte nu) |
+| `src/lib/reactionTrace.ts` (nou) | urma gestului (`grant`/`hold`/`aim`/`release`/`terminate`/`request`), mărginită, ca telefonul să poată fi întrebat ce a făcut cu degetul |
+| `src/components/ReactionControl.tsx` | scrie în urmă fiecare decizie; gestul, regula de alegere și anularea rămân neschimbate |
+| `src/components/PostCanvas.tsx` | bara clipului este `Animated.Value` (nu mai re-renders compoziția de ~9×/s); `mediaClock` — ușa prin care un strat desenat de apelant (compozitorul) își trimite ceasul; scrimul capului se pictează **după** decorări, ca un sticker să nu mai treacă prin nume |
+| `src/app/post/[id].tsx` | pagerul walk-ului se oprește cu panoul deschis (`scrollEnabled={!paletteOpen}`) — regula pe care feed-ul o avea din runda 9 și ruta nu; walk-ul montează câteva pagini, ca feed-ul (`initialNumToRender`/`maxToRenderPerBatch`/`windowSize`), nu 21 |
+| `src/components/CaptureEditor.tsx` | ceasul previzualizării (`VideoPreview` → `PostCanvas.mediaClock`), banda rândului editorului (`postPageTopInset`) ca `×`/`Next` să nu mai stea peste avatar, iar un clip necunoscut este `contain` de la primul cadru |
+| `scripts/test-post-engagement.cjs`, `scripts/test-reaction-gesture.cjs` (noi) | registrul ca funcție (umplere, optimist, refuz, 402, o scriere) + urma gestului, ceasul și banda editorului |
+| `scripts/run-tests.mjs` (nou, `npm run test:all`), `tools/_diag-clip-ids.mjs` (nou, doar citire) | lanțul de 67 de suite rulat dintr-un singur proces (34 s, o linie per eșec, cod de ieșire) — prin trei shell-uri eșua tăcut; și un cititor al bazei care spune ce clipuri și ce pagini de cuvinte există, ca un test de telefon să deschidă exact postarea potrivită |
+| `tools/repair-mojibake.ps1` (nou) | repara diacriticele dublu-codate de un editor (17 secvențe, pe coduri de caractere), după ce un fișier nou a ieșit cu `AcÈ›iunea` în loc de `Acțiunea` |
+| `src/theme/...`, `docs` | neschimbate |
+
+**Ce s-a văzut pe telefon (JPG citit, nu doar fișier existent):**
+
+| captură | ce arată |
+| --- | --- |
+| `round42-reel-palette.jpg` | reel deschis din profil, deget ținut pe Like: pastila de 8 emoji **peste** video, emoji-ul de sub deget crescut (👍, cel din dreapta) cu chips-ul „Like" deasupra; bara `0:05 / 0:05` și discul de sunet neatinse |
+| `round42-reel-head-scrim.jpg` | aceeași pagină: decorarea de pe clip („Test Video ❤ 10:35") este sub scrimul capului, iar numele, `@wallet4e8gv6 · 2 z`, `Bucharest` și „Editează profilul" se citesc peste ea |
+
+**Ce s-a dovedit cu degetul (nu din cod):** urma din `builds/metro.log` arată aceeași secvență pe trei
+suprafețe — postare de text în feed (`10:30:18` → `cell=1`), reel în feed (`10:31:06` → `cell=1`), reel
+deschis din profil cu derivă verticală de 15 dp (`10:31:42` → `cell=1`) — fără niciun `terminate` cât timp
+panoul era deschis.
+
+**Capcane confirmate din nou:** (a) `uiautomator dump` cere `idle`, deci coordonatele pentru atingeri s-au
+luat pe ecrane statice (clip oprit cu un tap); (b) Metro nu reîmprospătează acest telefon — fiecare lot de
+verificare a cerut `am force-stop` + deep link pe clientul de dezvoltare; (c) gestul de deget se poate
+reproduce fidel doar cu `input motionevent DOWN/MOVE/UP` (un `input swipe` nu ține apăsat), plus
+`dumpsys window` înainte de fiecare intrare.
+
+**Ce NU s-a făcut:** nimic publicat, nicio migrare sau ștergere în bază, nicio setare a telefonului
+modificată, nicio reinstalare, niciun push. xPortal nu a fost atins.
+
+**Ce rămâne deschis:** (1) aplicația a fost omorâtă de sistem de trei ori cu `OutOfMemoryError` în
+`MediaCodecRenderer` (tombstone 09:53, 10:28) — walk-ul montează acum câteva pagini, ca feed-ul, dar
+scurgerea nu este dovedită vindecată (măsurată în §0.43: vârf de două redări, nicio acumulare); (2)
+previzualizarea compozitorului are ceas și `contain` corect, dar dovada vizuală cere o captură nouă din
+cameră; (3) feed-ul păstrează aranjamentul rundei 8 pentru paginile lui și nu a fost mutat pe
+`layout="post"` — o singură schimbare de prop, dacă ownerul o cere — **închis în §0.43**.
+
+## 0.41 Profil: reelul se citește ca o postare, iar previzualizarea compozitorului este postarea (31 octombrie 2026)
+
+**Starea depozitului.** Schimbare de cod pe ramura `codex/camera-draft-stability` (fără push, fără
+reinstalare, fără ștergeri de date): un reel deschis din profil se citește acum cu același cap, același
+picior și aceeași coloană ca o postare de cuvinte deschisă din același profil, iar previzualizarea din
+compozitor desenează **compoziția publicată**, nu o aproximare a ei. `tsc --noEmit` exit 0, toate cele 66
+de suite `scripts/test-*.cjs` exit 0 (două suite noi), `git status` arată doar fișierele de mai jos plus
+munca necomisă de dinainte (xPortal), neatinsă.
+
+**Ce s-a schimbat, pe fișiere:**
+
+| fișier | de ce |
+| --- | --- |
+| `src/lib/overlayFrame.ts` (nou) | un singur dreptunghi pentru textul de peste un clip: `mediaContentRect` (`cover`/`contain`, ca `object-fit`), `overlayWindow` (partea vizibilă), `overlayFontSize`/`overlayPadding`/`overlayMaxWidth` din foaia creatorului, `overlayPercent`/`overlayFraction`, `OVERLAY_LIMITS` |
+| `src/components/PostOverlay.tsx` (nou) | **un** renderer pentru etichetele de peste imagine, folosit și de compozitor (cu tragere), și de postarea publicată |
+| `src/components/PostDecorations.tsx` | nu mai are socoteala lui: desenează cu `PostOverlay` |
+| `src/lib/studioManifest.ts` | `studioDecorations()` — lista exactă pe care o publică manifestul, pe care previzualizarea o citește |
+| `src/components/PostCanvas.tsx` | `mediaOverride` (fișierul local al compozitorului), `mediaOverlay` (decorările, **sub** cap și sub caption), capul mare al paginii (`pageHead`), `railFootGutter` pentru ceasul clipului, `hitSlop` de 44 dp pe bară, eroarea de **coloană sonoră** nu mai este raportată ca fișier media lipsă |
+| `src/components/ReelsReader.tsx` | `layout="post"`, `topInset`/`bottomInset`, banda unică `band`, ușa autorului (`RelationButton`), `Vezi traducerea` scos de pe clipuri |
+| `src/app/post/[id].tsx` | fără antet de rută peste o pagină care își tipărește capul (`ownsHead`), piciorul paginii din profil pentru orice fel de pagină, placa de metal (footerul gri) pe orice pagină din profil |
+| `src/components/CaptureEditor.tsx` | previzualizarea este `PostCanvas` + `PostOverlay` + `PostRail`, în dreptunghiul publicat, cu piciorul măsurat al editorului |
+| `scripts/test-overlay-frame.cjs`, `scripts/test-profile-reel.cjs` (noi) | aritmetica celor două module și faptul că amândouă suprafețele le folosesc |
+| `scripts/test-post-chrome.cjs`, `test-reader-page.cjs`, `test-fullscreen-feed.cjs`, `test-feed-rail.cjs`, `test-text-page.cjs` | aserțiunile de sursă actualizate la regula rundei 41 (aceeași regulă, alt text) |
+
+**Ce s-a văzut pe telefon (JPG citit, nu doar fișier existent):**
+
+| captură | ce arată |
+| --- | --- |
+| `round41-feed-reel.jpg` → `round41-feed-overlay.jpg` | feed: „Test video❤️" era tăiat la marginea stângă („t video"), acum e întreg — `overlayWindow` ține eticheta în partea vizibilă; „Vezi traducerea" a dispărut de pe clip; bara `0:02 / 0:05` se termină la ~358 dp, discul de sunet începe la 401 dp |
+| `round41-profile-reel-head.jpg` (01:20) | reel din profil, **fără** al doilea antet: cap sus (față 54 dp, nume 17 dp, `@handle · timp`, locul, „Generat cu AI"), „Editează profilul" sus-dreapta, descrierea jos, bara deasupra benzii de metal |
+| `round41-reel-expanded.jpg` (01:21) | „Citește tot" → textul se desface **în sus**, marginea de jos rămâne pe loc („Mai puțin" exact unde era „Citește tot"), coloana din dreapta rămâne liberă |
+| `round41-profile-text-post.jpg` (01:12) | referința: postare de cuvinte din profil — cap sus, foaie crem, coloană, `1/2`, banda de metal la picior |
+| `round41-composer-preview-20261031-013840.jpg` (01:38) | compozitor: clipul umple ecranul, „Text peste video" la ~40 dp în centrul dreptunghiului de conținut, cap alb sus, coloana de reacții deasupra barei editorului |
+
+Măsurători (px fizici ÷ 2,6): capul începe la ~150 px (58 dp = `insets.top`), avatar 140 px (54 dp), bara
+clipului se oprește la ~930 px (358 dp), discul de sunet ocupă 1043–1185 px (401–456 dp), banda de metal
+are înălțimea insetului (~50 px, 19 dp) — aceeași pe reel și pe pagina de cuvinte.
+
+Restul fișierelor `round41-*` din `final_jpg` sunt **sonde**, nu dovezi: `probe-tabs`, `probe-profile`,
+`profile-probe2` (ecranul pe care s-a nimerit o atingere greșită), `probe-state` (splash-ul aplicației
+după ce sistemul i-a omorât procesul) și cele două variante mai vechi ale previzualizării
+(`composer-preview.jpg`, `…-013052`, `…-013503`), păstrate ca să se vadă exact ce s-a corectat.
+
+**Capcane confirmate din nou:** (a) `uiautomator dump` nu poate citi arborele cât timp un clip redă în
+buclă (`could not get idle state`), deci coordonatele pentru atingeri s-au luat din arbore doar pe ecranele
+statice (profil, compozitor) sau din măsurarea pixelilor din JPG; (b) Metro de pe acest telefon **nu a
+reîmprospătat** fișierele editate (nici o linie `Android Bundled` după salvare) — fiecare rundă de
+verificare a cerut repornirea lui (`Stop-Process` pe `expo start`, apoi `run-metro.ps1` lansat detașat prin
+`Win32_Process.Create`) și `am force-stop` + deep link pe telefon; (c) procesul aplicației a fost omorât de
+sistem (`kill: send 9`) de două ori în timpul verificării — nu un crash JS, nicio urmă în `logcat`.
+
+**Ce NU s-a făcut:** nimic publicat (niciun post, niciun draft nou publicat), nicio migrare sau ștergere în
+bază, nicio setare a telefonului modificată, nicio reinstalare. Textul „Text peste video" a fost scris
+într-un **draft local** (ultima captură din `files/nexus-camera-tests`), care rămâne pe telefon.
+
+**Ce rămâne deschis:** ceasul clipului nu apare în previzualizarea compozitorului (bara se naște din
+progresul redării, iar `VideoPreview` nu raportează încă progres către canvas); un clip **landscape** este
+preview-uit `cover` până când `VideoPreview` citește orientarea proprie (publicarea îl pune `contain`, ca
+înainte); în compozitor butonul `×` al editorului stă peste avatarul capului (chrome de editor peste pagina
+publicată, nu o poziție greșită a paginii).
+
+---
+
+
+## 0.40 Jungle Book Dev conectat la telefon: Metro + backend local prin `adb reverse` (31 octombrie 2026)
+
+**Starea depozitului.** Rundă strict operațională, fără modificări de cod: aplicația instalată a fost
+adusă în prim-plan și legată la Metro, iar datele ei au fost servite de backendul local prin tunelul
+`adb reverse`. Nimic nu a fost push-uit; singura modificare din depozit este această secțiune.
+
+**Ce s-a făcut, în ordinea în care s-a făcut:**
+
+| pas | comandă / sursă | rezultat |
+| --- | --- | --- |
+| dispozitiv | `adb devices -l` | `adb-b42122b-huYC9y._adb-tls-connect._tcp` (Xiaomi MIX Flip, Android 17), aplicația stătea în Expo Dev Launcher |
+| backend | `GET http://127.0.0.1:5000/health` | deja pornit (`node server.js`, pid 13952, supervisor în `C:\Nexus\logs\supervisor.log`): `status=ready`, `users 10`, `posts 49`, `media 25` |
+| Metro (pornire) | `run-metro.ps1 -Port 8081` lansat detașat prin `Win32_Process.Create` | `Starting Metro Bundler` 00:15:50, `packager-status:running` la 00:16:07 |
+| tunel | `adb -s <serial> reverse tcp:8081 tcp:8081` + `tcp:5000` | `adb -s <serial> reverse --list` → `host-24 tcp:8081 tcp:8081` · `host-24 tcp:5000 tcp:5000` |
+| deschidere | `nexus-dev.ps1 -Action open` (deep link `nexusdev://expo-development-client/?url=http://localhost:8081`) | `Starting: Intent`, aplicația în prim-plan: `app.nexus.mobile.dev/.MainActivity` |
+| bundle | `.expo\dev\logs\start.log` | `metro:bundling:done` id 1, 1 854 module, 33,4 s |
+| client conectat | `GET /json/list` pe Metro | `app.nexus.mobile.dev (Xiaomi 25098PN5AC)` · `React Native Bridgeless [C++ connection]` · `25098PN5AC - 17 - API 37` |
+| tunel din telefon | `adb shell curl -s http://localhost:5000/health` și `…:8081/status` | `status=ready` și `packager-status:running` — ambele porturi ajung în telefon |
+| API servit aplicației | `C:\Nexus\logs\server-2026-10-30.log` | `GET /media/…mp4 206` cu UA `Jungle Book Dev/0.1.0 (Linux;Android 17)`, `GET /api/profiles/wallet4e8gv6 200`, `POST /api/social/impressions 202` din `127.0.0.1`; cereri noi apar după un marcaj inserat în log, deci traficul e live, nu cache |
+| dovada vizuală | `scripts/capture-android-screen.ps1 -Name round40-device-connected -StrictFocus -Wake -SettleSeconds 5` | 1 220×2 656, `focusOk=true`, 930 culori, publicat în `JUNGLE_BOOK_VERIFICATION\final_jpg\round40-device-connected.jpg`; validat cu `tools/images/validate-images.ps1` (1 validă, 0 corupte) |
+
+**Ce arată ecranul citit:** feed-ul nativ al aplicației, cu postarea video a lui `@wallet4e8gv6`
+(„Bucharest · 1 z · Generat cu AI", text „Concluzie realistă …", butoanele „Citește tot" / „Vezi
+traducerea", rail-ul de like/comentariu/salvare/distribuire, butonul de sunet și bara de progres
+0:00/0:05). Adică shell-ul dev a luat bundle-ul de la Metro și datele de la backendul local — nu ecranul
+gol al Dev Launcher-ului.
+
+**Capcane confirmate:** (a) `adb reverse --list` fără `-s` a ieșit gol deși tunelurile existau — se
+citește mereu cu serialul fixat; (b) `uiautomator dump` întoarce `ERROR: could not get idle state`
+cât timp feed-ul redă video în buclă, deci `nexus-dev.ps1 -Action ui` nu poate citi arborele pe acest
+ecran (dovada vine din JPG + ținta Metro + jurnalul backendului); (c) un proces pornit cu
+`Start-Process` dintr-un shell care expiră moare cu tot arborele — Metro a supraviețuit doar lansat
+prin `Win32_Process.Create`.
+
+**Ce NU s-a făcut:** nu s-a reinstalat aplicația (`versionName=0.1.0`,
+`lastUpdateTime=2026-10-29 21:13:02`), nu s-a golit stocarea, nu s-a șters niciun draft, nu s-a
+modificat baza și nu s-a atins nicio setare a telefonului.
+
+---
+
+
 ## 0.39 Autentificarea, pe telefonul real: xPortal ajunge în wallet, contul nou există, emailul real lipsește (29 octombrie 2026)
 
 **Starea depozitului.** `codex/camera-draft-stability`, peste rundele 36–38, cu modificările acestei
@@ -2444,3 +2814,117 @@ Ce **nu** poate face aplicaţia: să închidă din forţă un xPortal îngheţat
 spune pasul pe care cititorul l-a făcut manual: închide xPortal din Recents, apoi „Deschide xPortal din nou”.
 Pe MIUI cauza obişnuită a îngheţării e restricţia de pornire în fundal; se ridică per aplicaţie din
 Setări → Aplicaţii → Autostart şi baterie „Fără restricţii” (pentru Jungle Book **şi** xPortal).
+
+### 11.9 Runda a treia: cererea de semnătură pleca prea târziu (29 octombrie)
+
+Simptomul raportat: după „Conectează xPortal”, walletul se deschidea, aprobarea trecea, iar xPortal
+rămânea pe ecranul principal — **niciodată** fereastra de semnătură NativeAuth. Trei cauze, toate
+măsurate în logcat (`ReactNativeJS:V`, prefix „xportal”):
+
+| Cauză | Dovada | Reparația |
+|---|---|---|
+| `reopen` readucea starea la `pairing`, deci foaia nu mai recunoștea etapa `signature` | test de regresie în `test-xportal-state.cjs` | `reopen` păstrează etapa |
+| cererea pleca la ~350 ms după `approved`, exact în fereastra în care transportul se restarta la întoarcerea din xPortal | `approved` 08:15:01 → wallet în fundal 08:15:02 → restart 350 ms mai târziu → nici o semnătură | așteptare de așezare (`relayResumedAt` / `waitForRelayAfter` / `APPROVAL_SETTLE_MS = 6000`) |
+| **predicatul de așezare greșit**: `relayResumedAt > approvedAt` e fals în cazul sănătos, fiindcă întoarcerea din xPortal precedă aprobarea | 08:42:18.598 `relay-resume` → 08:42:18.754 `approved` → 08:42:24.774 `approval-settled relay=false` → cererea abia la 08:42:25.289, cu walletul deja rece, care nu a mai afișat nimic | `relayReadyAfter()`: socket deschis **acum** sau redeschis după aprobare (`relayConnected` din `RelayWatcher`) |
+
+Ordinea finală, cu `WALLETCONNECT_SIGN_LOGIN_DELAY ≈ 500 ms` și redeschiderea la 1,2 s de la `phase('signature')`:
+aprobare → așezare (instant când socketul e viu) → `phase('signature')` (fereastra se re-armează) →
+`session` predat providerului → cerere pe relay la +500 ms → xPortal adus în față la +1,2 s **cu** cererea deja pe fir.
+
+Diagnostic nou în logcat: `sign-request`, `sign-request-answered`, `sign-request-failed`,
+`approval-settled {relay, open, resumedAfter, ms}`, `sign-request-untraced`, plus `phase('signature')` postat
+și din ramura de așezare (`xportal-bridge.js`, lângă `show('Semnează loginul NativeAuth în xPortal.')`).
+
+**Verificat:** `apps/nexus-web/test/wallet-connect.test.js` 25/25 pass (4 teste noi fixează
+`relayReadyAfter`, urmărirea liveness-ului socketului, ordinea `phase('signature')` → `return session` și
+câmpurile din `approval-settled`); `test-xportal-state.cjs` 13/13; `test-xportal-login.cjs` 24/24;
+`node --check public/xportal-bridge.js` curat.
+
+**Neefectuat (blocat, nu presupus reușit):** ciclul pe telefon. Încercarea începută la 08:40 a expirat la
+300 s fără `sign-request-answered`, iar la 09:0x telefonul a ieşit complet din adb (`adb devices` gol,
+`192.168.1.184` nu răspunde la ping, `adb mdns services` gol) — wireless debugging picat sau telefonul plecat
+din rețea. Deci **nu** există dovadă că fereastra de semnătură apare după reparația de la §11.9.
+
+**Următorul pas, pentru o sesiune nouă:**
+
+1. Reconectează telefonul: wireless debugging pornit, apoi `apps/nexus-mobile/scripts/nexus-dev.ps1 -Action connect`
+   (endpoint nou) și `-Action reverse` (serverul local e pe `adb reverse`, altfel bridge-ul ia 200 doar întâmplător).
+2. `-Action open`, apoi „Conectează xPortal” → aprobare în xPortal → așteptat **`approval-settled relay=true open=true`
+   la sub 1 s după `approved`** (`resumedAfter` poate fi `false`, e normal), `sign-request` la +500 ms,
+   `auto-reopen`, apoi fereastra de semnătură în xPortal și `sign-request-answered`.
+3. Abia după asta: `POST /auth/mvx/native` 200, `/api/me` 200, aplicația în față cu profilul corect, captură nouă
+   din `JUNGLE_BOOK_VERIFICATION/final_jpg/` citită și descrisă, apoi `tools/images/validate-images.ps1` pe folder.
+
+**Rămâne neexplicat:** la 08:4x interfața arăta o postare de la `wallet4e8gv6` deși
+`files/nexus-session/session.json` fusese șters și `/api/me` răspundea 401 după logout. De verificat dacă
+feed-ul servit e din cache (server ori store al aplicației) sau dacă UI-ul randează o stare veche — nu blochează
+loginul, dar contrazice „signed out”.
+
+
+### 11.10 Runda a patra: login complet automat, portofelul nu mai depinde de adresa backendului (29 octombrie)
+
+Obiectivul owner-ului: „Conectează xPortal” → aprobare → semnătură → profil, **fără nicio trecere manuală**
+între aplicații, iar mutarea backendului să nu mai strice WalletConnect.
+
+Ce s-a schimbat, și de ce:
+
+1. **Decizia de a pune xPortal în față stă într-un singur loc** (`src/lib/xportalNavigation.ts`, nou):
+   `xPortalLaunchDecision({ reason, stage, hasPairing, now, openedAt, autoReopened, unstuckUsed })`, cu
+   patru motive (`first-open`, `signature`, `unstuck`, `reader`) și skips explicite (`no-pairing`,
+   `finished`, `wallet-in-front`, `already-reopened`, `not-signed-yet`; foaia adaugă `stale-attempt`).
+   Foaia nu mai cheamă `openXPortal` din trei locuri: singurul drum e `launchWallet(uri, reason)`, care
+   întreabă politica și scrie în trace `xportal-open-skipped { reason, skip }`. Regula care contează:
+   **al doilea ecran din xPortal se deschide numai în `signature`** (cererea e pe relay); în `approved`
+   walletul ar arăta un ecran gol — exact ce făcea rundele 36–38 să pară eșecuri.
+2. **O singură redeschidere per încercare**, la 1,2 s după `phase('signature')`, plus o singură „deblocare”
+   la 10 s dacă cititorul rămâne în Jungle Book (xPortal înghețat). Ambele se anulează când cititorul se
+   întoarce singur în xPortal, iar garda `pairingRef.current?.uri !== uri` oprește un timer rămas în urmă
+   să fure ecranul următoarei încercări.
+3. **„Autentificare reușită” are stadiul ei** (`authenticated`, în `src/lib/xportalState.ts`), atins numai
+   din `.then`-ul lui `signInWithXPortalToken`. Un `error` târziu din pagină nu-l mai poate anula
+   (`finished()` include stadiul), iar `token` nu se afișează ca reușită.
+4. **Două origini separate** (`src/lib/bridgeOrigin.ts`: `resolveWalletOrigin`). Backendul stă unde spune
+   `EXPO_PUBLIC_NEXUS_API_URL`; pagina portofelului stă unde spune noua `EXPO_PUBLIC_NEXUS_WALLET_URL`
+   (sau, fără ea, regula veche: https ca atare, loopback ca atare, LAN → `localhost` prin `adb reverse`).
+   O valoare configurată greșit nu e ignorată: `walletOrigin.problem` se afișează în foaie.
+5. **Urmă pentru „întoarcerea a fost automată”**: `_layout.tsx` scrie `link-return { route, cold }` din
+   `Linking.getInitialURL()` + `addEventListener('url')`, iar foaia scrie `app-background` / `app-active`
+   cu stadiul — raportul de pe telefon poate arăta dacă întoarcerea a venit din deep link sau din mână.
+6. **Textele**: cinci propoziții, una per stadiu (`Se deschide xPortal…`, `Confirmă conectarea în xPortal`,
+   `Pregătim autentificarea…`, `Confirmă semnătura în xPortal`, `Autentificare reușită`), plus fallback-ul
+   de întoarcere doar în `signature`. `retry` remontează pagina (`bridgeKey`), deci un pairing nou.
+
+**Dovezi (rulate, cu cod de ieșire):**
+
+| verificare | rezultat |
+|---|---|
+| `node node_modules/typescript/bin/tsc --noEmit` (`apps/nexus-mobile`) | **exit 0**, fără erori |
+| `npm test` (`apps/nexus-mobile`, 60 suite `node:test`) | **0 fail**; `test-xportal-navigation.cjs` nou 14/14 |
+| `node scripts/test-bridge-origin.cjs` | 6/6 (`normalizeWalletOrigin` / `resolveWalletOrigin`) |
+| `node scripts/test-xportal-state.cjs` | 16/16 (două teste noi pentru `authenticated`) |
+| `node scripts/test-xportal-login.cjs` | 25/25 (aserțiunile mutate pe `launchWallet` și pe propozițiile de stadiu; test nou pentru `xPortalReturnRoute`, fără token în log) |
+| `node --test test/wallet-connect.test.js` (`apps/nexus-web`) | 29/29 |
+
+**Neefectuat (blocat, nu presupus reușit):** cele cinci încercări reale pe telefon, cu numărarea trecerilor
+manuale, **nu** au fost rulate în această rundă — deci nu există încă dovada „zero treceri manuale”.
+Ordinea de verificat rămâne cea din §11.9 pasul 2, cu două linii în plus în logcat: `xportal-open-skipped
+{ reason, skip }` (de ce nu s-a deschis) și `auto-reopen` urmat de `app-active` **fără** o trecere manuală
+între ele. Pentru loopback, `adb reverse tcp:5000 tcp:5000` trebuie să fie activ înainte de încercare.
+
+**Dovadă pe telefon (rulată):** aplicația a fost repornită cu `am start` pe `app.nexus.mobile.dev`, apoi
+capturată cu `scripts/capture-android-screen.ps1 -Name 'xportal-origin-round4-home' -Wake -StrictFocus`
+(exit 0, `focusOk=true`, 1220x2656). Imaginea citită arată feed-ul Jungle Book randat normal — card video,
+nume autoare și timestamp, „Citește tot”, „Vezi traducerea”, bara de jos cu șapte pictograme — fără redbox,
+fără ecran de eroare. Bundle-ul servit de Metro (`/.expo/.virtual-metro-entry.bundle`, 9.132.051 octeți) a
+fost căutat cu `Select-String`: `xPortalLaunchDecision`, `resolveWalletOrigin`, `NEXUS_WALLET_URL`,
+`xportal-open-skipped` și `link-return` sunt toate prezente, deci telefonul rulează exact codul din acest
+packet, nu o versiune veche. `adb reverse --list` arată `tcp:5000` și `tcp:8081` active, iar
+`/api/auth-capabilities` răspunde 200 — deci mediul de test e pregătit. Foaia xPortal **nu** a fost deschisă:
+montarea ei creează imediat un pairing și ar porni o încercare reală care are nevoie de aprobarea owner-ului
+în xPortal, deci pașii 1–5 din §11.9 rămân pentru owner, cu telefonul în mână.
+
+**De reținut la commit:** `apps/nexus-web/public/xportal-timing.js` (modulul din care pagina își ia
+`APPROVAL_SETTLE_MS = 6000` / `SIGN_GRACE_MS = 500`) este **încă neversionat** (`git status` → `??`). Dacă se
+comite `xportal-bridge.js` fără el, pagina servită nu mai are de unde lua constantele; cele două fișiere se
+comit împreună.
+

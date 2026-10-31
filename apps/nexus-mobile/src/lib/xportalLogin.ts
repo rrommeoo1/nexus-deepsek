@@ -36,6 +36,29 @@ export function xPortalRedirectScheme(scheme: unknown): string {
 
 export type XPortalRedirect = { native?: string; universal?: string };
 
+/**
+ * The route a return link lands on, as one word a log may carry.
+ *
+ * `nexusdev://` is the address xPortal is given, but the same scheme also carries the e-mail links
+ * (`verify-email`, `reset-password`). Knowing which of them came back is the only way to tell an
+ * automatic return from a manual app switch on the device — so the sheet logs `link-return` with
+ * this value. Only the scheme and the first path segment survive: a link can carry a token.
+ */
+export function xPortalReturnRoute(url: unknown): string {
+  const raw = String(url ?? '').trim();
+  const match = /^([a-z][a-z0-9+.-]*):\/\/([^/?#]*)([^?#]*)/i.exec(raw);
+  if (!match) return '';
+  const scheme = match[1].toLowerCase();
+  const authority = match[2].trim().slice(0, 64);
+  const path = match[3].replace(/^\/+/, '').split('/')[0].slice(0, 32);
+  // A browser link is recognised by its host; the app's own scheme by the screen it opens.
+  if (scheme === 'http' || scheme === 'https') {
+    if (!authority) return scheme;
+    return path ? `${scheme}:${authority}/${path}` : `${scheme}:${authority}`;
+  }
+  return path ? `${scheme}:${path}` : scheme;
+}
+
 export type XPortalBridgeEvent =
   /** The page saying what it is doing, so the sheet can print it verbatim. */
   | { kind: 'status'; message: string }
@@ -220,7 +243,7 @@ export function parseXPortalBridgeMessage(raw: unknown): XPortalBridgeEvent | nu
 }
 
 /** The phases the page reports, in order; anything else is not a phase. */
-const PHASES = ['preparing', 'pairing', 'signature', 'token', 'failed'];
+const PHASES = ['preparing', 'pairing', 'approved', 'signature', 'token', 'failed'];
 
 /**
  * Only the small, enumerable diagnostics the page sends. A value is cut to 64 characters and a

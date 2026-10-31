@@ -51,11 +51,16 @@ test('ruta montează cititorul existent, nu o a doua compoziție', () => {
 });
 
 test('cardul din feed nu își deschide o copie; comentariile rămân foaia existentă', () => {
-  assert.match(card, /import \{ CommentsSheet \} from '\.\/CommentsSheet'/);
-  assert.match(card, /onOpenComments=\{\(\) => setCommentsOpen\(true\)\}/);
-  assert.match(card, /<CommentsSheet\s+post=\{post\}/);
+  /** Runda 42: filele sunt montate o singura data, de `PostSheets`, din registrul comun. */
+  assert.match(card, /import \{ PostSheets \} from '\.\/PostSheets'/);
+  assert.match(card, /onOpenComments=\{engagement\.openComments\}/);
+  assert.match(card, /<PostSheets post=\{post\} engagement=\{engagement\} \/>/);
+  const sheets = read('src/components/PostSheets.tsx');
+  assert.match(sheets, /import \{ CommentsSheet \} from '\.\/CommentsSheet'/);
+  assert.match(sheets, /<CommentsSheet\s+post=\{post\}/);
   assert.doesNotMatch(card, /onPressMedia=/, 'a card has no larger reading to hand a media tap to');
 });
+
 
 test('înapoi păstrează profilul din stivă', () => {
   assert.match(route, /if \(router\.canGoBack\(\)\) \{ router\.back\(\); return; \}/);

@@ -158,7 +158,12 @@ test('panoul are glifele din poza, nu inimile sterse ale webului', () => {
 test('un tap este like, o tinere deschide panoul, glisarea alege', () => {
   assert.match(control, /onStartShouldSetResponderCapture: \(\) => true/,
     'o singura mana: panoul si platca lui sunt acelasi responder');
-  assert.match(control, /onResponderTerminationRequest: \(\) => !open/,
+  /**
+   * Cat timp panoul este inchis, un scroll poate lua gestul. Runda 42 a pus o urma in acelasi raspuns
+   * (`note('request', ...)`), ca telefonul sa poata spune cine a cerut gestul; raspunsul insusi este
+   * neschimbat: `kept = !open`.
+   */
+  assert.match(control, /onResponderTerminationRequest: \(event: GestureResponderEvent\) => \{[\s\S]*?const kept = !open;[\s\S]*?return kept;/,
     'cat timp panoul este inchis, un scroll poate lua gestul');
   assert.match(control, /}, PICKER_HOLD_MS\);/, 'panoul se deschide dupa pragul de tinere');
   assert.match(control, /onResponderMove: \(event: GestureResponderEvent\) => \{/, 'glisarea este ascultata');
@@ -338,11 +343,21 @@ test('al doilea tap retrage like-ul: platca se intoarce la inima alba, nu la cea
   assert.match(control, /onReact\('LIKE', mine !== 'LIKE'\)/, 'al doilea tap pe platca cere retragerea');
   // Paginile nu primesc o valoare de la copil: o recitesc din sumar, ca retragerea sa mearga si cand
   // reactia vine din panou. Acelasi emoji ales a doua oara este `false`, si ajunge la server.
+  /**
+   * Runda 42: regula a plecat din cele doua componente intr-un singur registru
+   * (`lib/postEngagement.ts`), pentru ca o reactie luata intr-o suprafata sa fie luata in toate. Ea este
+   * verificata si ca functie in `test-post-engagement.cjs`; aici ramane legatura: paginile o folosesc si
+   * nu mai trimit nimic singure.
+   */
+  const registry = code(read('src/lib/postEngagement.ts'));
+  assert.match(registry, /const nextActive = mine !== kind;/, 'acelasi emoji, a doua oara, retrage reactia');
+  assert.match(registry, /setPostReaction\(id, kind, nextActive/, 'serverul primeste retragerea');
   for (const source of ['src/components/ReelsReader.tsx', 'src/components/PostCard.tsx']) {
     const page = code(read(source));
-    assert.match(page, /const nextActive = mine !== kind;/, `${source}: acelasi emoji, a doua oara, retrage reactia`);
-    assert.match(page, /setPostReaction\(post\.id, kind, nextActive/, `${source}: serverul primeste retragerea`);
+    assert.match(page, /usePostEngagement\(post\)/, `${source}: citeste registrul comun`);
+    assert.doesNotMatch(page, /setPostReaction\(/, `${source}: nu mai trimite singur reactia`);
   }
+
 });
 
 

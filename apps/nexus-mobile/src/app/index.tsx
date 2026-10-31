@@ -451,8 +451,12 @@ export default function NativeHomeScreen() {
    * screen. A bar left without a control is a black strip above the picture; the wordmark already sits
    * in the tab bar and on every other screen, so the feed now begins at the notch. `FeedHeader` and
    * `FeedFilter` were deleted with the band they painted.
+   *
+   * Search wears none either (round 45, owner: „scoate headerul redundant, câmpul de căutare să fie primul
+   * rând"). Its bar was the wordmark plus the two switches of the shell, standing above a field that is
+   * itself a header — the same logo twice, with the reader's question pushed a band down.
    */
-  const header = slot === 'account' || slot === 'inbox' || onFeed ? null : (
+  const header = slot === 'account' || slot === 'inbox' || slot === 'search' || onFeed ? null : (
     <AppHeader
       variant="screen"
       onPressWordmark={goHome}

@@ -81,7 +81,7 @@ test('ruta nu desenează decât un antet, și nu peste o pagină de cuvinte', ()
   assert.match(route, /const wordPage = current \? readsAsPage\(current\) : false;/,
     'ruta întreabă exact ce întreabă și canvasul');
   assert.equal((route.match(/accessibilityRole="header"/g) ?? []).length, 1, 'un singur antet în toată ruta');
-  assert.match(route, /\{!wordPage \? \([\s\S]{0,120}accessibilityRole="header"/,
+  assert.match(route, /\{!pageOwnHead \? \([\s\S]{0,120}accessibilityRole="header"/,
     'antetul este legat de paginile care nu au cap propriu');
   assert.match(route, /\{showReaderDoor \? \([\s\S]{0,900}styles\.readerBar/,
     'pagina de cuvinte primește piciorul, nu antetul — iar din runda 32 regula ușii este a modulului');
@@ -93,13 +93,19 @@ test('ruta nu desenează decât un antet, și nu peste o pagină de cuvinte', ()
 
 test('pagina este măsurată cu banda piciorului înainte de a fi desenată', () => {
   const route = code(read('src/app/post/[id].tsx'));
+  /**
+   * Runda 41: regula nu mai întreabă „e pagină de cuvinte?", ci „își tipărește capul?" — o pagină de
+   * media deschisă din profil îl tipărește acum ca oricare alta, deci pornește tot din banda notificărilor.
+   */
   assert.match(route,
-    /readsAsPage\(entry\) \? readerPageTopInset\(insets\.top\) : postPageTopInset\(insets\.top\)/,
-    'pagina de cuvinte pornește de sub ceas; o poză, de sub antet');
+    /ownsHead\(entry\) \? readerPageTopInset\(insets\.top\) : postPageTopInset\(insets\.top\)/,
+    'o pagină cu cap pornește de sub ceas; una fără cap (un citat), de sub antet');
+  assert.match(route, /if \(profileOrigin\) return profileReaderBottomInset\(insets\.bottom\);/,
+    'orice pagină deschisă din profil cedează aceeași fâșie de aer');
   assert.match(route, /if \(!readsAsPage\(entry\)\) return insets\.bottom;/,
-    'o poză cedează doar bara de gesturi');
-  assert.match(route, /profileOrigin \? profileReaderBottomInset\(insets\.bottom\) : readerBarHeight\(insets\.bottom\);/,
-    'pagina de cuvinte din profil cedează hârtia ușii; cea deschisă altundeva păstrează banda ușii');
+    'o poză deschisă altundeva cedează doar bara de gesturi');
+  assert.match(route, /return readerBarHeight\(insets\.bottom\);/,
+    'pagina de cuvinte deschisă altundeva păstrează banda ușii');
   assert.match(route, /topInset=\{topInsetFor\(entry\)\}[\s\S]{0,80}bottomInset=\{bottomInsetFor\(entry\)\}/,
     'aceleași numere ajung la compoziție');
   assert.match(route, /height: readerBarHeight\(insets\.bottom\)[\s\S]{0,120}paddingLeft: READER_BAR\.inline/,
@@ -211,7 +217,8 @@ test('runda 32: ruta leagă toate cele trei schimbări de parametrul `profile`',
   assert.match(route, /folio=\{folioFor\(entry\)\}/, 'și ajunge la pagina desenată');
   assert.match(route, /const showReaderDoor = readerDoorShown\(\{[\s\S]{0,140}canGoBack: router\.canGoBack\(\),/,
     'regula ușii stă în modul, cu istoricul citit de la router');
-  assert.match(route, /const systemNavPlate = profileOrigin && wordPage;/, 'placa de argint e a paginii din profil');
+  assert.match(route, /const systemNavPlate = profileOrigin;/,
+    'placa de argint (footerul gri) e a oricărei pagini din profil, cuvânt sau clip');
   assert.match(route, /\{systemNavPlate \? <SystemNavBand height=\{insets\.bottom\} \/> : null\}/,
     'și se montează cu insetul telefonului, nu cu o cifră a ei');
   assert.equal((route.match(/onPress=\{close\}/g) ?? []).length, 2, 'antetul și ușa apasă aceeași ieșire');

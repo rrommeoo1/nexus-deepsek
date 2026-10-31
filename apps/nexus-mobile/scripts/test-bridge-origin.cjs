@@ -41,6 +41,44 @@ test('mesajul de eroare spune ce trebuie deschis', () => {
 
 test('foaia xPortal încarcă pagina din originea sigură, nu din adresa LAN', () => {
   const sheet = readFileSync(resolve(ROOT, 'src/components/XPortalSheet.tsx'), 'utf8');
-  assert.match(sheet, /xPortalBridgeUrl\(secureBridgeOrigin\(API_ORIGIN\)/);
-  assert.match(sheet, /bridgeUnreachableSentence\(API_ORIGIN\)/);
+  // Originea paginii de wallet e acum o decizie separată (`resolveWalletOrigin`), ca mutarea
+  // backendului să nu schimbe identitatea pe care o vede xPortal.
+  assert.match(sheet, /resolveWalletOrigin\(\{ configured: process\.env\.EXPO_PUBLIC_NEXUS_WALLET_URL, apiOrigin: API_ORIGIN \}\)/);
+  assert.match(sheet, /xPortalBridgeUrl\(walletOrigin\.origin/);
+  assert.match(sheet, /bridgeUnreachableSentence\(walletOrigin\.origin\)/);
+});
+
+test('o adresă de wallet configurată e folosită ca identitate stabilă', () => {
+  const chosen = origin.resolveWalletOrigin({ configured: 'https://nexus.example.com', apiOrigin: 'http://192.168.1.153:5000' });
+  assert.equal(chosen.origin, 'https://nexus.example.com');
+  assert.equal(chosen.source, 'configured');
+  assert.equal(chosen.problem, '');
+  // Un https cu cale nu e o origine: pagina are o singură adresă, `/xportal-bridge.html`.
+  assert.equal(origin.normalizeWalletOrigin('https://nexus.example.com/bridge'), '');
+  assert.equal(origin.normalizeWalletOrigin('https://nexus.example.com/?x=1'), '');
+  // http public nu e un context sigur, deci nu poate servi pagina.
+  assert.equal(origin.normalizeWalletOrigin('http://nexus.example.com'), '');
+  assert.equal(origin.normalizeWalletOrigin('http://localhost:5000'), 'http://localhost:5000');
+  assert.equal(origin.normalizeWalletOrigin('https://nexus.example.com/'), 'https://nexus.example.com');
+});
+
+test('fără configurare rămâne regula dovedită, iar sursa e spusă în clar', () => {
+  const lan = origin.resolveWalletOrigin({ apiOrigin: 'http://192.168.1.153:5000' });
+  assert.equal(lan.origin, 'http://localhost:5000');
+  assert.equal(lan.source, 'phone-loopback');
+  assert.match(lan.note, /adb reverse tcp:5000 tcp:5000/);
+  const https = origin.resolveWalletOrigin({ apiOrigin: 'https://nexus.example.com' });
+  assert.equal(https.origin, 'https://nexus.example.com');
+  assert.equal(https.source, 'api-https');
+  const loopback = origin.resolveWalletOrigin({ apiOrigin: 'http://localhost:5000' });
+  assert.equal(loopback.source, 'api-loopback');
+  assert.equal(loopback.note, '');
+});
+
+test('o adresă de wallet greșită nu e ignorată în tăcere', () => {
+  const refused = origin.resolveWalletOrigin({ configured: 'http://192.168.1.153:5000', apiOrigin: 'http://localhost:5000' });
+  // Se continuă cu regula veche, dar foaia are ce afișa: altfel un build greșit ar arăta doar un eșec.
+  assert.equal(refused.origin, 'http://localhost:5000');
+  assert.equal(refused.source, 'api-loopback');
+  assert.match(refused.problem, /https:\/\/ public/);
 });

@@ -77,7 +77,7 @@ test('feedul alege pagina după media, nu după tipul de conținut', () => {
 test('fiecare pagină urcă aceeași coloană de gesturi, la același picior', () => {
   assert.match(rail, /export const RAIL_FOOT = 26;/, 'the rail foot is one token');
   assert.match(rail, /<ReactionControl variant="rail" summary=\{summary\}/, 'the column is the rail variant');
-  assert.match(page, /<PostRail[\s\S]{0,900}?bottom=\{RAIL_FOOT \+ overlayBottom\}/, 'a reel ends its rail above the bar');
+  assert.match(page, /<PostRail[\s\S]{0,900}?bottom=\{RAIL_FOOT \+ band\}/, 'a reel ends its rail above the bar');
   assert.match(card, /<PostRail[\s\S]{0,500}?bottom=\{RAIL_FOOT \+ bottomInset\}/, 'a page of words ends it in the very same place');
   assert.match(page, /import \{ PostRail, PostDistributePanel, RAIL_FOOT \} from '\.\/PostRail';/);
   assert.match(card, /import \{ PostRail, PostDistributePanel, RAIL_FOOT \} from '\.\/PostRail';/);
@@ -109,7 +109,7 @@ test('un articol cu fotografii limiteaza blocul media si il deschide separat', (
   assert.match(reading, /\{index === 0 && hasLead \? \(/, 'fotografia apare doar pe prima pagina');
 
   // Canvasul nu mai deseneaza cover-ul full-bleed atunci cand pagina este articol.
-  assert.match(canvas, /stage !== 'article' && items\.length <= 1 && cover && !isVideo/, 'articolul nu primeste cover full-bleed');
+  assert.match(canvas, /stage !== 'article' && !mediaOverride && items\.length <= 1 && cover && !isVideo/, 'articolul nu primeste cover full-bleed');
   assert.match(canvas, /lead=\{stage === 'article' \? \(baseHeight\) => \(/, 'canvasul preda fotografia cititorului');
   assert.match(canvas, /frame=\{pageStyle\?\.media\}/, 'canvasul preda cadrul ales de autor');
   assert.match(canvas, /baseHeight=\{baseHeight\}/, 'canvasul preda plafonul masurat, nu marimea finala');

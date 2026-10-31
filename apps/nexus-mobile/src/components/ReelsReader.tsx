@@ -1,22 +1,20 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PostRail, PostDistributePanel, RAIL_FOOT } from './PostRail';
-import { ActionPaymentSheet } from './ActionPaymentSheet';
-import { CommentsSheet } from './CommentsSheet';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { PostDecorations } from './PostDecorations';
 import { PostCanvas, PostStage } from './PostCanvas';
-import { setPostReaction, setPostRepost, setPostSaved, sharePost } from '../lib/postInteractions';
+import { PostSheets } from './PostSheets';
+import { RelationButton } from './RelationButton';
+import { useRelation } from '../lib/relations';
+import { usePostEngagement } from '../lib/postEngagement';
 import {
-  intentIsPaid, paymentRequired, quoteFromFailure,
-  type ActionQuote, type PaymentIntent,
-} from '../lib/actionPayments';
-import {
-  audioAttributionFor, mediaKindOf, postMediaItems, viewerReaction,
+  audioAttributionFor, mediaKindOf, postMediaItems,
   type MediaItem, type SocialPost,
 } from '../lib/socialTypes';
 import { MAX_MEDIA } from '../lib/postPresentation';
 import { openSocialProfile } from '../lib/profileNavigation';
+import type { PostCanvasLayout } from './PostCanvas';
 
 /**
  * One page with media, drawn to the values the web uses for its own immersive presentation:
@@ -42,13 +40,65 @@ import { openSocialProfile } from '../lib/profileNavigation';
  *
  * Every action behind the rail is a real endpoint call (`lib/postInteractions`) — nothing here is a
  * picture of a button.
+ *
+ * Round 43 (31 October 2026): **one head, everywhere.** This page printed the author above the caption at
+ * the foot whenever a surface left `layout` alone, which is what the feed did, while the profile asked for
+ * `layout="post"` and got the head at the top beside a page of words that had always printed it there. The
+ * owner asked for the feed to read like the profile, so `post` is now the default — and the feed passes it
+ * explicitly — with the notch as `topInset` and the relation door beside the name. The bottom stamp lives
+ * on in `PostCanvas` for the shapes that still want it (`reel`), but no page of the app asks for it.
  */
 
 /** One page with media: the whole viewport, the picture or the clip, and the rail the reader uses. */
-export function ReelPage({ post, height, overlayBottom, active, muted, onToggleMute, onPanelChange }: {
+export function ReelPage({
+  post, height, overlayBottom, bottomInset = 0, topInset = 0, layout = 'post', follow = false,
+  translate = true, active, muted, onToggleMute, onPanelChange,
+}: {
   post: SocialPost;
   height: number;
+  /**
+   * The band the surface under this page already owns at its foot: the tab bar of the feed
+   * (`navReserve`). A page opened on its own route passes nothing here and hands its own device inset
+   * instead (`bottomInset`), because the feed's bar is not mounted there.
+   */
   overlayBottom: number;
+  /**
+   * The device's own room at the foot — the navigation bar and, on a page opened from a profile, the
+   * plate of metal that carries it (`SystemNavBand`, round 41). Added to `overlayBottom`: the caption,
+   * the clock and the rail end above it, so nothing the reader must press stands under the system's own
+   * controls. It was `0` everywhere before round 41, which is why a profile reel printed its caption on
+   * the very edge of the screen while a text post kept 10dp of paper above the gesture bar.
+   */
+  bottomInset?: number;
+  /**
+   * The room the device owns at the top (the status clock and the cutout) — and, on a page that keeps
+   * the route's chrome, the header's band as well (`postPageTopInset`). The head of the page starts
+   * under it.
+   */
+  topInset?: number;
+  /**
+   * Where the author's head goes. `post` — the default, and the only arrangement any surface asks for
+   * since round 43 — prints it at the **top** of the page, in the one block a page of words uses: same
+   * face, same name, same `@handle`, same place line, same relation door (`PostCanvas.page`). `reel` is the
+   * arrangement the feed carried until round 43 (the author above the caption at the foot); it is kept
+   * because the canvas still knows both shapes, but the feed now reads exactly like the profile and like
+   * the page of words beside it, so no page asks for it any more — the same post must not have two heads
+   * depending on where it was opened.
+   */
+  layout?: PostCanvasLayout;
+  /**
+   * Draw the author's relation door beside the name. Every page of media does since round 43: the feed's
+   * immersive page printed no door while the page of words beside it printed one, and the owner asked for
+   * one head everywhere (`PostCard` passes the same `RelationButton` for the same reason).
+   */
+  follow?: boolean;
+  /**
+   * Offer `Vezi traducerea` over the page. A **clip** never does: the door stands on the picture, over the
+   * caption it is supposed to translate, and the owner asked for its removal from reels only (round 41) —
+   * so a reel drops it whatever the surface says, and a still picture, a page of words, an article and a
+   * conversation keep the behaviour they have always had.
+   */
+  translate?: boolean;
   active: boolean;
   muted: boolean;
   onToggleMute: () => void;
@@ -65,77 +115,33 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
   const isVideo = mediaKindOf(cover) === 'video';
   const handle = post.author?.handle || 'nexus';
   const name = post.author?.display_name || handle;
+  /**
+   * The band the foot really reserves: the surface's own bar plus the device's inset. Both the canvas and
+   * the rail climb by this one number, so a caption and the soundtrack disc under it can never be placed
+   * against two different floors.
+   */
+  const band = Math.max(0, overlayBottom) + Math.max(0, bottomInset);
+  const authorId = Number(post.author?.id) || null;
+  const relation = useRelation(authorId);
+  const stacked = layout === 'post';
 
   const [playing, setPlaying] = useState(true);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [summary, setSummary] = useState(post.reactions ?? null);
-  const [saved, setSaved] = useState(Boolean(post.saved_by_me));
-  const [reposted, setReposted] = useState(Boolean(post.reposted_by_me));
-  const [distributeOpen, setDistributeOpen] = useState(false);
-  const [notice, setNotice] = useState('');
-  const [busy, setBusy] = useState(false);
+  /**
+   * Everything this page *does* to the post lives in the one record `PostCard` reads too
+   * (`lib/postEngagement.ts`): the reaction, the save, the repost, the share, the open thread and the paid
+   * like waiting for its transfer. A reel liked in the feed therefore reads liked on the profile and in
+   * search, because there is one record and not one per surface.
+   */
+  const engagement = usePostEngagement(post);
+  const {
+    summary, saved, reposted, distributeOpen, busy, notice: sentence,
+  } = engagement;
   const [mediaFailed, setMediaFailed] = useState(false);
   /** A caption longer than the three lines the rail leaves room for, opened in place (section 5). */
   const [expanded, setExpanded] = useState(false);
-  /** The paid appreciation waiting for its confirmation: the quote the server refused the like with. */
-  const [likePayment, setLikePayment] = useState<{ kind: string; quote: ActionQuote | null } | null>(null);
 
-  const mine = viewerReaction(summary);
   const plays = active && playing && isVideo;
 
-  function fail(cause: unknown) {
-    setNotice(cause instanceof Error ? cause.message : 'Acțiunea nu a putut fi trimisă.');
-  }
-
-  /**
-   * An appreciation is a paid action on this network (`lib/action-payments.js`): the server refuses
-   * the reaction with `402 PAYMENT_REQUIRED` and the quote for it, and the like lands only once its
-   * devnet transfer exists. The reader looks at the numbers on `ActionPaymentSheet`, and the second
-   * call carries the ledger row back as `payment_intent_id`.
-   */
-  const react = (kind: string, paymentIntentId?: string | null, approval?: PaymentIntent | null) => {
-    const nextActive = mine !== kind;
-    const optimistic = !nextActive || Boolean(paymentIntentId || approval);
-    if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: nextActive ? kind : null }));
-    setPostReaction(post.id, kind, nextActive, { paymentIntentId })
-      .then((answer) => {
-        setSummary({ counts: answer.counts, viewer_reaction: answer.viewer_reaction });
-        setLikePayment(null);
-        setNotice('');
-      })
-      .catch((cause) => {
-        if (paymentRequired(cause)) {
-          setLikePayment({ kind, quote: quoteFromFailure(cause) });
-          // A refusal after a real transfer is a charge: never let it look unpaid.
-          if (approval && intentIsPaid(approval)) fail(new Error('Transferul a plecat, dar aprecierea nu a fost înregistrată. Reîncarcă.'));
-          return;
-        }
-        if (optimistic) setSummary((previous) => ({ ...(previous ?? {}), viewer_reaction: mine }));
-        fail(cause);
-      });
-  };
-
-  const save = () => {
-    const next = !saved;
-    setSaved(next);
-    setPostSaved(post.id, next).then((answer) => setSaved(answer.saved)).catch((cause) => { setSaved(!next); fail(cause); });
-  };
-
-  const repost = () => {
-    const next = !reposted;
-    setDistributeOpen(false);
-    setReposted(next);
-    setPostRepost(post.id, next)
-      .then((answer) => setReposted(Boolean(answer.reposted_by_me ?? answer.active)))
-      .catch((cause) => { setReposted(!next); fail(cause); });
-  };
-
-  // Sharing is off by design on this product; the server's own sentence is what the reader sees.
-  const share = () => {
-    setDistributeOpen(false);
-    setBusy(true);
-    sharePost(post.id).catch(fail).finally(() => setBusy(false));
-  };
 
   return (
     <View style={[styles.page, { height }]}>
@@ -157,21 +163,48 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
             <PostCanvas
               post={post}
               variant="feed"
+              layout={layout}
+              page={stacked}
               active={plays}
               muted={muted}
               expanded={expanded}
-              bottomInset={overlayBottom}
+              topInset={topInset}
+              bottomInset={band}
               onError={() => setMediaFailed(true)}
               onOpenAuthor={() => openSocialProfile(post.author?.handle)}
               onToggleExpanded={() => setExpanded((value) => !value)}
-              onTranslate={() => setNotice('Traducerea pe dispozitiv nu este disponibilă în această aplicație.')}
-              /** A still has nothing to start: only a clip answers a tap on the picture. */
+              onTranslate={(translate && !isVideo) ? () => engagement.inform('Traducerea pe dispozitiv nu este disponibilă în această aplicație.') : undefined}
+              /**
+               * A still has nothing to start: only a clip answers a tap on the picture.
+               * (`onPressMedia` is the play switch, since the reader removed the full-screen door in round 8.)
+               */
               onPressMedia={isVideo ? () => setPlaying((value) => !value) : undefined}
-              notice={notice}
+              notice={sentence?.text}
+              noticeTone={sentence?.tone}
+              /**
+               * The decorations of the manifest, handed to the canvas so they are painted on the picture
+               * itself: above the veil, under the author's head and under the caption (`mediaOverlay`).
+               */
+              mediaOverlay={<PostDecorations post={post} fit="cover" />}
+              /**
+               * The relation door of the author, when the surface asks for it: the same control, the same
+               * store and the same words a text post prints (`PostCard`), so a profile opened on a reel and
+               * the same profile opened on a page of words answer `Urmărește` / `Editează profilul` in one
+               * place, at one size. The feed's immersive page keeps it off, as it always has.
+               */
+              authorAction={follow && authorId ? (
+                <RelationButton
+                  variant="compact"
+                  target={{ userId: authorId, handle, name, persona: post.persona ?? 'social' }}
+                  relation={relation}
+                />
+              ) : undefined}
             />
 
-      {/** The picture covers the page, so the decorations are drawn on the same cover box. */}
-      <PostDecorations post={post} fit="cover" />
+      {/**
+       * The decorations live inside the canvas (`mediaOverlay`), not here: a layer beside it was painted
+       * over the author's head, so a text on the clip printed itself through his name.
+       */}
 
       {mediaFailed ? (
         <View pointerEvents="none" style={styles.playState}>
@@ -194,7 +227,7 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
        * that the bar is permanent (round 10): the rail and the words simply end above it.
        */}
       <PostRail
-        bottom={RAIL_FOOT + overlayBottom}
+        bottom={RAIL_FOOT + band}
         summary={summary}
         comments={post.comment_count}
         reposts={post.reposts}
@@ -208,10 +241,10 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
           label: `${muted ? 'Activează' : 'Oprește'} sunetul · ${audioAttributionFor(post, name)}`,
           onToggle: onToggleMute,
         } : null}
-        onReact={(kind) => react(kind)}
-        onOpenComments={() => setCommentsOpen(true)}
-        onToggleSaved={save}
-        onShare={() => setDistributeOpen((open) => !open)}
+        onReact={(kind) => engagement.react(kind)}
+        onOpenComments={engagement.openComments}
+        onToggleSaved={engagement.save}
+        onShare={engagement.toggleDistribute}
         onPanelChange={onPanelChange}
       />
 
@@ -221,10 +254,10 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
        */}
       <PostDistributePanel
         open={distributeOpen}
-        bottom={214}
+        bottom={214 + band}
         reposted={reposted}
-        onToggleRepost={repost}
-        onShare={share}
+        onToggleRepost={engagement.repost}
+        onShare={engagement.share}
       />
 
           </View>
@@ -235,20 +268,7 @@ export function ReelPage({ post, height, overlayBottom, active, muted, onToggleM
        * The thread of this reel, over the reel: the app's one comment surface, with the one composer it
        * already has. A sheet, because the reel above is the whole post — there is no page to open.
        */}
-      {commentsOpen ? <CommentsSheet post={post} onClose={() => setCommentsOpen(false)} /> : null}
-
-      {/**
-       * The paid like: `onPaid` re-sends the same reaction with the ledger row as `payment_intent_id`,
-       * so the appreciation lands once the devnet transfer exists — and only then.
-       */}
-      <ActionPaymentSheet
-        visible={Boolean(likePayment)}
-        postId={post.id}
-        action="appreciation"
-        quote={likePayment?.quote ?? null}
-        onPaid={(approval) => { if (likePayment) react(likePayment.kind, approval.id, approval); }}
-        onClose={() => setLikePayment(null)}
-      />
+      <PostSheets post={post} engagement={engagement} />
 
     </View>
   );

@@ -101,6 +101,42 @@ test('întoarcerea în aplicație după expirare redeschide fereastra', () => {
   assert.equal(machine.xPortalIsWaiting(back), true);
 });
 
+test('redeschiderea după aprobare nu poate anula aprobarea', () => {
+  // Regression: `reopen` moved the sheet back to `pairing`, so the return that follows an approval
+  // read as "xPortal was never approved" and the sheet sent a second, unrequested intent at a wallet
+  // that was busy showing the NativeAuth sheet.
+  const approved = run([{ type: 'open' }, { type: 'pairing' }, { type: 'phase', phase: 'signature' }]);
+  assert.equal(approved.stage, 'signature');
+  const reopened = machine.xPortalReduce(approved, { type: 'reopen' });
+  assert.equal(reopened.stage, 'signature');
+  assert.equal(reopened.seconds, machine.XPORTAL_WAIT_SECONDS);
+  assert.equal(reopened.reopened, 1);
+  assert.equal(machine.xPortalIsWaiting(reopened), true);
+  // A re-open before the approval is still a plain pairing wait.
+  const paired = run([{ type: 'open' }, { type: 'pairing' }]);
+  assert.equal(machine.xPortalReduce(paired, { type: 'reopen' }).stage, 'pairing');
+});
+
+test('aprobarea și cererea de semnătură sunt două stări, nu una', () => {
+  // `approved` = xPortal a spus da, pagina își pregătește relay-ul; `signature` = cererea e pe fir.
+  // Foaia le deosebește ca să nu redeschidă xPortal pe un ecran gol.
+  const approved = run([{ type: 'open' }, { type: 'pairing' }, { type: 'phase', phase: 'approved' }]);
+  assert.equal(approved.stage, 'approved');
+  assert.equal(machine.xPortalIsWaiting(approved), true);
+  assert.equal(machine.xPortalWaitLabel(approved), 'Aprobat. Pregătesc cererea de semnătură… (300s)');
+  // Un `pairing` întârziat (pagina care se reîncarcă) nu are voie s-o dea înapoi.
+  assert.equal(machine.xPortalReduce(approved, { type: 'phase', phase: 'pairing' }).stage, 'approved');
+  // O redeschidere cât timp se pregătește cererea păstrează starea: aprobarea nu se anulează.
+  const reopened = machine.xPortalReduce(approved, { type: 'reopen' });
+  assert.equal(reopened.stage, 'approved');
+  assert.equal(reopened.reopened, 1);
+  // Iar `signature` urmează după ea, fără salt înapoi.
+  assert.equal(machine.xPortalReduce(approved, { type: 'phase', phase: 'signature' }).stage, 'signature');
+  // Doar `signature` e însoțită de cererea care poate fi semnată.
+  const signing = run([{ type: 'open' }, { type: 'pairing' }, { type: 'phase', phase: 'approved' }, { type: 'phase', phase: 'signature' }]);
+  assert.equal(machine.xPortalWaitLabel(signing), 'Se așteaptă confirmarea din xPortal… (300s)');
+});
+
 test('„Deschide xPortal din nou” resetează ceasul și numără redeschiderile', () => {
   const paired = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(30), { type: 'active' }]);
   assert.equal(paired.returns, 1);
@@ -140,4 +176,32 @@ test('eticheta de așteptare spune secundele rămase și nu numește alt produs'
   assert.equal(label, 'Se așteaptă confirmarea din xPortal… (285s)');
   assert.doesNotMatch(label, /Nexus/);
   assert.equal(machine.xPortalWaitLabel(machine.XPORTAL_INITIAL_STATE), '');
+});
+
+test('„reușit” vine din răspunsul serverului și nu mai poate fi luat înapoi', () => {
+  const signed = run([{ type: 'open' }, { type: 'pairing' }, { type: 'phase', phase: 'signature' }, { type: 'token' }]);
+  const confirmed = machine.xPortalReduce(signed, { type: 'authenticated' });
+  assert.equal(confirmed.stage, 'authenticated');
+  assert.equal(machine.xPortalIsFinished(confirmed), true);
+  assert.equal(machine.xPortalIsWaiting(confirmed), false);
+  assert.equal(machine.xPortalWaitLabel(confirmed), '');
+  // Niciun mesaj întârziat din pagină nu mai poate muta foaia din loc.
+  for (const action of [
+    { type: 'pairing' },
+    { type: 'active' },
+    { type: 'reopen' },
+    { type: 'phase', phase: 'signature' },
+    { type: 'tick' },
+  ]) {
+    assert.equal(machine.xPortalReduce(confirmed, action).stage, 'authenticated', `acțiune: ${action.type}`);
+  }
+  // Un `error` târziu nu anulează o sesiune pe care serverul a deschis-o deja.
+  assert.equal(machine.xPortalReduce(confirmed, { type: 'error' }).stage, 'authenticated');
+});
+
+test('o aprobare care a expirat se poate încheia totuși cu sesiune', () => {
+  // Pagina poate livra după fereastra de 300 s; dacă serverul acceptă semnătura, stadiul final e
+  // „reușit”, nu „expirat” — altfel cititorul ar vedea eșec peste o sesiune validă.
+  const late = run([{ type: 'open' }, { type: 'pairing' }, ...ticks(300), { type: 'token' }, { type: 'authenticated' }]);
+  assert.equal(late.stage, 'authenticated');
 });
