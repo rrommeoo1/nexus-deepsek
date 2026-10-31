@@ -1,3 +1,159 @@
+## 0.48 Previzualizarea de deasupra comentariilor păstrează exact decuparea din Feed/Profil. Sus rămâne numai conținutul postării (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability`, fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice, fără modificări în `apps/nexus-web/**` sau în server. `tsc --noEmit`
+→ **exit 0**. `node scripts/run-tests.mjs` → **`suites=78 failed=0 in 26s`** (77 în runda 47; suita nouă
+`test-comments-preview.cjs`, 10 teste). `eslint` pe cele șase fișiere atinse → **5 erori preexistente**, niciuna
+pe linii noi (verificat cu `git show HEAD:` pe fiecare: `PostCanvas.tsx` 353 `mediaClock.current = reportProgress`,
+1094 `watched.interpolate`, `PostReading.tsx` 168 `pageRef.current = page`, 171 `setPage(...)` în `useEffect`) plus
+5 avertismente (`BOM` în trei fișiere, un `socialTokens` nefolosit). Checkpoint-urile de păstrat rămân
+**`6d6e222`** (runda 47) și **`da7b147`** (raportul ei).
+
+**Ce a cerut ownerul, cu cuvintele lui** (31 octombrie 2026):
+
+> „Sus trebuie să rămână **numai conținutul** postării. Fără avatar, nume, handle, loc, Urmărește, reacții,
+> like/comentariu/distribuire, legendă, benzi de lizibilitate. Și o poză în Feed/Profil nu arată burta
+> persoanei, iar în comentarii apare imaginea completă și o arată. Nu vreau schimbarea asta. Previzualizarea
+> trebuie să păstreze exact aceeași decupare ca postarea din Feed/Profil.”
+
+Runda 47 greșise exact al doilea lucru: ca să se vadă postarea întreagă deasupra foii, schimbase potrivirea
+imaginii în `contain`. Poza se vedea *întreagă* — adică părțile pe care feed-ul le ascunde. Runda 48 nu
+potrivește altfel: **micșorează cutia**.
+
+### 1. Socoteala nouă: se micșorează cutia, nu se schimbă potrivirea (`src/lib/commentsPreview.ts`, nou, pur)
+
+`cover` nu decupează după pixeli, ci după **raportul** cutiei. Aceeași imagine într-o cutie cu același raport
+iese decupată identic, oricât de mică ar fi cutia. Deci previzualizarea nu are voie să atingă `fit`; are voie
+doar să micșoreze pagina întreagă, păstrându-i raportul.
+
+| funcție | ce face |
+| --- | --- |
+| `commentsPreviewKindOf(stage)` | `media` (poză/clip: se micșorează) sau `words` (text/citat/articol: se re-pagina) |
+| `commentsPreviewFrameOf({ stage, pageWidth, pageHeight, room })` | pentru `media`: `scale = room / pageHeight`, `width = round(pageWidth * scale)`, `height = room` — pagina întreagă, uniform; pentru `words`: pagina la lățimea ei, înălțimea locului rămas; măsurători stricate (`0`, `NaN`, negative) dau `height: 0`, adică nicio previzualizare de desenat, nu una inventată |
+| `commentsPreviewAspectOf(frame)` | raportul cutiei, ca un consumator să poată verifica singur că decuparea s-a păstrat |
+
+Un articol cu fotografii rămâne `words`: fotografiile lui sunt blocuri în flux, cu raportul lor propriu, deci se
+decupează la fel oricât de înaltă ar fi pagina din jur. Un clip și o fotografie sunt `media`.
+
+### 2. „Numai conținutul”: o singură poartă în `PostCanvas`
+
+`sheetPreview?: boolean` a devenit `presentation?: ContentPresentation` (`'page' | 'commentsPreview'`), citit
+o dată ca `const commentsPreview = presentation === 'commentsPreview'`. Când este adevărat **nu se desenează**:
+capul autorului (avatar, nume, handle, loc, „Urmărește”), descrierea și traducerea, rândul de acțiuni, cele
+două benzi de lizibilitate (`PostScrim` sus și jos), ceasul clipului, semnul de redare și teșirea
+„Citește tot”. Ce rămâne este ce este al postării: poza sau clipul cu decorațiunile lui, hârtia paginii de
+cuvinte și textul ei — plus butonul „Vezi traducerea”, care este o ușă a textului, nu un îndemn social.
+
+Niciun `fit` nu s-a atins: `cover` rămâne `cover`, `portrait-cover` rămâne `portrait-cover`, iar fotografia
+dintr-o galerie rămâne `contain` ca înainte. Proprietatea `videoFit` introdusă în runda 47 a dispărut.
+
+### 3. Cele două suprafețe
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/components/PostCard.tsx` | își măsoară lățimea (`onLayout` + `useWindowDimensions` ca rezervă), socotește `previewFrame` cu `commentsPreviewFrameOf` și desenează compoziția într-o cutie de acea mărime, centrată în `previewMatter` (`alignItems/justifyContent: center`, `overflow: hidden`) pe locul rămas (`previewRoomOf`); `presentation` merge la `PostCanvas` |
+| `src/components/ReelsReader.tsx` | aceeași cutie pentru reel/poză; decorațiunile primesc din nou `fit="cover"` (runda 47 le dăduse `contain`); semnul de redare, `PostRail` (reacție, comentariu, salvare, distribuire) și `PostDistributePanel` nu se desenează cât timp foaia este deschisă — nimic nu se demontează, doar nu se desenează |
+| `src/components/PostReading.tsx` | dat înapoi la starea dinainte de runda 47 (`27303fe`): `videoFit` scos, clipul din galerie rămâne `portrait-cover` |
+| `src/components/PostCanvas.tsx` | poarta de la §2 |
+
+Foaia de comentarii **nu a fost atinsă** (aceleași `maxHeight: '82%'`, `minHeight: '52%'`, `animationType="slide"`,
+mâner, antet „Comentarii · N" + ✕, file Relevante / Cele mai noi, compozitor) — `test-sheet-preview.cjs` și
+`test-comments-preview.cjs` țin constantele.
+
+
+### 4. CE S-A TESTAT PE ANDROID (telefon real, 14 capturi `r48-*`)
+
+Telefonul a răspuns în toată runda (`adb-b42122b-huYC9y._adb-tls-connect._tcp`,
+`mCurrentFocus=Window{… app.nexus.mobile.dev/…MainActivity}`). Capturile sunt în
+`JUNGLE_BOOK_VERIFICATION/final_jpg/`, făcute cu `scripts/capture-android-screen.ps1 -Wake -StrictFocus`;
+portretul are 1220×2656 px la densitatea 2,6 (469×1022 dp).
+
+**Măsurat, nu privit.** Locul de deasupra foii a fost măsurat în două feluri: muchia cutiei (limita dintre
+terenul paginii și fundalul stins al foii) și **muchia conținutului** (unde se termină clipul), care nu depinde
+de estompare.
+
+| ce | formulă | măsurat pe telefon |
+| --- | --- | --- |
+| foaie deschisă, clip (`r48-m`) | `room = 1275 px / 2,6 = 490 dp`; `scale = 490 / 1022 = 0,4796`; `width = 469 × 0,4796 = 225 dp = 585 px` | cutia **x 318…902** = 585 px, centru 610 = centrul ecranului, raport 2,177 față de 2,177 al paginii |
+| **decuparea clipului** (`r48-l` pagină vs `r48-m` previzualizare) | pagină: clipul pe rândurile 985…1670 (aceleași pe coloanele 20, 200, 600, 1000) → prezis `0,4796 × [985…1670] = [472…801]` | previzualizare: **474…802** (2 px, adică rotunjire); lățimea clipului = toată lățimea în amândouă (0…1219 → 318…902) |
+| uniformitatea micșorării | lățime `585/1220 = 0,4795`, înălțime `329/686 = 0,4796` | coincid la 0,02 % — nici întindere, nici `contain` |
+| tastatură deschisă (`r48-n`) | `room = 1074 / 2,6 = 413 dp`; `scale = 0,404`; `width = 469 × 0,404 = 190 dp = 493 px` | muchia clipului **368…851** = 484 px măsurați (≈4 px pe fiecare margine cad sub prag din cauza estompării), centru **609,5** = centrul ecranului |
+| poză (`r48-e` pagină vs `r48-f` previzualizare) | aceeași socoteală | cutia **318…902 × 0…1273**, raport 2,177 = raportul paginii, centru 610 |
+
+Ce s-a **citit** din fiecare imagine (dovada este imaginea citită, nu fișierul):
+
+| fișier | ce se vede |
+| --- | --- |
+| `r48-a-feed-open.jpg` | feed-ul deschis, postarea reel cu cap, clip, rail, legendă, „Citește tot” |
+| `r48-b-reel-comments.jpg` | aceeași postare ca pagină întreagă, **înainte** de foaie: „Mother Fucker” / `@wallet4e8gv6` · 30 min, „Asistat de AI”, „Editează profilul”, clipul oprit cu semnul de redare, stickerul „Așa este😍”, railul (o reacție, comentariu, salvare, distribuire), legenda pe trei rânduri, 0:01 / 0:07, butonul de sunet, banda de taburi |
+| `r48-c-reel-comments-sheet.jpg` | **previzualizarea**: același clip și același sticker, dar sus nu mai există cap, rail, legendă, „Citește tot”, ceas, semn de redare sau buton de sunet; clipul stă în cutia de 585 px; jos, foaia „Comentarii · 1” cu un comentariu real |
+| `r48-e-post2-page.jpg`, `r48-f-post2-preview.jpg` | postarea cu poză: pagina întreagă, apoi cutia micșorată — poza umple cutia de la muchie la muchie, fără benzi de letterbox, fără cap și fără rail |
+| `r48-g-post3.jpg` | a treia postare, pagina întreagă (pentru comparație) |
+| `r48-h-text-page.jpg`, `r48-i-text-preview.jpg` | pagina de cuvinte în modul **Hârtie**: în pagină, cap + comutator ☀/☾ + „Urmărește” + text + „Vezi traducerea” + rail; în previzualizare, **același text la aceeași mărime și cu aceleași tăieturi de rând** („…al / contului / de test / valoare.”), doar textul, „Vezi traducerea” și hârtia — fără cap, fără comutator, fără rail; foaia „Comentarii · 0” cu „Niciun comentariu încă.” |
+| `r48-j-keyboard-preview.jpg`, `r48-k-keyboard-preview.jpg` | previzualizarea cu tastatura deschisă: compozitorul întreg deasupra tastaturii, compoziția strânsă pe locul rămas |
+| `r48-l-locate.jpg` | postarea cu clip (Manaus, 0:08 / 0:12) ca pagină întreagă — referința pentru măsurătoarea decupării |
+| `r48-m-video-preview.jpg` | aceeași postare cu foaia deschisă: doar clipul, în cutia de 585 px, foaia „Comentarii · 1” cu un comentariu |
+| `r48-n-video-keyboard.jpg` | aceeași postare cu tastatura deschisă: cutia s-a strâns la ~484 px măsurați, centrată; foaia arată antet, file și compozitor |
+
+**O observație măsurată, rămasă deschisă: decorațiunile nu se micșorează exact cu cutia.** Stickerul „Așa
+este😍” măsoară în pagină 981×217 px și începe la 66 px de marginea stângă (`r48-a`); în previzualizare
+măsoară 547×123 px și atinge muchia cutiei (`r48-c`). Adică raport 0,56 în loc de 0,48, cu ~30 px mai la
+stânga decât proporția. Cauza se citește din cod: `PostDecorations` își așază elementele în dreptunghiul
+**conținutului media** (`mediaContentRect(…, 'cover')`), nu în cutia paginii, iar cele două dreptunghiuri nu
+mai coincid când cutia se micșorează. Nu am schimbat nimic aici în runda asta — decuparea fotografiei/clipului,
+care era cerința, este neatinsă — dar stickerul este singurul element care se mișcă vizibil, deci cere o
+decizie de owner (se micșorează cu cutia, se ascunde, sau rămâne așa).
+
+
+### TESTE AUTOMATE
+
+- `node node_modules/typescript/bin/tsc --noEmit` → **exit 0**.
+- `node scripts/run-tests.mjs` → **`suites=78 failed=0 in 26s`** (77 în runda 47); lanțul din `package.json`
+  rulat separat, script cu script: **78 scripturi, 0 eșecuri**.
+- Suită nouă `scripts/test-comments-preview.cjs` (**10** teste): felul previzualizării (`media` se micșorează,
+  `words` se re-pagină), cutia = pagina micșorată (același raport), decuparea identică cu a paginii, fără foaie
+  nimic nu se atinge, pagina de cuvinte nu se micșorează, măsurători stricate nu inventează o previzualizare,
+  stratul social nu se desenează în previzualizare, `fit` nu se atinge nicăieri, cele două suprafețe cheamă
+  aceeași socoteală, foaia rămâne neatinsă.
+- Teste actualizate **pentru regula nouă**, nu ca să treacă: `test-sheet-preview.cjs` și
+  `test-fullscreen-feed.cjs` (runda 47 cereau `contain` în previzualizare; acum cer `cover` păstrat și cutie
+  micșorată), `test-feed-reel-head.cjs` (capul lipsește în previzualizare).
+- `eslint` pe fișierele atinse: 5 erori **preexistente** (dovedite cu `git show HEAD:` pe aceleași linii: 353 și
+  1094 în `PostCanvas.tsx`, 168 și 171 în `PostReading.tsx`, plus `pageRef`) și 5 avertismente; **nicio eroare nouă**.
+
+### CE RĂMÂNE INCOMPLET
+
+1. **Decorațiunile în previzualizare** (stickerul de la §4) — măsurat, explicat din cod, neschimbat; cere decizie
+   de owner.
+2. **Un articol lung** (8 pagini) cu foaia peste el nu a fost deschis; modul Hârtie a fost văzut pe pagina de text
+   scurtă (`r48-h`/`r48-i`). Re-paginarea este dovedită de arhitectură (pagina își măsoară cutia) și de faptul că
+   tăieturile de rând rămân aceleași la aceeași lățime.
+3. **Ciclurile de mărime din editor** (text peste poză, stickere, emoji) și **ciclul „Mărime” din compozitorul de
+   text** nu au fost atinse pe telefon nici în runda asta; rămân acoperite de teste.
+4. **Căutarea** (paginare peste 20, subiecte, revenirea la poziția din listă) rămâne verificată numai în sursă și
+   teste — mediul local nu are datele necesare.
+5. `PostCanvas.tsx` și `PostReading.tsx` păstrează erorile vechi `react-hooks/*` pe liniile neatinse.
+6. `JUNGLE_BOOK_PROGRESS.md`, `JUNGLE_BOOK_VISUAL_VERIFICATION.md` și fișierele `tools/_diag-*` erau deja
+   modificate ori neversionate înainte de rundă; nu le-am atins.
+
+### CE TREBUIE FĂCUT DE OWNER PE TELEFON
+
+1. Deschide postarea cu poză (cea în care se vedea „burta persoanei”) și atinge „Comentarii” — sus trebuie să fie
+   **exact aceeași decupare** ca în Feed/Profil, doar mai mică.
+2. Spune dacă stickerul din previzualizare trebuie să se micșoreze cu cutia sau să nu se vadă deloc.
+3. Comută ☀/☾ pe o pagină de text lungă și deschide comentariile — pagina trebuie să se re-pagineze, nu să se taie.
+4. În editor (Creează), atinge de patru ori la rând „Mărime” pe text, pe un sticker și pe un emoji.
+
+### Fișiere atinse în această rundă
+
+Cod: `src/lib/commentsPreview.ts` (nou), `src/components/PostCanvas.tsx`, `src/components/PostCard.tsx`,
+`src/components/ReelsReader.tsx`, `src/components/PostReading.tsx`.
+Teste: `scripts/test-comments-preview.cjs` (nou), `scripts/test-sheet-preview.cjs`,
+`scripts/test-fullscreen-feed.cjs`, `scripts/test-feed-reel-head.cjs`, `package.json` (suita nouă în lanț).
+Dovezi: 14 capturi `JUNGLE_BOOK_VERIFICATION/final_jpg/r48-*.jpg`. Nimic din `apps/nexus-web/**`, `docs/` sau
+`tools/` nu a fost atins.
+
+
 ## 0.47 Previzualizarea postării deasupra foii de comentarii, trei mărimi și pe pagină, tastatura măsurată pe muchie (31 octombrie 2026)
 
 **Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
@@ -2853,6 +3009,8 @@ Pe baza vie reconcilierea rămâne `MISMATCH` — este o condiție a datelor de 
 12. **Ticker `JUNGLE`** — **închis ca întrebare**: un ticker ocupat nu blochează emiterea (secvență aleatoare de 3 caractere în identificator, `mx-chain-go`), deci nu mai există „indisponibil”. Emiterea așteaptă faucet-ul: toate cele cinci portofele au `0.0000 EGLD`. Comanda e scrisă în `MONETIZATION-SPEC.md` §3.5.
 
 13. **Runda 47, verificată pe telefon (31 oct 2026)** — telefonul a revenit prin wireless debugging, iar foaia de comentarii a fost deschisă, fotografiată și citită: postarea se vede întreagă deasupra ei, foaia a rămas neschimbată, iar tastatura a fost măsurată și reparată (§0.47). Rămân de privit pe telefon: ciclurile de mărime din editor și din compozitorul de text, un articol lung cu foaia peste el și modul Hârtie (a fost văzut doar Noaptea).
+14. **Runda 48, verificată pe telefon (31 oct 2026)** — decuparea din Feed/Profil este păstrată în previzualizarea de deasupra comentariilor: cutia se micșorează uniform (585 px la foaia deschisă, ~484 px cu tastatura sus), iar muchia clipului cade exact unde spune socoteala (prezis 472…801, măsurat 474…802). Sus rămâne numai conținutul postării (§0.48). Rămân de privit pe telefon: un articol lung cu foaia peste el, ciclurile de mărime din editor și din compozitor, și decizia de owner privind stickerul din previzualizare.
+
 
 
 ## 4. Defecte deschise

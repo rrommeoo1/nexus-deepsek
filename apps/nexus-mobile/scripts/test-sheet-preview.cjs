@@ -11,6 +11,10 @@
  * 1. **socoteala** locului rămas (pură, `src/lib/sheetPreview.ts`), inclusiv cazul tastaturii;
  * 2. **foaia neatinsă** — înălțimea de deschidere, `Modal`-ul, grabber-ul, antetul, compozitorul — și
  *    faptul că singurul lucru care s-a schimbat este potrivirea postării în locul de deasupra.
+ *
+ * Runda 48 a revizuit punctul 2: ce se desenează deasupra foii este acum **numai conținutul** postării, iar
+ * decuparea imaginii este cea din Feed/Profil (`test-comments-preview.cjs`). Foaia, înălțimile ei, `Modal`-ul
+ * și compozitorul au rămas exact cum erau.
  */
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
@@ -129,16 +133,13 @@ test('postarea se potrivește în locul rămas pe toate suprafețele care deschi
     const surface = strip(read(file));
     assert.match(surface, /useSheetPreview\(post\.id\)/, `${file} citește măsurătoarea foii`);
     assert.match(surface, /previewRoomOf\(\{ pageHeight: height, sheetHeight \}\)/, `${file} folosește socoteala comună`);
-    assert.match(surface, /sheetPreview=\{previewing\}/, `${file} spune compoziției că este previzualizare`);
+    /**
+     * Runda 48: compoziția primește un **fel de prezentare**, nu o potrivire de imagine. `contain` a fost
+     * refuzat de owner (arăta părți din fotografie pe care Feed/Profil le ascund); ce se verifică acum e
+     * felul de prezentare, iar decuparea este apărată de `test-comments-preview.cjs`.
+     */
+    assert.match(surface, /presentation=\{previewing \? 'commentsPreview' : 'page'\}/,
+      `${file} spune compoziției că este previzualizare`);
+    assert.doesNotMatch(surface, /sheetPreview=/, `${file} nu mai trimite vechea promisiune de potrivire`);
   }
-  const canvas = strip(read('src/components/PostCanvas.tsx'));
-  assert.match(canvas, /fit=\{sheetPreview \? 'contain' : 'cover'\}/, 'poza se vede întreagă, nu tăiată');
-  assert.match(canvas, /fit=\{sheetPreview \? 'contain' : 'portrait-cover'\}/, 'clipul se vede întreg, nu tăiat');
-  assert.match(canvas, /videoFit=\{sheetPreview \? 'contain' : 'portrait-cover'\}/, 'și un clip dintr-o galerie');
-  /**
-   * Ramura de dinainte rămâne neatinsă: fără foaie deschisă, compoziția se desenează exact ca până acum
-   * (`cover` pentru poză, `portrait-cover` pentru clip, `cover` pentru decorațiuni).
-   */
-  assert.match(strip(read('src/components/ReelsReader.tsx')), /fit=\{previewing \? 'contain' : 'cover'\}/,
-    'decorațiunile urmează aceeași potrivire ca poza de sub ele');
 });

@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
 import { usePostEngagement } from '../lib/postEngagement';
@@ -10,6 +10,7 @@ import { PostSheets } from './PostSheets';
 import { RelationButton } from './RelationButton';
 import { previewRoomOf } from '../lib/sheetPreview';
 import { useSheetPreview } from '../lib/useSheetPreview';
+import { commentsPreviewFrameOf } from '../lib/commentsPreview';
 import { stageFor } from '../lib/postPresentation';
 import type { SocialPost } from '../lib/socialTypes';
 import type { ControlTone } from '../theme/social';
@@ -101,18 +102,21 @@ export function PostCard({
   /** The caption's own reading state: this page's, not the post's — no other surface can open it. */
   const [captionExpanded, setCaptionExpanded] = useState(false);
   /**
-   * Cât loc ia foaia de comentarii, cât timp este deschisă (runda 47).
+   * Cât loc ia foaia de comentarii, cât timp este deschisă (runda 47, revizuită în runda 48).
    *
-   * Ownerul a cerut ca postarea din jumătatea de sus să se vadă **întreagă** peste foaia de comentarii,
-   * iar foaia să rămână exact ce este. Deci nu foaia se mută și nu se redesenează: pagina își măsoară
-   * locul rămas deasupra ei (`lib/sheetPreview.ts`) și își compune pagina pe el. Un articol se
-   * re-pagina pe locul nou (documentul este sursa, nu un text tăiat), iar o fotografie se potrivește
-   * întreagă în cadru (`PostCanvas.preview`). Când foaia se închide, măsurătoarea dispare și pagina
-   * revine la înălțimea ei — nicio stare nu se pierde, fiindcă nimic nu se demontează.
+   * Foaia nu se mută și nu se redesenează: pagina își măsoară locul rămas deasupra ei
+   * (`lib/sheetPreview.ts`) și își compune pagina pe el. Runda 48 a schimbat **ce** se vede acolo: numai
+   * conținutul postării, fără capul autorului, fără descriere și fără îndemnurile sociale
+   * (`PostCanvas.presentation`), iar imaginea păstrează decuparea din Feed/Profil, fiindcă se micșorează
+   * cutia, nu se schimbă potrivirea (`lib/commentsPreview.ts`). Când foaia se închide, măsurătoarea
+   * dispare și pagina revine la înălțimea ei — nicio stare nu se pierde, fiindcă nimic nu se demontează.
    */
   const sheetHeight = useSheetPreview(post.id);
   const previewing = Boolean(height) && sheetHeight > 0;
   const previewRoom = height ? previewRoomOf({ pageHeight: height, sheetHeight }) : 0;
+  /** Lățimea paginii, măsurată pe ea: cutia previzualizării are nevoie de raportul ei, nu de o presupunere. */
+  const [pageWidth, setPageWidth] = useState(0);
+  const { width: windowWidth } = useWindowDimensions();
 
   /**
    * The author's own record, from the one store (`lib/relations.ts`): the card prints the same relation the
@@ -137,6 +141,20 @@ export function PostCard({
   const tone: ControlTone = stage === 'text' || stage === 'article' ? 'paper' : 'night';
 
   /**
+   * Cutia previzualizării de deasupra foii de comentarii (runda 48).
+   *
+   * Ownerul a refuzat runda 47 pentru un singur motiv: poza se vedea **întreagă** în comentarii, cu părți
+   * pe care pagina din Feed/Profil le ascunde. Deci previzualizarea nu schimbă potrivirea imaginii — schimbă
+   * **cutia**, micșorând pagina întreagă proporțional (`lib/commentsPreview.ts`). Raportul rămâne al
+   * paginii, deci `cover` decupează exact ca în feed; o pagină de cuvinte nu se micșorează, se re-pagina.
+   */
+  const previewFrame = previewing && height
+    ? commentsPreviewFrameOf({
+      stage, pageWidth: pageWidth || windowWidth, pageHeight: height, room: previewRoom,
+    })
+    : null;
+
+  /**
    * The composition, drawn once for both shapes: a page of the feed (when a `height` is given) or the
    * universal 9:16 card a list still uses. The page hands it the device's own room as insets, so the author
    * starts under the status clock and the actions end above the tab bar; a card keeps the canvas's padding.
@@ -152,7 +170,7 @@ export function PostCard({
        * (`PostCanvas.page`). A 9:16 card of a list keeps the canvas's own padding and its compact row.
        */
       page={Boolean(height)}
-      sheetPreview={previewing}
+      presentation={previewing ? 'commentsPreview' : 'page'}
       active={active}
       expanded={captionExpanded}
       playBadge
@@ -202,19 +220,38 @@ export function PostCard({
   return (
     <>
       {height ? (
-        <View style={{ height }}>
+        <View
+          style={{ height }}
+          onLayout={(event) => {
+            const next = Math.round(event.nativeEvent.layout.width);
+            setPageWidth((previous) => (previous === next ? previous : next));
+          }}
+        >
           {/**
            * Pagina deține înălțimea întreagă (pager-ul feed-ului se sprijină pe ea), dar compoziția se
            * desenează pe locul rămas deasupra foii de comentarii cât timp foaia este deschisă. Așa postarea
            * se vede întreagă fără ca lista să-și schimbe paginile și fără ca poziția în feed să sară.
            */}
-          <View style={{ height: previewRoom || height }}>{canvas}</View>
+          {previewFrame ? (
+            <View style={[styles.previewMatter, { height: previewRoom }]}>
+              <View style={{ width: previewFrame.width, height: previewFrame.height }}>{canvas}</View>
+            </View>
+          ) : (
+            <View style={{ height: previewRoom || height }}>{canvas}</View>
+          )}
           {/**
            * The rail, over the page: the same column of five presses a reel carries (`PostRail`), at
            * the same distance from the page's foot. The band the tab bar owns is constant (round 10), so
            * the rail needs no clock: it stands where it stands, and the words end above it — with the
            * thumb on the right, exactly as a picture is.
            */}
+          {/**
+           * Runda 48: cât timp foaia de comentarii este deschisă, coloana de presări nu se desenează.
+           * Ownerul a cerut sus **numai conținutul** postării: reacțiile, comentariul, salvarea și
+           * distribuirea sunt exact stratul social pe care l-a numit. Comenzile rămân montate la locul lor
+           * când foaia se închide — același record, aceeași foaie, o atingere distanță.
+           */}
+          {previewing ? null : (
           <PostRail
             bottom={RAIL_FOOT + bottomInset}
             tone={tone}
@@ -230,10 +267,12 @@ export function PostCard({
             onShare={engagement.toggleDistribute}
             onPanelChange={onPanelChange}
           />
+          )}
           {/**
            * The share menu, over the page: the two decisions `.clipMoreActions` offers, at the height the
            * reel's panel keeps (the reference's 214) plus the band the tab bar owns.
            */}
+          {previewing ? null : (
           <PostDistributePanel
             open={distributeOpen}
             bottom={214 + bottomInset}
@@ -242,6 +281,7 @@ export function PostCard({
             onToggleRepost={engagement.repost}
             onShare={engagement.share}
           />
+          )}
         </View>
       ) : <PostFrame>{canvas}</PostFrame>}
 
@@ -255,3 +295,14 @@ export function PostCard({
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  /**
+   * Terenul previzualizării (runda 48): negrul paginii, cu cutia compoziției micșorate în mijlocul locului
+   * rămas deasupra foii. Cutia are raportul paginii, deci poza din ea este decupată exact ca în Feed/Profil —
+   * benzile laterale sunt doar terenul, nu o a doua decupare.
+   */
+  previewMatter: {
+    backgroundColor: '#000000', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+});

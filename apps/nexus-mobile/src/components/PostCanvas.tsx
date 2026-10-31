@@ -17,6 +17,7 @@ import {
   mediaKindOf, mediaSourceForPath, postMediaItems, relativeTime, type SocialPost,
 } from '../lib/socialTypes';
 import { MAX_MEDIA, locationOf, quoteChain, stageFor, tagsOf, textPages, textPreview } from '../lib/postPresentation';
+import type { ContentPresentation } from '../lib/commentsPreview';
 import { originOf, POST_ORIGIN_HINT } from '../lib/postOrigin';
 import { activeLanguage, subscribeReaderLanguage, translationForPost } from '../lib/language';
 import { POST_HEAD, postHeadArrangement } from '../lib/postChrome';
@@ -176,7 +177,7 @@ export function PostFrame({ children, style }: { children: React.ReactNode; styl
 export function PostCanvas({
   post, variant = 'feed', layout = 'reel', active = false, muted = true, expanded = false,
   onError, onOpenAuthor, onToggleExpanded, onTranslate, notice, noticeTone = 'error',
-  onPressMedia, authorAction, playBadge = false, bottomActions, page = false, sheetPreview = false,
+  onPressMedia, authorAction, playBadge = false, bottomActions, page = false, presentation = 'page',
   topInset = 0, bottomInset = 0, folio, mediaOverride, mediaOverlay, mediaClock, onChromeMeasure,
 }: {
   post: SocialPost;
@@ -292,14 +293,23 @@ export function PostCanvas({
    */
   page?: boolean;
   /**
-   * Compoziția este **previzualizarea** de deasupra foii de comentarii (runda 47), nu pagina întreagă.
+   * Felul prezentării (runda 48): pagina întreagă, sau **previzualizarea** de deasupra foii de comentarii.
    *
-   * Cadrul este mai scund — atât cât lasă foaia — deci o poză sau un clip care ar acoperi pagina ar
-   * însemna exact ce ownerul a refuzat: „porțiunea tăiată". În previzualizare imaginea se potrivește
-   * întreagă în cadru (`contain`), păstrându-și proporția, iar restul cadrului rămâne câmpul compoziției.
-   * Nimic altceva nu se schimbă: același cap, aceeași descriere, aceleași decorațiuni, același ceas.
+   * Ownerul, 31 octombrie 2026: „în partea de sus trebuie să rămână **numai conținutul** postării. Fără
+   * avatar, nume, handle, loc, Urmărește, reacții, like/comentariu/distribuire, legendă, benzi de
+   * lizibilitate. Și fără să se vadă părți din fotografie pe care Feed/Profil le ascund."
+   *
+   * De aceea `commentsPreview` nu este o a doua compoziție, ci aceeași compoziție **fără stratul social**:
+   * capul autorului, descrierea, traducerea, rândul de acțiuni, ceasul clipului, semnul de redare și cele
+   * două benzi de lizibilitate nu se desenează. Ce rămâne este ce este al postării: poza sau clipul (cu
+   * decorațiunile lui), hârtia paginii de cuvinte și textul ei.
+   *
+   * Potrivirea media **nu** se schimbă aici: `cover` rămâne `cover` și `portrait-cover` rămâne
+   * `portrait-cover`, fiindcă decuparea este dată de raportul cutiei, iar cutia o socotește suprafața
+   * (`lib/commentsPreview.ts`), micșorând pagina întreagă proporțional. O schimbare de `fit` ar arăta
+   * părți ale fotografiei pe care pagina le ascunde — exact lucrul refuzat.
    */
-  sheetPreview?: boolean;
+  presentation?: ContentPresentation;
   /**
    * Cât loc iau capul și descrierea, în punctele cadrului, pentru singura suprafață care trebuie să le
    * știe dinainte: compozitorul (`CaptureEditor`), care își desenează ghidajele de zonă sigură peste
@@ -359,6 +369,13 @@ export function PostCanvas({
   /** A picture read like a post: the author goes up, the words keep the width, the actions go beside them. */
   const stacked = layout === 'post' && !tile;
   const stage = stageFor(post);
+  /**
+   * Este compoziția previzualizarea de deasupra foii de comentarii (runda 48)?
+   *
+   * Un singur nume, citit o dată: toate straturile sociale de mai jos se opresc pe el, iar potrivirea
+   * imaginii rămâne neatinsă (`lib/commentsPreview.ts` explică de ce decuparea nu are voie să se schimbe).
+   */
+  const commentsPreview = presentation === 'commentsPreview';
   /**
    * A page of **words** — a text post, or an authored article with pictures inside it — as opposed to a
    * picture, a clip or a cell of a list. It is the one composition the owner asked to be read as a page
@@ -854,6 +871,11 @@ export function PostCanvas({
        * **soundtrack** that will not sync does not — it used to, and the page printed „Fișierul media nu a
        * putut fi încărcat." over a clip that was playing perfectly (round 41, after the app restarted and
        * the Jamendo preview lost its player). A soundtrack is a decoration on the clip, not the clip.
+       *
+       * Potrivirea este a paginii, în orice prezentare (runda 48): `cover` pentru o fotografie,
+       * `portrait-cover` pentru un clip, plus `cover` pentru o fotografie dintr-o galerie. Previzualizarea
+       * de deasupra comentariilor nu schimbă `fit` — micșorează cutia, păstrându-i raportul, deci decuparea
+       * rămâne exact cea din Feed/Profil (`lib/commentsPreview.ts`).
        */}
       {stage !== 'article' && mediaOverride ? mediaOverride : null}
       {stage !== 'article' && !mediaOverride && items.length > 1 ? (
@@ -864,14 +886,13 @@ export function PostCanvas({
           onError={() => onError?.()}
           onProgress={reportProgress}
           onCaptionPress={onPressMedia}
-          videoFit={sheetPreview ? 'contain' : 'portrait-cover'}
           style={styles.media}
         />
       ) : null}
       {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && isVideo ? (
         <RemoteVideo
           item={cover}
-          fit={sheetPreview ? 'contain' : 'portrait-cover'}
+          fit="portrait-cover"
           style={styles.media}
           active={active}
           muted={muted}
@@ -883,7 +904,7 @@ export function PostCanvas({
         />
       ) : null}
       {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && !isVideo ? (
-        <RemoteImage item={cover} fit={sheetPreview ? 'contain' : 'cover'} style={styles.media} onError={onError} />
+        <RemoteImage item={cover} fit="cover" style={styles.media} onError={onError} />
       ) : null}
 
       {onPressMedia && stage !== 'article' ? (
@@ -975,7 +996,9 @@ export function PostCanvas({
        * unui clip nu poate trece prin nume: scrim-ul este deasupra lui (owner: „stickerele acoperă
        * butoanele din header").
        */}
-      <PostScrim id={`nxCanvasHead-${post.id}`} geometry={headGeometry} color={scrimInk} />
+      {commentsPreview ? null : (
+        <PostScrim id={`nxCanvasHead-${post.id}`} geometry={headGeometry} color={scrimInk} />
+      )}
 
 
       {/**
@@ -988,7 +1011,7 @@ export function PostCanvas({
        * A clip that is not playing says so, with the sign the archive cell uses: a card keeps the decoder
        * off (`active` is false), so the frame would otherwise read as a frozen photograph.
        */}
-      {playBadge && isVideo && !active ? (
+      {playBadge && isVideo && !active && !commentsPreview ? (
         <View pointerEvents="none" style={styles.playBadge}>
           <View style={styles.playDisc}>
             <View style={styles.playGlyph} />
@@ -1008,14 +1031,16 @@ export function PostCanvas({
            * desenat de suprafață peste compoziție. Vălul de la poale a fost coborât la `0.55` pentru că
            * scrim-ul adaugă partea lui deasupra lui.
            */}
-          <PostScrim id={`nxCanvasFoot-${post.id}`} geometry={footGeometry} color={scrimInk} anchor="bottom" />
+          {commentsPreview ? null : (
+            <PostScrim id={`nxCanvasFoot-${post.id}`} geometry={footGeometry} color={scrimInk} anchor="bottom" />
+          )}
 
           {/**
            * A picture's author is stamped at the top of the frame, the way the post page of the web prints it:
            * the bottom belongs to the words and to the row of actions under them. A clip keeps the author at
            * the bottom, beside the rail its thumb already knows.
            */}
-          {stacked ? (
+          {stacked && !commentsPreview ? (
             <View
               style={[styles.top, { paddingHorizontal: metrics.padH, paddingTop: headTop }]}
               onLayout={headBlock.onLayout}
@@ -1029,6 +1054,7 @@ export function PostCanvas({
             </View>
           ) : null}
 
+          {commentsPreview ? null : (
           <View
             style={[styles.bottom, { paddingHorizontal: metrics.padH, paddingBottom: (bottomActions ? Math.round(metrics.padB * 0.4) : metrics.padB) + bottomInset }]}
             onLayout={footBlock.onLayout}
@@ -1100,6 +1126,7 @@ export function PostCanvas({
             </View>
           ) : null}
         </View>
+          )}
         </>
       ) : (
         <View style={[styles.reading, { paddingHorizontal: metrics.padH, paddingTop: headTop, paddingBottom: metrics.padB + bottomInset }]}>
@@ -1108,6 +1135,7 @@ export function PostCanvas({
            * the location the author attached (never an invented one — `locationOf` reads
            * `publishing.location` and answers '' otherwise).
            */}
+          {commentsPreview ? null : (
           <View style={styles.readingHead} onLayout={headBlock.onLayout}>
             {repostName ? (
               <Text style={[styles.repostLine, { fontSize: metrics.handle }, pageFaintInk]} numberOfLines={1}>
@@ -1116,6 +1144,7 @@ export function PostCanvas({
             ) : null}
             {authorWithDoor}
           </View>
+          )}
 
           {/**
            * The middle of the frame: the words, centred in the room the head and the action row leave.
@@ -1235,7 +1264,7 @@ export function PostCanvas({
            * rail beside it (`PostRail`), which is why the owner's footer could be removed without taking
            * the actions with it.
            */}
-          {bottomActions ? <View style={styles.actionsRow}>{bottomActions}</View> : null}
+          {bottomActions && !commentsPreview ? <View style={styles.actionsRow}>{bottomActions}</View> : null}
         </View>
       )}
     </View>

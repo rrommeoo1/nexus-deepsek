@@ -85,10 +85,11 @@ test('un reel umple pagina la fel ca un post', () => {
   assert.match(reel, /const band = Math\.max\(0, overlayBottom\) \+ Math\.max\(0, bottomInset\);/, 'bar plus device inset, one floor');
   assert.match(reel, /bottom=\{RAIL_FOOT \+ band\}/, 'the rail sits above the bar, at the reel foot the web uses');
   /**
-   * Runda 47: decorațiunile urmează potrivirea pozei de sub ele — `cover` pe pagină, `contain` doar în
-   * previzualizarea de deasupra foii de comentarii, unde cadrul este scund.
+   * Runda 48: decorațiunile urmează potrivirea pozei de sub ele, în orice prezentare. Previzualizarea de
+   * deasupra foii de comentarii nu schimbă `fit` (runda 47 îl schimbase în `contain`, iar ownerul a refuzat:
+   * arăta părți din fotografie pe care Feed/Profil le ascund).
    */
-  assert.match(reel, /<PostDecorations post=\{post\} fit=\{previewing \? 'contain' : 'cover'\} \/>/,
+  assert.match(reel, /<PostDecorations post=\{post\} fit="cover" \/>/,
     'decorations follow the covering picture');
 });
 
@@ -100,13 +101,15 @@ test('nu mai există banda neagră de sub ceas', () => {
 
 test('media acoperă pagina, nu lasă câmp în jurul ei', () => {
   /**
-   * Runda 47: `cover` rămâne regula paginii. Singura excepție este previzualizarea de deasupra foii de
-   * comentarii, unde cadrul este scund și postarea trebuie văzută întreagă — acolo `sheetPreview` cere
-   * `contain`. Ramura implicită (fără foaie deschisă) este exact ce era.
+   * Runda 48: `cover` este regula paginii **în orice prezentare**, inclusiv în previzualizarea de deasupra
+   * foii de comentarii. Runda 47 ceruse acolo `contain`, ca postarea să se vadă întreagă; ownerul a refuzat
+   * exact asta (fotografia arăta părți pe care Feed/Profil le ascund), deci previzualizarea micșorează cutia
+   * și nu atinge potrivirea (`lib/commentsPreview.ts`).
    */
-  assert.match(canvas, /<RemoteImage item=\{cover\} fit=\{sheetPreview \? 'contain' : 'cover'\}/,
-    'poza acoperă pagina când nu este previzualizare');
-  assert.match(canvas, /fit=\{sheetPreview \? 'contain' : 'portrait-cover'\}/,
-    'a clip covers the page too, în afara previzualizării de deasupra comentariilor');
+  assert.match(canvas, /<RemoteImage item=\{cover\} fit="cover" style=\{styles\.media\} onError=\{onError\} \/>/,
+    'poza acoperă pagina, în orice prezentare');
+  assert.match(canvas, /fit="portrait-cover"\s+style=\{styles\.media\}/,
+    'și un clip acoperă pagina, în orice prezentare');
+  assert.doesNotMatch(canvas, /'contain'/, 'nicio potrivire de împrumut pentru previzualizare');
   assert.match(canvas, /media: \{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 \}/);
 });

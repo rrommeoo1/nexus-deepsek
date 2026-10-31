@@ -77,7 +77,12 @@ test('niciun ecran nu mai cere aranjamentul cu autorul la picior', () => {
 
 test('canvasul are un singur cap pe pagină: sus când e rândul lui, jos doar pentru forma `reel`', () => {
   assert.match(canvas, /const stacked = layout === 'post' && !tile;/);
-  assert.match(canvas, /\{stacked \? \(/, 'capul sus e ramura paginii');
+  /**
+   * Runda 48: capul de sus se desenează pe ramura paginii **și** când compoziția nu este previzualizarea de
+   * deasupra comentariilor (`commentsPreview`), unde ownerul a cerut să rămână numai conținutul postării.
+   * Regula nu s-a dublat: o singură ramură, cu un singur motiv în plus.
+   */
+  assert.match(canvas, /\{stacked && !commentsPreview \? \(/, 'capul sus e ramura paginii');
   assert.match(canvas, /\{!stacked \? author : null\}/, 'capul de jos se desenează doar în forma veche');
   /** Pagina tipărește pasul mărit al capului, exact ca o pagină de cuvinte (54 dp față, 17 dp nume). */
   assert.match(canvas, /const pageHead = wordPage \|\| \(page && stacked && !tile\);/);

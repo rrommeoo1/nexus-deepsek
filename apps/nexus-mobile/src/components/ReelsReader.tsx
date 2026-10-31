@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PostRail, PostDistributePanel, RAIL_FOOT } from './PostRail';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { PostDecorations } from './PostDecorations';
@@ -12,10 +12,11 @@ import {
   audioAttributionFor, mediaKindOf, postMediaItems,
   type MediaItem, type SocialPost,
 } from '../lib/socialTypes';
-import { MAX_MEDIA } from '../lib/postPresentation';
+import { MAX_MEDIA, stageFor } from '../lib/postPresentation';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { previewRoomOf } from '../lib/sheetPreview';
 import { useSheetPreview } from '../lib/useSheetPreview';
+import { commentsPreviewFrameOf } from '../lib/commentsPreview';
 import type { PostCanvasLayout } from './PostCanvas';
 
 /**
@@ -144,25 +145,55 @@ export function ReelPage({
 
   const plays = active && playing && isVideo;
   /**
-   * Cât loc lasă foaia de comentarii (runda 47).
+   * Cât loc lasă foaia de comentarii (runda 47, revizuită în runda 48).
    *
-   * Reelul, poza și pagina de cuvinte sunt aceeași pagină: când foaia se ridică, cadrul se strânge pe
-   * locul rămas deasupra ei — iar înăuntru ramura de media primește `preview`, adică `contain`: cadrul
-   * întreg se vede, nu o porțiune tăiată. Decodorul nu se demontează și nu repornește (aceeași instanță,
-   * alt stil), deci redarea continuă din locul în care era. La închidere, măsurătoarea dispare și pagina
-   * revine la înălțimea întreagă.
+   * Reelul, poza și pagina de cuvinte sunt aceeași pagină: când foaia se ridică, compoziția se așază pe
+   * locul rămas deasupra ei. **Nu** se schimbă potrivirea imaginii — runda 47 o schimbase în `contain`, iar
+   * ownerul a refuzat: poza arăta părți pe care Feed/Profil le ascund. Acum se micșorează cutia, cu raportul
+   * paginii (`lib/commentsPreview.ts`), deci decuparea rămâne a feed-ului. Decodorul nu se demontează și nu
+   * repornește (aceeași instanță, altă cutie), deci redarea continuă din locul în care era. La închidere,
+   * măsurătoarea dispare și pagina revine la înălțimea întreagă.
    */
   const sheetHeight = useSheetPreview(post.id);
   const previewing = sheetHeight > 0;
   const previewRoom = previewRoomOf({ pageHeight: height, sheetHeight });
+  /** Lățimea paginii, măsurată pe ea: cutia previzualizării are nevoie de raportul ei, nu de o presupunere. */
+  const [pageWidth, setPageWidth] = useState(0);
+  const { width: windowWidth } = useWindowDimensions();
+  /**
+   * Cutia previzualizării (runda 48).
+   *
+   * Runda 47 micșora pagina, dar și schimba potrivirea imaginii în `contain` — iar ownerul a refuzat exact
+   * asta: poza arăta în comentarii părți pe care Feed/Profil le ascund. Acum pagina întreagă se micșorează
+   * **proporțional**: cutia are raportul paginii, deci `cover`/`portrait-cover` decupează exact ca în feed,
+   * iar cadrul de aici nu face decât să o așeze pe locul rămas (`lib/commentsPreview.ts`).
+   */
+  const previewFrame = previewing
+    ? commentsPreviewFrameOf({
+      stage: stageFor(post), pageWidth: pageWidth || windowWidth, pageHeight: height, room: previewRoom,
+    })
+    : null;
 
   return (
-    <View style={[styles.page, { height }]}>
+    <View
+      style={[styles.page, { height }]}
+      onLayout={(event) => {
+        const next = Math.round(event.nativeEvent.layout.width);
+        setPageWidth((previous) => (previous === next ? previous : next));
+      }}
+    >
       {/**
-       * Previzualizarea de deasupra foii: același cadru, pe locul rămas. Fără foaie deschisă,
+       * Previzualizarea deasupra foii: același cadru, pe locul rămas. Fără foaie deschisă,
        * `previewRoom` este chiar `height`, deci pagina este exact ce a fost.
+       *
+       * Runda 48: când foaia este deschisă, compoziția se micșorează **întreagă** în cutia cu raportul
+       * paginii — decuparea pozei/clipului rămâne a feed-ului, iar în jur rămâne terenul paginii.
        */}
-      <View style={{ height: previewRoom }}>
+      <View style={[styles.previewMatter, { height: previewRoom }]}>
+      <View style={previewFrame
+        ? { width: previewFrame.width, height: previewFrame.height }
+        : { width: '100%', height: '100%' }}
+      >
       {/**
        * The reel is the page (`PostStage fill`): the composition fills the whole viewport, from the status
        * clock to the gesture sign, with a gallery paged on its own track inside it. It is sized exactly like
@@ -183,7 +214,7 @@ export function ReelPage({
               variant="feed"
               layout={layout}
               page={stacked}
-              sheetPreview={previewing}
+              presentation={previewing ? 'commentsPreview' : 'page'}
               active={plays}
               muted={muted}
               expanded={expanded}
@@ -204,7 +235,7 @@ export function ReelPage({
                * The decorations of the manifest, handed to the canvas so they are painted on the picture
                * itself: above the veil, under the author's head and under the caption (`mediaOverlay`).
                */
-              mediaOverlay={<PostDecorations post={post} fit={previewing ? 'contain' : 'cover'} />}
+              mediaOverlay={<PostDecorations post={post} fit="cover" />}
               /**
                * The relation door of the author, when the surface asks for it: the same control, the same
                * store and the same words a text post prints (`PostCard`), so a profile opened on a reel and
@@ -231,7 +262,13 @@ export function ReelPage({
         </View>
       ) : null}
 
-      {isVideo && active && !playing ? (
+      {/**
+       * Semnul de redare și coloana de presări (runda 48): cât timp foaia de comentarii este deschisă, sus
+       * rămâne **numai conținutul** postării. Un disc de redare, o reacție, un „salvează" sau un „distribuie"
+       * sunt stratul social pe care ownerul l-a cerut ascuns; ele revin întregi când foaia se închide,
+       * fiindcă nimic nu s-a demonstrat — doar nu se desenează.
+       */}
+      {isVideo && active && !playing && !previewing ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Redă clipul" onPress={() => setPlaying(true)} style={styles.playState}>
           <SolidViewerIcon kind="play" size={54} />
         </Pressable>
@@ -245,6 +282,7 @@ export function ReelPage({
        * clip has. It keeps clear of the band the tab bar owns (`overlayBottom`), which is constant now
        * that the bar is permanent (round 10): the rail and the words simply end above it.
        */}
+      {previewing ? null : (
       <PostRail
         bottom={RAIL_FOOT + band}
         summary={summary}
@@ -266,11 +304,9 @@ export function ReelPage({
         onShare={engagement.toggleDistribute}
         onPanelChange={onPanelChange}
       />
+      )}
 
-      {/**
-       * The share menu, over the page: the two decisions `.clipMoreActions` offers, where the reel always
-       * drew them.
-       */}
+      {previewing ? null : (
       <PostDistributePanel
         open={distributeOpen}
         bottom={214 + band}
@@ -278,10 +314,12 @@ export function ReelPage({
         onToggleRepost={engagement.repost}
         onShare={engagement.share}
       />
+      )}
 
           </View>
         )}
       </PostStage>
+      </View>
       </View>
 
       {/**
@@ -303,6 +341,13 @@ export function ReelPage({
 const styles = StyleSheet.create({
   /** `feed-surface.css:484 .clipCard{height:100%}` — one reel owns the viewport. */
   page: { width: '100%', backgroundColor: '#000000', overflow: 'hidden' },
+  /**
+   * Terenul previzualizării (runda 48): locul rămas deasupra foii, cu compoziția micșorată în mijloc.
+   *
+   * Cutia compoziției are raportul paginii (`lib/commentsPreview.ts`), deci poza sau clipul din ea ies
+   * decupate exact ca pe pagina întreagă; benzile din jur sunt terenul paginii, nu o a doua decupare.
+   */
+  previewMatter: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   /** The frame's own pause/error layer: centred on the canvas, above the picture (`PostCanvas` owns the media). */
   playState: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   unavailable: { color: '#ffc6c6', fontSize: 13, fontWeight: '600', textAlign: 'center', paddingHorizontal: 24 },
