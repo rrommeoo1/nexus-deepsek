@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { View } from 'react-native';
 import { openSocialProfile } from '../lib/profileNavigation';
 import { useRelation } from '../lib/relations';
@@ -8,6 +8,8 @@ import { PostCanvas, PostFrame } from './PostCanvas';
 import { PostRail, PostDistributePanel, RAIL_FOOT } from './PostRail';
 import { PostSheets } from './PostSheets';
 import { RelationButton } from './RelationButton';
+import { previewRoomOf } from '../lib/sheetPreview';
+import { useSheetPreview } from '../lib/useSheetPreview';
 import { stageFor } from '../lib/postPresentation';
 import type { SocialPost } from '../lib/socialTypes';
 import type { ControlTone } from '../theme/social';
@@ -98,6 +100,19 @@ export function PostCard({
   } = engagement;
   /** The caption's own reading state: this page's, not the post's — no other surface can open it. */
   const [captionExpanded, setCaptionExpanded] = useState(false);
+  /**
+   * Cât loc ia foaia de comentarii, cât timp este deschisă (runda 47).
+   *
+   * Ownerul a cerut ca postarea din jumătatea de sus să se vadă **întreagă** peste foaia de comentarii,
+   * iar foaia să rămână exact ce este. Deci nu foaia se mută și nu se redesenează: pagina își măsoară
+   * locul rămas deasupra ei (`lib/sheetPreview.ts`) și își compune pagina pe el. Un articol se
+   * re-pagina pe locul nou (documentul este sursa, nu un text tăiat), iar o fotografie se potrivește
+   * întreagă în cadru (`PostCanvas.preview`). Când foaia se închide, măsurătoarea dispare și pagina
+   * revine la înălțimea ei — nicio stare nu se pierde, fiindcă nimic nu se demontează.
+   */
+  const sheetHeight = useSheetPreview(post.id);
+  const previewing = Boolean(height) && sheetHeight > 0;
+  const previewRoom = height ? previewRoomOf({ pageHeight: height, sheetHeight }) : 0;
 
   /**
    * The author's own record, from the one store (`lib/relations.ts`): the card prints the same relation the
@@ -137,6 +152,7 @@ export function PostCard({
        * (`PostCanvas.page`). A 9:16 card of a list keeps the canvas's own padding and its compact row.
        */
       page={Boolean(height)}
+      sheetPreview={previewing}
       active={active}
       expanded={captionExpanded}
       playBadge
@@ -187,7 +203,12 @@ export function PostCard({
     <>
       {height ? (
         <View style={{ height }}>
-          {canvas}
+          {/**
+           * Pagina deține înălțimea întreagă (pager-ul feed-ului se sprijină pe ea), dar compoziția se
+           * desenează pe locul rămas deasupra foii de comentarii cât timp foaia este deschisă. Așa postarea
+           * se vede întreagă fără ca lista să-și schimbe paginile și fără ca poziția în feed să sară.
+           */}
+          <View style={{ height: previewRoom || height }}>{canvas}</View>
           {/**
            * The rail, over the page: the same column of five presses a reel carries (`PostRail`), at
            * the same distance from the page's foot. The band the tab bar owns is constant (round 10), so

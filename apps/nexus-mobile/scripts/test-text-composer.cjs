@@ -48,7 +48,14 @@ test('ce rămâne din tipografie este tot ce schimbă felul în care sunt așeza
 
   const toolbar = code(read('src/components/TextToolbar.tsx'));
   assert.match(toolbar, /TEXT_FONTS\.map/, 'familiile de litere rămân cele existente, plus cele trei noi');
-  assert.match(toolbar, /EDITORIAL_TYPOGRAPHIES\.map/, 'mărimile rămân cele pe care serverul le validează');
+  /**
+   * Runda 47: ușa de mărime nu mai deschide un panou cu cinci chipuri (`auto`, `small`, `medium`, `large`,
+   * `xlarge`), ci **ciclu** prin cele trei mărimi cerute de owner. Testul ține regula nouă, iar absența
+   * listei vechi este parte din ea: o a patra mărime oferită ar contrazice „exact trei".
+   */
+  assert.match(toolbar, /nextEditorialTypography\(measure\)/, 'ușa de mărime trece la pasul următor al ciclului');
+  assert.doesNotMatch(toolbar, /EDITORIAL_TYPOGRAPHIES\.map/,
+    'mărimile nu mai sunt o listă de chipuri: ciclul are exact trei pași, iar „auto" nu este un al patrulea');
   assert.match(toolbar, /TEXT_EMOJI_GROUPS\.map/, 'emoji vin din grupurile locale, fără rețea');
   assert.match(toolbar, /fontFamilyFor\(entry\.id, Platform\.OS\)/,
     'fiecare chip de literă este scris în litera lui, nu într-o listă de nume');

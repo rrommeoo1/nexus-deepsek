@@ -20,10 +20,15 @@
 import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { EDITORIAL_TYPOGRAPHIES, type EditorialTypography } from '../lib/editorialDocument';
-import { TEXT_EMOJI_GROUPS, TEXT_FONTS, TEXT_SIZES, fontFamilyFor, type TextFontId } from '../lib/textStyle';
+import { nextEditorialTypography, type EditorialTypography } from '../lib/editorialDocument';
+import { TEXT_EMOJI_GROUPS, TEXT_FONTS, fontFamilyFor, type TextFontId } from '../lib/textStyle';
 
-/** Which panel is open above the row; `null` is the row alone, i.e. the page and the keyboard. */
+/**
+ * Which panel is open above the row; `null` is the row alone, i.e. the page and the keyboard.
+ *
+ * `measure` stays in the list because `door()` names its four controls by it, but it is the one id that
+ * no longer opens a panel: since round 47 the measure door is a **cycle** (`nextEditorialTypography`).
+ */
 export type TextToolbarPanel = 'emoji' | 'face' | 'measure' | null;
 
 const MEASURE_LABELS: Record<EditorialTypography, string> = {
@@ -51,8 +56,16 @@ export function TextToolbar({ panel, onPanelChange, onEmoji, font, onFont, measu
   const group = TEXT_EMOJI_GROUPS.find((entry) => entry.id === groupId) ?? TEXT_EMOJI_GROUPS[0];
   const fontLabel = TEXT_FONTS.find((entry) => entry.id === font)?.label ?? 'Serif';
 
-  /** One door of the row: the same shape for all four, so the row reads as one control. */
-  function door(id: Exclude<TextToolbarPanel, null>, label: string, value?: string) {
+  /**
+   * One door of the row: the same shape for all four, so the row reads as one control.
+   *
+   * Three doors open a panel; the measure door is a **cycle** (runda 47). Ownerul a cerut „mereu trei
+   * mărimi, iar a patra atingere se întoarce la prima", deci din ea nu se deschide nimic: fiecare atingere
+   * trece la pasul următor (Mic → Mediu → Mare → Mic), exact ciclul pe care îl au textul peste poză,
+   * stickerele și emoji-urile (`lib/overlayPresets.ts`). Eticheta porții spune unde ești, deci ciclul nu
+   * are nevoie de un panou care să-l repete.
+   */
+  function door(id: Exclude<TextToolbarPanel, null>, label: string, value?: string, cycle?: () => void) {
     const active = panel === id;
     return (
       <Pressable
@@ -60,8 +73,10 @@ export function TextToolbar({ panel, onPanelChange, onEmoji, font, onFont, measu
         accessibilityRole="button"
         accessibilityState={{ selected: active, expanded: active }}
         accessibilityLabel={value ? `${label}: ${value}` : label}
-        accessibilityHint={active ? 'Închide panoul.' : 'Deschide panoul.'}
-        onPress={() => onPanelChange(active ? null : id)}
+        accessibilityHint={cycle
+          ? 'Trece la mărimea următoare: Mic, Mediu, Mare, apoi iar Mic.'
+          : active ? 'Închide panoul.' : 'Deschide panoul.'}
+        onPress={cycle ?? (() => onPanelChange(active ? null : id))}
         style={[styles.door, active && styles.doorActive]}
       >
         <Text style={[styles.doorLabel, active && styles.doorLabelActive]} numberOfLines={1}>
@@ -136,35 +151,15 @@ export function TextToolbar({ panel, onPanelChange, onEmoji, font, onFont, measu
         </View>
       ) : null}
 
-      {panel === 'measure' ? (
-        <View style={styles.panel} accessibilityLabel="Mărimea paginii">
-          <ScrollView keyboardShouldPersistTaps="always" nestedScrollEnabled contentContainerStyle={styles.chips}>
-            {EDITORIAL_TYPOGRAPHIES.map((id) => {
-              const active = id === measure;
-              const step = TEXT_SIZES.find((entry) => entry.id === id);
-              return (
-                <Pressable
-                  key={id}
-                  accessibilityRole="radio"
-                  accessibilityState={{ selected: active, checked: active }}
-                  accessibilityLabel={`Mărimea: ${MEASURE_LABELS[id]}`}
-                  onPress={() => onMeasure(id)}
-                  style={[styles.chip, active && styles.chipActive]}
-                >
-                  {/** Each step is set at its own size, the poster step visibly the largest (capped so the chip still fits). */}
-                  <Text style={[styles.chipText, active && styles.chipTextActive, step && { fontSize: Math.min(22, Math.round(step.fontSize * 0.55)) }]}>
-                    {MEASURE_LABELS[id]}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        </View>
-      ) : null}
+      {/**
+       * The measure panel is gone (runda 47). It used to be five chips — `auto`, `small`, `medium`,
+       * `large`, `xlarge` — i.e. four sizes and a default, while the owner asked for **three** sizes
+       * everywhere. The door above is now the cycle itself: one press, one step, Mic → Mediu → Mare → Mic.
+       */}
 
       <View style={styles.row}>
         {door('face', 'Literă', fontLabel)}
-        {door('measure', 'Mărime', MEASURE_LABELS[measure])}
+        {door('measure', 'Mărime', MEASURE_LABELS[measure], () => onMeasure(nextEditorialTypography(measure)))}
         {door('emoji', 'Emoji')}
         <Pressable
           accessibilityRole="button"

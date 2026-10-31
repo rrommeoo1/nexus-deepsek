@@ -1,4 +1,4 @@
-/* global __dirname */
+﻿/* global __dirname */
 /**
  * Tastatura (runda 46): cât loc trebuie să cedeze o suprafață când se deschide tastatura.
  *
@@ -23,7 +23,7 @@ const shim = { exports: {} };
 new Function('module', 'exports', 'require', code)(shim, shim.exports, (id) => {
   throw new Error(`keyboardSpace.ts nu are voie să importe ${id} la rulare`);
 });
-const { KEYBOARD_MIN_CONTENT, bottomInsetWithKeyboard, contentBudget, keyboardSpaceOf } = shim.exports;
+const { KEYBOARD_MIN_CONTENT, bottomInsetWithKeyboard, contentBudget, keyboardHeightOf, keyboardSpaceOf } = shim.exports;
 
 /** Telefonul de dezvoltare: 1220×2656 px la 2.6, adică ~469×1021 dp; tastatura ~320 dp. */
 const PHONE = { height: 1021, keyboard: 320 };
@@ -63,6 +63,24 @@ test('insetul de jos se plătește o singură dată', () => {
   assert.equal(bottomInsetWithKeyboard(-5, 0), 0);
 });
 
+/**
+ * Cifrele sunt cele citite de pe telefon (`adb logcat`, 31 octombrie 2026, Nexus Dev pe 1220×2656):
+ * Gboard raporta `height = 399.5` dp, dar muchia lui era la 578.5 dp pe un ecran de 1021.5 dp. Foaia de
+ * comentarii se așeza după prima cifră și câmpul de comentariu intra 43.5 dp sub taste.
+ */
+test('tastatura se măsoară pe muchia ei, nu doar pe cifra raportată', () => {
+  const MARSHMALLOW = { reported: 399.5, screenY: 578.5, windowHeight: 1021.5 };
+  assert.equal(keyboardHeightOf(MARSHMALLOW), 443, 'bara de unelte a tastaturii intră în socoteală');
+  assert.ok(keyboardHeightOf(MARSHMALLOW) > 399.5, 'fără ea, câmpul de comentariu rămâne sub taste');
+  // Fără `screenY` (o tastatură care nu-l raportează), rămâne cifra ei.
+  assert.equal(keyboardHeightOf({ reported: 320, screenY: 0, windowHeight: 1021 }), 320);
+  // O muchie absurdă nu poate inventa o tastatură cât ecranul.
+  assert.equal(keyboardHeightOf({ reported: 300, screenY: 2000, windowHeight: 1021 }), 300);
+  assert.equal(keyboardHeightOf({ reported: 300, screenY: -10, windowHeight: 1021 }), 300);
+  // Doar muchia, fără cifră: tot se știe cât ia.
+  assert.equal(keyboardHeightOf({ reported: 0, screenY: 578.5, windowHeight: 1021.5 }), 443);
+  assert.equal(keyboardHeightOf({ reported: NaN, screenY: NaN, windowHeight: NaN }), 0);
+});
 test('un cadru cu antet și cu unelte scade exact ce s-a măsurat', () => {
   assert.equal(contentBudget({ available: 700, chromeAbove: 96, chromeBelow: 140 }), 464);
   assert.equal(contentBudget({ available: 300, chromeAbove: 200, chromeBelow: 140 }), KEYBOARD_MIN_CONTENT,
@@ -71,9 +89,17 @@ test('un cadru cu antet și cu unelte scade exact ce s-a măsurat', () => {
 
 test('suprafețele folosesc aceeași socoteală, nu una proprie', () => {
   for (const file of ['src/components/CommentsSheet.tsx', 'src/app/text.tsx', 'src/components/CaptureEditor.tsx']) {
-    assert.match(read(file), /useKeyboardSpace\(\)/, `${file} își ia tastatura din câștigul comun`);
+    assert.match(read(file), /useKeyboardSpace\(/, `${file} își ia tastatura din câștigul comun`);
   }
   const sheet = read('src/components/CommentsSheet.tsx');
+  /**
+   * Runda 47, măsurat pe telefon: foaia stă într-un `Modal`, iar fereastra rădăcină raportează micșorarea
+   * pentru tastatură înainte ca foaia s-o fi primit. Socoteala cu gardă (`resized`) ar scădea-o de două ori
+   * și câmpul de comentariu ar intra sub tastatură (~107 dp la 31 octombrie 2026). Deci foaia cere
+   * varianta care plătește toată tastatura, o singură dată.
+   */
+  assert.match(sheet, /useKeyboardSpace\(\{ modalWindow: presentation === 'sheet' \}\)/,
+    'o foaie din Modal nu presupune că platforma a luat deja locul');
   assert.doesNotMatch(sheet, /Keyboard\.addListener/, 'comentariile nu mai au un al doilea ascultător');
   assert.match(sheet, /marginBottom: keyboard\.covered/);
   assert.match(sheet, /bottomInsetWithKeyboard\(insets\.bottom, keyboard\.covered\)/,

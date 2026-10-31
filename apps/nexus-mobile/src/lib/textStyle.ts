@@ -159,9 +159,44 @@ export const TEXT_SIZES: readonly { id: TextSizeId; label: string; fontSize: num
   /**
    * The poster step (text-integrity round). It keeps the same leading ratio as the other three (1.38),
    * because a bigger page is still a page and not a headline with the lines pushed together.
+   *
+   * Round 47: it is **no longer offered**. The owner asked for the same three steps everywhere — „Mic,
+   * Mediu, Mare, apoi iar Mic" — so the composer's cycle has three entries (`TEXT_SIZE_CYCLE`). This row
+   * stays in the table because rows already written at this size must keep reading exactly as they were
+   * written (`sizeOf('xlarge')`), and because the server still accepts the value (`TEXT_SIZES` of
+   * `apps/nexus-web/lib/post-text-style.js`). Nothing is migrated and nothing is rewritten.
    */
   { id: 'xlarge', label: 'Foarte mare', fontSize: 34, lineHeight: 47 },
 ];
+
+/**
+ * The three steps of the composer's cycle, in the order a press walks them (round 47).
+ *
+ * The owner: „exact trei mărimi, iar a patra atingere se întoarce la prima". The ids and the order are the
+ * same three the overlay tools already use (`lib/overlayPresets.ts`: `small`, `medium`, `large`), so a
+ * person learns one cycle and meets it on the page, on the text over a picture, on a sticker and on an
+ * emoji. The *page* keeps its own font steps (`TEXT_SIZES`), because a page of words is set in type and a
+ * sticker is scaled by a factor.
+ */
+export const TEXT_SIZE_CYCLE: readonly TextSizeId[] = ['small', 'medium', 'large'];
+
+/**
+ * Where a stored size stands in the cycle.
+ *
+ * `xlarge` — the poster step older rows carry — counts as the largest step, so the first press on such a
+ * row goes back to `small` instead of inventing a fourth position. An id this build does not know counts
+ * as the first step, which is the safe reading: the page stays as it is until somebody asks for a step.
+ */
+export function textSizeCycleIndex(size: TextSizeId): number {
+  const index = TEXT_SIZE_CYCLE.indexOf(size);
+  if (index >= 0) return index;
+  return size === 'xlarge' ? TEXT_SIZE_CYCLE.length - 1 : 0;
+}
+
+/** The next step of the cycle: small → medium → large → small, for ever. */
+export function nextTextSize(size: TextSizeId): TextSizeId {
+  return TEXT_SIZE_CYCLE[(textSizeCycleIndex(size) + 1) % TEXT_SIZE_CYCLE.length];
+}
 
 export const TEXT_ALIGNS: readonly { id: TextAlignId; label: string }[] = [
   { id: 'left', label: 'Stânga' },

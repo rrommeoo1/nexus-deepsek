@@ -14,6 +14,7 @@ import { openSocialProfile } from '../lib/profileNavigation';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { bottomInsetWithKeyboard } from '../lib/keyboardSpace';
 import { useKeyboardSpace } from '../lib/useKeyboardSpace';
+import { clearSheetPreview, reportSheetPreview } from '../lib/sheetPreview';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
 import { createComment, editComment, fetchCommentEngagement, fetchComments, fetchCommentVersions, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
   type CommentEngagementItem, type CommentEngagementPage, type CommentVersion } from '../lib/postInteractions';
@@ -91,7 +92,25 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
    * pentru fereastră și încă o dată pentru insetul de jos, iar pe un telefon care chiar își micșorează
    * fereastra ar fi numărat-o de două ori.
    */
-  const keyboard = useKeyboardSpace();
+  const keyboard = useKeyboardSpace({ modalWindow: presentation === 'sheet' });
+  /**
+   * Cât loc ia foaia, măsurat de ea însăși (runda 47).
+   *
+   * Foaia **nu** se schimbă: aceeași deschidere de la jumătatea ecranului, același design, aceeași
+   * înălțime. Ea doar spune ce înălțime a ieșit, ca postarea din spate să se poată potrivi în locul de
+   * deasupra — la înălțimea de deschidere, la 82 % când lista e lungă, și din nou când tastatura se
+   * deschide (`maxHeight: keyboard.available`) sau se închide.
+   *
+   * `onLayout` dă înălțimea conținutului foii; `keyboard.covered` este banda pe care tastatura o ia sub ea
+   * (`marginBottom`), care nu apare în `onLayout`. Împreună sunt exact partea din fereastră pe care foaia
+   * o stăpânește la un moment dat, iar atât pagina primește înapoi.
+   */
+  const [sheetHeight, setSheetHeight] = useState(0);
+  useEffect(() => {
+    if (presentation !== 'sheet' || sheetHeight <= 0) return;
+    reportSheetPreview(post.id, sheetHeight + keyboard.covered);
+  }, [presentation, post.id, sheetHeight, keyboard.covered]);
+  useEffect(() => () => clearSheetPreview(post.id), [post.id]);
   const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
   /**
    * A comment is a paid action here (`lib/action-payments.js`): the write answers `402 PAYMENT_REQUIRED`
@@ -323,6 +342,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   const content = (
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          onLayout={(event) => setSheetHeight(Math.round(event.nativeEvent.layout.height))}
           style={[
             presentation === 'sheet' ? styles.sheet : presentation === 'page' ? styles.page : styles.viewerPanel,
             /**

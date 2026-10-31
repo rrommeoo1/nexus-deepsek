@@ -36,6 +36,35 @@ export const EDITORIAL_MEDIA_TYPES: readonly EditorialMediaType[] = ['image', 'v
 export type EditorialTypography = 'auto' | 'small' | 'medium' | 'large' | 'xlarge';
 export const EDITORIAL_TYPOGRAPHIES: readonly EditorialTypography[] = ['auto', 'small', 'medium', 'large', 'xlarge'];
 
+/**
+ * The three measures the composer's `Mărime` door walks, in order (round 47).
+ *
+ * The owner asked for the same cycle everywhere — „Mic, Mediu, Mare, apoi iar Mic" — and the composer's
+ * page is the fourth surface that carries it, beside the text over a picture, the stickers and the emoji.
+ * `auto` is not a fourth step: it is the page's default (the measure the flow engine picks for a long
+ * article), so it counts as the first step — „Mic/default", exactly as the owner wrote it. `xlarge` is
+ * kept in `EDITORIAL_TYPOGRAPHIES` because rows written with it must keep opening at the measure they
+ * were written at; it is simply no longer offered.
+ */
+export const EDITORIAL_TYPOGRAPHY_CYCLE: readonly EditorialTypography[] = ['small', 'medium', 'large'];
+
+/**
+ * Where a stored measure stands in the cycle: `auto` and `small` are the first step, `xlarge` — the
+ * poster measure of older rows — is the last, and anything unknown is the first (nothing moves until
+ * somebody asks for a step).
+ */
+export function typographyCycleIndex(typography: EditorialTypography): number {
+  const index = EDITORIAL_TYPOGRAPHY_CYCLE.indexOf(typography);
+  if (index >= 0) return index;
+  if (typography === 'auto') return 0;
+  return typography === 'xlarge' ? EDITORIAL_TYPOGRAPHY_CYCLE.length - 1 : 0;
+}
+
+/** The next measure: small (or the default) → medium → large → small, for ever. */
+export function nextEditorialTypography(typography: EditorialTypography): EditorialTypography {
+  return EDITORIAL_TYPOGRAPHY_CYCLE[(typographyCycleIndex(typography) + 1) % EDITORIAL_TYPOGRAPHY_CYCLE.length];
+}
+
 export type EditorialRun = {
   text: string;
   bold?: true;

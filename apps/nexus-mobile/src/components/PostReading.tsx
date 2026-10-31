@@ -4,7 +4,7 @@ import {
   Platform, Pressable, ScrollView, StyleSheet, Text, View,
   type NativeScrollEvent, type NativeSyntheticEvent, type StyleProp, type TextStyle as NativeTextStyle, type ViewStyle,
 } from 'react-native';
-import { RemoteImage, RemoteImageSource, RemoteImageSound, RemoteVideo, isVideoItem } from './PostMedia';
+import { RemoteImage, RemoteImageSource, RemoteImageSound, RemoteVideo, isVideoItem, type VideoFit } from './PostMedia';
 import { RichText } from './RichText';
 import { WordsBand } from './PostReadability';
 import {
@@ -306,7 +306,7 @@ export function PostTextReading({
   );
 }
 
-export function PostMediaGallery({ post, active, muted, onError, onProgress, onCaptionPress, style }: {
+export function PostMediaGallery({ post, active, muted, onError, onProgress, onCaptionPress, style, videoFit = 'portrait-cover' }: {
   post: SocialPost;
   active: boolean;
   muted: boolean;
@@ -315,6 +315,15 @@ export function PostMediaGallery({ post, active, muted, onError, onProgress, onC
   onProgress?: (fraction: number) => void;
   onCaptionPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  /**
+   * Cum se așază un **clip** din galerie în pagina lui (runda 47).
+   *
+   * O poză se citește de la sine cu `contain` (își păstrează proporția), dar un clip vertical acoperea
+   * pagina, ca un reel. Previzualizarea de deasupra foii de comentarii este însă un cadru scund: acolo
+   * clipul trebuie să se vadă întreg, deci `PostCanvas` cere `contain` numai pentru ea. Previzualizarea
+   * compozitorului și pagina publicată nu schimbă nimic (valoarea implicită rămâne a cititorului).
+   */
+  videoFit?: VideoFit;
 }) {
   const items = postMediaItems(post).slice(0, MAX_MEDIA);
   const [width, setWidth] = useState(0);
@@ -347,7 +356,7 @@ export function PostMediaGallery({ post, active, muted, onError, onProgress, onC
               style={[styles.galleryPage, { width: width || undefined }]}
             >
               {video
-                ? <RemoteVideo item={item} fit="portrait-cover" style={styles.fill} active={played} muted={muted} soundtrack={post.external_audio} onProgress={played ? onProgress : undefined} onError={onError} />
+                ? <RemoteVideo item={item} fit={videoFit} style={styles.fill} active={played} muted={muted} soundtrack={post.external_audio} onProgress={played ? onProgress : undefined} onError={onError} />
                 : <RemoteImage item={item} fit="contain" style={styles.fill} onError={onError} />}
               {!video ? <RemoteImageSound soundtrack={post.external_audio} active={played} muted={muted} /> : null}
             </Pressable>

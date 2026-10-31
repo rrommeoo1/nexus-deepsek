@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+﻿import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   Animated, Pressable, StyleSheet, Text, View, useWindowDimensions,
   type LayoutChangeEvent, type StyleProp, type ViewStyle,
@@ -176,7 +176,7 @@ export function PostFrame({ children, style }: { children: React.ReactNode; styl
 export function PostCanvas({
   post, variant = 'feed', layout = 'reel', active = false, muted = true, expanded = false,
   onError, onOpenAuthor, onToggleExpanded, onTranslate, notice, noticeTone = 'error',
-  onPressMedia, authorAction, playBadge = false, bottomActions, page = false,
+  onPressMedia, authorAction, playBadge = false, bottomActions, page = false, sheetPreview = false,
   topInset = 0, bottomInset = 0, folio, mediaOverride, mediaOverlay, mediaClock, onChromeMeasure,
 }: {
   post: SocialPost;
@@ -291,6 +291,15 @@ export function PostCanvas({
    * a list leaves this off: it keeps the canvas's own padding and its compact row under the words.
    */
   page?: boolean;
+  /**
+   * Compoziția este **previzualizarea** de deasupra foii de comentarii (runda 47), nu pagina întreagă.
+   *
+   * Cadrul este mai scund — atât cât lasă foaia — deci o poză sau un clip care ar acoperi pagina ar
+   * însemna exact ce ownerul a refuzat: „porțiunea tăiată". În previzualizare imaginea se potrivește
+   * întreagă în cadru (`contain`), păstrându-și proporția, iar restul cadrului rămâne câmpul compoziției.
+   * Nimic altceva nu se schimbă: același cap, aceeași descriere, aceleași decorațiuni, același ceas.
+   */
+  sheetPreview?: boolean;
   /**
    * Cât loc iau capul și descrierea, în punctele cadrului, pentru singura suprafață care trebuie să le
    * știe dinainte: compozitorul (`CaptureEditor`), care își desenează ghidajele de zonă sigură peste
@@ -855,13 +864,14 @@ export function PostCanvas({
           onError={() => onError?.()}
           onProgress={reportProgress}
           onCaptionPress={onPressMedia}
+          videoFit={sheetPreview ? 'contain' : 'portrait-cover'}
           style={styles.media}
         />
       ) : null}
       {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && isVideo ? (
         <RemoteVideo
           item={cover}
-          fit="portrait-cover"
+          fit={sheetPreview ? 'contain' : 'portrait-cover'}
           style={styles.media}
           active={active}
           muted={muted}
@@ -873,7 +883,7 @@ export function PostCanvas({
         />
       ) : null}
       {stage !== 'article' && !mediaOverride && items.length <= 1 && cover && !isVideo ? (
-        <RemoteImage item={cover} fit="cover" style={styles.media} onError={onError} />
+        <RemoteImage item={cover} fit={sheetPreview ? 'contain' : 'cover'} style={styles.media} onError={onError} />
       ) : null}
 
       {onPressMedia && stage !== 'article' ? (

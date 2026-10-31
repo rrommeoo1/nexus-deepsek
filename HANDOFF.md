@@ -1,4 +1,208 @@
+## 0.47 Previzualizarea postării deasupra foii de comentarii, trei mărimi și pe pagină, tastatura măsurată pe muchie (31 octombrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
+ștergeri de date, fără postări publice; xPortal și `apps/nexus-web` neatinse — serverul nu a avut nevoie de
+nicio schimbare, vezi §3). `tsc --noEmit` exit 0. `node scripts/run-tests.mjs` → `suites=77 failed=0`, cu
+două suite noi (`test-sheet-preview.cjs` 7 teste, `test-text-sizes.cjs` 6 teste) la capătul lanțului
+`npm test`. **Telefonul a fost disponibil în această rundă** (wireless debugging,
+`adb-b42122b-huYC9y._adb-tls-connect._tcp`), deci secțiunea „CE S-A TESTAT PE ANDROID" de mai jos este
+dovadă reală, cu capturi publicate în `JUNGLE_BOOK_VERIFICATION/final_jpg/`.
+
+**Ce a cerut ownerul, în ordinea în care a fost făcut.** (1) foaia de comentarii **să rămână exact ce
+este**, iar postarea din jumătatea de sus să se vadă **întreagă**; (2) banda de lizibilitate numai în cap —
+nemodificat, runda 46; (3) Hârtie/Noapte — nemodificat, runda 46; (4) **trei** mărimi și pe pagina de text,
+nu patru; (5) tastatura să rearanjeze conținutul, inclusiv în foaia de comentarii; (6) căutarea — nemodificat,
+runda 46.
+
+### 1. Foaia de comentarii NU a fost redesenată. Postarea de deasupra se potrivește. (cerința critică)
+
+Aceasta este clarificarea pe care ownerul a scris-o cu majuscule, deci o spun la fel de clar:
+**foaia de comentarii nu a fost schimbată.** Rămâne o foaie care se deschide de jos, la jumătatea ecranului
+(`maxHeight: '82%'`, `minHeight: '52%'` — neschimbate), în același `Modal` transparent cu `animationType="slide"`,
+cu același mâner, același antet („Comentarii · N" + ✕), aceleași file Relevante / Cele mai noi, aceleași
+rânduri de comentariu cu acțiunile lor și același compozitor. Nu a fost transformată în `Modal` pe tot
+ecranul, nu a fost împărțită în panouri, nu i s-a schimbat înălțimea de deschidere și nu a fost mutată în alt
+flux. `scripts/test-sheet-preview.cjs` verifică exact aceste constante, ca să nu poată fi schimbate din greșeală
+mai târziu.
+
+Ce s-a schimbat este **ce se află deasupra ei**. Până acum foaia se ridica pur și simplu *peste* o pagină
+dimensionată pentru tot ecranul: un reel se vedea tăiat la mijlocul cadrului, un articol tăiat după primele
+rânduri. Acum foaia **își raportează înălțimea măsurată**, iar pagina primește înapoi locul rămas:
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/lib/sheetPreview.ts` (nou, pur) | `previewRoomOf({ pageHeight, sheetHeight })` — locul care rămâne deasupra foii, cu un minim de 120 dp (`SHEET_PREVIEW_MIN`) și fără să poată depăși pagina; plus micul depozit prin care măsurătoarea ajunge de la foaie (într-un `Modal`) la pagină: `reportSheetPreview`, `clearSheetPreview` (șterge numai dacă foaia este a aceleiași postări), `sheetPreviewPostId`, `sheetPreviewHeight`, `subscribeSheetPreview`, `resetSheetPreview` |
+| `src/lib/useSheetPreview.ts` (nou) | `useSheetPreview(postId)` — două snapshot-uri primitive (`useSyncExternalStore`), ca randarea să nu intre în buclă; `0` = „nicio foaie deschisă pentru postarea mea", adică pagina își păstrează înălțimea |
+| `src/components/CommentsSheet.tsx` | `onLayout` pe foaie îi dă înălțimea; ea raportează `înălțime + keyboard.covered` (tastatura stă în `marginBottom`, nu în `onLayout`), iar la demontere șterge măsurătoarea. **Niciun stil de foaie nu s-a atins.** |
+| `src/components/PostCard.tsx` | pagina își ține înălțimea întreagă (pager-ul feed-ului se sprijină pe ea), dar compoziția se desenează pe `previewRoomOf(...)` cât timp foaia este deschisă, cu `sheetPreview` dat compoziției |
+| `src/components/ReelsReader.tsx` | la fel pentru reel/poză: `PostStage` stă într-un cadru de `previewRoom`, iar decorațiunile primesc `fit={previewing ? 'contain' : 'cover'}` |
+| `src/components/PostCanvas.tsx` | prop nou `sheetPreview`: poza, clipul și clipul dintr-o galerie se potrivesc `contain` (cadru întreg, proporție păstrată) numai cât timp foaia este deschisă; fără foaie, ramura implicită este exact ce era (`cover`, `portrait-cover`) |
+| `src/components/PostReading.tsx` | `PostMediaGallery` primește `videoFit` (implicit `portrait-cover`), ca un clip dintr-o galerie să se poată potrivi întreg |
+
+Consecințe, spuse pe față:
+- **reel/poză**: cadrul întreg se vede, letterboxed, nu o porțiune tăiată; decodorul nu se demontează și nu
+  repornește (aceeași instanță, alt stil), deci redarea continuă;
+- **text**: pagina compusă se re-pagina pe locul nou (`EditorialArticle`/`PostTextReading` își măsoară
+  singure cutia), deci rândurile nu se taie — un text lung arată prima pagină întreagă din locul rămas, nu
+  jumătate de pagină tăiată;
+- **la închidere**: măsurătoarea dispare, pagina revine la înălțimea întreagă; nimic nu se demontează, deci
+  nicio stare nu se pierde și poziția în feed nu sare (înălțimea elementului din listă rămâne aceeași).
+
+### 2. Tastatura: măsurată pe muchia ei, nu pe cifra pe care o dă (cerința 5, partea „foaie de comentarii")
+
+Runda 46 a introdus o singură socoteală (`lib/keyboardSpace.ts`) pentru compozitor, editor și foaie. Când am
+deschis foaia pe telefon și am atins câmpul de comentariu, a apărut un defect pe care nicio socoteală de sursă
+nu îl putea găsi: **câmpul de comentariu intra sub tastatură**, se vedea doar marginea lui de sus. Nu am ghicit
+cauza — am citit-o din telefon (`adb logcat -s ReactNativeJS:V`), cu un `console.log` temporar (scos după):
+
+| măsurătoare | valoare |
+| --- | --- |
+| fereastra (`useWindowDimensions`) | 1021.5 dp înălțime (edge-to-edge, nu se micșorează) |
+| ce raportează tastatura (`endCoordinates.height`) | **399.5 dp** |
+| unde începe de fapt banda tastaturii (`screenY = 578.5`) | **443 dp** |
+| diferența | **43.5 dp** = bara de unelte a tastaturii (iconițe, GIF, emoji, microfon), care nu intră în cifra raportată |
+
+Deci foaia se așeza cu 43.5 dp prea jos și compozitorul cădea exact în acea bandă. Reparat în două locuri,
+ambele documentate în cod:
+
+- `lib/keyboardSpace.ts::keyboardHeightOf({ reported, screenY, windowHeight })` — citirea **ambelor** cifre și
+  păstrarea celei mai mari; muchia nu poate subestima tastatura, iar o tastatură care nu raportează `screenY`
+  rămâne pe prima cifră. Absurditățile (`screenY` peste fereastră, negativ, `NaN`) cad pe cifra raportată.
+- `lib/useKeyboardSpace.ts` — ascultătorul cheamă funcția de mai sus; opțiunea nouă `{ modalWindow: true }`
+  spune că o foaie din `Modal` plătește toată tastatura, o singură dată (fereastra rădăcină poate raporta o
+  micșorare pe care foaia nu a primit-o încă, iar garda `resized` ar scădea atunci tastatura de două ori).
+  `CommentsSheet` o cere pentru `presentation === 'sheet'`; pagina compozitorului și editorul rămân pe
+  socoteala cu gardă, fiindcă acolo fereastra chiar se micșorează.
+
+După reparație, pe același telefon: `covered = 447.5 dp`, câmpul de comentariu stă **deasupra** tastaturii
+(imaginea `r47-h-comments-keyboard-ok.jpg`), iar previzualizarea postării s-a strâns în locul rămas.
+
+### 3. Editorialul principal: trei mărimi, nu patru (cerința 3)
+
+Runda 46 făcuse ciclul pentru textul peste poză, stickere și emoji (`lib/overlayPresets.ts`), dar pagina de
+text folosea în continuare `TEXT_SIZES` cu **patru** trepte, iar bara compozitorului deschidea un panou cu
+cinci chipuri (`auto`, `small`, `medium`, `large`, `xlarge`). Acum ciclul este al patrulea, cu aceleași trei
+id-uri ca peste poză:
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/lib/textStyle.ts` | `TEXT_SIZE_CYCLE = ['small', 'medium', 'large']`; `textSizeCycleIndex(size)` (small 0, medium 1, large 2, `xlarge` **2** fiindcă este treapta veche de poster, orice valoare necunoscută 0); `nextTextSize(size)` cu întoarcere la primul pas. Tabelul de desenare `TEXT_SIZES` păstrează toate patru treptele, deci un rând scris la 34/47 se deschide exact așa |
+| `src/lib/editorialDocument.ts` | `EDITORIAL_TYPOGRAPHY_CYCLE = ['small', 'medium', 'large']`; `typographyCycleIndex` (`auto` = primul pas, adică „Mic/implicit", `xlarge` = ultimul); `nextEditorialTypography` |
+| `src/components/TextToolbar.tsx` | ușa „Mărime" **este** ciclul: fiecare atingere scrie pasul următor în document (`onMeasure(nextEditorialTypography(measure))`, cu instantaneul de undo existent), iar eticheta porții spune unde ești („Mărime · Mediu"). Panoul cu cinci chipuri a plecat — oferea patru mărimi, exact ce ownerul a refuzat. Ușile `face` / `measure` / `emoji` / `Tastatură` rămân patru |
+
+**Serverul nu a fost atins, și asta este o decizie, nu o scăpare.** `apps/nexus-web/lib/post-text-style.js`
+acceptă `small`, `medium`, `large` **și** `xlarge`, iar `apps/nexus-web/lib/post-editorial-document.js` acceptă
+`auto` + cele patru. Toate cele trei mărimi oferite sunt deci deja valide pentru server, iar rândurile vechi
+(`xlarge`) rămân valide la citire și la scriere. Nu s-a inventat o valoare pe care serverul ar refuza-o și nu
+s-a tăiat o valoare pe care o au deja postările publicate. Măsurarea se face într-un singur loc
+(`editorialSizeFor` + `sizeOf`, chemate de `EditorialPage`), deci previzualizarea compozitorului și pagina
+publicată nu pot avea mărimi diferite.
+
+**Întrebarea deschisă din 0.46 §3 este închisă de instrucțiunea ownerului:** ciclul guvernează și tipografia
+paginii de text, nu doar decorațiunile de peste media.
+
+### 4. Nemodificat, intenționat
+
+- Banda de lizibilitate **numai în cap** și pagina de hârtie curată (runda 46) — neatinsă; reel-urile își
+  păstrează exact benzile (`test-readability.cjs` trece neschimbat).
+- Hârtie/Noapte (runda 46) — neatinsă; comutatorul ☀/☾ stă tot înaintea porții Follow, iar pe pagina de
+  noapte banda capului nu se desenează. Pe telefon a fost văzută selectată poziția „Noapte" (captura
+  `r47-d-comments-text.jpg`).
+- Căutarea/explorarea (runda 46: grid 3 coloane 9:16, debounce 320 ms, paginare cu cursor, stare goală
+  explicată pentru subiecte) — neatinsă; `test-search-explore.cjs` trece neschimbat.
+
+### CE S-A TESTAT PE ANDROID (dovadă reală, nu sursă)
+
+Telefonul a revenit prin wireless debugging în timpul rundei. Ce s-a făcut, în ordine: `adb devices` →
+`adb-b42122b-huYC9y._adb-tls-connect._tcp`; backend-ul local era deja sănătos pe 5000 (`status-backend.ps1`:
+`healthy: True`, 10 utilizatori, 50 postări); `tools/dev-start.ps1` a pornit Metro pe 8081 și a adus aplicația
+în prim-plan; `adb reverse tcp:5000 tcp:5000` a fost adăugat, fiindcă fără el aplicația cădea pe
+`localhost:5000` și afișa `fetch failed: java.net.ConnectException` (ecranul de login, captura `r47-a-state.jpg`).
+Sesiunea stocată s-a restaurat singură după reverse, fără reinstalare și fără ștergere de date.
+
+| captură (`JUNGLE_BOOK_VERIFICATION/final_jpg/`) | ce se vede, măsurat pe 1220×2656 |
+| --- | --- |
+| `r47-a-state.jpg` | starea de dinainte: ecran de login, cu `fetch failed … localhost:5000` (dovada că lipsea reverse-ul, nu o dovadă de UI) |
+| `r47-b-after-reverse.jpg` | profilul ownerului, grilă de postări, file de text pe hârtie — sesiunea restaurată |
+| `r47-d-comments-text.jpg` | **postare de text** în modul **Noapte** (☾ selectat), fundal matte negru, fără bandă deschisă în cap; foaia de comentarii deschisă la **52 %** (muchia de sus la y≈1275 px din 2656): mâner, „Comentarii · 0", ✕, Relevante / Cele mai noi, „Niciun comentariu încă.", compozitor. Postarea de deasupra se vede **întreagă** (cap, comutator ☀/☾, Urmărește, textul până la „Fără valoare.", „Vezi traducerea") |
+| `r47-e-comments-reel.jpg` | **reel**: cadrul întreg se vede deasupra foii, letterboxed (`x≈225..655` din 1220), cu decorațiunile „Good morning ❤️" / „21:03" **în interiorul** cadrului potrivit; cap, descriere, „Citește tot", rail cu inima, comentarii (2), salvare, distribuire. Foaia: aceeași, cu două comentarii reale |
+| `r47-g-comments-keyboard-fixed.jpg` | **înainte de fix**: cu tastatura deschisă, din compozitor se vedea doar marginea de sus (defectul găsit) |
+| `r47-h-comments-keyboard-ok.jpg` | **după fix**: cu tastatura deschisă, „Adaugă un comentariu…" și butonul ➤ sunt **întregi deasupra tastaturii**; foaia are același desen; previzualizarea postării s-a strâns în locul rămas, iar cadrul rămâne întreg |
+
+Ce **nu** s-a putut verifica pe telefon în runda asta (și de ce): ciclurile de mărime din editor
+(text/stickere/emoji) și ciclul din compozitorul de text cer parcurgerea editorului (Creează → alegere media →
+panouri) și nu au fost atinse în timpul rămas. Paginarea căutării peste 20 de rezultate cere un cont cu atâtea
+rezultate într-o singură interogare — nu s-a forțat. Subiectele (tags) cer date care îndeplinesc regula celor
+3 zile / 2 autori — nu existau în fereastra de date.
+
+### TESTE AUTOMATE
+
+- `node scripts/run-tests.mjs` → **`suites=77 failed=0 in 40s`** (75 în runda 46).
+- `tsc --noEmit` → exit 0.
+- Suite noi: `scripts/test-sheet-preview.cjs` (**7** teste: socoteala locului, cazul tastaturii, depozitul,
+  foaia **neatinsă** — `maxHeight: '82%'`, `minHeight: '52%'`, `animationType="slide"`, mâner, antet,
+  compozitor, fără panouri împărțite — și potrivirea pe cele două suprafețe) și `scripts/test-text-sizes.cjs`
+  (**6** teste: exact trei mărimi, ciclul de patru atingeri pentru amândouă cicloarele, `xlarge` citibil și
+  acceptat de server, `auto` = primul pas, aceeași măsură în previzualizare și în pagina publicată).
+- `scripts/test-keyboard-space.cjs` are un test nou, cu cifrele citite de pe telefon
+  (`keyboardHeightOf({ reported: 399.5, screenY: 578.5, windowHeight: 1021.5 }) === 443`).
+- Teste actualizate **pentru regula nouă**, nu ca să treacă: `test-text-composer.cjs` (ușa de mărime este
+  ciclul, panoul cu cinci chipuri nu mai există), `test-fullscreen-feed.cjs` (`cover` rămâne regula paginii,
+  `contain` apare numai în previzualizarea de deasupra comentariilor), `test-keyboard-space.cjs` (foaia din
+  `Modal`).
+- `eslint` nu a fost rulat în această rundă; erorile vechi `react-hooks/*` din `PostCanvas.tsx` și
+  `EditorialPage.tsx` rămân pe liniile neatinse.
+
+
+### CE RĂMÂNE INCOMPLET
+
+1. **Ciclurile de mărime din editor nu au fost văzute pe telefon** (text peste poză, stickere, emoji) — sunt
+   verificate de teste (runda 46 + runda 47), dar nu vizual.
+2. **Ciclul „Mărime" din compozitorul de text** nu a fost atins pe telefon; lanțul este acoperit de
+   `test-text-sizes.cjs` (document → `editorialSizeFor` → `sizeOf` → `EditorialPage`).
+3. **Pagina de text în modul Hârtie** (☀) nu a fost capturată în runda asta — a fost văzută doar Noaptea, plus
+   filele de hârtie din profil. Comutatorul și paleta sunt cele din runda 46, neatinse.
+4. **Banda reel-urilor** este neschimbată în cod și în teste, dar nu a fost comparată vizual cu o captură din
+   runda 45.
+5. **Text lung în foaia de comentarii**: re-paginarea este dovedită de arhitectură (pagina își măsoară cutia) și
+   de captura cu text scurt; un articol de 8 pagini nu a fost deschis cu foaia peste el.
+6. **Căutarea** (paginare peste 20, subiecte, revenirea la poziția din listă) rămâne verificată numai în sursă
+   și teste, ca în runda 46 — nu există date suficiente în mediul local.
+7. `PostCanvas.tsx` (3) și `EditorialPage.tsx` (11) păstrează erorile vechi `react-hooks/*`.
+
+### CE TREBUIE FĂCUT DE OWNER PE TELEFON
+
+Nimic obligatoriu: aplicația este pornită, conectată la Metro și la backend, iar foaia de comentarii a fost
+verificată real. De confirmat, când are timp:
+
+1. deschide o **postare de text lungă** și atinge „Comentarii" — pagina trebuie să se re-pagineze deasupra foii,
+   nu să se taie la mijloc;
+2. în **editor** (Creează), atinge de patru ori la rând „Mărime" pe text, pe un sticker și pe un emoji —
+   Mic → Mediu → Mare → Mic, independent unul de altul;
+3. în **compozitorul de text**, atinge de patru ori „Mărime · …" — aceeași rotație pe pagină;
+4. comută ☀/☾ pe o pagină de text și spune dacă noaptea este suficient de lizibilă.
+
+### Fișiere atinse în această rundă
+
+Cod: `src/lib/sheetPreview.ts` (nou), `src/lib/useSheetPreview.ts` (nou), `src/lib/keyboardSpace.ts`,
+`src/lib/useKeyboardSpace.ts`, `src/lib/textStyle.ts`, `src/lib/editorialDocument.ts`,
+`src/components/CommentsSheet.tsx`, `src/components/PostCard.tsx`, `src/components/ReelsReader.tsx`,
+`src/components/PostCanvas.tsx`, `src/components/PostReading.tsx`, `src/components/TextToolbar.tsx`,
+`package.json` (două suite noi în `npm test`).
+Teste: `scripts/test-sheet-preview.cjs` (nou), `scripts/test-text-sizes.cjs` (nou),
+`scripts/test-keyboard-space.cjs`, `scripts/test-text-composer.cjs`, `scripts/test-fullscreen-feed.cjs`.
+Dovezi: șase capturi în `JUNGLE_BOOK_VERIFICATION/final_jpg/r47-*.jpg`, cu logul brut al capturilor în
+`JUNGLE_BOOK_VERIFICATION/diagnostics/logs/`. Nimic din `apps/nexus-web/**`, `docs/parity-report/**` sau
+`tools/_diag-*` nu a fost atins.
+
+**Mediul lăsat pornit:** Metro pe 8081 (`tools/dev-start.ps1`, proces pornit de mine, cu log în
+`%TEMP%\nexus-metro-47.txt`) și backend-ul local pe 5000 (era deja pornit). `adb reverse` are acum
+`tcp:8081` **și** `tcp:5000`; al doilea lipsea și de aceea aplicația cerea login.
+
+
 ## 0.46 Numai capul are bandă, o pagină care se poate citi noaptea, trei mărimi și tastatura care micșorează conținutul (31 octombrie 2026)
+
+
 
 **Starea depozitului.** Cod pe ramura `codex/camera-draft-stability` (fără push, fără reinstalare, fără
 ștergeri de date, fără postări publice; xPortal și `apps/nexus-web` neatinse). `tsc --noEmit` exit 0;
@@ -2645,6 +2849,8 @@ Pe baza vie reconcilierea rămâne `MISMATCH` — este o condiție a datelor de 
 10. **F2a/F2b/F2d** — **făcute pe 17 oct 2026** (`9defc16`): rândul propriu `[Editează profilul][⋯]`, foaia cu `Monetizează profilul` / `Distribuie profilul` / `Portofel` / `Setări`, ecranul de monetizare cu preseturi și produs real, portofelul cu registru și cerere de retragere. Ce lipsește și de ce: prețul pe apreciere/comentariu/distribuire, „Totul gratuit”, modul avansat și plafoanele nu au **nicio rută** — sunt `Indisponibil` cu motivul scris sub ele; foaia de susținere a fanului (`POST /api/creator/support-intents`) și confirmarea cu buget de sesiune rămân de construit, iar butonul de apreciere nu poate afișa un preț pe care serverul nu îl are.
 11. **§9.3, rândurile 1–6** — **neîncepute**: reader-ul de Reels acoperă bara de taburi cu un `Pressable` pe tot ecranul, iar banda oprește `uiautomator dump`. Următoarea sesiune: se pornește din `Flux` (nu din `Reels`), se oprește banda din sertar pentru citiri, apoi se reia comutatorul.
 12. **Ticker `JUNGLE`** — **închis ca întrebare**: un ticker ocupat nu blochează emiterea (secvență aleatoare de 3 caractere în identificator, `mx-chain-go`), deci nu mai există „indisponibil”. Emiterea așteaptă faucet-ul: toate cele cinci portofele au `0.0000 EGLD`. Comanda e scrisă în `MONETIZATION-SPEC.md` §3.5.
+
+13. **Runda 47, verificată pe telefon (31 oct 2026)** — telefonul a revenit prin wireless debugging, iar foaia de comentarii a fost deschisă, fotografiată și citită: postarea se vede întreagă deasupra ei, foaia a rămas neschimbată, iar tastatura a fost măsurată și reparată (§0.47). Rămân de privit pe telefon: ciclurile de mărime din editor și din compozitorul de text, un articol lung cu foaia peste el și modul Hârtie (a fost văzut doar Noaptea).
 
 
 ## 4. Defecte deschise

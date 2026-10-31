@@ -84,7 +84,12 @@ test('un reel umple pagina la fel ca un post', () => {
   assert.match(reel, /bottomInset=\{band\}/, 'the canvas keeps the words above the bar');
   assert.match(reel, /const band = Math\.max\(0, overlayBottom\) \+ Math\.max\(0, bottomInset\);/, 'bar plus device inset, one floor');
   assert.match(reel, /bottom=\{RAIL_FOOT \+ band\}/, 'the rail sits above the bar, at the reel foot the web uses');
-  assert.match(reel, /<PostDecorations post=\{post\} fit="cover" \/>/, 'decorations follow the covering picture');
+  /**
+   * Runda 47: decorațiunile urmează potrivirea pozei de sub ele — `cover` pe pagină, `contain` doar în
+   * previzualizarea de deasupra foii de comentarii, unde cadrul este scund.
+   */
+  assert.match(reel, /<PostDecorations post=\{post\} fit=\{previewing \? 'contain' : 'cover'\} \/>/,
+    'decorations follow the covering picture');
 });
 
 test('nu mai există banda neagră de sub ceas', () => {
@@ -94,7 +99,14 @@ test('nu mai există banda neagră de sub ceas', () => {
 });
 
 test('media acoperă pagina, nu lasă câmp în jurul ei', () => {
-  assert.match(canvas, /<RemoteImage item=\{cover\} fit="cover"/);
-  assert.match(canvas, /fit="portrait-cover"/, 'a clip covers the page too');
+  /**
+   * Runda 47: `cover` rămâne regula paginii. Singura excepție este previzualizarea de deasupra foii de
+   * comentarii, unde cadrul este scund și postarea trebuie văzută întreagă — acolo `sheetPreview` cere
+   * `contain`. Ramura implicită (fără foaie deschisă) este exact ce era.
+   */
+  assert.match(canvas, /<RemoteImage item=\{cover\} fit=\{sheetPreview \? 'contain' : 'cover'\}/,
+    'poza acoperă pagina când nu este previzualizare');
+  assert.match(canvas, /fit=\{sheetPreview \? 'contain' : 'portrait-cover'\}/,
+    'a clip covers the page too, în afara previzualizării de deasupra comentariilor');
   assert.match(canvas, /media: \{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 \}/);
 });

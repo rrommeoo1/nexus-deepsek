@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PostRail, PostDistributePanel, RAIL_FOOT } from './PostRail';
 import { SolidViewerIcon } from './SolidViewerIcon';
@@ -14,6 +14,8 @@ import {
 } from '../lib/socialTypes';
 import { MAX_MEDIA } from '../lib/postPresentation';
 import { openSocialProfile } from '../lib/profileNavigation';
+import { previewRoomOf } from '../lib/sheetPreview';
+import { useSheetPreview } from '../lib/useSheetPreview';
 import type { PostCanvasLayout } from './PostCanvas';
 
 /**
@@ -141,10 +143,26 @@ export function ReelPage({
   const [expanded, setExpanded] = useState(false);
 
   const plays = active && playing && isVideo;
-
+  /**
+   * Cât loc lasă foaia de comentarii (runda 47).
+   *
+   * Reelul, poza și pagina de cuvinte sunt aceeași pagină: când foaia se ridică, cadrul se strânge pe
+   * locul rămas deasupra ei — iar înăuntru ramura de media primește `preview`, adică `contain`: cadrul
+   * întreg se vede, nu o porțiune tăiată. Decodorul nu se demontează și nu repornește (aceeași instanță,
+   * alt stil), deci redarea continuă din locul în care era. La închidere, măsurătoarea dispare și pagina
+   * revine la înălțimea întreagă.
+   */
+  const sheetHeight = useSheetPreview(post.id);
+  const previewing = sheetHeight > 0;
+  const previewRoom = previewRoomOf({ pageHeight: height, sheetHeight });
 
   return (
     <View style={[styles.page, { height }]}>
+      {/**
+       * Previzualizarea de deasupra foii: același cadru, pe locul rămas. Fără foaie deschisă,
+       * `previewRoom` este chiar `height`, deci pagina este exact ce a fost.
+       */}
+      <View style={{ height: previewRoom }}>
       {/**
        * The reel is the page (`PostStage fill`): the composition fills the whole viewport, from the status
        * clock to the gesture sign, with a gallery paged on its own track inside it. It is sized exactly like
@@ -165,6 +183,7 @@ export function ReelPage({
               variant="feed"
               layout={layout}
               page={stacked}
+              sheetPreview={previewing}
               active={plays}
               muted={muted}
               expanded={expanded}
@@ -185,7 +204,7 @@ export function ReelPage({
                * The decorations of the manifest, handed to the canvas so they are painted on the picture
                * itself: above the veil, under the author's head and under the caption (`mediaOverlay`).
                */
-              mediaOverlay={<PostDecorations post={post} fit="cover" />}
+              mediaOverlay={<PostDecorations post={post} fit={previewing ? 'contain' : 'cover'} />}
               /**
                * The relation door of the author, when the surface asks for it: the same control, the same
                * store and the same words a text post prints (`PostCard`), so a profile opened on a reel and
@@ -263,6 +282,7 @@ export function ReelPage({
           </View>
         )}
       </PostStage>
+      </View>
 
       {/**
        * The thread of this reel, over the reel: the app's one comment surface, with the one composer it

@@ -51,6 +51,27 @@ export function keyboardSpaceOf(input: KeyboardSpaceInput): KeyboardSpace {
 }
 
 /**
+ * Cât de sus urcă tastatura, din două măsurători ale ei.
+ *
+ * Runda 47, citit de pe telefon cu `adb logcat` (31 octombrie 2026): pentru Gboard, evenimentul raporta
+ * `endCoordinates.height = 399.5` dp, dar banda tastaturii începea la 578.5 dp pe un ecran de 1021.5 dp —
+ * adică **443 dp**. Diferența de 43.5 dp este bara de unelte a tastaturii (iconițele, GIF, emoji,
+ * microfon), care nu intră în cifra raportată. O foaie așezată după prima cifră lăsa câmpul de comentariu
+ * exact în acea bandă, sub taste.
+ *
+ * De aceea se citesc amândouă: înălțimea raportată și muchia de sus (`screenY`), iar din ele se păstrează
+ * **cea mai mare**. Muchia nu poate subestima tastatura, deci nimic nu rămâne sub ea; iar dacă o tastatură
+ * nu raportează `screenY` (sau raportează o valoare absurdă), rămâne prima cifră.
+ */
+export function keyboardHeightOf(input: { reported: number; screenY: number; windowHeight: number }): number {
+  const reported = Math.max(0, Math.round(Number(input.reported) || 0));
+  const top = Math.round(Number(input.screenY) || 0);
+  const window = Math.max(0, Math.round(Number(input.windowHeight) || 0));
+  const fromEdge = top > 0 && window > 0 && top < window ? window - top : 0;
+  return Math.max(reported, fromEdge);
+}
+
+/**
  * Insetul de jos care mai trebuie plătit când tastatura este deschisă.
  *
  * Bara de gesturi stă **sub** tastatură, nu lângă ea: dacă ecranul ar adăuga și `insets.bottom` peste
