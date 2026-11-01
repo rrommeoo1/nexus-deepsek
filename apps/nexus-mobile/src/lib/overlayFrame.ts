@@ -141,8 +141,18 @@ export function overlayLetterSpacing(kind: OverlayKind, scale = 1): number {
  * How much of the content rectangle a label may take, as a fraction: a placed location may be wider than
  * a sentence because it is one pill on one line.
  */
-export function overlayMaxWidth(kind: OverlayKind): number {
-  return kind === 'LOCATION' ? 0.86 : 0.78;
+/**
+ * How wide a label may be, as a share of the content rectangle.
+ *
+ * Runda 50: `scale` is divided out, because the label is drawn at that factor *after* it was measured —
+ * a text allowed 78 % of the picture and then grown by 1.8 overflowed its own box, stayed on one line and
+ * was cut by the screen edge. The box a label asks for is therefore `share ÷ scale`, so what it finally
+ * covers is `share`.
+ */
+export function overlayMaxWidth(kind: OverlayKind, scale = 1): number {
+  const share = kind === 'LOCATION' ? 0.86 : 0.78;
+  const factor = Number(scale) > 0 ? Number(scale) : 1;
+  return share / factor;
 }
 
 /**
@@ -159,6 +169,48 @@ export function clampOverlayPosition(value: number): number {
   const fraction = Number(value);
   if (!Number.isFinite(fraction)) return 0.5;
   return Math.max(OVERLAY_LIMITS.min, Math.min(OVERLAY_LIMITS.max, fraction));
+}
+
+/**
+ * Where the **centre** of a label really stands: at its own fraction of the content rectangle, held
+ * inside the part of that rectangle the screen can show.
+ *
+ * `size` is the label as it was measured, *before* `scale` (a decoration carries its size as a factor),
+ * so the room the label needs is `size * scale`: a text enlarged to 1.8 in the composer was measured at
+ * 1, and a clamp computed from the measured width let it hang over the crop — the frog sticker at `x: 22`
+ * and the ``Runda 50`` line at `x: 78` were both half cut on the owner's phone (round 50). A label wider
+ * than the window is centred in it instead of pinned to an edge, which is the same rule the window itself
+ * already stated for the vertical axis.
+ *
+ * The module stays pure, so `scripts/test-overlay-frame.cjs` proves the arithmetic without a phone.
+ */
+export function overlayHeldSpot(input: {
+  /** The label's fraction of the content rectangle (0â€“1). */
+  point: { x: number; y: number };
+  /** The label's measured box, before `scale`. */
+  size: { width: number; height: number };
+  /** The visible part of the content rectangle, in the rectangle's own coordinates (`overlayWindow`). */
+  window: { left: number; top: number; right: number; bottom: number };
+  rect: { width: number; height: number };
+  /** The decoration's own factor (`StudioDecoration.scale`). */
+  scale?: number;
+}): { x: number; y: number } {
+  const factor = Number(input.scale) > 0 ? Number(input.scale) : 1;
+  const width = Math.max(0, Number(input.rect?.width) || 0);
+  const height = Math.max(0, Number(input.rect?.height) || 0);
+  const centreX = (Number(input.point?.x) || 0) * width;
+  const centreY = (Number(input.point?.y) || 0) * height;
+  const spanX = Math.max(0, Number(input.size?.width) || 0) * factor;
+  const spanY = Math.max(0, Number(input.size?.height) || 0) * factor;
+  const window = input.window;
+  const lowX = window.left + spanX / 2;
+  const highX = window.right - spanX / 2;
+  const lowY = window.top + spanY / 2;
+  const highY = window.bottom - spanY / 2;
+  return {
+    x: highX < lowX ? (window.left + window.right) / 2 : Math.max(lowX, Math.min(highX, centreX)),
+    y: highY < lowY ? (window.top + window.bottom) / 2 : Math.max(lowY, Math.min(highY, centreY)),
+  };
 }
 
 /**

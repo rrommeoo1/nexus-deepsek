@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import type { StudioDecoration } from '../lib/studioManifest';
 import {
-  OVERLAY_KINDS, clampOverlayPosition, mediaContentRect, overlayFontSize, overlayLetterSpacing, overlayMaxWidth,
-  overlayPadding, overlayRadius, overlayShadowRadius, overlayWindow,
+  OVERLAY_KINDS, clampOverlayPosition, mediaContentRect, overlayFontSize, overlayHeldSpot, overlayLetterSpacing,
+  overlayMaxWidth, overlayPadding, overlayRadius, overlayShadowRadius, overlayWindow,
   type OverlayFit, type OverlayKind, type OverlayRect,
 } from '../lib/overlayFrame';
 
@@ -85,17 +85,19 @@ function OverlayLabel({
   }), [item.id, item.x, item.y, onMove, rect.height, rect.width]);
   /**
    * Where the label really stands: its own centre, held inside the visible window so no part of it is cut
-   * by the crop. Same numbers in the composer and in the reader — the offset is computed from the label's
-   * measured size, not guessed.
+   * by the crop. One function decides it (`overlayFrame.ts::overlayHeldSpot`), and it counts the label's
+   * **own** size factor too — an enlarged sticker was measured at 1 and drawn at 1.8, so the clamp used to
+   * let it hang over the edge (round 50: the frog on the left, the "Runda 50" line on the right).
    */
   const centreX = (item.x / 100) * rect.width;
   const centreY = (item.y / 100) * rect.height;
-  const lowX = window.left + size.width / 2;
-  const highX = window.right - size.width / 2;
-  const lowY = window.top + size.height / 2;
-  const highY = window.bottom - size.height / 2;
-  const heldX = highX < lowX ? (window.left + window.right) / 2 : Math.max(lowX, Math.min(highX, centreX));
-  const heldY = highY < lowY ? (window.top + window.bottom) / 2 : Math.max(lowY, Math.min(highY, centreY));
+  const held = overlayHeldSpot({
+    point: { x: item.x / 100, y: item.y / 100 },
+    size,
+    window,
+    rect,
+    scale: item.scale,
+  });
   return (
     <View
       {...(onMove ? pan.panHandlers : {})}
@@ -105,13 +107,21 @@ function OverlayLabel({
         setSize((previous) => previous.width === width && previous.height === height ? previous : { width, height });
       }}
       style={[styles.label, {
-        left: `${item.x}%`, top: `${item.y}%`, maxWidth: `${overlayMaxWidth(kind) * 100}%`,
+        left: `${item.x}%`, top: `${item.y}%`,
+        /**
+         * The **box** is narrowed by the label's own factor (`overlayMaxWidth` divides it out), because the
+         * box is drawn at `item.scale` in the transform below: a text allowed 78 % of the picture and then
+         * grown by 1.8 overflowed its own box, stayed on one line, and was cut by the screen edge ("Clip cu
+         * sticker", round 50). Wrapping it at `78 % ÷ 1.8` means the label publishes exactly as wide as the
+         * room it was given.
+         */
+        maxWidth: `${overlayMaxWidth(kind, item.scale) * 100}%`,
         backgroundColor: item.background, borderRadius: overlayRadius(kind, scale),
         paddingHorizontal: padding.horizontal, paddingVertical: padding.vertical,
         opacity: item.opacity,
         transform: [
-          { translateX: -size.width / 2 + drag.dx + (heldX - centreX) },
-          { translateY: -size.height / 2 + drag.dy + (heldY - centreY) },
+          { translateX: -size.width / 2 + drag.dx + (held.x - centreX) },
+          { translateY: -size.height / 2 + drag.dy + (held.y - centreY) },
           { rotate: `${item.rotation}deg` }, { scale: item.scale },
         ],
       }]}

@@ -125,10 +125,43 @@ test('lanțul este legat: foaia cere, pagina citește, fila se întoarce', () =>
 
   const page = strip(read('src/components/EditorialPage.tsx'));
   assert.match(page, /pageRequest\?: SheetPreviewPageRequest \| null;/, 'pagina o primește');
-  assert.match(page, /const requestedSeq = pageRequest\?\.seq \?\? 0;/, 'cererea se citește o dată per `seq`');
-  assert.match(page, /if \(requestedSeq > spentSeq && requestedSeq > 0\)/, 'și se consumă în randarea care o vede');
-  assert.match(page, /scrollToIndex\(\{ index: page, animated: true \}\)/, 'pagerul se mută pe fila cerută');
+  /**
+   * Runda 50: cererea nu se mai consumă în timpul randării (acolo se pierdea un gest dintr-o rafală), ci
+   * într-un efect, iar numărul de file iese din diferența de `seq` (`previewPageTurns`).
+   */
+  assert.match(page, /const turns = previewPageTurns\(spentSeqRef\.current, pageRequest\);/, 'pagina numără filele cererii');
+  assert.match(page, /const next = previewPageAfter\(page, turns, total\);/, 'și aterizează în intervalul articolului');
+  assert.doesNotMatch(page, /setSpentSeq/, 'cererea nu se consumă în randare');
+  assert.match(page, /scrollToIndex\(\{ index: target, animated: true \}\)/, 'pagerul se mută pe fila cerută');
   assert.match(page, /horizontal\s+pagingEnabled/, 'pagerul paginii rămâne cel al autorului');
+});
+
+/**
+ * Runda 50 — două găuri găsite pe telefon, nu în teste.
+ *
+ * 1. Fila articolului dintr-o postare **fără document** (`PostTextReading`, adică orice articol scris
+ *    înainte de documente) nu asculta de niciun fel de cerere: foaia raporta gestul, iar pagina nu se
+ *    mișca (`r50-j`, măsurat cu `[r50dbg]` în logcat). Acum cititorul de text are aceeași socoteală.
+ * 2. Antetul foii nu se putea trage: `panHandlers` stăteau numai pe mâner, deși documentația rundei 49
+ *    spunea „mânerul și antetul". Un deget care pornea din rândul titlului nu închidea nimic (`r50-o`).
+ */
+test('runda 50: fila cerută ajunge și în cititorul de text, iar antetul foii se trage', () => {
+  const reading = strip(read('src/components/PostReading.tsx'));
+  assert.match(reading, /pageRequest\?: SheetPreviewPageRequest \| null;/, 'cititorul de text primește cererea');
+  assert.match(reading, /const turns = previewPageTurns\(spentSeqRef\.current, pageRequest\);/, 'și numără filele ei');
+  assert.match(reading, /const next = previewPageAfter\(pageRef\.current, turns, total\);/, 'cu aceeași aterizare ținută în articol');
+  assert.match(reading, /pagerRef\.current\?\.scrollTo\(\{ x: next \* box\.width, animated: true \}\)/, 'și mișcă pagerul');
+
+  const canvas = strip(read('src/components/PostCanvas.tsx'));
+  const readers = canvas.match(/pageRequest=\{previewPage\}/g) ?? [];
+  assert.equal(readers.length, 2, 'amândouă cititoarele (articolul cu document și pagina de cuvinte) primesc cererea');
+
+  const sheet = strip(read('src/components/CommentsSheet.tsx'));
+  const grab = sheet.match(/\{\.\.\.sheetGesture\.panHandlers\}/g) ?? [];
+  assert.equal(grab.length, 2, 'gestul foii stă pe mâner ȘI pe antet');
+  assert.match(sheet, /<View \{\.\.\.sheetGesture\.panHandlers\} style=\{styles\.head\}>/, 'antetul este al doilea loc de tragere');
+  assert.match(sheet, /accessibilityLabel="Închide"/, 'iar ✕ rămâne un buton (copil al rândului, nu sub responder)');
+  assert.match(sheet, /maxHeight: '82%', minHeight: '52%', backgroundColor: C\.surface/, 'foaia nu și-a schimbat dimensiunile');
 });
 
 

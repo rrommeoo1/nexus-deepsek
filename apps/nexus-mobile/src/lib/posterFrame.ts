@@ -81,6 +81,46 @@ export function posterTimeFor(duration?: number | null): number {
 }
 
 /**
+ * Cât așteaptă o celulă înainte de a doua încercare, apoi a treia, a patra (runda 50).
+ *
+ * Runda 49 lăsa un eșec fără nicio urmare: cadrul nu sosea, iar celula rămânea placa ei **pentru tot
+ * restul montării** — exact celula neagră din captura ownerului. Un eșec însă nu este o sentință: prima
+ * cerere poate porni înainte ca fișierul să fie descărcat, iar anteturile sesiunii pot veni după aceea.
+ *
+ * Pauza crește (1,5 s → 4 s → 9 s), ca o grilă de doisprezece celule să nu repornească doisprezece
+ * decodoare la fiecare secundă. După ultima pauză nu se mai încearcă: patru încercări sunt destule pentru
+ * un fișier care există, iar un fișier care nu există nu devine bun dacă e cerut la nesfârșit. `null`
+ * înseamnă „gata, rămâne placa de rezervă".
+ */
+export const POSTER_RETRY_DELAYS: readonly number[] = Object.freeze([1500, 4000, 9000]);
+
+/**
+ * Pauza dinaintea încercării cu numărul `attempt` (1 = prima reîncercare), sau `null` când s-a renunțat.
+ *
+ * Un număr care nu este întreg sau este sub 1 se citește ca prima reîncercare: o socoteală stricată nu are
+ * voie să transforme o celulă într-o buclă de decodoare.
+ */
+export function posterRetryDelay(attempt: number): number | null {
+  const index = Math.max(1, Math.trunc(Number(attempt) || 1)) - 1;
+  if (index >= POSTER_RETRY_DELAYS.length) return null;
+  return POSTER_RETRY_DELAYS[index];
+}
+
+/**
+ * Ordinea cheilor după ce una a fost **citită**: cheia atinsă trece la capătul cel mai nou.
+ *
+ * Un cadru se ține minte până iese din cache, iar ce iese este ce nu a mai fost atins — nu ce a intrat
+ * primul. Fără atingerea aceasta, un perete de 12 celule ar scoate exact cadrele pe care tocmai le
+ * desenează, iar fiecare derulare ar regenera ce era deja acolo (runda 50).
+ */
+export function posterTouch(order: readonly string[], key: string): string[] {
+  const name = String(key ?? '');
+  if (!name) return [...order];
+  const rest = order.filter((entry) => entry !== name);
+  return [...rest, name];
+}
+
+/**
  * Ce chei ies din cache când intră una nouă.
  *
  * `order` este ordinea în care au intrat cheile (cea mai veche prima, cea mai recentă ultima), deci

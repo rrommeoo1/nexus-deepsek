@@ -99,14 +99,21 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
   const cover = postMediaItems(post).find((item) => mediaKindOf(item) !== 'audio') ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
   /**
-   * Cadrul clipului (runda 49).
+   * Cadrul clipului (runda 49, întărit în runda 50).
    *
    * Până acum o celulă de clip desena o placă neagră cu un disc: o grilă de clipuri arăta doisprezece
    * dreptunghiuri goale. Cadrul vine din playerul care există deja (`lib/videoPoster.ts`), se ține minte per
-   * fișier și se desenează cu `expo-image`; până sosește — sau dacă nu poate fi luat — celula rămâne placa
-   * de dinainte. Discul de redare rămâne peste cadru, fiindcă o celulă trebuie să spună că este un clip.
+   * fișier și se desenează cu `expo-image`. Trei stări, trei suprafețe — și niciuna nu este „negru pentru
+   * totdeauna":
+   *
+   *   · **cadrul** — fotografia clipului, cu discul de redare peste ea;
+   *   · **se lucrează** (`loading`) — o placă neutră, mai deschisă, cu un inel subțire în jurul discului:
+   *     celula spune că are un clip și că îi lipsesc două zecimi de secundă, nu că este goală;
+   *   · **placa de rezervă** (`failed`) — suprafața de dinainte de runda 49, fără inel: încercarea de acum
+   *     a pierdut, următoarea vine singură (`posterRetryDelay`). Starea este *deliberată*, nu un cadru negru
+   *     rămas din întâmplare.
    */
-  const poster = useVideoPoster(isVideo ? cover : null);
+  const video = useVideoPoster(isVideo ? cover : null);
   const viewers = profileCompactCount(post.view_stats?.viewers);
   /**
    * What a cell shows is the post's own kind, not the guess "no picture, so nothing".
@@ -143,9 +150,9 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
         <ProfileTextTile post={post} media={plate} />
       ) : cover && !isVideo ? (
         <RemoteImage item={cover} fit="cover" style={styles.fill} />
-      ) : poster ? (
+      ) : video.frame ? (
         <>
-          <Image source={poster} contentFit="cover" style={styles.fill} accessibilityIgnoresInvertColors />
+          <Image source={video.frame} contentFit="cover" style={styles.fill} accessibilityIgnoresInvertColors />
           <View style={[styles.fill, styles.posterDisc]}>
             <View style={styles.playDisc}>
               <View style={styles.playGlyph} />
@@ -153,7 +160,8 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
           </View>
         </>
       ) : (
-        <View style={[styles.fill, styles.videoPlate]}>
+        <View style={[styles.fill, video.status === 'failed' ? styles.videoPlate : styles.videoPlateLoading]}>
+          {video.status === 'failed' ? null : <View style={styles.posterPending} />}
           <View style={styles.playDisc}>
             <View style={styles.playGlyph} />
           </View>
@@ -308,6 +316,20 @@ const styles = StyleSheet.create({
   ghostFace: { width: '100%', height: '100%', overflow: 'hidden' },
   fill: { width: '100%', height: '100%' },
   videoPlate: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b1216' },
+  /**
+   * Suprafața neutră a unei celule de clip **cât se lucrează** (runda 50), și inelul ei.
+   *
+   * Nu este negru: negrul este placa de rezervă (`videoPlate`), adică ce vede cititorul când cadrul chiar nu
+   * poate fi luat. Aici celula spune „este un clip, cadrul vine": un gri-albastru al arhivei, cu un inel
+   * subțire sub disc. Inelul este **static** — un indicator care se învârte ar ține ecranul într-o animație
+   * continuă, iar `uiautomator dump` nu mai găsește starea de repaus pe un asemenea ecran (runda 40).
+   */
+  videoPlateLoading: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#16212a' },
+  posterPending: {
+    position: 'absolute',
+    width: 52, height: 52, borderRadius: 26,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.16)',
+  },
   /**
    * Discul de redare peste cadrul clipului (runda 49): cadrul spune *ce* se vede, discul spune *că* se
    * poate reda. Stratul este numai al discului, deci atinge numai inima celulei, nu cifra din colț.

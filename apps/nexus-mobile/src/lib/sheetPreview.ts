@@ -152,3 +152,35 @@ export function subscribeSheetPreviewPage(listener: () => void): () => void {
   return () => { pageListeners.delete(listener); };
 }
 
+/**
+ * Câte file întoarce o cerere, socotit din **numerele de secvență** (runda 50).
+ *
+ * Runda 49 citea cererea în timpul randării și avansa o singură filă: `seq`-ul cel mai nou înlocuia orice
+ * cerere pierdută între două randări. Un deget care frunzărește repede poate trimite două cereri într-un
+ * singur commit React, iar pagina săracă ar sări o filă — adică exact ce arată ca „gestul nu ține pasul".
+ * Aici diferența dintre `seq`-ul cererii și cel consumat este **numărul de file**: două cereri, două file.
+ *
+ * `0` înseamnă „nimic de făcut": nicio cerere, o cerere deja consumată sau o secvență stricată.
+ */
+export function previewPageTurns(spentSeq: number, request?: SheetPreviewPageRequest | null): number {
+  const seq = Math.max(0, Math.trunc(Number(request?.seq) || 0));
+  const spent = Math.max(0, Math.trunc(Number(spentSeq) || 0));
+  const turns = seq - spent;
+  if (turns <= 0) return 0;
+  return request!.offset < 0 ? -turns : turns;
+}
+
+/**
+ * Pagina pe care aterizează o întoarcere, ținută **în** intervalul paginilor care există.
+ *
+ * Prima filă și ultima filă sunt capete: un deget care mai împinge o dată încolo nu are voie să scoată
+ * cititorul din articol (nu există pagină 0 și nici pagină `total + 1`).
+ */
+export function previewPageAfter(page: number, turns: number, total: number): number {
+  const pages = Math.max(0, Math.trunc(Number(total) || 0));
+  if (pages <= 1) return 0;
+  const current = Math.max(0, Math.trunc(Number(page) || 0));
+  const next = current + Math.trunc(Number(turns) || 0);
+  return Math.max(0, Math.min(pages - 1, next));
+}
+

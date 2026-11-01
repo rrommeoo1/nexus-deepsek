@@ -24,7 +24,7 @@ import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
 import { fontFamilyFor, metricFaceFor, pagePaletteOf, sizeOf, TEXT_SELECTION_COLOR, type TextStyle } from '../lib/textStyle';
 import type { PageMode } from '../lib/pageMode';
-import type { SheetPreviewPageRequest } from '../lib/sheetPreview';
+import { previewPageAfter, previewPageTurns, type SheetPreviewPageRequest } from '../lib/sheetPreview';
 import { insertAtSelection, snapSelection, type TextSelection } from '../lib/textInsert';
 import { RAIL_LINE_AIR, PAGE_FOLIO, folioLabel, pageFolioBand, type RailReserve } from '../lib/textPage';
 import { editorialType } from '../theme/editorial';
@@ -403,28 +403,38 @@ export function EditorialPage({
   }, [page, total, width]);
 
   /**
-   * A page turn asked for from outside the page (round 49).
+   * A page turn asked for from outside the page (round 49; made burst-safe in round 50).
    *
    * While the comments sheet is open, the sheet's own layer covers the preview and a swipe can never reach
-   * this pager, so the sheet reports the turn through `lib/sheetPreview.ts` and the page obeys it here. The
-   * request is spent **once per `seq`**, in the render that sees it (React's own rule for state that follows
-   * a prop: no effect, no second render), and the pager is then moved onto the page the state already says.
+   * this pager, so the sheet reports the turn through `lib/sheetPreview.ts` and the page obeys it here.
+   *
+   * Round 49 read the request **in the render** and turned one page, so two swipes that landed in the same
+   * React commit — which is what a fast finger produces — turned a single page and the *second* request was
+   * spent as if it had been obeyed. Now the distance between the request's `seq` and the last one spent is
+   * the number of pages to turn (`previewPageTurns`), and the landing page is clamped to the article's own
+   * pages (`previewPageAfter`): two swipes, two pages; a swipe past either end changes nothing.
+   *
    * The gesture machine is deliberately left alone: it belongs to the composer's drags, and a preview is not
    * editable.
    */
-  const [spentSeq, setSpentSeq] = useState(0);
-  const requestedSeq = pageRequest?.seq ?? 0;
-  if (requestedSeq > spentSeq && requestedSeq > 0) {
-    setSpentSeq(requestedSeq);
-    const next = Math.max(0, Math.min(total - 1, page + (pageRequest!.offset < 0 ? -1 : 1)));
-    if (next !== page) setPage(next);
-  }
+  const spentSeqRef = useRef(0);
+  const turnTargetRef = useRef<number | null>(null);
   useEffect(() => {
-    if (!spentSeq || total <= 1) return;
-    listRef.current?.scrollToIndex({ index: page, animated: true });
-    // The scroll belongs to the request that was just spent; `page` is where that request landed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spentSeq]);
+    const turns = previewPageTurns(spentSeqRef.current, pageRequest);
+    if (!turns) return;
+    spentSeqRef.current = pageRequest!.seq;
+    const next = previewPageAfter(page, turns, total);
+    if (next === page) return;
+    turnTargetRef.current = next;
+    setPage(next);
+  }, [pageRequest, page, total]);
+
+  useEffect(() => {
+    if (turnTargetRef.current == null) return;
+    const target = turnTargetRef.current;
+    turnTargetRef.current = null;
+    listRef.current?.scrollToIndex({ index: target, animated: true });
+  }, [page]);
 
   /**
    * Where the author let go of a picture.

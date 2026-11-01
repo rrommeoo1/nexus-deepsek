@@ -133,7 +133,7 @@ test('amândouă suprafețele desenează cu același modul, nu cu două socoteli
 
   assert.match(layer, /overlayFontSize\(kind, rect\.width, scale\)/, 'tipul se măsoară după dreptunghiul de conținut, micșorat cu compoziția');
   assert.match(layer, /overlayPadding\(kind, scale\)/);
-  assert.match(layer, /overlayMaxWidth\(kind\) \* 100/);
+  assert.match(layer, /overlayMaxWidth\(kind, item\.scale\) \* 100/);
   assert.match(layer, /mediaContentRect\(\{ width: bounds\.width, height: bounds\.height, ratio, fit \}\)/);
 
   assert.match(composer, /<PostOverlay[\s\S]{0,400}decorations=\{previewDecorations\}/, 'compozitorul desenează cu același strat');
@@ -198,4 +198,74 @@ test('micșorarea compoziției micșorează și tipografia stickerului, cu acela
   assert.equal(overlay.overlayFontSize('TEXT', 4000, 4), creatorTokens.decoration.maxFontSize,
     'un factor peste 1 nu mărește nimic: pagina este plafonul');
 });
+
+/**
+ * Runda 50 — eticheta mărită nu are voie să iasă din fereastră.
+ *
+ * `item.scale` (runda 46) crește eticheta în jurul centrului **după** ce a fost măsurată, iar locul în
+ * care este ținută se socotea din cutia nemărită. Pe telefon, broasca de la 22 % și „Runda 50" de la 78 %
+ * erau amândouă tăiate de marginea ecranului (`r50-s2`, `r50-t`).
+ */
+test('o etichetă mărită este ținută în fereastră cu cutia ei mărită', () => {
+  const rect = { width: 574, height: 1021 };
+  /** Fereastra unui `cover` pe acest telefon: dreptunghiul e mai lat, deci coloanele laterale sunt tăiate. */
+  const window = { left: 52, top: 0, right: 522, bottom: 1021 };
+  const size = { width: 120, height: 40 };
+
+  const small = overlay.overlayHeldSpot({ point: { x: 0.22, y: 0.26 }, size, window, rect, scale: 1 });
+  assert.equal(Math.round(small.x), 126, 'nemicșorată, eticheta stă chiar la 22 % din conținut');
+  assert.equal(Math.round(small.y), 265);
+
+  /** La 1.8 aceeași etichetă e mai lată, deci centrul ei nu mai poate sta tot la 22 %. */
+  const large = overlay.overlayHeldSpot({ point: { x: 0.22, y: 0.26 }, size, window, rect, scale: 1.8 });
+  assert.ok(large.x > small.x, 'un text mare la stânga este împins spre interior');
+  assert.ok(large.x - (size.width * 1.8) / 2 >= window.left - 0.001,
+    'și rămâne în fereastră: marginea lui stângă nu iese din ce se vede');
+
+  /** Aceeași socoteală în oglindă, pentru o etichetă din dreapta („Runda 50" stă la 78 %). */
+  const right = overlay.overlayHeldSpot({ point: { x: 0.78, y: 0.44 }, size, window, rect, scale: 1.8 });
+  assert.ok(right.x + (size.width * 1.8) / 2 <= window.right + 0.001, 'nici în dreapta nu iese');
+  assert.ok(right.x < 0.78 * rect.width, 'este trasă spre interior, nu lăsată peste margine');
+
+  /** O etichetă mai lată decât fereastra întreagă se așază în mijlocul ei, nu lipită de o margine. */
+  const wide = overlay.overlayHeldSpot({ point: { x: 0.1, y: 0.5 }, size: { width: 900, height: 40 }, window, rect, scale: 1 });
+  assert.equal(Math.round(wide.x), Math.round((window.left + window.right) / 2));
+
+  /** Factorul lipsă sau absurd nu schimbă nimic: se citește ca 1. */
+  assert.deepEqual(
+    overlay.overlayHeldSpot({ point: { x: 0.5, y: 0.5 }, size, window, rect }),
+    overlay.overlayHeldSpot({ point: { x: 0.5, y: 0.5 }, size, window, rect, scale: 1 }),
+  );
+  assert.deepEqual(
+    overlay.overlayHeldSpot({ point: { x: 0.5, y: 0.5 }, size, window, rect, scale: Number.NaN }),
+    overlay.overlayHeldSpot({ point: { x: 0.5, y: 0.5 }, size, window, rect, scale: 1 }),
+  );
+
+  /** Și randatorul chiar o folosește, în amândouă suprafețele (compozitor și postare). */
+  const layer = read('src/components/PostOverlay.tsx');
+  assert.match(layer, /overlayHeldSpot\(\{/, 'stratul citește socoteala comună');
+  assert.match(layer, /scale: item\.scale/, 'și îi dă mărimea decorării');
+  assert.doesNotMatch(layer, /window\.left \+ size\.width \/ 2/, 'nu mai ține eticheta după cutia nemărită');
+});
+
+/**
+ * Runda 50 — cutia unui text mărit.
+ *
+ * Un text avea voie la 78 % din conținut și apoi era desenat la 1,8: ieșea din cutia lui, rămânea pe un
+ * singur rând și era tăiat de marginea ecranului („Clip cu sticker", `r50-u`). Cutia cere acum `78 % ÷ 1,8`,
+ * deci ce se vede după mărire este exact 78 %.
+ */
+test('cutia unui text se împarte la mărimea lui, ca să încapă după mărire', () => {
+  assert.equal(overlay.overlayMaxWidth('TEXT'), 0.78, 'neschimbat la mărimea normală');
+  assert.equal(overlay.overlayMaxWidth('LOCATION'), 0.86);
+  assert.equal(overlay.overlayMaxWidth('TEXT', 1.8), 0.78 / 1.8, 'cutia se strânge cu factorul');
+  assert.ok(overlay.overlayMaxWidth('TEXT', 1.8) * 1.8 <= 0.78 + 1e-9, 'iar după mărire acoperă exact 78 %');
+  assert.equal(overlay.overlayMaxWidth('TEXT', 0), 0.78, 'un factor absurd nu lărgește nimic');
+  assert.equal(overlay.overlayMaxWidth('TEXT', Number.NaN), 0.78);
+
+  const layer = read('src/components/PostOverlay.tsx');
+  assert.match(layer, /maxWidth: `\$\{overlayMaxWidth\(kind, item\.scale\) \* 100\}%`/,
+    'stratul cere cutia potrivită mărimii');
+});
+
 

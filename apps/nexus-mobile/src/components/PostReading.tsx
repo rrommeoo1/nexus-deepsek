@@ -14,6 +14,7 @@ import { fontFamilyFor, mediaFrameOf, pagePaletteOf, sizeOf, type TextStyle } fr
 import type { PageMode } from '../lib/pageMode';
 import { PAGE_FOLIO, folioLabel } from '../lib/textPage';
 import { mediaSourceForPath, postMediaItems, relativeTime, type SocialPost } from '../lib/socialTypes';
+import { previewPageAfter, previewPageTurns, type SheetPreviewPageRequest } from '../lib/sheetPreview';
 import { BrandAvatar } from './BrandAvatar';
 import { socialTokens } from '../theme/social';
 import { editorialType } from '../theme/editorial';
@@ -39,6 +40,7 @@ function pageFromOffset(offset: number, width: number): number {
 
 export function PostTextReading({
   text, pages: fixedPages, style, pageStyle, textStyle, accessibilityLabel, onPress, lead, folio, mode = 'paper',
+  pageRequest = null,
 }: {
   /** The whole article. The reader paginates it against the box it was actually given. */
   text?: string | null;
@@ -82,6 +84,12 @@ export function PostTextReading({
   mode?: PageMode;
   /** `tapVideo` (app.js:3216): a tap on the reading opens the post, the way it does on the reel. */
   onPress?: () => void;
+  /**
+   * A page turn asked for from outside the page (runda 50): the comments sheet's own layer covers the
+   * preview, so a horizontal swipe on it is reported through `lib/sheetPreview.ts` and obeyed here —
+   * the same request the authored article's page obeys (`EditorialPage`).
+   */
+  pageRequest?: SheetPreviewPageRequest | null;
 }) {
   const [box, setBox] = useState({ width: 0, height: 0 });
   const [page, setPage] = useState(0);
@@ -175,6 +183,31 @@ export function PostTextReading({
     const index = Math.max(0, Math.min(pageRef.current, total - 1));
     pagerRef.current?.scrollTo({ x: index * box.width, animated: false });
   }, [total, box.width]);
+  /**
+   * A page turn asked for from **outside** the reader (runda 50).
+   *
+   * Runda 49 lega cererea de filă (`lib/sheetPreview.ts`) la pagina unui articol *authored*, iar un articol
+   * scris înainte de documente, ori o pagină lungă de cuvinte, se citește aici — cu paginare proprie. Fără
+   * rândurile acestea, o foaie de comentarii deschisă peste un asemenea articol primea fila orizontală și nu
+   * se întâmpla nimic: stratul foii acoperă exact locul postării, iar pagerul nu ascultă de nimeni.
+   *
+   * Socoteala este aceeași ca în `EditorialPage` (diferența dintre `seq`-uri este numărul de file, iar
+   * aterizarea se ține între prima și ultima pagină), dar aici pagerul este un `ScrollView` care se mișcă pe
+   * `x`, deci fila se duce cu `scrollTo` — o singură dată, la pagina cererii, nu la fiecare randare: o
+   * glisare a cititorului trebuie să rămână a cititorului.
+   */
+  const spentSeqRef = useRef(0);
+  useEffect(() => {
+    if (!total) return;
+    const turns = previewPageTurns(spentSeqRef.current, pageRequest);
+    if (!turns) return;
+    spentSeqRef.current = pageRequest!.seq;
+    const next = previewPageAfter(pageRef.current, turns, total);
+    if (next === pageRef.current) return;
+    setPage(next);
+    if (box.width) pagerRef.current?.scrollTo({ x: next * box.width, animated: true });
+    // `page` is read through `pageRef`: the effect belongs to the request, not to the reader's own swipes.
+  }, [pageRequest, total, box.width]);
   if (!total) return null;
 
   /** The badge and the pager always agree, even on the frame where a re-split shortens the article. */

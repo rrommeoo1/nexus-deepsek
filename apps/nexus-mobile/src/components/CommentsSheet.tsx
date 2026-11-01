@@ -133,6 +133,10 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
    * lecția asta). De aceea stratul de deasupra este un `View`, nu un `Pressable` — un `Pressable` sub un
    * responder care cere atingerea la start n-ar mai fi atins niciodată —, iar mânerul are zona lui proprie,
    * ca ✕ din antet să rămână un buton.
+   *
+   * Runda 50: același gest stă acum și pe **antet** (rândul cu titlul), fiindcă ownerul trage foaia de oriunde
+   * sus, nu numai de linia subțire. ✕ este *copil* al rândului, iar un copil primește atingerile înaintea
+   * părintelui, deci butonul rămâne un buton — verificat pe telefon, nu presupus.
    */
   const backdropGesture = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -426,7 +430,7 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               <View {...sheetGesture.panHandlers} style={styles.grabberZone} accessibilityLabel="Trage în jos pentru a închide comentariile">
                 <View style={styles.grabber} />
               </View>
-              <View style={styles.head}>
+              <View {...sheetGesture.panHandlers} style={styles.head}>
                 <Text style={styles.title} numberOfLines={1}>{`Comentarii · ${compactCount(post.comment_count) || 0}`}</Text>
                 <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
                   <Text style={styles.closeText}>✕</Text>

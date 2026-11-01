@@ -1234,6 +1234,7 @@ export function PostCanvas({
                       textStyle={pageStyle}
                       folio={folio}
                       mode={pageMode}
+                      pageRequest={previewPage}
                       lead={stage === 'article' ? (baseHeight) => (
                         <ArticleMediaBlock
                           items={items}

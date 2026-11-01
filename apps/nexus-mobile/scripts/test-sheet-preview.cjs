@@ -34,8 +34,9 @@ new Function('module', 'exports', 'require', transpile(read('src/lib/sheetPrevie
   throw new Error(`sheetPreview.ts nu are voie să importe ${id} la rulare`);
 });
 const {
-  SHEET_PREVIEW_MIN, clearSheetPreview, previewRoomOf, reportSheetPreview, resetSheetPreview,
-  sheetPreviewHeight, sheetPreviewPostId, subscribeSheetPreview,
+  SHEET_PREVIEW_MIN, clearSheetPreview, previewPageAfter, previewPageTurns, previewRoomOf, reportSheetPreview,
+  requestSheetPreviewPage, resetSheetPreview, sheetPreviewHeight, sheetPreviewPageRequest, sheetPreviewPostId,
+  subscribeSheetPreview,
 } = shim.exports;
 
 /** Telefonul de dezvoltare: 469 × 1021 dp (1220 × 2656 px la 2.6). */
@@ -146,4 +147,57 @@ test('postarea se potrivește în locul rămas pe toate suprafețele care deschi
       `${file} spune compoziției că este previzualizare`);
     assert.doesNotMatch(surface, /sheetPreview=/, `${file} nu mai trimite vechea promisiune de potrivire`);
   }
+});
+
+/**
+ * Runda 50 — un deget care frunzărește repede.
+ *
+ * Runda 49 știa să întoarcă fila articolului din previzualizare, dar socoteala se făcea în randare: `seq`-ul
+ * cel mai nou înlocuia orice cerere căzută între două randări, deci două gesturi într-un singur commit React
+ * = o singură filă. Aici se apără socoteala nouă, pe numere, fără telefon.
+ */
+test('două gesturi într-un commit întorc două file, nu una', () => {
+  assert.equal(previewPageTurns(0, null), 0, 'nicio cerere nu întoarce nimic');
+  assert.equal(previewPageTurns(0, { seq: 0, postId: 7, offset: 1 }), 0, 'secvența zero este „încă nimic"');
+  assert.equal(previewPageTurns(3, { seq: 3, postId: 7, offset: 1 }), 0, 'o cerere deja consumată nu se mai plătește');
+  assert.equal(previewPageTurns(3, { seq: 4, postId: 7, offset: 1 }), 1, 'un singur gest, o filă înainte');
+  assert.equal(previewPageTurns(3, { seq: 5, postId: 7, offset: 1 }), 2, 'două gesturi pierdute între randări = două file');
+  assert.equal(previewPageTurns(3, { seq: 6, postId: 7, offset: -1 }), -3, 'direcția este a cererii celei mai noi');
+  assert.equal(previewPageTurns(5, { seq: 4, postId: 7, offset: 1 }), 0, 'o secvență veche nu întoarce nimic');
+});
+
+test('fila nu iese din articol: prima și ultima pagină sunt capete', () => {
+  assert.equal(previewPageAfter(0, 1, 9), 1);
+  assert.equal(previewPageAfter(0, -1, 9), 0, 'înainte de prima filă nu există pagină');
+  assert.equal(previewPageAfter(8, 1, 9), 8, 'după ultima filă nu există pagină');
+  assert.equal(previewPageAfter(0, 12, 9), 8, 'un salt mare se oprește la ultima filă');
+  assert.equal(previewPageAfter(4, 2, 9), 6);
+  assert.equal(previewPageAfter(4, -2, 9), 2);
+  assert.equal(previewPageAfter(0, 1, 1), 0, 'un articol de o filă nu se frunzărește');
+  assert.equal(previewPageAfter(0, 1, 0), 0);
+});
+
+test('cererea chiar ajunge la pagină, iar pagina o consumă fără să o piardă pe drum', () => {
+  resetSheetPreview();
+  reportSheetPreview(11, 540);
+  requestSheetPreviewPage(11, 1);
+  requestSheetPreviewPage(11, 1);
+  const request = sheetPreviewPageRequest();
+  assert.equal(request.seq, 2, 'două gesturi, două secvențe');
+  assert.equal(request.postId, 11);
+  assert.equal(previewPageTurns(0, request), 2, 'pagina care nu a consumat nimic întoarce două file');
+  assert.equal(previewPageTurns(request.seq, request), 0, 'și nu o mai întoarce a doua oară');
+  /** O foaie închisă nu mai are voie să întoarcă fila unei postări care nu mai este deschisă. */
+  clearSheetPreview();
+  requestSheetPreviewPage(11, 1);
+  assert.equal(sheetPreviewPageRequest().seq, 2, 'fără foaie deschisă, cererea nu se înregistrează');
+
+  /**
+   * Și mecanismul este cel din pagină: cererea se citește într-un efect, cu numărul de file din `seq`.
+   * Un `setSpentSeq` în randare (runda 49) este exact ce pierdea un gest.
+   */
+  const page = strip(read('src/components/EditorialPage.tsx'));
+  assert.match(page, /const turns = previewPageTurns\(spentSeqRef\.current, pageRequest\);/, 'pagina numără filele cererii');
+  assert.match(page, /const next = previewPageAfter\(page, turns, total\);/, 'și aterizează în intervalul articolului');
+  assert.doesNotMatch(page, /setSpentSeq/, 'cererea nu se mai consumă în timpul randării');
 });
