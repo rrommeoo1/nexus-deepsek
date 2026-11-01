@@ -1,3 +1,248 @@
+## 0.50 Firele rundei 49 duse până la capăt: miniatura care nu mai rămâne neagră, fila articolului care chiar se întoarce și două găuri găsite pe telefon (1 noiembrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability`, **fără push**, fără ștergeri de date din
+producție, fără postări publice. `tsc --noEmit` → **exit 0**. `node scripts/run-tests.mjs` →
+**`suites=80 failed=0 in 28s`**. `eslint` pe fișierele atinse → **13 erori, toate preexistente** (dovedite mai
+jos) și **2 avertismente** (BOM), exact cifrele de la care a plecat runda 49. APK-ul **nu** a fost reconstruit:
+rămâne cel din runda 49 (`builds/nexus-dev-arm64.apk`), fiindcă runda 50 nu a atins niciun modul nativ — codul
+a ajuns pe telefon prin Metro, iar dovada e în capturile de mai jos.
+
+**Ce a rămas din runda 49, neatins:** `posterFrame.ts`, `videoPoster.ts`, `sheetDismiss.ts`, `sheetPreview.ts`,
+`useSheetPreview.ts`, `commentsPreview.ts`, `overlayFrame.ts`, foaia de comentarii (dimensiuni, `Modal`,
+antet, file, compozitor), decuparea din Feed/Profil și micșorarea proporțională din runda 48. Runda 50 **nu a
+rescris** nicio bucată care funcționa: a reparat ce nu se vedea din teste și a dovedit pe telefon ce rămăsese
+nedovedit.
+
+### 1. Miniatura de clip: de la „o încercare" la „un cadru care sosește" (Prioritatea 1)
+
+Runda 49 aducea cadrul real, dar **o singură dată**: dacă prima cerere pierdea (fișierul încă se descărca,
+anteturile sesiunii veneau după, decodorul refuza un cap de fișier incomplet), celula rămânea placa ei
+**pentru tot restul montării**. Ownerul a prins exact asta într-o captură: o celulă neagră într-un perete de
+clipuri. Patru găuri, toate în ciclul de viață:
+
+| gaura (runda 49) | ce se vedea | ce s-a schimbat (runda 50) |
+| --- | --- | --- |
+| un eșec nu avea nicio urmare | celula rămânea neagră până la remontare | `failures` numără eșecurile, iar hook-ul reîncearcă la **1,5 s → 4 s → 9 s** (`posterRetryDelay`), apoi se oprește și spune `failed` — placa de rezervă este o **stare**, nu un cadru negru rămas din întâmplare |
+| cache-ul nu era atins la citire | o derulare scotea exact cadrele de pe ecran, care se regenerate | `posterTouch` mută cheia citită la capătul cel mai nou, iar cheile **ținute de o celulă montată** (`held`) nu ies deloc din cache |
+| „nu se știa" și „a eșuat" arătau la fel | același pătrat negru în ambele cazuri | trei stări: `ready` (cadrul), `loading` (suprafață neutră `#16212a` + inel sub disc), `failed` (placa de dinainte, fără inel) |
+| o celulă reciclată putea arăta o clipă cadrul altei postări | — (risc, nu s-a văzut) | cadrul se ține sub cheia fișierului+lațimii și se citește în randare din cache, deci nu se moștenește |
+
+**De ce cache-ul persistent nu e justificat (cercetat, nu presupus).** `generateThumbnailsAsync` întoarce un
+`VideoThumbnail`, care este `SharedRef<'image'>` cu **doar** `width`, `height`, `requestedTime`, `actualTime`
+(`node_modules/expo-video/build/VideoThumbnail.d.ts`): o referință nativă la un bitmap, fără niciun acces la
+octeți. `expo-image` știe să deseneze o asemenea referință, dar nu are `save`/`toBlob`/base64
+(`ImageRef` în `expo-image/build/Image.types.d.ts` are doar `width`/`height`). Deci o salvare pe disc ar cere
+`expo-image-manipulator` (**altă** dependență, care oricum lucrează pe URI-uri, nu pe referințe native) sau un
+modul nativ propriu. Nu s-a adăugat: cache-ul din memorie, cu fixare + reîncercare, ține un perete întreg
+pentru o sesiune, iar după repornire cadrele se regenerează din fișierele deja descărcate (mediaCache), nu din
+rețea.
+
+### 2. Fila articolului sub foaie: mergea, dar nu pentru articolele fără document (Prioritatea 2)
+
+Runda 49 lega cererea de filă (`sheetPreview.ts`) la **pagina articolului autorat** (`EditorialArticle` →
+`EditorialPage`). Pe telefon, gestul orizontal **nu făcea nimic** pe un articol scris înainte de documente
+(`PostCanvas`: `authoredPage = hasEditorialDocument(post)`; restul se citesc în `PostTextReading`, cu paginare
+proprie), iar cititorul de text pur și simplu nu avea `pageRequest`. Dovedit cu un log temporar în logcat:
+cererea exista (`page request seq=1 post=163 step=1`), pagina nu o citea. Al doilea defect, ascuns până acum:
+cererea se consuma **în randare** (`setSpentSeq`), deci două gesturi într-un singur commit React însemnau o
+singură filă.
+
+| fișier | ce s-a schimbat |
+| --- | --- |
+| `src/lib/sheetPreview.ts` | `previewPageTurns(spentSeq, request)` — diferența de `seq` **este** numărul de file; `previewPageAfter(page, turns, total)` — aterizarea, ținută între prima și ultima filă |
+| `src/components/EditorialPage.tsx` | cererea se citește într-un **efect** (`spentSeqRef`), nu în randare; fila se duce cu `scrollToIndex({ index: target, animated: true })` după ce starea a aterizat |
+| `src/components/PostReading.tsx` | `PostTextReading` primește `pageRequest` și ascultă de el cu aceleași două funcții; pagerul e un `ScrollView`, deci fila se duce cu `scrollTo({ x: next * box.width })` |
+| `src/components/PostCanvas.tsx` | `pageRequest={previewPage}` ajunge la **amândouă** cititoarele (articol autorat și pagină de cuvinte) |
+
+**Datele de test (locale, add-only).** `apps/nexus-web/scripts/dev-round50-fixtures.mjs` — script nou, în
+spiritul `dev-social-fixtures.mjs`: scrie **numai** în baza locală și în depozitul local de media, refuză
+`NODE_ENV=production`, e **idempotent** (fiecare postare are un marcator `[r50-…]` în descriere, căutat cu
+`substr`, nu cu `LIKE` — un `LIKE` fără `ESCAPE` nu potrivea nimic și crea totul din nou) și e **add-only** în
+afara unei singure curățenii descrise la §7. A creat, pentru contul local **@r49verify** (contul de test al
+rundei 49, nu contul ownerului): un articol de 16 capitole (5 174 de caractere) peste o fotografie reală, o
+fotografie cu cinci decorațiuni (text, emoji, text mare, ceas, loc), un clip cu două decorațiuni, un clip fără
+decorațiuni și trei comentarii pe articol.
+
+**Ce s-a măsurat pe telefon (articol 163, foaia deschisă, modul Hârtie).** Folio de la piciorul paginii, ca
+număr citit, nu ca impresie:
+
+| gest | fila înainte | fila după | captură |
+| --- | --- | --- | --- |
+| deschid foaia | — | `1/26` | `r50-i-article-preview-p1-9.jpg` |
+| o glisare la stânga | `1/26` | `2/26` (textul continuă capitolul 1) | `r50-j2-article-preview-after-swipe.jpg` |
+| două glisări foarte rapide | `2/26` | `4/26` (două file, nu una) | `r50-k-article-preview-rapid-double-swipe.jpg` |
+| o glisare la dreapta | `4/26` | `3/26` (capitolul 2) | `r50-l-article-preview-after-right-swipe.jpg` |
+| patru glisări la dreapta | `3/26` | `1/26` — **capătul din față** | `r50-m-article-preview-first-page-clamp.jpg` |
+| treizeci de glisări la stânga | `1/26` | `26/26` — **capătul din spate** | `r50-n-article-preview-last-page-clamp.jpg` |
+
+În toate cele șase capturi foaia a rămas deschisă, lista de comentarii nu s-a remontat (aceleași trei
+comentarii, cu timpul crescând: 6 min → 17 → 18 → 19 min), iar comutatorul Hârtie/Noapte a rămas pe Hârtie.
+Modul **Noapte** e dovedit separat, cu fila întoarsă: `r50-w-article-night-preview-page2.jpg` (`2/26`, pagină
+neagră, text deschis, foaia deschisă, patru comentarii).
+
+### 3. Stickerele: pozițiile erau corecte, marginea nu (Prioritatea 3)
+
+Cu o fotografie reală sub cele cinci decorațiuni, două lucruri s-au văzut imediat (și **existan și înainte de
+rundă**, în Feed/Profil, nu erau o regresie a previzualizării):
+
+1. o etichetă mărită ieșea din ecran — broasca la `x: 22 %` (scara 1,35) era tăiată la stânga, „Runda 50" la
+   `x: 78 %` (scara 1,8) la dreapta, fiindcă locul ei se socotea din cutia **nemărită**;
+2. un text la scara 1,8 ieșea din **propria** cutie (78 % din imagine), rămânea pe un singur rând și era
+   tăiat de margine.
+
+Amândouă sunt acum o singură socoteală pură, în `src/lib/overlayFrame.ts`: `overlayHeldSpot` ține centrul în
+fereastra vizibilă folosind cutia **mărită** (`size × scale`), iar `overlayMaxWidth(kind, scale)` împarte la
+factor, deci cutia cerută se strânge exact atât cât se lărgește desenul. `components/PostOverlay.tsx` le
+citește pe amândouă; compozitorul și pagina publicată folosesc același randator, deci reparația se vede în
+ambele.
+
+Dovada, aceeași postare (164) și același clip (165), înainte/după:
+
+| cadru | ce se vedea | captură |
+| --- | --- | --- |
+| fotografie, pagina întreagă, **înainte** | broasca tăiată la stânga, „Runda 5" la dreapta | `r50-s2-photo-decorations-page.jpg` |
+| fotografie, previzualizarea de deasupra foii, **înainte** | aceleași două tăieturi, micșorate | `r50-t-photo-decorations-preview.jpg` |
+| fotografie, pagina întreagă, **după** | cinci decorațiuni întregi, la procentele lor (ceas 50/12, emoji 22/26, text mare 78/44, loc 30/62, titlu 50/82) | `r50-s3-photo-decorations-page-fixed.jpg` |
+| fotografie, previzualizarea, **după** | toate cinci, micșorate cu compoziția, centrate, fără tăieturi | `r50-t2-photo-decorations-preview-fixed.jpg` |
+| clip, pagina întreagă, **înainte** | „Clip cu sticker" tăiat la dreapta | `r50-u-clip-decorations-page.jpg` |
+| clip, pagina întreagă, **după** | textul se împarte pe două rânduri, întreg; emoji 🎬 întreg | `r50-u2-clip-decorations-page-fixed.jpg` |
+| clip, previzualizarea, **după** | amândouă decorațiunile, micșorate, fără tăieturi | `r50-v-clip-decorations-preview.jpg` |
+
+### 4. Gesturile foii de comentarii (Prioritatea 4)
+
+| gest | rezultat | dovadă |
+| --- | --- | --- |
+| A. tragere în jos de **mâner** | foaia se închide | `uiautomator`: fără `Închide comentariile` după o tragere de 385 px |
+| B. tragere în jos de **antet** | **nu funcționa** în runda 49 (gestul stătea numai pe mâner, deși documentația spunea „mânerul și antetul"). Acum se închide | `uiautomator` înainte/după reparație |
+| C. derularea listei | lista se derulează normal, foaia rămâne | `r50-r-comments-scrolled-after-send.jpg` |
+| D. glisare orizontală pe previzualizare | întoarce fila, foaia rămâne | §2 |
+| E. tragere verticală pe previzualizare | închide foaia (nu întoarce fila) | `uiautomator`: foaia s-a închis după o tragere 600→1050 px |
+| F. butonul ✕ | închide (rămâne buton și după ce antetul a primit responder-ul) | `uiautomator` înainte/după |
+| G. tastatura + compozitorul | tastatura micșorează previzualizarea la `1/25`, compozitorul se mută deasupra ei | `r50-p-comments-keyboard-open.jpg` |
+| H. trimiterea unui comentariu | comentariul „Runda50 foii" apare în listă („1 min", @r49verify) | `r50-r-comments-scrolled-after-send.jpg` |
+| I. tragere scurtă în jos (70 px, 600 ms) | foaia **revine**, nu se închide | `r50-o-short-drag-returns.jpg` |
+
+Reparația pentru B: `{...sheetGesture.panHandlers}` stă acum și pe rândul antetului
+(`<View {...sheetGesture.panHandlers} style={styles.head}>`). ✕ este **copil** al rândului, iar un copil
+primește atingerile înaintea părintelui, deci butonul a rămas buton — verificat, nu presupus. Dimensiunile,
+`Modal`-ul, filele și compozitorul foii sunt neatinse.
+
+### 5. Zona sigură a previzualizării (Prioritatea 6)
+
+Măsurat pe capturile de mai sus (`uiautomator` dă `Închide comentariile` la `[0,0][1220,1275]`, deci foaia
+începe la 490 dp):
+
+| fel de postare | previzualizarea începe la | sub bara de stare? | decuparea | captură |
+| --- | --- | --- | --- | --- |
+| articol | ~56 dp (hartia), 145 px | **da** | pagina întreagă, lățime întreagă, împărțită în file | `r50-i-…`, `r50-w-…` |
+| fotografie | ~55 dp (imaginea), centrată cu benzi negre | **da** | aceeași 3:4 ca în pagină | `r50-t2-…` |
+| clip | ~55 dp, centrat | **da** | aceeași 9:16 ca în pagină | `r50-v-…` |
+
+Nimic nu se desenează sub iconițele de notificare; compoziția rămâne centrată deasupra foii, iar micșorarea
+proporțională din runda 48 e neatinsă.
+
+### 6. Teste automate
+
+| suită | ce apără acum | stare |
+| --- | --- | --- |
+| `test-poster-frame.cjs` | lățimea cerută, secunda cadrului, plafonul, **reîncercarea** (`posterRetryDelay`: 1,5 s → 4 s → 9 s → nimic), **fixarea** cheilor citite (`posterTouch`, `held`), **cele trei stări** ale celulei (cadru / suprafață neutră / placă de rezervă), faptul că o grilă nu montează playere | 8 teste |
+| `test-sheet-preview.cjs` | locul rămas peste foaie + **filele din diferența de `seq`** (`previewPageTurns`), aterizarea ținută în articol (`previewPageAfter`), faptul că pagina consumă cererea într-un efect | 11 teste |
+| `test-sheet-gestures.cjs` | cele trei hotărâri ale gestului + **lanțul complet** (foaia cere → cititorul de text ascultă → fila se întoarce) + **antetul care se trage** și ✕ care rămâne buton | 6 teste |
+| `test-overlay-frame.cjs` | dreptunghiul de conținut, fereastra vizibilă, micșorarea tipografiei + **`overlayHeldSpot`** (eticheta mărită ține cont de propria scară) și **`overlayMaxWidth(kind, scale)`** | 10 teste |
+| `test-comments-preview.cjs`, `test-fullscreen-feed.cjs`, `test-text-page.cjs` | decuparea din Feed/Profil, pagina citită, stratul comun de desenare | actualizate la semnătura nouă |
+
+Rezultat: **`suites=80 failed=0 in 28s`**. `tsc --noEmit` → **exit 0**.
+
+**ESLint, față de baza rundei 49 (13 erori, toate preexistente).**
+
+| fișier | erori | verdict |
+| --- | --- | --- |
+| `EditorialPage.tsx` | 10 (`setState` în efect ×4, „refs during render" ×6) | toate pe linii care existau înainte de rundă (242, 251, 401, 650, 1013–1142); efectul nou (~422) nu apare în listă |
+| `PostCanvas.tsx` | 3 (364, 1130×2) | preexistente |
+| `PostReading.tsx` | 2 (176: „refs during render" — `pageRef.current = page`, scris de runda 31; 179: `setState` în efect) | preexistente; directiva `eslint-disable` inutilă adăugată de mine a fost scoasă |
+| total | **13** | **exact cifra de la care a plecat runda 49**, nicio eroare nouă |
+
+### 7. Ce s-a atins în datele locale (și ce s-a șters)
+
+- **Adăugat:** cinci postări locale pe `@r49verify` (articol 163, fotografie cu decorațiuni 164, clip cu
+  decorațiuni 165, clip simplu 166, al doilea articol 167), trei comentarii pe 163, un grant de media pentru
+  fotografia și clipul refolosite, un **like** dat din greșeală pe 163 (atingerea a nimerit butonul de reacții
+  în locul celui de comentarii) și un **comentariu** de probă („Runda50 foii"). Nimic nu părăsește baza locală.
+- **Șters:** patru postări pe care **aceeași rundă** le crease cu câteva minute înainte (159–162) și care
+  foloseau o imagine de 1×1 pixeli transparenți drept copertă — o celulă neagră garantată pe perete. Ștergerea
+  a fost făcută cu un script temporar, **numai** pentru id-urile acelui cont, cu verificarea autorului înainte
+  de fiecare rând, iar scriptul a fost șters la final. Nu s-a atins nicio postare a ownerului, niciun comentariu
+  al altcuiva, nicio reacție străină.
+- **Setări de telefon:** niciuna modificată (singurul dialog de sistem închis a fost o notificare Xiaomi
+  „battery saver", cu „Got it" — nu a activat nimic).
+- **O scăpare de mediu, spusă în clar:** primul `--inspect` al scriptului de fixtures a rulat cu
+  `NEXUS_DATA_DIR=C:\Nexus\data`, adică pe **cealaltă** bază locală (cea a supervisorului, nefolosită de
+  telefon). `openDb()` a rulat acolo migrațiile lui idempotente (`restored=0 unresolved_active=15`) și nimic
+  altceva; baza de care depinde telefonul este `apps/nexus-web/data/nexus.sqlite`, iar scriptul tipărește
+  întotdeauna calea pe care a scris.
+
+### 8. Verificarea pe Android: ce s-a citit, ce s-a capturat și unde s-a oprit
+
+Toate capturile sunt în `JUNGLE_BOOK_VERIFICATION/final_jpg/`. Cele mari au fost recapturate cu `-MaxWidth`
+640–760 ca să poată fi citite; fișierul original rămâne cel publicat de unealtă. **Citite și descrise:**
+`r50-a`, `r50-b`, `r50-c`, `r50-d`, `r50-e`, `r50-f`, `r50-g`, `r50-h`, `r50-i`, `r50-j`, `r50-j2`, `r50-k`,
+`r50-l`, `r50-m`, `r50-n`, `r50-o`, `r50-p`, `r50-q`, `r50-r`, `r50-s2`, `r50-s3`, `r50-t`, `r50-t2`, `r50-u`,
+`r50-u2`, `r50-v`, `r50-w`.
+
+**Unde s-a oprit runda și de ce.** La `r50-x-search-grid-loaded.jpg` cititorul de imagini a răspuns „invalid or
+exceeds size limit". Fișierul **nu** este corupt: `System.Drawing` îl decodează (640×1393, 24bpp, 114 963 de
+octeți), iar o re-encodare mai mică (560 px, 78 711 octeți, `r50-x2-search-grid-loaded.jpg`) a fost refuzată la
+fel. Conform regulii din `.clinerules` („dacă apare eroarea de imagine, oprește-te imediat"), verificarea
+vizuală s-a oprit acolo: **nu** am mai încercat alte imagini și **nu** am pretins că le-am citit.
+
+Rămân deci **capturate, dar necitite** (există pe disc, pentru owner): `r50-x`/`r50-x2` (grila din Căutare) și
+ce urma după ele — reîntoarcerea din Căutare/Profil, repornirea aplicației și o a doua citire a grilei. Ce
+**este** dovedit pentru Prioritatea 1 înainte de oprire: grila din Profil cu două celule de clip care arată
+**cadrul real** al clipului (`r50-c`, penguinul), o celulă de text pentru articol, o celulă de fotografie,
+deschiderea unui clip din grilă (`r50-d`) și întoarcerea din el (`r50-e`) — adică lanțul „cadru real → celulă →
+postare" funcționează. Ce nu s-a putut citi: derularea rapidă, revenirea în Căutare și cadrele de după
+repornire.
+
+### 9. Ce a rămas deschis (declarat, nu ascuns)
+
+1. **Verificarea vizuală a grilei din Căutare și a repornirii** — blocată de cititorul de imagini (§8).
+   Fișierele sunt pe disc; un task nou le poate citi fără nicio modificare de cod.
+2. **Contorul din antetul foii nu crește imediat după trimiterea unui comentariu** (`Comentarii · 3` rămâne,
+   deși lista are patru). Este preexistent (antetul citește `post.comment_count`, care se reîncarcă abia la
+   remontare), iar runda 50 nu avea voie să atingă antetul; după ce foaia se redeschide, cifra este corectă
+   (`r50-w`: `Comentarii · 4`).
+3. **Poziția de reluare a articolului după ce foaia se închide și se redeschide** poate fi alta (`13/26` în
+   `r50-o`, deși înainte de închidere era `26/26`): pagina se re-împarte de două ori, la două înălțimi
+   diferite, iar pagerul își păstrează decalajul. Numărul tipărit este însă cel al textului care se vede
+   (capitolul 8), deci citirea e coerentă; alinierea exactă a ambelor numărări rămâne de făcut.
+4. **Cache-ul de miniaturi nu este pe disc** (§1) — motivat, cu API-ul citat.
+5. **Articolul cu document stocat** (`EditorialArticle`) nu a fost dovedit pe telefon în această rundă (nu
+   exista un asemenea articol în baza locală); folosește aceleași două funcții pure și e acoperit de
+   `test-sheet-preview.cjs`, dar dovada vizuală lipsește.
+6. Un **like** și un **comentariu** de probă au rămas pe articolul 163 (cont local, §7).
+
+### 10. Fișiere atinse
+
+`apps/nexus-mobile/src/lib/posterFrame.ts`, `videoPoster.ts`, `sheetPreview.ts`, `overlayFrame.ts`;
+`apps/nexus-mobile/src/components/ProfileTile.tsx`, `EditorialPage.tsx`, `PostReading.tsx`, `PostCanvas.tsx`,
+`CommentsSheet.tsx`, `PostOverlay.tsx`;
+`apps/nexus-mobile/scripts/test-poster-frame.cjs`, `test-sheet-preview.cjs`, `test-sheet-gestures.cjs`,
+`test-overlay-frame.cjs`;
+`apps/nexus-web/scripts/dev-round50-fixtures.mjs` (**nou**, local-only, idempotent);
+`HANDOFF.md`.
+
+### 11. Checkpoint-uri
+
+Două commit-uri locale, fără push: unul pentru cod + teste (§2–§6), unul pentru acest raport, după convenția
+rundelor 48 și 49. Checkpoint-urile de păstrat rămân `5152695` (runda 48), `f155ae9` (raportul ei), `d08b774`
+(codul rundei 49) și `5b43313` (raportul rundei 49).
+
+---
+
+
+
+
+
 ## 0.49 Clipuri cu chip real în grile, foaia de comentarii trasă în jos, fila articolului sub foaie și stickere care se micșorează cu cutia (1 noiembrie 2026)
 
 **Starea depozitului.** Cod pe ramura `codex/camera-draft-stability`, fără push, fără ștergeri de date, fără
