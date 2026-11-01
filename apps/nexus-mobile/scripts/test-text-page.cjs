@@ -105,8 +105,8 @@ test('the canvas asks the module, and only a page of words', () => {
   assert.match(canvas, /const railReserve = wordPage\s*\? wordPageRailReserve\(\{/);
   assert.match(canvas, /cells: isVideo \? 5 : 4, foot: RAIL_FOOT, sound: isVideo/,
     'bara unui clip are un buton mai mult: discu coloanei sonore');
-  assert.match(canvas, /<EditorialArticle\s+post=\{post\}\s+style=\{pageStyle \?\? defaultTextStyle\(\)\}\s+active=\{active\}\s+railReserve=\{railReserve\}\s+folio=\{folio\}\s+mode=\{pageMode\}\s+\/>/,
-    'pagina scrisa primeste camera barei, ca fluxul sa o ocoleasca, plus modul cititorului (runda 46)');
+  assert.match(canvas, /<EditorialArticle\s+post=\{post\}\s+style=\{pageStyle \?\? defaultTextStyle\(\)\}\s+active=\{active\}\s+railReserve=\{railReserve\}\s+folio=\{folio\}\s+mode=\{pageMode\}\s+pageRequest=\{previewPage\}\s+\/>/,
+    'pagina scrisa primeste camera barei, ca fluxul sa o ocoleasca, plus modul cititorului (runda 46) si cererea de fila a foii (runda 49)');
   assert.match(code(read('src/components/EditorialArticle.tsx')), /railReserve=\{railReserve\}/);
   const editor = code(read('src/components/EditorialPage.tsx'));
   assert.match(editor, /reserve: reserveWidth > 0 && reserveHeight > 0/);

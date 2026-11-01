@@ -90,7 +90,7 @@ test('decuparea este identică cu a paginii: `cover` taie aceleași părți, num
 test('fără foaie deschisă, compoziția nu se atinge', () => {
   const page = commentsPreviewFrameOf({ stage: 'media', pageWidth: PHONE.width, pageHeight: PHONE.height, room: PHONE.height });
   assert.deepEqual(page, {
-    width: PHONE.width, height: PHONE.height, scaled: false, scale: 1, kind: 'media',
+    width: PHONE.width, height: PHONE.height, scaled: false, scale: 1, kind: 'media', top: 0,
   });
   const roomy = commentsPreviewFrameOf({ stage: 'reel', pageWidth: PHONE.width, pageHeight: PHONE.height, room: 2000 });
   assert.equal(roomy.height, PHONE.height, 'un loc mai mare decât pagina nu mărește compoziția');
@@ -158,8 +158,56 @@ test('potrivirea imaginii rămâne a paginii: previzualizarea nu atinge `fit`', 
   assert.match(canvas, /fit="portrait-cover"\s+style=\{styles\.media\}/, 'clipul se desenează `portrait-cover`');
   // Un clip dintr-o galerie își păstrează potrivirea cititorului (PostCanvas nu-i mai impune una).
   assert.doesNotMatch(canvas, /videoFit=/, 'galeria nu mai primește o potrivire de împrumut');
-  assert.match(strip(read('src/components/ReelsReader.tsx')), /mediaOverlay=\{<PostDecorations post=\{post\} fit="cover" \/>\}/,
-    'decorațiunile stau pe poza de sub ele, cu aceeași potrivire');
+  assert.match(strip(read('src/components/ReelsReader.tsx')),
+    /mediaOverlay=\{<PostDecorations post=\{post\} fit="cover" scale=\{previewFrame\?\.scale \?\? 1\} \/>\}/,
+    'decorațiunile stau pe poza de sub ele, cu aceeași potrivire și cu micșorarea cutiei');
+});
+
+/**
+ * Runda 49: previzualizarea este sigură față de bara de stare.
+ *
+ * Pagina întreagă își începe compoziția la `topInset`, deci capul stă **sub** ceasul telefonului. Cutia
+ * micșorată umplea însă locul rămas (`height = room`) și, centrată, pornea de la y = 0 — exact sub ceas.
+ * Măsurat în runda 48: cutia pozei `318…902 × 0…1273`, adică de la muchia de sus a ecranului.
+ */
+test('previzualizarea începe sub bara de stare, ca pagina', () => {
+  const INSET = 30;
+  const media = commentsPreviewFrameOf({
+    stage: 'media', pageWidth: PHONE.width, pageHeight: PHONE.height, room: 490, safeTop: INSET,
+  });
+  assert.equal(media.top, INSET, 'cutia se așază sub ceas, nu de la muchia ecranului');
+  assert.equal(media.height, 490 - INSET, 'și folosește locul de sub bară, nu tot locul');
+  assert.equal(media.scaled, true);
+  assert.equal(media.width, Math.round(PHONE.width * ((490 - INSET) / PHONE.height)),
+    'micșorarea se socotește pe locul de sub bară, deci raportul rămâne al paginii');
+
+  const words = commentsPreviewFrameOf({
+    stage: 'text', pageWidth: PHONE.width, pageHeight: PHONE.height, room: 490, safeTop: INSET,
+  });
+  assert.equal(words.top, INSET, 'și pagina de cuvinte începe sub ceas');
+  assert.equal(words.height, 490 - INSET, 'textul se re-pagina pe locul de sub bară');
+
+  // Fără bară de stare (o fereastră care nu raportează una) nimic nu se schimbă.
+  const bare = commentsPreviewFrameOf({ stage: 'media', pageWidth: PHONE.width, pageHeight: PHONE.height, room: 490 });
+  assert.equal(bare.top, 0);
+  assert.equal(bare.height, 490);
+
+  // O bară cât tot locul nu inventează o cutie cu înălțime negativă.
+  const impossible = commentsPreviewFrameOf({
+    stage: 'media', pageWidth: PHONE.width, pageHeight: PHONE.height, room: 490, safeTop: 600,
+  });
+  assert.equal(impossible.height, 0);
+
+  /**
+   * Cele două suprafeți așază cutia cu `paddingTop`, nu cu `marginTop`: numai așa centrarea se face în
+   * locul de sub bară. Și trimit exact `topInset`-ul pe care îl au.
+   */
+  for (const file of ['src/components/PostCard.tsx', 'src/components/ReelsReader.tsx']) {
+    const surface = strip(read(file));
+    assert.match(surface, /safeTop: topInset/, `${file}: socoteala primește bara de stare a paginii`);
+    assert.match(surface, /styles\.previewMatter, \{ height: previewRoom, paddingTop: previewFrame\??\.top/,
+      `${file}: cutia se așază sub ceas`);
+  }
 });
 
 test('suprafețele micșorează compoziția în locul rămas, fără să redeseneze nimic', () => {

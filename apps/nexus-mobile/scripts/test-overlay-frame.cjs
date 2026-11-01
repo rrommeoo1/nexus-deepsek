@@ -127,12 +127,12 @@ test('amândouă suprafețele desenează cu același modul, nu cu două socoteli
   const manifest = read('src/lib/studioManifest.ts');
 
   assert.match(published, /import \{ mediaContentRect, type OverlayFit \} from '\.\.\/lib\/overlayFrame'/);
-  assert.match(published, /<PostOverlay decorations=\{decorations\} bounds=\{bounds\} ratio=\{ratio\} fit=\{fit\} now=\{now\} \/>/,
-    'o postare publicată desenează cu stratul comun');
+  assert.match(published, /<PostOverlay decorations=\{decorations\} bounds=\{bounds\} ratio=\{ratio\} fit=\{fit\} now=\{now\} scale=\{scale\} \/>/,
+    'o postare publicată desenează cu stratul comun, la micșorarea compoziției');
   assert.doesNotMatch(published, /creatorTokens/, 'postarea nu-și mai socotește singură tipul');
 
-  assert.match(layer, /overlayFontSize\(kind, rect\.width\)/, 'tipul se măsoară după dreptunghiul de conținut');
-  assert.match(layer, /overlayPadding\(kind\)/);
+  assert.match(layer, /overlayFontSize\(kind, rect\.width, scale\)/, 'tipul se măsoară după dreptunghiul de conținut, micșorat cu compoziția');
+  assert.match(layer, /overlayPadding\(kind, scale\)/);
   assert.match(layer, /overlayMaxWidth\(kind\) \* 100/);
   assert.match(layer, /mediaContentRect\(\{ width: bounds\.width, height: bounds\.height, ratio, fit \}\)/);
 
@@ -148,3 +148,54 @@ test('amândouă suprafețele desenează cu același modul, nu cu două socoteli
   assert.match(manifest, /const decorations = studioDecorations\(capture, draft\);[\s\S]{0,120}if \(!decorations\.length\) return null;/,
     'manifestul publicării folosește exact aceeași listă');
 });
+
+/**
+ * Runda 49: stickerul se micșorează **cu** cutia, nu rămâne la minimul paginii.
+ *
+ * Runda 48 a măsurat pe telefon exact defectul: în pagină stickerul „Așa este😍" avea 981×217 px, iar în
+ * previzualizare 547×123 px — raport 0,56 în loc de 0,48, adică mai mare decât compoziția din jur, lipit de
+ * muchia cutiei. Cauza nu era poziția (`left: x%` este o fracțiune din dreptunghi, deci se micșorează
+ * singură), ci **plafonul de tipografie**: `minFontSize` este o măsură a paginii, iar într-o cutie la
+ * jumătate rămânea neschimbat.
+ */
+test('micșorarea compoziției micșorează și tipografia stickerului, cu același factor', () => {
+  const page = overlay.mediaContentRect({ ...PHONE, ratio: 9 / 16, fit: 'cover' });
+  const pageText = overlay.overlayFontSize('TEXT', page.width);
+  /** Cutia previzualizării din runda 48: pagina micșorată la raportul ei (225×490 din 469×1021). */
+  const scale = 490 / PHONE.height;
+  const box = { width: Math.round(PHONE.width * scale), height: 490 };
+  const rect = overlay.mediaContentRect({ ...box, ratio: 9 / 16, fit: 'cover' });
+
+  const reduced = overlay.overlayFontSize('TEXT', rect.width, scale);
+  assert.ok(Math.abs(reduced / pageText - scale) < 0.01,
+    `tipografia scade cu cutia: ${reduced.toFixed(2)} / ${pageText.toFixed(2)} = ${(reduced / pageText).toFixed(3)} față de ${scale.toFixed(3)}`);
+
+  /** Fără factorul de micșorare, socoteala veche dă exact ce s-a măsurat: minimul paginii. */
+  const withoutScale = overlay.overlayFontSize('TEXT', rect.width);
+  assert.equal(withoutScale, creatorTokens.decoration.minFontSize, 'runda 48 cădea pe minimul paginii');
+  assert.ok(withoutScale / pageText > 0.55, 'și ieșea cu peste 15 % mai mare decât compoziția');
+
+  /** Aceeași regulă pentru tot ce este măsură a paginii: aer, colț, umbră, spațiere. */
+  const padding = overlay.overlayPadding('TEXT', scale);
+  assert.equal(padding.horizontal, creatorTokens.decoration.horizontalPadding * scale);
+  assert.equal(padding.vertical, creatorTokens.decoration.verticalPadding * scale);
+  const clock = overlay.overlayPadding('TIME', scale);
+  assert.equal(clock.horizontal, creatorTokens.decoration.timeHorizontalPadding * scale);
+  assert.equal(overlay.overlayRadius('LOCATION', scale), 22 * scale);
+  assert.equal(overlay.overlayRadius('TEXT', scale), 0, 'un text nu are pastilă, la nicio mărime');
+  assert.equal(overlay.overlayShadowRadius(scale), 7 * scale);
+  assert.equal(overlay.overlayLetterSpacing('TIME', scale), scale);
+  assert.equal(overlay.overlayLetterSpacing('TEXT', scale), 0);
+
+  /** Pagina întreagă rămâne exact ce era: factorul 1 nu schimbă nimic. */
+  assert.deepEqual(overlay.overlayPadding('TEXT'), overlay.overlayPadding('TEXT', 1));
+  assert.equal(overlay.overlayFontSize('TEXT', page.width, 1), pageText);
+  assert.equal(overlay.overlayShadowRadius(), 7);
+
+  /** O măsură stricată nu inversează socoteala: sub zero sau `NaN` înseamnă „pagina întreagă", nu „uriaș". */
+  assert.equal(overlay.overlayFontSize('TEXT', PHONE.width, NaN), overlay.overlayFontSize('TEXT', PHONE.width));
+  assert.equal(overlay.overlayFontSize('TEXT', PHONE.width, 0), overlay.overlayFontSize('TEXT', PHONE.width));
+  assert.equal(overlay.overlayFontSize('TEXT', 4000, 4), creatorTokens.decoration.maxFontSize,
+    'un factor peste 1 nu mărește nimic: pagina este plafonul');
+});
+

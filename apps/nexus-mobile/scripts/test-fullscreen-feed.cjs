@@ -88,9 +88,11 @@ test('un reel umple pagina la fel ca un post', () => {
    * Runda 48: decorațiunile urmează potrivirea pozei de sub ele, în orice prezentare. Previzualizarea de
    * deasupra foii de comentarii nu schimbă `fit` (runda 47 îl schimbase în `contain`, iar ownerul a refuzat:
    * arăta părți din fotografie pe care Feed/Profil le ascund).
+   *
+   * Runda 49: primesc și micșorarea cutiei (`scale`), ca stickerul să se micșoreze **cu** compoziția.
    */
-  assert.match(reel, /<PostDecorations post=\{post\} fit="cover" \/>/,
-    'decorations follow the covering picture');
+  assert.match(reel, /<PostDecorations post=\{post\} fit="cover" scale=\{previewFrame\?\.scale \?\? 1\} \/>/,
+    'decorations follow the covering picture, at the size of the box');
 });
 
 test('nu mai există banda neagră de sub ceas', () => {

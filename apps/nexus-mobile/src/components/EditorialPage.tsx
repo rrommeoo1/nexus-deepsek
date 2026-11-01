@@ -24,6 +24,7 @@ import { mediaHeaders } from '../lib/session';
 import { resolveMediaUri } from '../lib/mediaCache';
 import { fontFamilyFor, metricFaceFor, pagePaletteOf, sizeOf, TEXT_SELECTION_COLOR, type TextStyle } from '../lib/textStyle';
 import type { PageMode } from '../lib/pageMode';
+import type { SheetPreviewPageRequest } from '../lib/sheetPreview';
 import { insertAtSelection, snapSelection, type TextSelection } from '../lib/textInsert';
 import { RAIL_LINE_AIR, PAGE_FOLIO, folioLabel, pageFolioBand, type RailReserve } from '../lib/textPage';
 import { editorialType } from '../theme/editorial';
@@ -70,7 +71,7 @@ const FIELD_HOLD_MS = 420;
 export function EditorialPage({
   document, style, media, width, height, editable = false, active = true,
   selectedMediaId = null, railReserve, onSelectBlock, onChangeDocument, onFieldChange, insertRequest,
-  focusRequest, accessibilityLabel, folio, mode = 'paper',
+  focusRequest, accessibilityLabel, folio, mode = 'paper', pageRequest = null,
 }: {
   document: EditorialDocument;
   style: TextStyle;
@@ -140,6 +141,14 @@ export function EditorialPage({
    * culori din care pagina își ia cerneala și hârtia.
    */
   mode?: PageMode;
+  /**
+   * A page turn asked for from outside the page (round 49).
+   *
+   * While the comments sheet is open, the sheet's own layer covers the preview, so a swipe cannot reach
+   * this pager. The sheet takes the gesture and reports it through `lib/sheetPreview.ts`; the page only
+   * obeys the number. `seq` is what makes two identical requests two turns instead of one.
+   */
+  pageRequest?: SheetPreviewPageRequest | null;
 }) {
   /**
    * The page is painted from `pagePaletteOf`, not from the theme of the stored style: warm paper under
@@ -392,6 +401,30 @@ export function EditorialPage({
     setPage(total - 1);
     listRef.current?.scrollToOffset({ offset: (total - 1) * width, animated: false });
   }, [page, total, width]);
+
+  /**
+   * A page turn asked for from outside the page (round 49).
+   *
+   * While the comments sheet is open, the sheet's own layer covers the preview and a swipe can never reach
+   * this pager, so the sheet reports the turn through `lib/sheetPreview.ts` and the page obeys it here. The
+   * request is spent **once per `seq`**, in the render that sees it (React's own rule for state that follows
+   * a prop: no effect, no second render), and the pager is then moved onto the page the state already says.
+   * The gesture machine is deliberately left alone: it belongs to the composer's drags, and a preview is not
+   * editable.
+   */
+  const [spentSeq, setSpentSeq] = useState(0);
+  const requestedSeq = pageRequest?.seq ?? 0;
+  if (requestedSeq > spentSeq && requestedSeq > 0) {
+    setSpentSeq(requestedSeq);
+    const next = Math.max(0, Math.min(total - 1, page + (pageRequest!.offset < 0 ? -1 : 1)));
+    if (next !== page) setPage(next);
+  }
+  useEffect(() => {
+    if (!spentSeq || total <= 1) return;
+    listRef.current?.scrollToIndex({ index: page, animated: true });
+    // The scroll belongs to the request that was just spent; `page` is where that request landed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spentSeq]);
 
   /**
    * Where the author let go of a picture.

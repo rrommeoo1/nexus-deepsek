@@ -58,6 +58,15 @@ export type CommentsPreviewFrameInput = {
   pageHeight: number;
   /** Locul rămas deasupra foii (`previewRoomOf`). */
   room: number;
+  /**
+   * Bara de stare a telefonului, în puncte (runda 49).
+   *
+   * Pagina întreagă își începe compoziția la `topInset`, adică **sub ceas**: capul autorului stă sub bară,
+   * iar ce este deasupra ei rămâne terenul paginii. O previzualizare micșorată pornea însă de la y = 0 —
+   * cutia umplea locul rămas, iar centrarea nu mai avea ce muta — deci sus apărea exact banda pe care
+   * pagina o ține liberă. Previzualizarea primește același `topInset`, iar locul de desenat începe sub bară.
+   */
+  safeTop?: number;
 };
 
 export type CommentsPreviewFrame = {
@@ -70,6 +79,11 @@ export type CommentsPreviewFrame = {
   /** Cât de mult s-a micșorat compoziția: 1 înseamnă neatinsă. */
   scale: number;
   kind: CommentsPreviewKind;
+  /**
+   * Cât lasă liber sus, sub bara de stare (runda 49): 0 când compoziția este pagina întreagă (pagina își
+   * ține singură capul sub ceas), `safeTop` când cutia chiar a fost mutată sub bară.
+   */
+  top: number;
 };
 
 /**
@@ -83,6 +97,9 @@ export type CommentsPreviewFrame = {
  * Pentru `words`, cutia este pagina la lățimea ei, cu înălțimea locului rămas: pagina se re-pagina, deci
  * tipografia rămâne la mărimea de citit.
  *
+ * Amândouă se socotesc pe locul de **sub bara de stare** (`safeTop`), fiindcă acolo își începe pagina
+ * compoziția.
+ *
  * Măsurători stricate (zero, `NaN`, negative) nu inventează o cutie: se întoarce cutia paginii, iar
  * apelantul nu are o previzualizare de desenat.
  */
@@ -91,24 +108,30 @@ export function commentsPreviewFrameOf(input: CommentsPreviewFrameInput): Commen
   const pageWidth = Math.max(0, Math.round(Number(input.pageWidth) || 0));
   const pageHeight = Math.max(0, Math.round(Number(input.pageHeight) || 0));
   const room = Math.max(0, Math.round(Number(input.room) || 0));
+  const safeTop = Math.max(0, Math.round(Number(input.safeTop) || 0));
   if (pageWidth <= 0 || pageHeight <= 0 || room <= 0) {
-    return { width: pageWidth, height: 0, scaled: false, scale: 0, kind };
+    return { width: pageWidth, height: 0, scaled: false, scale: 0, kind, top: 0 };
+  }
+  /** Locul de sub ceas: ce rămâne din locul de deasupra foii după ce bara de stare este scoasă. */
+  const available = Math.max(0, room - safeTop);
+  if (available <= 0) {
+    return { width: pageWidth, height: 0, scaled: false, scale: 0, kind, top: safeTop };
   }
   if (kind === 'words') {
-    return { width: pageWidth, height: Math.min(room, pageHeight), scaled: false, scale: 1, kind };
+    return { width: pageWidth, height: Math.min(available, pageHeight), scaled: false, scale: 1, kind, top: safeTop };
   }
-  if (room >= pageHeight) {
-    /** Nicio foaie nu ia nimic: compoziția rămâne exact pagina ei. */
-    return { width: pageWidth, height: pageHeight, scaled: false, scale: 1, kind };
+  if (available >= pageHeight) {
+    /** Nicio foaie nu ia nimic: compoziția rămâne exact pagina ei, cu capul ei sub ceas. */
+    return { width: pageWidth, height: pageHeight, scaled: false, scale: 1, kind, top: 0 };
   }
   /**
-   * Micșorarea: înălțimea devine locul rămas, iar lățimea scade în aceeași proporție. Rotunjirea la pixel
-   * poate mișca raportul cu mai puțin de o zecime de procent — sub un pixel de decupare, adică invizibil,
-   * și cu mult sub ce ar însemna o schimbare de `fit`.
+   * Micșorarea: înălțimea devine locul rămas de sub bară, iar lățimea scade în aceeași proporție.
+   * Rotunjirea la pixel poate mișca raportul cu mai puțin de o zecime de procent — sub un pixel de
+   * decupare, adică invizibil, și cu mult sub ce ar însemna o schimbare de `fit`.
    */
-  const scale = room / pageHeight;
+  const scale = available / pageHeight;
   const width = Math.max(1, Math.min(pageWidth, Math.round(pageWidth * scale)));
-  return { width, height: room, scaled: true, scale, kind };
+  return { width, height: available, scaled: true, scale, kind, top: safeTop };
 }
 
 /**

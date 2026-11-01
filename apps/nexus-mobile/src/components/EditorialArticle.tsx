@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { EditorialPage } from './EditorialPage';
 import { editorialDocumentForPost, editorialMediaForPost } from '../lib/editorialPost';
+import type { SheetPreviewPageRequest } from '../lib/sheetPreview';
 import type { SocialPost } from '../lib/socialTypes';
 import type { TextStyle } from '../lib/textStyle';
 import type { PageMode } from '../lib/pageMode';
@@ -19,7 +20,7 @@ import type { RailReserve } from '../lib/textPage';
  * composition instead of being reinterpreted by a newer engine.
  */
 export function EditorialArticle({
-  post, style, active = true, pageStyle, railReserve = null, folio, mode = 'paper',
+  post, style, active = true, pageStyle, railReserve = null, folio, mode = 'paper', pageRequest = null,
 }: {
   post: SocialPost;
   style: TextStyle;
@@ -43,6 +44,12 @@ export function EditorialArticle({
    * feed, the composer and every card keep the row they had.
    */
   folio?: { band: number; inset: number };
+  /**
+   * A page turn asked for from outside the page (round 49): while the comments sheet is open, its own
+   * layer covers the preview, so the swipe is taken by the sheet and reported through
+   * `lib/sheetPreview.ts`. The page only obeys the number — it does not know who asked.
+   */
+  pageRequest?: SheetPreviewPageRequest | null;
 }) {
   const [box, setBox] = useState({ width: 0, height: 0 });
   const document = editorialDocumentForPost(post);
@@ -66,6 +73,7 @@ export function EditorialArticle({
           railReserve={railReserve}
           folio={folio}
           mode={mode}
+          pageRequest={pageRequest}
           accessibilityLabel="Pagina articolului"
         />
       ) : null}

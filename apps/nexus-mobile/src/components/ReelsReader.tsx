@@ -171,6 +171,7 @@ export function ReelPage({
   const previewFrame = previewing
     ? commentsPreviewFrameOf({
       stage: stageFor(post), pageWidth: pageWidth || windowWidth, pageHeight: height, room: previewRoom,
+      safeTop: topInset,
     })
     : null;
 
@@ -188,8 +189,14 @@ export function ReelPage({
        *
        * Runda 48: când foaia este deschisă, compoziția se micșorează **întreagă** în cutia cu raportul
        * paginii — decuparea pozei/clipului rămâne a feed-ului, iar în jur rămâne terenul paginii.
+       *
+       * Runda 49: cutia începe **sub ceasul telefonului**. Pagina întreagă își începe compoziția la
+       * `topInset` (capul stă sub bara de stare); o previzualizare micșorată pornea de la y = 0, adică exact
+       * sub ceas — se vedea sus o bandă pe care pagina o ține liberă. `previewFrame.top` este chiar acel
+       * `topInset`, iar înălțimea rămasă se împarte mai jos (`paddingTop`, nu `marginTop`, ca centrarea să
+       * rămână în locul de sub bară).
        */}
-      <View style={[styles.previewMatter, { height: previewRoom }]}>
+      <View style={[styles.previewMatter, { height: previewRoom, paddingTop: previewFrame?.top ?? 0 }]}>
       <View style={previewFrame
         ? { width: previewFrame.width, height: previewFrame.height }
         : { width: '100%', height: '100%' }}
@@ -234,8 +241,11 @@ export function ReelPage({
               /**
                * The decorations of the manifest, handed to the canvas so they are painted on the picture
                * itself: above the veil, under the author's head and under the caption (`mediaOverlay`).
+               *
+               * Runda 49: `scale` este micșorarea cutiei, ca stickerul să se micșoreze **cu** compoziția
+               * când foaia de comentarii este deschisă (runda 48 lăsa tipografia la minimul paginii).
                */
-              mediaOverlay={<PostDecorations post={post} fit="cover" />}
+              mediaOverlay={<PostDecorations post={post} fit="cover" scale={previewFrame?.scale ?? 1} />}
               /**
                * The relation door of the author, when the surface asks for it: the same control, the same
                * store and the same words a text post prints (`PostCard`), so a profile opened on a reel and

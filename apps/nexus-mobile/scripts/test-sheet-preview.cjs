@@ -114,8 +114,12 @@ test('foaia de comentarii NU a fost redesenată: aceeași deschidere, același M
     'foaia pornește tot de la jumătatea ecranului și urcă tot la 82 %');
   assert.match(sheet, /<Modal visible animationType="slide" transparent onRequestClose=\{onClose\} statusBarTranslucent>/,
     'tot un Modal transparent care alunecă de jos, nu un panou împărțit');
-  assert.match(sheet, /presentation === 'sheet' \? <View style=\{styles\.grabber\} \/> : null/,
-    'același mâner');
+  /**
+   * Runda 49: mânerul primește o zonă proprie de tragere (28 dp, cu aceeași linie de 4 dp în ea) — foaia se
+   * închide trăgând-o în jos —, dar sunt **aceleași** două bucăți, cu același stil, nu un mâner nou.
+   */
+  assert.match(sheet, /<View \{\.\.\.sheetGesture\.panHandlers\} style=\{styles\.grabberZone\}[\s\S]{0,200}<View style=\{styles\.grabber\} \/>/,
+    'același mâner, acum cu zonă de tragere');
   assert.match(sheet, /styles\.head/, 'același antet cu titlul și ✕');
   assert.match(sheet, /composerInput/, 'același compozitor de comentariu');
   // Nu s-a strecurat o a doua arhitectură.

@@ -27,6 +27,7 @@ import { RAIL_FOOT } from './PostRail';
 import { PostScrim, WordsBand, useBlockHeight } from './PostReadability';
 import { descriptionScrim, headerScrim, type ReadabilityGround } from '../lib/readability';
 import { PAGE_MODE_TOGGLE_WIDTH, PageModeToggle, usePageMode } from './PageModeToggle';
+import { useCommentsPreviewPage } from '../lib/useSheetPreview';
 
 import { socialTokens } from '../theme/social';
 import { mercury, mercuryAvatar } from '../theme/mercury';
@@ -376,6 +377,15 @@ export function PostCanvas({
    * imaginii rămâne neatinsă (`lib/commentsPreview.ts` explică de ce decuparea nu are voie să se schimbe).
    */
   const commentsPreview = presentation === 'commentsPreview';
+  /**
+   * Cererea de filă venită de la foaia de comentarii (runda 49).
+   *
+   * Cât timp foaia este deschisă, stratul ei acoperă locul previzualizării, deci degetul nu poate ajunge la
+   * pagerul articolului. Foaia ia gestul și îl raportează (`lib/sheetPreview.ts`), iar pagina îl citește
+   * aici și îl dă mai departe paginii autorului (`EditorialPage`). Pe pagina întreagă — fără foaie — nu
+   * există cerere, deci nimic nu se schimbă.
+   */
+  const previewPage = useCommentsPreviewPage(post.id, commentsPreview);
   /**
    * A page of **words** — a text post, or an authored article with pictures inside it — as opposed to a
    * picture, a clip or a cell of a list. It is the one composition the owner asked to be read as a page
@@ -1207,6 +1217,7 @@ export function PostCanvas({
                       railReserve={railReserve}
                       folio={folio}
                       mode={pageMode}
+                      pageRequest={previewPage}
                     />
                   ) : statement ? (
                     <RichText

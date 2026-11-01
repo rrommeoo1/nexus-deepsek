@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { blackSilver } from '../theme/blackSilver';
 import {
-  Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView,
+  Alert, FlatList, KeyboardAvoidingView, Modal, PanResponder, Platform, Pressable, ScrollView,
   StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,7 +14,8 @@ import { openSocialProfile } from '../lib/profileNavigation';
 import { flattenCommentRows, focusedCommentRows, rootCommentRows, type ThreadRow } from '../lib/commentRows';
 import { bottomInsetWithKeyboard } from '../lib/keyboardSpace';
 import { useKeyboardSpace } from '../lib/useKeyboardSpace';
-import { clearSheetPreview, reportSheetPreview } from '../lib/sheetPreview';
+import { clearSheetPreview, reportSheetPreview, requestSheetPreviewPage } from '../lib/sheetPreview';
+import { previewBackdropDecision, sheetDragDecision, sheetDragShouldStart } from '../lib/sheetDismiss';
 import { commentFullDate, commentRelativeTime } from '../lib/commentTime';
 import { createComment, editComment, fetchCommentEngagement, fetchComments, fetchCommentVersions, reportComment, setCommentReaction, setCommentSaved, setCommentShared, withdrawComment,
   type CommentEngagementItem, type CommentEngagementPage, type CommentVersion } from '../lib/postInteractions';
@@ -112,6 +113,54 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   }, [presentation, post.id, sheetHeight, keyboard.covered]);
   useEffect(() => () => clearSheetPreview(post.id), [post.id]);
   const [replyTo, setReplyTo] = useState<{ id: number; handle: string } | null | undefined>(undefined);
+  /**
+   * Cele două gesturi ale foii (runda 49), hotărâte de `lib/sheetDismiss.ts`.
+   *
+   *   · **stratul de deasupra** (locul previzualizării) ține locul pe care îl atingea până acum ca să
+   *     închidă foaia. Acum aceeași atingere închide în continuare, dar o filă pe orizontală **întoarce
+   *     fila articolului** din previzualizare (`requestSheetPreviewPage`): fără asta, un articol cu mai
+   *     multe file rămânea la prima cât timp foaia era deschisă, fiindcă stratul acesta acoperă exact locul
+   *     unde stă postarea. O tragere în jos pe același loc închide foaia.
+   *   · **mânerul și antetul** se trag în jos: foaia urmează degetul (`translateY`) și se închide la
+   *     `SHEET_DISMISS_TRAVEL` sau la o aruncare. Numai în jos și numai clar vertical, deci o filă sau o
+   *     derulare care începe pe mâner rămâne a listei, iar ✕ rămâne un buton (responder-ul nu se cere la
+   *     atingere, ci la mișcare).
+   */
+  const [dragY, setDragY] = useState(0);
+  /**
+   * Amândouă cer atingerea **de la început** (`onStartShouldSetPanResponder`), nu la mișcare: un responder
+   * care așteaptă primele puncte de mișcare nu mai primește degetul (`lib/profileDrag.ts` a plătit deja
+   * lecția asta). De aceea stratul de deasupra este un `View`, nu un `Pressable` — un `Pressable` sub un
+   * responder care cere atingerea la start n-ar mai fi atins niciodată —, iar mânerul are zona lui proprie,
+   * ca ✕ din antet să rămână un buton.
+   */
+  const backdropGesture = useMemo(() => PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderRelease: (_, gesture) => {
+      const decision = previewBackdropDecision({ dx: gesture.dx, dy: gesture.dy });
+      if (decision.action === 'page') { requestSheetPreviewPage(post.id, decision.offset); return; }
+      if (decision.action === 'dismiss') onClose();
+    },
+    onPanResponderTerminate: () => undefined,
+  }), [onClose, post.id]);
+  const sheetGesture = useMemo(() => {
+    /** Trăiește în closure-ul responder-ului, nu în ref: niciun ref atins în randare. */
+    const drag = { started: false };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onPanResponderMove: (_, gesture) => {
+        drag.started = sheetDragShouldStart({ dx: gesture.dx, dy: gesture.dy });
+        setDragY(drag.started ? sheetDragDecision({ dy: gesture.dy, vy: 0 }).offset : 0);
+      },
+      onPanResponderRelease: (_, gesture) => {
+        const wasDrag = drag.started;
+        drag.started = false;
+        setDragY(0);
+        if (wasDrag && sheetDragDecision({ dy: gesture.dy, vy: gesture.vy }).dismiss) onClose();
+      },
+      onPanResponderTerminate: () => { drag.started = false; setDragY(0); },
+    });
+  }, [onClose]);
   /**
    * A comment is a paid action here (`lib/action-payments.js`): the write answers `402 PAYMENT_REQUIRED`
    * with a quote until a devnet transfer for it exists. This holds the comment waiting on that transfer
@@ -360,15 +409,31 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
               marginBottom: keyboard.covered,
               ...(presentation === 'sheet' ? { maxHeight: Math.max(240, keyboard.available), minHeight: 0 } : {}),
             } : null,
+            /**
+             * Runda 49: foaia urmează degetul tras în jos pe mâner. Numai atât se mișcă — înălțimile,
+             * colțurile și compozitorul rămân exact cum erau; la ridicare, dacă tragerile au trecut pragul
+             * (`lib/sheetDismiss.ts`), foaia se închide, altfel revine.
+             */
+            dragY > 0 ? { transform: [{ translateY: dragY }] } : null,
           ]}
         >
-          {presentation === 'sheet' ? <View style={styles.grabber} /> : null}
-          {presentation === 'sheet' ? <View style={styles.head}>
-            <Text style={styles.title} numberOfLines={1}>{`Comentarii · ${compactCount(post.comment_count) || 0}`}</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
-              <Text style={styles.closeText}>✕</Text>
-            </Pressable>
-          </View> : null}
+          {presentation === 'sheet' ? (
+            <View style={styles.headWrap}>
+              {/**
+               * Mânerul are propria zonă de tragere: 28 dp înălțime, cu linia de 4 dp în mijloc. Numai el
+               * cere degetul de la început, deci ✕ din antet rămâne un buton obișnuit (runda 49).
+               */}
+              <View {...sheetGesture.panHandlers} style={styles.grabberZone} accessibilityLabel="Trage în jos pentru a închide comentariile">
+                <View style={styles.grabber} />
+              </View>
+              <View style={styles.head}>
+                <Text style={styles.title} numberOfLines={1}>{`Comentarii · ${compactCount(post.comment_count) || 0}`}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel="Închide" onPress={onClose} style={styles.close}>
+                  <Text style={styles.closeText}>✕</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : null}
 
           {!focusId ? <View style={styles.sortBar} accessibilityRole="tablist" accessibilityLabel="Sortarea comentariilor">
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: sort === 'relevant' }} onPress={() => { if (sort !== 'relevant') { setError(''); setSort('relevant'); } }} style={styles.sortButton}>
@@ -559,7 +624,23 @@ export function CommentsSheet({ post, onClose, onCommentCreated, onCountSeen, on
   return (
     <Modal visible animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
       <View style={styles.backdrop}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Închide comentariile" onPress={onClose} style={styles.dismiss} />
+        {/**
+         * Stratul care închide foaia. Este un `View` cu responder, nu un `Pressable`: gesturele trebuie să
+         * ceară atingerea de la început (runda 49), iar un `Pressable` sub el n-ar mai primi nimic. Aceeași
+         * atingere închide foaia ca până acum, o filă pe orizontală întoarce fila articolului din
+         * previzualizare, iar o tragere în jos închide. Un cititor cu TalkBack are acțiunea `activate` aici
+         * și butonul ✕ în antet.
+         */}
+        <View
+          {...backdropGesture.panHandlers}
+          accessible
+          accessibilityRole="button"
+          accessibilityLabel="Închide comentariile"
+          accessibilityHint="Atinge pentru a închide. Glisează stânga-dreapta pe postare pentru a întoarce fila."
+          accessibilityActions={[{ name: 'activate' }]}
+          onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === 'activate') onClose(); }}
+          style={styles.dismiss}
+        />
         {content}
         {paymentGate}
       </View>
@@ -718,6 +799,9 @@ const styles = StyleSheet.create({
   },
   page: { flex: 1, backgroundColor: C.surface },
   grabber: { alignSelf: 'center', width: 44, height: 4, borderRadius: 2, marginTop: 8, backgroundColor: 'rgba(255,255,255,0.32)' },
+  /** Zona de tragere a mânerului (runda 49): aceeași linie, dar cu 20 dp de aer degetului deasupra și dedesubt. */
+  grabberZone: { paddingBottom: 16 },
+  headWrap: { flexShrink: 0 },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, gap: 10 },
   title: { color: '#f5f8fa', fontSize: 15, fontWeight: '800', flex: 1 },
   close: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: 20 },

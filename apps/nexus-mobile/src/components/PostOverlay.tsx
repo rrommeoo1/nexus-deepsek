@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import { PanResponder, StyleSheet, Text, View } from 'react-native';
 import type { StudioDecoration } from '../lib/studioManifest';
 import {
-  OVERLAY_KINDS, clampOverlayPosition, mediaContentRect, overlayFontSize, overlayMaxWidth, overlayPadding,
-  overlayWindow, type OverlayFit, type OverlayKind, type OverlayRect,
+  OVERLAY_KINDS, clampOverlayPosition, mediaContentRect, overlayFontSize, overlayLetterSpacing, overlayMaxWidth,
+  overlayPadding, overlayRadius, overlayShadowRadius, overlayWindow,
+  type OverlayFit, type OverlayKind, type OverlayRect,
 } from '../lib/overlayFrame';
 
 /**
@@ -39,7 +40,7 @@ export function isOverlayLabel(item: StudioDecoration): boolean {
 }
 
 function OverlayLabel({
-  item, now, rect, window, onMove,
+  item, now, rect, window, onMove, scale = 1,
 }: {
   item: StudioDecoration;
   now: number;
@@ -53,14 +54,19 @@ function OverlayLabel({
   window: { left: number; top: number; right: number; bottom: number };
   /** Given, the label may be dragged; the callback reports the new fraction of the content rectangle. */
   onMove?: (id: string, x: number, y: number) => void;
+  /**
+   * Cât de mult este micșorată compoziția față de pagină (runda 49): 1 în pagină, `commentsPreview`-ul
+   * foii de comentarii dă 0,48. Tipografia, aerul și colțul se micșorează cu ea, deci un sticker dintr-o
+   * previzualizare este **pagina ori factorul**, nu pagina la mărimea ei cea mai mică.
+   */
+  scale?: number;
 }) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [drag, setDrag] = useState({ dx: 0, dy: 0 });
   const kind = item.type as OverlayKind;
   const location = kind === 'LOCATION';
-  const clock = kind === 'TIME' || kind === 'DATE';
-  const padding = overlayPadding(kind);
-  const fontSize = overlayFontSize(kind, rect.width);
+  const padding = overlayPadding(kind, scale);
+  const fontSize = overlayFontSize(kind, rect.width, scale);
   const pan = useMemo(() => PanResponder.create({
     onStartShouldSetPanResponder: () => Boolean(onMove),
     onMoveShouldSetPanResponder: () => Boolean(onMove),
@@ -100,7 +106,7 @@ function OverlayLabel({
       }}
       style={[styles.label, {
         left: `${item.x}%`, top: `${item.y}%`, maxWidth: `${overlayMaxWidth(kind) * 100}%`,
-        backgroundColor: item.background, borderRadius: location ? 22 : 0,
+        backgroundColor: item.background, borderRadius: overlayRadius(kind, scale),
         paddingHorizontal: padding.horizontal, paddingVertical: padding.vertical,
         opacity: item.opacity,
         transform: [
@@ -110,7 +116,12 @@ function OverlayLabel({
         ],
       }]}
     >
-      <Text style={[styles.text, { color: item.color, fontSize, letterSpacing: clock ? 1 : 0 }, location && styles.locationText]}>
+      <Text style={[styles.text, {
+        color: item.color,
+        fontSize,
+        letterSpacing: overlayLetterSpacing(kind, scale),
+        textShadowRadius: location ? 0 : overlayShadowRadius(scale),
+      }, location && styles.locationText]}>
         {overlayTextOf(item, now)}
       </Text>
     </View>
@@ -122,7 +133,7 @@ function OverlayLabel({
  * tap the clip through it.
  */
 export function PostOverlay({
-  decorations, bounds, ratio, fit, now = 0, onMove,
+  decorations, bounds, ratio, fit, now = 0, onMove, scale = 1,
 }: {
   decorations: StudioDecoration[];
   /** The room the media was drawn in (the page, the preview surface), in points. */
@@ -132,6 +143,12 @@ export function PostOverlay({
   fit: OverlayFit;
   now?: number;
   onMove?: (id: string, x: number, y: number) => void;
+  /**
+   * Micșorarea compoziției față de pagină (runda 49). 1 în Feed/Profil/compozitor; previzualizarea de
+   * deasupra foii de comentarii dă raportul dintre cutia micșorată și pagină, ca stickerul să se
+   * micșoreze **cu** compoziția, nu să rămână la mărimea minimă a paginii.
+   */
+  scale?: number;
 }) {
   const labels = decorations.filter(isOverlayLabel);
   const rect = mediaContentRect({ width: bounds.width, height: bounds.height, ratio, fit });
@@ -152,7 +169,7 @@ export function PostOverlay({
       }}
     >
       {labels.map((item) => (
-        <OverlayLabel key={item.id} item={item} now={now} rect={rect} window={window} onMove={onMove} />
+        <OverlayLabel key={item.id} item={item} now={now} rect={rect} window={window} onMove={onMove} scale={scale} />
       ))}
     </View>
   );

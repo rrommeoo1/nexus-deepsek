@@ -103,4 +103,52 @@ export function resetSheetPreview(): void {
   openPost = 0;
   openHeight = 0;
   listeners.clear();
+  pageSnapshot = { seq: 0, postId: 0, offset: 1 };
+  pageListeners.clear();
 }
+
+/**
+ * O cerere de filă pentru previzualizarea de deasupra foii (runda 49).
+ *
+ * Foaia este într-un `Modal`, iar stratul ei acoperă exact locul unde stă postarea: un deget care ar
+ * frunzări articolul din previzualizare nu ajunge niciodată la pagerul lui. Deci gestul se ia **în foaie**
+ * și se raportează aici, iar pagina (`PostCanvas` → `EditorialArticle` → `EditorialPage`) îl citește de
+ * aici, prin `useCommentsPreviewPage`. `seq` este un număr care crește: două cereri identice la rând sunt
+ * două file, nu una, fiindcă `seq` le deosebește.
+ */
+export type SheetPreviewPageRequest = {
+  /** Crește la fiecare cerere; `0` înseamnă „nicio cerere încă". */
+  seq: number;
+  /** Postarea căreia îi este adresată cererea. */
+  postId: number;
+  /** `1` = fila următoare, `-1` = fila dinainte (`decideViewerGesture`). */
+  offset: 1 | -1;
+};
+
+let pageSnapshot: SheetPreviewPageRequest = { seq: 0, postId: 0, offset: 1 };
+const pageListeners = new Set<() => void>();
+
+/**
+ * Foaia cere fila următoare (sau dinainte) a articolului din previzualizare.
+ *
+ * Nu atinge nimic dacă nu există o foaie deschisă pentru postarea aceea: un gest rămas în urmă nu are voie
+ * să întoarcă fila unei postări care nu mai este deschisă.
+ */
+export function requestSheetPreviewPage(postId: number, offset: number): void {
+  const id = Math.round(Number(postId) || 0);
+  if (id <= 0) return;
+  if (openPost !== id) return;
+  const step = Number(offset) < 0 ? -1 : 1;
+  pageSnapshot = { seq: pageSnapshot.seq + 1, postId: id, offset: step };
+  for (const listener of pageListeners) listener();
+}
+
+export function sheetPreviewPageRequest(): SheetPreviewPageRequest {
+  return pageSnapshot;
+}
+
+export function subscribeSheetPreviewPage(listener: () => void): () => void {
+  pageListeners.add(listener);
+  return () => { pageListeners.delete(listener); };
+}
+

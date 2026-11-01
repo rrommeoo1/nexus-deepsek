@@ -13,8 +13,12 @@ import { PostOverlay } from './PostOverlay';
  * number both surfaces read, so a label the author placed at 40 % of the picture stands at 40 % of the
  * picture on the reader's phone, at the size the creator sheet gives it — never at a size measured from
  * the phone or from the box it was dragged in.
+ *
+ * `scale` (runda 49) este micșorarea compoziției față de pagină. Previzualizarea de deasupra foii de
+ * comentarii desenează pagina întreagă într-o cutie mai mică; fără acest număr, tipografia stickerului
+ * rămânea la **minimul paginii** (măsurat în runda 48: 547 px în loc de 585 × 0,48).
  */
-export function PostDecorations({ post, fit }: { post: SocialPost; fit: OverlayFit }) {
+export function PostDecorations({ post, fit, scale = 1 }: { post: SocialPost; fit: OverlayFit; scale?: number }) {
   const manifest = post.creator_studio?.integrity === 'VERIFIED' ? post.creator_studio.manifest : null;
   const decorations = manifest?.decorations ?? [];
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
@@ -36,7 +40,7 @@ export function PostDecorations({ post, fit }: { post: SocialPost; fit: OverlayF
     setBounds((previous) => previous.width === width && previous.height === height ? previous : { width, height });
   }}>
     {rect.width && rect.height
-      ? <PostOverlay decorations={decorations} bounds={bounds} ratio={ratio} fit={fit} now={now} />
+      ? <PostOverlay decorations={decorations} bounds={bounds} ratio={ratio} fit={fit} now={now} scale={scale} />
       : null}
   </View>;
 }

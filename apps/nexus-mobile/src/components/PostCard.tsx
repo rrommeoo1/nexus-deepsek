@@ -150,7 +150,7 @@ export function PostCard({
    */
   const previewFrame = previewing && height
     ? commentsPreviewFrameOf({
-      stage, pageWidth: pageWidth || windowWidth, pageHeight: height, room: previewRoom,
+      stage, pageWidth: pageWidth || windowWidth, pageHeight: height, room: previewRoom, safeTop: topInset,
     })
     : null;
 
@@ -233,7 +233,7 @@ export function PostCard({
            * se vede întreagă fără ca lista să-și schimbe paginile și fără ca poziția în feed să sară.
            */}
           {previewFrame ? (
-            <View style={[styles.previewMatter, { height: previewRoom }]}>
+            <View style={[styles.previewMatter, { height: previewRoom, paddingTop: previewFrame.top }]}>
               <View style={{ width: previewFrame.width, height: previewFrame.height }}>{canvas}</View>
             </View>
           ) : (

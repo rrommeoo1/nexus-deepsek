@@ -2,12 +2,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { blackSilver } from '../theme/blackSilver';
 import type { GestureResponderHandlers } from 'react-native';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
 import { RemoteImage } from './PostMedia';
 import { SolidViewerIcon } from './SolidViewerIcon';
 import { ProfileTextTile } from './ProfileTextTile';
 import { profileCompactCount, repostAttribution, type ArchivePost } from '../lib/profileContent';
 import { mediaKindOf, postMediaItems, type MediaItem } from '../lib/socialTypes';
 import { stageFor } from '../lib/postPresentation';
+import { useVideoPoster } from '../lib/videoPoster';
 import { socialTokens } from '../theme/social';
 
 /**
@@ -96,6 +98,15 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
 }) {
   const cover = postMediaItems(post).find((item) => mediaKindOf(item) !== 'audio') ?? null;
   const isVideo = mediaKindOf(cover) === 'video';
+  /**
+   * Cadrul clipului (runda 49).
+   *
+   * Până acum o celulă de clip desena o placă neagră cu un disc: o grilă de clipuri arăta doisprezece
+   * dreptunghiuri goale. Cadrul vine din playerul care există deja (`lib/videoPoster.ts`), se ține minte per
+   * fișier și se desenează cu `expo-image`; până sosește — sau dacă nu poate fi luat — celula rămâne placa
+   * de dinainte. Discul de redare rămâne peste cadru, fiindcă o celulă trebuie să spună că este un clip.
+   */
+  const poster = useVideoPoster(isVideo ? cover : null);
   const viewers = profileCompactCount(post.view_stats?.viewers);
   /**
    * What a cell shows is the post's own kind, not the guess "no picture, so nothing".
@@ -132,6 +143,15 @@ export function ProfileTile({ post, pinnedFirst = false, door, onManage, holdMs 
         <ProfileTextTile post={post} media={plate} />
       ) : cover && !isVideo ? (
         <RemoteImage item={cover} fit="cover" style={styles.fill} />
+      ) : poster ? (
+        <>
+          <Image source={poster} contentFit="cover" style={styles.fill} accessibilityIgnoresInvertColors />
+          <View style={[styles.fill, styles.posterDisc]}>
+            <View style={styles.playDisc}>
+              <View style={styles.playGlyph} />
+            </View>
+          </View>
+        </>
       ) : (
         <View style={[styles.fill, styles.videoPlate]}>
           <View style={styles.playDisc}>
@@ -288,6 +308,14 @@ const styles = StyleSheet.create({
   ghostFace: { width: '100%', height: '100%', overflow: 'hidden' },
   fill: { width: '100%', height: '100%' },
   videoPlate: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b1216' },
+  /**
+   * Discul de redare peste cadrul clipului (runda 49): cadrul spune *ce* se vede, discul spune *că* se
+   * poate reda. Stratul este numai al discului, deci atinge numai inima celulei, nu cifra din colț.
+   */
+  posterDisc: {
+    position: 'absolute', left: 0, right: 0, top: 0, bottom: 0,
+    alignItems: 'center', justifyContent: 'center',
+  },
   playDisc: {
     width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center',
     backgroundColor: 'rgba(8,10,13,0.62)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.35)',

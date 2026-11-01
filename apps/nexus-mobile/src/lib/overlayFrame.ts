@@ -76,26 +76,65 @@ export function mediaContentRect(input: {
 }
 
 /**
+ * Cât de mică poate coborî mărimea unui sticker când compoziția însăși se micșorează (runda 49).
+ *
+ * `scale` este micșorarea cutiei (1 = pagina întreagă, 0,48 = previzualizarea de deasupra foii de
+ * comentarii). Toate **plafoanele** tipografiei se înmulțesc cu ea, fiindcă un plafon este o măsură a
+ * paginii: altfel `minFontSize: 23` — gândit pentru un telefon cu pagina întreagă — rămâne 23 și într-o
+ * cutie la jumătate, iar stickerul iese cu 17 % mai mare decât compoziția din jur (măsurat pe telefon în
+ * runda 48: 547 px în loc de 585 × 0,48). Rezultatul este exact pagina micșorată: același raport, aceeași
+ * poziție în procente.
+ */
+function overlayScaleOf(scale?: number): number {
+  const value = Number(scale);
+  if (!Number.isFinite(value) || value <= 0) return 1;
+  return value > 1 ? 1 : value;
+}
+
+/**
  * The type size of a label, from the **content rectangle's** width — never the phone's, never the
  * preview box's. A place is set smaller than a text (`locationViewportFontRatio` of the sheet), and both
  * are held between the sheet's own bounds so a very small cell or a very large tablet still says the
  * same words at a readable size.
+ *
+ * `scale` (round 49) shrinks those bounds with the composition, so a reduced preview is the page times
+ * that factor and not "the page's minimum", which is what made a sticker look oversized in the sheet.
  */
-export function overlayFontSize(kind: OverlayKind, frameWidth: number): number {
+export function overlayFontSize(kind: OverlayKind, frameWidth: number, scale = 1): number {
   const width = Math.max(0, Number(frameWidth) || 0);
+  const factor = overlayScaleOf(scale);
   const sheet = creatorTokens.decoration;
   if (kind === 'LOCATION') {
-    return Math.min(sheet.locationMaxFontSize, Math.max(sheet.locationMinFontSize, width * sheet.locationViewportFontRatio));
+    return Math.min(sheet.locationMaxFontSize * factor, Math.max(sheet.locationMinFontSize * factor, width * sheet.locationViewportFontRatio));
   }
-  return Math.min(sheet.maxFontSize, Math.max(sheet.minFontSize, width * sheet.viewportFontRatio));
+  return Math.min(sheet.maxFontSize * factor, Math.max(sheet.minFontSize * factor, width * sheet.viewportFontRatio));
 }
 
 /** The padding the sheet gives a label of this kind (a clock keeps more air than a sentence). */
-export function overlayPadding(kind: OverlayKind): { horizontal: number; vertical: number } {
+export function overlayPadding(kind: OverlayKind, scale = 1): { horizontal: number; vertical: number } {
   const sheet = creatorTokens.decoration;
+  const factor = overlayScaleOf(scale);
   return kind === 'TIME' || kind === 'DATE'
-    ? { horizontal: sheet.timeHorizontalPadding, vertical: sheet.timeVerticalPadding }
-    : { horizontal: sheet.horizontalPadding, vertical: sheet.verticalPadding };
+    ? { horizontal: sheet.timeHorizontalPadding * factor, vertical: sheet.timeVerticalPadding * factor }
+    : { horizontal: sheet.horizontalPadding * factor, vertical: sheet.verticalPadding * factor };
+}
+
+/**
+ * Colțul unei etichete: pastila unei locații este rotunjită, un text nu. Rotunjimea este și ea o măsură a
+ * paginii, deci se micșorează cu ea (runda 49).
+ */
+export function overlayRadius(kind: OverlayKind, scale = 1): number {
+  return kind === 'LOCATION' ? 22 * overlayScaleOf(scale) : 0;
+}
+
+/** Umbra subțire care ține un text alb lizibil pe o poză deschisă, micșorată cu compoziția. */
+export function overlayShadowRadius(scale = 1): number {
+  return 7 * overlayScaleOf(scale);
+}
+
+/** Spațierea dintre cifrele unui ceas sau ale unei date, micșorată cu compoziția. */
+export function overlayLetterSpacing(kind: OverlayKind, scale = 1): number {
+  return kind === 'TIME' || kind === 'DATE' ? 1 * overlayScaleOf(scale) : 0;
 }
 
 /**
