@@ -1,4 +1,224 @@
+## 0.49 Clipuri cu chip real în grile, foaia de comentarii trasă în jos, fila articolului sub foaie și stickere care se micșorează cu cutia (1 noiembrie 2026)
+
+**Starea depozitului.** Cod pe ramura `codex/camera-draft-stability`, fără push, fără ștergeri de date, fără
+modificări în `apps/nexus-web/**` (doar pornirea serverului local), fără postări publice. `tsc --noEmit` →
+**exit 0**. `node scripts/run-tests.mjs` → **`suites=80 failed=0 in 39s`** (78 în runda 48; suitele noi
+`test-poster-frame.cjs` și `test-sheet-gestures.cjs`). `eslint` pe cele 17 fișiere atinse → **13 erori,
+toate preexistente** (dovedite mai jos), **4 avertismente** (BOM în patru fișiere). APK nativ reconstruit
+(`builds/nexus-dev-arm64.apk`, 116.337.024 octeți, `812 actionable tasks`) și reinstalat cu `adb install -r`.
+Checkpoint-urile de păstrat rămân **`5152695`** (runda 48) și **`f155ae9`** (raportul ei); checkpoint-ul
+local al rundei 49 este commit-ul de față (cod + teste + raport), fără push.
+
+**Ce a cerut ownerul, pe scurt:** (1) în grilele din Profil și Căutare, un clip să arate **un cadru real**,
+nu placa neagră cu disc; (2) previzualizarea de deasupra comentariilor să fie **sigură față de bara de
+stare**; (3) un articol editorial să poată fi **frunzărit pe orizontală** cât timp foaia e deschisă;
+(4) foaia să se închidă **trăgând-o în jos**; (5) stickerul din previzualizarea micșorată să se micșoreze
+**cu** cutia (măsurătoarea rămasă deschisă în §0.48).
+
+### 1. Cadrul real al clipului în cele două grile
+
+`ProfileTile` desena pentru un clip o placă `#0b1216` cu un disc de redare — o grilă de clipuri arăta
+doisprezece dreptunghiuri goale. Telefonul avea însă ce trebuie: playerul din `expo-video` poate cere un
+cadru din chiar fișierul pe care îl redă (cu anteturile sesiunii, fiindcă ele trec prin
+`MediaMetadataRetriever`), iar `expo-image` știe să deseneze referința nativă întoarsă.
+
+| fișier | ce face |
+| --- | --- |
+| `src/lib/posterFrame.ts` (**nou**, pur) | numerele: `POSTER_MAX_WIDTH = 360` px, `POSTER_AT_SECONDS = 0,4` (nu secunda 0, care e neagră la multe clipuri), plafon de 24 de cadre ținute minte, cel mult 2 generări simultane, `posterKeyOf(uri, width)`, `posterWidthFor(cellWidth, density)`, `posterTimeFor(duration)`, `posterEvictions(order, limit)` |
+| `src/lib/videoPoster.ts` (**nou**) | un `createVideoPlayer` **de unică folosință**: `generateThumbnailsAsync([posterTimeFor(player.duration)], { maxWidth })`, apoi `player.release()` imediat. Un cadru per fișier și lățime (`pending` oprește două decodoare pentru același clip), coadă cu `POSTER_CONCURRENCY = 2`, cache în memorie cu plafon. Un eșec nu spune nimic: celula rămâne placa ei. `useVideoPoster(item)` citește cadrul în randare din cache și îl ține sub cheia fișierului |
+| `src/components/ProfileTile.tsx` | `const poster = useVideoPoster(isVideo ? cover : null)`; `<Image source={poster} contentFit="cover" />` (expo-image) cu **discul de redare peste el** și cifra de vizualizări neatinsă. Fără cadru — aceeași placă de dinainte |
+
+Grilele atinse sunt exact cele cerute, fiindcă amândouă desenează celula cu același component:
+`ProfileScreen` (arhiva) și `SearchScreen` (`<ProfileTile post={item} mode="explore" />`). Un clip de 9:16
+se decupează la fel ca în pagină (`contentFit: 'cover'`), deci celula arată ce arată postarea, nu un cadru
+întreg turtit.
+
+**Dependențe native.** `expo-image@~57.0.5` (versiunea din `bundledNativeModules.json`) a fost adăugat; fără
+el, `VideoThumbnail` (un `SharedRef<'image'>`) nu se poate desena. `npm install` a scos însă la iveală o
+problemă veche: `src/lib/xportalIntents.ts` importa `expo-intent-launcher` **fără să-l declare**, iar
+pachetul exista în `node_modules` doar ca reziduu. Instalarea l-a curățat, `tsc` a picat pe el, și a fost
+declarat explicit (`~57.0.1`, tot versiunea SDK). De aceea APK-ul a fost reconstruit: ambele module sunt
+native, deci clientul vechi nu le avea.
+
+
 ## 0.48 Previzualizarea de deasupra comentariilor păstrează exact decuparea din Feed/Profil. Sus rămâne numai conținutul postării (31 octombrie 2026)
+### 2. Previzualizarea începe sub ceasul telefonului
+
+Pagina întreagă își începe compoziția la `topInset` (capul stă sub bară). Cutia micșorată **umplea** însă
+locul rămas (`height = room`), iar centrarea nu mai avea ce muta: sus apărea exact banda pe care pagina o
+ține liberă, adică `y = 0`. `commentsPreviewFrameOf({ …, safeTop })` socotește acum locul de **sub** bară
+(`available = room − safeTop`), întoarce `top = safeTop`, iar `PostCard` și `ReelsReader` așază cutia cu
+`paddingTop` (nu `marginTop`: centrarea trebuie să rămână în locul de sub bară). Cu `safeTop` lipsă sau 0,
+socoteala este exact cea din runda 48.
+
+### 3. Fila articolului, sub foaie
+
+Foaia stă într-un `Modal`, iar stratul ei acoperă exact locul previzualizării: un deget care ar frunzări
+articolul nu ajunge niciodată la pagerul lui. Deci gestul se ia **în foaie** și se raportează:
+`lib/sheetPreview.ts` a primit un depozit de cereri (`requestSheetPreviewPage(postId, ±1)`,
+`sheetPreviewPageRequest()`, `subscribeSheetPreviewPage`, curățat de `resetSheetPreview`), iar
+`useSheetPreview.ts` a primit `useCommentsPreviewPage(postId, enabled)`. `PostCanvas` citește cererea **numai
+în previzualizare** și o dă mai departe: `EditorialArticle` → `EditorialPage`, care o consumă o dată per
+`seq` în randarea care o vede (fără efect, fără un al doilea render) și mută pagerul cu
+`scrollToIndex({ index: page, animated: true })`. Un `seq` care crește face ca două cereri identice la rând
+să fie două file, nu una.
+
+### 4. Foaia se trage în jos
+
+`src/lib/sheetDismiss.ts` (**nou**, pur) ține hotărârile: `sheetDragShouldStart` (numai în jos, numai clar
+vertical — 6 dp și panta 1,2), `sheetDragDecision` (cât urmează foaia degetul; se închide la **96 dp** sau
+la o aruncare de **1,1 dp/ms**), `previewBackdropDecision` (atingere → închide; filă orizontală de la 48 dp
+→ fila articolului; tragere în jos → închide).
+
+În `CommentsSheet`: mânerul are acum o **zonă proprie de tragere** (28 dp, cu aceeași linie de 4 dp în ea),
+iar foaia urmează degetul cu `translateY` și revine dacă nu s-a atins pragul; ✕ rămâne un buton obișnuit,
+fiindcă numai zona mânerului cere degetul.
+
+**Lecția plătită pe telefon, de reținut:** un `PanResponder` care cere gestul abia la mișcare
+(`onMoveShouldSetPanResponder`) **nu primește deloc degetul** pe acest telefon — nici tragerea mânerului,
+nici fila pe previzualizare nu făceau nimic (dovedit: `r49-k-drag-down-dismissed.jpg`, foaia încă deschisă
+după o tragere de 1340 px). Responderii cer atingerea la start
+(`onStartShouldSetPanResponder: () => true`) și decid direcția la mișcare, exact ca `ProfileBand` și cum
+spune deja `lib/profileDrag.ts`. Din același motiv stratul de deasupra a devenit un `View` cu responder, nu
+un `Pressable` (un `Pressable` sub un responder care cere atingerea la start n-ar mai fi atins niciodată);
+pentru TalkBack a primit `accessibilityActions=[{ name: 'activate' }]`, iar ✕ rămâne scurtătura lui.
+
+### 5. Stickerul se micșorează cu cutia
+
+Runda 48 a măsurat defectul și l-a lăsat deschis: stickerul „Așa este😍" avea 981×217 px în pagină și
+547×123 px în previzualizare — raport 0,56 în loc de 0,48. Cauza nu era poziția (`left: x%` se micșorează
+singură, fiind o fracțiune din dreptunghi), ci **plafonul de tipografie**: `minFontSize: 23` este o măsură a
+paginii, iar într-o cutie la jumătate rămânea 23 (23 / 40,2 = 0,572, exact ce s-a măsurat).
+
+`lib/overlayFrame.ts` primește un factor `scale` care înmulțește **plafoanele**: `overlayFontSize(kind, width,
+scale)`, `overlayPadding(kind, scale)`, plus `overlayRadius`, `overlayShadowRadius` și
+`overlayLetterSpacing`, toate măsuri ale paginii. `PostOverlay` și `PostDecorations` primesc `scale`
+(implicit 1), iar `ReelsReader` îl dă din cutie: `scale={previewFrame?.scale ?? 1}`. Rezultatul este pagina
+ori factorul: la 0,4796, textul iese 19,25 pt față de 40,18 pt — 0,479 ✔.
+### CE S-A TESTAT PE ANDROID (telefon real, 1220×2656 px la 2,6, adică 469×1022 dp)
+
+Telefonul a răspuns în toată runda (`adb-b42122b-huYC9y._adb-tls-connect._tcp`), cu `adb reverse` pentru
+`tcp:8081` și `tcp:5000` și cu serverul local pornit (`Nexus running on http://0.0.0.0:5000`, `/api/version`
+→ 200). Fără Home, fără Back, fără cortină de notificări, fără modificări de setări.
+
+**Sesiunea.** Aplicația s-a deschis pe ecranul de autentificare (`r49-b-home.jpg`), fiindcă backendul nu
+rula la prima lansare (`fetch failed: java.io.IOException: unexpected end of stream on
+http://localhost:5000/…`). Contul de test documentat (`test@nexus.ro`) are parola într-o variabilă de mediu
+pe care nu o am, deci am creat un cont **local** de verificare prin formularul aplicației:
+`r49.verify@nexus.test` → **`@r49verify`** (`r49-c-signup.jpg`, `r49-d-account-created.jpg`: „@r49verify a
+fost creat. Verifică emailul, confirmă adresa, apoi intră în cont."). Loginul cu aceleași date a intrat
+direct în feed. **Date adăugate, nu șterse** — un cont local, fără cost, fără wallet real.
+
+| fișier | ce se vede (dovada este imaginea citită, nu fișierul) |
+| --- | --- |
+| `r49-a-feed.jpg` | clientul dev la prima lansare: „Loading from 127.0.0.1:8081…", fără redbox |
+| `r49-b-home.jpg` | ecranul de autentificare, cu `fetch failed … localhost:5000` (dovada că lipsea backendul) |
+| `r49-c-signup.jpg`, `r49-d-account-created.jpg` | formularul „CREEAZĂ CONT" completat și confirmarea „@r49verify a fost creat" |
+| `r49-e-feed.jpg` | feed-ul contului nou: cap, poză, legendă, rail (o reacție, comentariu, salvare, distribuire), bara de șapte butoane |
+| `r49-f-video-page.jpg` | pagina unui clip (Andrei Stan, „Un riff de duminică"): clipul, butonul de sunet, railul |
+| `r49-g-search-wall.jpg`, `r49-h-thumbnails-wall.jpg`, `r49-i-thumbnails-wall2.jpg` | **peretele din Căutare: trei celule de clip arată cadrul real al clipului** (pinguinul), cu discul de redare și cifra „1" în colț — exact ce era placa neagră |
+| `r49-j-video-comments-preview.jpg` | foaia „Comentarii · 0" peste **previzualizarea micșorată** a clipului: fără cap, fără rail, fără legendă, compoziția într-o cutie îngustă, centrată |
+| `r49-k-drag-down-dismissed.jpg` | **starea de dinainte de reparație**: după o tragere de 1340 px pe mâner foaia era încă deschisă (responder-ul care aștepta mișcarea nu primea degetul) |
+| `r49-l-words-preview.jpg` | aceeași foaie cu **două comentarii reale** (Andrei Stan, Elena Vasilescu, „Răspunde", 0/0/0, „Strânge firul") peste o poză micșorată |
+| `r49-m-profile-thumbnails.jpg` | **grila din Profil**: prima celulă arată cadrul clipului (pinguinul) cu discul și cifra „1", a doua pagina de hârtie („Vinilul sună altfel…") |
+| `r49-n-feed-state.jpg` | starea feed-ului după navigare (aceeași pagină, fără foaie) |
+
+**Măsurat, nu privit** (probe de pixeli pe `r49-l-words-preview.jpg`, 1220×2656):
+
+| ce | măsurat | ce ar fi dat socoteala veche |
+| --- | --- | --- |
+| muchia de sus a cutiei (coloana x=610, primul pixel luminos) | **y = 151 px = 58 dp** | `y = 0` (cutia umplea tot locul) |
+| lățimea cutiei (rândul y=700, prima muchie) | **x ≈ 351 px → lățime ≈ 518 px = 199 dp** | ≈ 585–592 px (469 × room/1022) |
+| foaia deschisă | muchia de sus ≈ 1290 px → `room ≈ 496 dp` | — |
+| socoteala nouă | `available = 496 − 58 = 438 dp`; `scale = 438/1022 = 0,4286`; `width = 469 × 0,4286 = 201 dp = 522 px` | coincide cu cei 518 px măsurați (muchia pozei întunecate cade cu 2–3 px devreme) |
+
+**Dovedit prin `uiautomator dump`, nu prin imagine:** după reparație, o tragere pe mâner
+(`input swipe 610 1310 610 2200 600`) **închide foaia** („Comentarii ·" dispare din arbore), iar o filă
+orizontală pe previzualizare (`input swipe 900 700 200 700 300`) **lasă foaia deschisă** — adică gestul a
+fost raportat ca cerere de filă, nu ca închidere.
+
+### TESTE AUTOMATE
+
+- `node node_modules/typescript/bin/tsc --noEmit` → **exit 0**.
+- `node scripts/run-tests.mjs` → **`suites=80 failed=0 in 39s`** (78 în runda 48).
+- Suită nouă `scripts/test-poster-frame.cjs` (**5** teste): cheia = fișier + lățime (două celule cu același
+  clip cer un cadru), lățimea umple celula fără să țină o poză de 1080 px, cadrul se ia la 0,4 s (mijlocul
+  unui clip de 0,6 s), plafonul de cache scoate ce e mai vechi, iar celula desenează cadrul cu `expo-image`
+  (`<Image source={poster}>`), **nu** montează `VideoView`, iar playerul se eliberează în `finally`.
+- Suită nouă `scripts/test-sheet-gestures.cjs` (**5** teste): tragerea (prag, aruncare, sus nu închide,
+  măsurători stricate), pornirea gestului (numai jos, numai vertical), stratul de deasupra (filă stânga →
+  fila următoare, tragere în jos → închide, atingere → închide), depozitul de cereri (numai pentru foaia
+  deschisă, `seq` care crește, dezabonare, reset) și lanțul legat în cod (`requestSheetPreviewPage` →
+  `useCommentsPreviewPage` → `pageRequest` → `scrollToIndex`).
+- Teste actualizate **pentru regula nouă**, nu ca să treacă: `test-overlay-frame.cjs` (+1 test care
+  reproduce defectul măsurat: fără `scale`, tipografia cade pe `minFontSize`), `test-comments-preview.cjs`
+  (+1 test pentru `safeTop`/`top` și pentru `paddingTop` în ambele suprafețe), `test-sheet-preview.cjs`
+  (mânerul are zonă de tragere), `test-fullscreen-feed.cjs` și `test-text-page.cjs` (semnăturile noi).
+- `eslint` pe cele 17 fișiere: **13 erori, toate preexistente** — `EditorialPage.tsx` 242, 251, 401, 640
+  (`react-hooks/set-state-in-effect`) și 1003, 1005, 1018, 1051, 1088, 1132 (`react-hooks/refs`), plus
+  `PostCanvas.tsx` 364 și 1130 ×2. `EditorialPage.tsx` nu fusese linterizat în runda 48 (nu era atins);
+  erorile stau pe linii pe care runda asta nu le-a scris (blocul nou este la 143–150 și 405–427). Cele
+  patru avertismente sunt BOM-uri în `EditorialPage`, `PostCanvas`, `PostCard`, `ReelsReader`.
+
+
+orizontală pe previzualizare (`input swipe 900 700 200 700 300`) **lasă foaia deschisă** — adică gestul a
+### CE RĂMÂNE INCOMPLET
+
+1. **Fila articolului nu a fost văzută pe telefon.** Socoteala, depozitul și lanțul sunt dovedite de teste,
+   iar gestul e dovedit pe telefon (fila pe previzualizare nu închide foaia) — dar **niciun articol cu mai
+   mult de o filă nu există în datele locale**: feed-ul are numai postări scurte (niciun „Pagina 1 din N" în
+   niciuna dintre postările parcurse). Ca să se vadă ar trebui publicată o postare nouă de text lung, adică
+   date noi în numele ownerului — nu am făcut-o.
+2. **Stickerul** nu a putut fi măsurat pe telefon din același motiv: în baza locală **nu există nicio
+   postare cu decorări** (`creator_studio`), deci nu există un sticker de măsurat. Regula este dovedită de
+   `test-overlay-frame.cjs`, care reproduce exact cifrele rundei 48 (547 px în loc de 585 × 0,48).
+3. **Cadrul din grilă nu se salvează pe disc**: este un `Bitmap` nativ ținut în memorie (plafon 24), deci
+   după o repornire a aplicației cadrele se regenerează o dată (două deodată, din fișierul deja descărcat
+   când există). O salvare ar cere o a doua bibliotecă (`expo-image-manipulator`) — nu am adăugat-o.
+4. **O celulă de clip din perete a rămas neagră** în `r49-h-thumbnails-wall.jpg` (rândul de jos, dreapta):
+   cadrul ei încă nu sosise la captură. Nu am dovedit că s-a umplut mai târziu.
+5. **Un tap greșit al meu a ajuns pe butonul Home al telefonului** (prima încercare de a atinge „CREEAZĂ
+   CONT", care stătea sub bara de navigare): aplicația a fost readusă în prim-plan cu `am start`, fără nicio
+   modificare de setări și fără pierdere de date. Merită reținut: marginea de jos a ecranului de login este
+   acoperită de bara sistemului.
+6. `JUNGLE_BOOK_PROGRESS.md`, `JUNGLE_BOOK_VISUAL_VERIFICATION.md`, `apps/nexus-web/public/xportal-timing.js`
+   și fișierele `tools/_diag-*` erau deja modificate ori neversionate înainte de rundă; nu le-am atins.
+   Serverul local a rulat modulul propriu de mentenanță la deschiderea bazei („post commitment migration:
+   restored=0 unresolved_active=8") — pas idempotent al serverului, nu o ștergere făcută de mine.
+
+### CE TREBUIE FĂCUT DE OWNER PE TELEFON
+
+1. Deschide **Profil → o grilă cu clipuri** și **Căutare**: celulele de clip trebuie să arate un cadru din
+   clip, cu discul de play peste el — nu placa neagră.
+2. Deschide comentariile pe o postare cu poză: sus, compoziția trebuie să înceapă **sub ceas**, iar poza
+   trebuie să aibă exact decuparea din Feed/Profil (fără părți noi).
+3. **Trage foaia în jos de mâner**: trebuie să urmeze degetul și să se închidă; o filă scurtă o lasă
+   deschisă.
+4. Pe un **articol cu mai multe file**, deschide comentariile și glisează stânga pe previzualizare: fila
+   articolului trebuie să se întoarcă sub foaie.
+5. Deschide comentariile pe o postare cu **sticker**: stickerul trebuie să fie pagina micșorată, nu lipit de
+   muchia cutiei.
+
+### Fișiere atinse în această rundă
+
+Cod: `src/lib/posterFrame.ts` (nou), `src/lib/videoPoster.ts` (nou), `src/lib/sheetDismiss.ts` (nou),
+`src/lib/sheetPreview.ts`, `src/lib/useSheetPreview.ts`, `src/lib/commentsPreview.ts`, `src/lib/overlayFrame.ts`,
+`src/components/ProfileTile.tsx`, `src/components/PostOverlay.tsx`, `src/components/PostDecorations.tsx`,
+`src/components/PostCard.tsx`, `src/components/ReelsReader.tsx`, `src/components/PostCanvas.tsx`,
+`src/components/EditorialArticle.tsx`, `src/components/EditorialPage.tsx`, `src/components/CommentsSheet.tsx`,
+`package.json`, `package-lock.json` (`expo-image`, `expo-intent-launcher`, cele două suite noi în lanț).
+Teste: `scripts/test-poster-frame.cjs` (nou), `scripts/test-sheet-gestures.cjs` (nou),
+`scripts/test-overlay-frame.cjs`, `scripts/test-comments-preview.cjs`, `scripts/test-sheet-preview.cjs`,
+`scripts/test-fullscreen-feed.cjs`, `scripts/test-text-page.cjs`.
+Dovezi: 14 capturi `JUNGLE_BOOK_VERIFICATION/final_jpg/r49-*.jpg`. Nimic din `apps/nexus-web/**` (în afara
+pornirii serverului local), `docs/` sau `tools/` nu a fost modificat.
+
+
+fost raportat ca cerere de filă, nu ca închidere.
+
+
+
+
 
 **Starea depozitului.** Cod pe ramura `codex/camera-draft-stability`, fără push, fără reinstalare, fără
 ștergeri de date, fără postări publice, fără modificări în `apps/nexus-web/**` sau în server. `tsc --noEmit`
